@@ -84,6 +84,47 @@ okutman yeterli.
      authenticated"). Tarayici tabanli OAuth istedigi icin Claude tarafindan
      otomatik yapilamiyor. Kullaniciya soruldu, **"simdilik burada dur"**
      secildi - Cloudflare adimlarina (5-9) henuz baslanmadi.
+8. **Sifreli magaza onizleme kapisi eklendi (bu oturumda)**: Canliya alindiginda
+   herkesin "yapim asamasinda" gorunumunu gormeye devam etmesi, ama ozel bir
+   linkle gercek magazanin gorulebilmesi istendi.
+   - Cloudflare'deki mevcut statik "yapim asamasinda" sayfasinin gercek HTML/CSS
+     kaynagi kullaniciyla birlikte alinip (`https://bollmark.com` fetch edildi)
+     birebir bu projeye tasindi: **`src/app/(gate)/yapim-asamasinda/page.tsx`**
+     (Fraunces + Work Sans fontlari `next/font/google` ile, animasyonlu SVG
+     kuyruk figurleri dahil, orijinaliyle piksel esdeger).
+   - Bu sayfanin header/footer olmadan, tamamen izole gorunmesi icin proje
+     **route groups** ile ikiye bolundu: mevcut tum sayfalar (magaza + admin +
+     api) `src/app/(site)/` altina tasindi (kendi `layout.tsx`'i, header/footer,
+     CartProvider dahil), yeni placeholder ise `src/app/(gate)/` altinda kendi
+     minimal `layout.tsx`'ine sahip ayrı bir "root layout". Bu sayede ana
+     sayfa/`urunler` gibi rotalarin statik (`○`) build ciktisi bozulmadi
+     (headers()/dynamic API kullanan bir alternatif denenmedi, bilinçli olarak
+     bundan kacinildi).
+   - `src/proxy.ts` genisletildi: `/admin` icin eski NextAuth kontrolu aynen
+     duruyor; onun disindaki tum magaza rotalari icin yeni bir "onizleme
+     kapisi" eklendi. `PREVIEW_PASSWORD` ortam degiskeni tanimliysa,
+     `?preview=DOGRU_SIFRE` ile gelen istek 30 gunluk `bm_preview` adinda
+     **httpOnly** cookie birakip sorgu parametresi temizlenmis ayni adrese
+     yonlendiriliyor; cookie yoksa/yanlissa istek `/yapim-asamasinda`
+     sayfasina **rewrite** ediliyor (adres cubugu degismiyor). `PREVIEW_PASSWORD`
+     tanimsizsa koruma tamamen devre disi. Ortak sabitler
+     `src/lib/preview-gate.ts` icinde.
+   - `.env.example`'a `PREVIEW_PASSWORD=""` (aciklamali) eklendi; yerel `.env`
+     dosyasina Claude tarafindan `node crypto.randomBytes` ile uretilen 32
+     karakterlik rastgele bir sifre yazildi (guvenlik icin degeri kullaniciya
+     gosterilmedi, `.env` dosyasindan okunabilir).
+   - Yerelde `npm run build` (hatasiz, `/` ve `/urunler` hala statik) ve
+     `npm run dev` ile asagidaki senaryolar `Invoke-WebRequest` ile dogrulandi:
+     cookiesiz `/` ve `/urunler` -> gate gosteriyor; `/admin/login` -> gate
+     GOSTERMIYOR (her zaman erisilebilir); cookiesiz `/admin` -> login'e 307
+     redirect; dogru `?preview=` -> 307 redirect + httpOnly cookie set; ayni
+     cookie ile tekrar istek (sayfa yenileme simulasyonu) -> gercek site
+     gosteriyor; yanlis sifre -> gate gosteriyor; `/api/auth/session` -> proxy
+     tarafindan hic dokunulmuyor (200, JSON).
+   - Degisiklik commit'lendi ve push edildi (`28e0696`).
+   - **Cloudflare hatirlatmasi**: canliya alirken **Settings -> Variables and
+     secrets** kismina `PREVIEW_PASSWORD` da eklenmeli (asagidaki listeye
+     eklendi) - eklenmezse canlida koruma calismaz, herkes gate sayfasini gorur.
 
 ## Simdi yapilmasi gerekenler (kaldigimiz yer)
 
@@ -109,6 +150,9 @@ okutman yeterli.
    - `NEXTAUTH_SECRET` (yerel `.env` dosyasinda mevcut)
    - `NEXTAUTH_URL` = `https://bollmark.com`
    - `ADMIN_EMAIL`, `ADMIN_PASSWORD`
+   - `PREVIEW_PASSWORD` (yerel `.env` dosyasinda mevcut - magaza onizleme
+     kapisinin sifresi; bu eklenmezse canlida `?preview=...` calismaz ve
+     herkes surekli yapim-asamasinda sayfasini gorur)
 8. **Compatibility flags**'e (Settings -> Runtime, ekran goruntusunde bu alan
    zaten goruldu) `nodejs_compat` ekle (Prisma ve next-auth/bcryptjs icin
    gerekli). `wrangler.jsonc` icinde de zaten tanimli, ama dashboard
