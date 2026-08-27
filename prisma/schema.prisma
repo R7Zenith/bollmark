@@ -1,13 +1,14 @@
 // Bollmark e-ticaret veritabani semasi
-// Yerelde SQLite kullanir (sifir kurulum). Canliya alirken provider "postgresql"
-// yapilip DATABASE_URL bir Postgres adresine cevrilir; sema degismeden calisir.
+// Neon (serverless Postgres) kullanir - Cloudflare Pages gibi edge ortamlarinda
+// calisabilmesi icin driver adapter (@prisma/adapter-neon) ile baglanilir.
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
