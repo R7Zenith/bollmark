@@ -40,3 +40,7 @@ next-env.d.ts
 # local tooling
 .claude/
 bollmark.zip
+
+# cloudflare / opennext
+.open-next/
+.wrangler/
