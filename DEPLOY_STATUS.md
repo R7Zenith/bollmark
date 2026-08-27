@@ -1,6 +1,6 @@
 # Bollmark - Kurulum ve Canliya Alma Durumu
 
-Son guncelleme: 2026-08-27
+Son guncelleme: 2026-08-28
 
 Bu dosya, projeyi Claude Code ile kurup canliya alma surecinde nereye kadar
 gelindigini kaydeder. Kaldigimiz yerden devam etmek icin bu dosyayi Claude'a
@@ -61,26 +61,47 @@ okutman yeterli.
      onerildi (`src/middleware.ts` -> muhtemelen yeniden adlandirma/uyarlama
      gerekebilir, henuz **kesin build sonucu (basarili mi hatali mi)
      dogrulanmadi** - oturum burada yarim kaldi).
+7. **Build dogrulandi ve middleware -> proxy gecisi tamamlandi (bu oturumda)**:
+   - Bu bilgisayarda Node.js PATH'e tanimli degildi (yeni terminal
+     oturumlarinda `C:\Program Files\nodejs` PATH'te gorunmuyordu) - her
+     komuttan once `$env:PATH += ";C:\Program Files\nodejs"` eklenerek
+     asildi. Kalici cozum icin PowerShell'i/terminali yeniden baslatmak
+     (veya sistem PATH'inin yenilenmesini saglamak) yeterli olabilir.
+   - `npm run build` **basariyla** calisti (hata yok).
+   - `src/middleware.ts` dosyasi `src/proxy.ts` olarak yeniden adlandirildi
+     (icerik degismedi - `next-auth/middleware`'den `withAuth` default export
+     olarak kaliyor, sadece dosya adi Next 16 kuralina uyduruldu). Codemod
+     (`npx @next/codemod@canary middleware-to-proxy .`) calisan git durumu
+     kontrolunde takildigi icin (working tree temiz olmasina ragmen) elle
+     `git mv` ile yapildi.
+   - Build tekrar calistirildi, `middleware` deprecated uyarisi **kayboldu**.
+   - Zaten calisan bir `npm run dev` sunucusu (PID ile, port 3000) bulundu;
+     ana sayfa (`/`), `/admin/login`, `/urunler` route'lari `curl` ile test
+     edildi, hepsi **200 OK** dondu.
+   - Degisiklik commit'lenip GitHub'a push edildi (`2d1ec42`).
+   - **Cloudflare tarafinda engel**: bu makinede `wrangler` CLI Cloudflare
+     hesabina giris yapili degil (`npx wrangler whoami` -> "not
+     authenticated"). Tarayici tabanli OAuth istedigi icin Claude tarafindan
+     otomatik yapilamiyor. Kullaniciya soruldu, **"simdilik burada dur"**
+     secildi - Cloudflare adimlarina (5-9) henuz baslanmadi.
 
 ## Simdi yapilmasi gerekenler (kaldigimiz yer)
 
-1. `npm run build` sonucunu kontrol et (basarili mi, hata var mi?). Hata
-   varsa (ozellikle Next 16 ile ilgili API degisiklikleri - `cookies()`,
-   `headers()`, dynamic `params` artik Promise donebiliyor gibi konular)
-   duzelt.
-2. `src/middleware.ts` icin Next 16'nin onerdigi `proxy` donusumunu
-   degerlendir (`npx @next/codemod@canary middleware-to-proxy .` calistirilip
-   calismadigini kontrol edilebilir, ya da manuel).
-3. Build basarili olursa: `npm run dev` ile yerelde tekrar hizli bir kontrol
-   yap (ana sayfa, admin login, urun listeleme).
-4. Tum degisiklikleri commit'leyip GitHub'a push et.
-5. Cloudflare dashboard'daki "Connect to a repository" dialogunda:
+1. ~~`npm run build` sonucunu kontrol et~~ ✅ tamamlandi, basarili.
+2. ~~`src/middleware.ts` icin Next 16'nin onerdigi `proxy` donusumu~~ ✅
+   tamamlandi (`src/proxy.ts`).
+3. ~~`npm run dev` ile yerelde hizli kontrol~~ ✅ tamamlandi (ana sayfa,
+   admin login, urun listeleme 200 dondu).
+4. ~~Tum degisiklikleri commit'leyip GitHub'a push et~~ ✅ tamamlandi.
+5. **Sirada:** `npx wrangler login` ile bu makineyi Cloudflare hesabina
+   bagla (tarayicida oturum acmak gerekiyor - bu adim kullanicinin kendisi
+   tarafindan tetiklenmeli). Giris yapildiktan sonra devam:
    - **Build command**'i `npm run build` yerine `npx opennextjs-cloudflare
      build` olarak degistir (Next build'i de icinde calistirir).
    - **Deploy command** `npx wrangler deploy` olarak kalabilir (varsayilan
      dogru).
    - "Connect" butonuna bas.
-6. Cloudflare'de **Settings -> Variables and secrets** kismina asagidaki
+7. Cloudflare'de **Settings -> Variables and secrets** kismina asagidaki
    ortam degiskenlerini ekle (Production, gerekirse Preview icin de):
    - `DATABASE_URL` (Neon baglanti adresi - kullanicida mevcut, ben yerel
      `.env` dosyasina yazdim ama Cloudflare'e ELLE girilmesi gerekiyor,
@@ -88,14 +109,14 @@ okutman yeterli.
    - `NEXTAUTH_SECRET` (yerel `.env` dosyasinda mevcut)
    - `NEXTAUTH_URL` = `https://bollmark.com`
    - `ADMIN_EMAIL`, `ADMIN_PASSWORD`
-7. **Compatibility flags**'e (Settings -> Runtime, ekran goruntusunde bu alan
+8. **Compatibility flags**'e (Settings -> Runtime, ekran goruntusunde bu alan
    zaten goruldu) `nodejs_compat` ekle (Prisma ve next-auth/bcryptjs icin
    gerekli). `wrangler.jsonc` icinde de zaten tanimli, ama dashboard
    tarafinda da kontrol edilmeli.
-8. Deploy'u tetikle, build loglarini kontrol et, hata olursa Claude'a
+9. Deploy'u tetikle, build loglarini kontrol et, hata olursa Claude'a
    yapistir.
-9. **Domains** sekmesinden `bollmark.com`'un bu Worker'a bagli oldugunu
-   dogrula (kullanici daha once baglamis oldugunu belirtti).
+10. **Domains** sekmesinden `bollmark.com`'un bu Worker'a bagli oldugunu
+    dogrula (kullanici daha once baglamis oldugunu belirtti).
 
 ## Onemli notlar / hatirlatmalar
 
