@@ -1,0 +1,116 @@
+// Bollmark e-ticaret veritabani semasi
+// Yerelde SQLite kullanir (sifir kurulum). Canliya alirken provider "postgresql"
+// yapilip DATABASE_URL bir Postgres adresine cevrilir; sema degismeden calisir.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("ADMIN")
+  createdAt    DateTime @default(now())
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  name      String
+  slug      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
+model Product {
+  id          String        @id @default(cuid())
+  name        String
+  slug        String        @unique
+  description String
+  priceCents  Int
+  compareAtCents Int?
+  status      String        @default("DRAFT")
+  categoryId  String?
+  category    Category?     @relation(fields: [categoryId], references: [id])
+  images      ProductImage[]
+  variants    ProductVariant[]
+  orderItems  OrderItem[]
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  url       String
+  alt       String  @default("")
+  position  Int     @default(0)
+  productId String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+// Beden / renk gibi varyantlar, her biri kendi stok adedine sahip
+model ProductVariant {
+  id        String   @id @default(cuid())
+  size      String
+  color     String
+  sku       String   @unique
+  stock     Int      @default(0)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems OrderItem[]
+
+  @@unique([productId, size, color])
+}
+
+model Order {
+  id            String      @id @default(cuid())
+  orderNumber   String      @unique
+  status        String      @default("PENDING_PAYMENT")
+  customerName  String
+  customerEmail String
+  customerPhone String
+  shippingAddress String
+  city          String
+  district      String
+  postalCode    String?
+  note          String?
+  subtotalCents Int
+  shippingCents Int         @default(0)
+  totalCents    Int
+  items         OrderItem[]
+  shipment      Shipment?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+model OrderItem {
+  id         String          @id @default(cuid())
+  orderId    String
+  order      Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product         @relation(fields: [productId], references: [id])
+  variantId  String?
+  variant    ProductVariant? @relation(fields: [variantId], references: [id])
+  quantity   Int
+  unitPriceCents Int
+  totalCents Int
+}
+
+model Shipment {
+  id           String         @id @default(cuid())
+  orderId      String         @unique
+  order        Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  carrier      String         @default("")
+  trackingCode String?
+  status       String         @default("HAZIRLANIYOR")
+  shippedAt    DateTime?
+  deliveredAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
