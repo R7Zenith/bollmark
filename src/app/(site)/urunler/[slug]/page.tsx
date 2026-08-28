@@ -4,8 +4,9 @@ import { getProductBySlug } from "@/lib/catalog";
 import { formatPrice } from "@/lib/format";
 import { AddToCart } from "@/components/add-to-cart";
 
-export default async function ProductPage({ params }: { params: { slug: string } }) {
-  const product = await getProductBySlug(params.slug);
+export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
   if (!product || product.status !== "PUBLISHED") notFound();
 
   const mainImage =
