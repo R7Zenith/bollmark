@@ -17,6 +17,9 @@
 /prisma/dev.db
 /prisma/dev.db-journal
 
+# prisma generated client
+/src/generated/
+
 # misc
 .DS_Store
 *.pem
@@ -44,3 +47,4 @@ bollmark.zip
 # cloudflare / opennext
 .open-next/
 .wrangler/
+.env*

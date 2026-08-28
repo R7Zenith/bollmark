@@ -126,41 +126,107 @@ okutman yeterli.
      secrets** kismina `PREVIEW_PASSWORD` da eklenmeli (asagidaki listeye
      eklendi) - eklenmezse canlida koruma calismaz, herkes gate sayfasini gorur.
 
+## Cloudflare Workers denemesi (yarim kaldi, sebebi: 3MB boyut limiti)
+
+Bu oturumda `npx wrangler login` ile Cloudflare hesabina baglanildi (OAuth,
+ilk denemede "Timed out waiting for authorization code" hatasi alindi,
+ikinci denemede basarili oldu). `wrangler deploy`'un OpenNext'e delege
+etmesi Windows'ta "Error: write EOF" ile cakisiyordu (ic ice npx/child
+process spawn zinciri) - bu, `OPEN_NEXT_DEPLOY=true npx wrangler deploy`
+ile (delegasyonu atlayarak) asildi ve Worker'a ilk deploy basarili oldu.
+
+Ardindan `.env`'de `ADMIN_PASSWORD` placeholder oldugu fark edildi
+(`guclu-bir-sifre-belirleyin`), kullanicinin belirledigi gercek deger
+(`ozilevent@gmail.com` / `kujju123`) ile guncellendi; `PREVIEW_PASSWORD` da
+hic yoktu, rastgele uretilip eklendi. Cloudflare secret'lari
+(`wrangler secret put`) ile Worker'a eklendi ve **admin login "kullanici
+adi veya sifre hatali" verdi**. Kok neden arastirmasi:
+
+1. Once DB'de eski/placeholder admin kullanicisi oldugu dusunuldu, seed
+   tekrar calistirildi (yeni email icin upsert yeni satir olusturdu) -
+   yardimci olmadi.
+2. `wrangler tail` ile canli log izlendi, gercek hata bulundu: **"Code
+   generation from strings disallowed for this context"** - Prisma 5.22'nin
+   (o zamanki surum) WASM/Rust tabanli query engine'i Cloudflare Workers'in
+   izin vermedigi dinamik kod uretimi (`eval`/`new Function`) kullaniyordu.
+3. **Cozum**: Prisma 5 -> 7.10.0'a yukseltildi, `schema.prisma`'da
+   generator `provider = "prisma-client-js"` yerine engine-free
+   `provider = "prisma-client"` (+ `output = "../src/generated/prisma"`)
+   yapildi, `datasource` bloğundan `url = env("DATABASE_URL")` satiri
+   kaldirildi (Prisma 7'de artik desteklenmiyor, adapter connection string'i
+   kendi tasiyor). `@prisma/adapter-neon`'un API'si de degismisti: artik
+   hazir bir `Pool` nesnesi degil, dogrudan `{ connectionString }` config
+   objesi bekliyor (`src/lib/prisma.ts` ve `prisma/seed.ts` guncellendi).
+   `prisma/seed.ts`'e ayrica `import "dotenv/config"` eklendi (yeni Prisma
+   surumu .env'i otomatik yuklemiyor).
+4. Bu duzeltmeyle build+deploy tekrar denendiginde **yeni bir engel**
+   cikti: Worker boyutu **3 MB ucretsiz plan limitini asti** (gzip ~4.5MB,
+   en buyuk parca Prisma'nin yeni JS sorgu motorunu de iceren
+   `handler.mjs` - 12.5MB sikistirilmamis). `next.config.mjs`'e
+   `outputFileTracingExcludes` ile kullanilmayan `@vercel/og` wasm
+   dosyalarini (resvg/yoga, ~1.4MB) cikarma denendi ama bu dosyalar
+   Next.js'in kendi output-file-tracing'inden degil, OpenNext'in ayri
+   esbuild bundling adimindan geldigi icin **etkisi olmadi**.
+5. Kullaniciyla goruşuldu: Cloudflare Workers ucretsiz planda boyut
+   limitini asan bu Next.js 16 + Prisma 7 + NextAuth kombinasyonunu
+   sikistirmak (ya paid plan $5/ay ya da ciddi bir yeniden yapilanma)
+   yerine **Vercel'e gecis** karari verildi. Cloudflare tarafindaki
+   `wrangler.jsonc`, `open-next.config.ts`, `@opennextjs/cloudflare`
+   bagimliligi bilincli olarak **bozulmadan birakildi** (ileride tekrar
+   denenebilir, `git log`'da referans).
+
+## Vercel'e gecis (bu oturumda tamamlandi)
+
+1. `npx vercel login` interaktif (tarayici) akisi bu ortamda TTY hatasi
+   verdi ("Worker timed out" / "Error: write EPIPE" - Cloudflare'deki
+   spawn sorunlarina benzer). Bunun yerine kullanicidan bir **Vercel API
+   token** istendi (vercel.com/account/tokens), `--token` flag'i ile tum
+   komutlar calistirildi.
+2. `vercel link --project bollmark` ile proje olusturuldu/baglandi.
+   **GitHub reposunu otomatik baglama basarisiz oldu** ("Failed to connect
+   R7Zenith/bollmark to project" - muhtemelen GitHub App yetkilendirmesi
+   dashboard'dan yapilmasi gerekiyor), bu yuzden **su an otomatik
+   deploy-on-push YOK** - her deploy `vercel deploy --prod --token ...`
+   ile elle tetiklenmeli (veya kullanici dashboard'dan
+   Settings -> Git -> Connect Git Repository ile GitHub baglantisini
+   kurabilir).
+3. `vercel env add ... production` ile 6 degisken eklendi: `DATABASE_URL`,
+   `NEXTAUTH_SECRET`, `NEXTAUTH_URL=https://bollmark.com`, `ADMIN_EMAIL`,
+   `ADMIN_PASSWORD`, `PREVIEW_PASSWORD` (degerler yerel `.env`'den okundu).
+4. `vercel deploy --prod` basarili. Gecici domain: `https://bollmark-xi.vercel.app`
+   (ayrica `https://bollmark-culjjywv0-bollmark.vercel.app` deployment-spesifik
+   adres). Dogrulanan senaryolar (curl ile):
+   - `/` -> "Cok yakinda" gate sayfasi (200, dogru title) ✅
+   - `/admin/login` -> her zaman erisilebilir (200) ✅
+   - `?preview=<sifre>` -> 307 redirect + `bm_preview` httpOnly cookie set ✅
+   - NextAuth credentials login (`ozilevent@gmail.com` / `kujju123`) ->
+     basarili, session cookie donuyor ✅
+5. `vercel domains add bollmark.com bollmark` ve
+   `vercel domains add www.bollmark.com bollmark` ile domain proje'ye
+   eklendi. Vercel'in istedigi DNS kaydi: **`A bollmark.com 76.76.21.21`**
+   (ayni IP `www` icin de). Alan adi hala Cloudflare nameserver'larinda
+   kaliyor (nameserver degistirilmiyor) - kullaniciya Cloudflare DNS
+   panelinden yapmasi gereken adimlar anlatildi (asagida).
+
 ## Simdi yapilmasi gerekenler (kaldigimiz yer)
 
-1. ~~`npm run build` sonucunu kontrol et~~ ✅ tamamlandi, basarili.
-2. ~~`src/middleware.ts` icin Next 16'nin onerdigi `proxy` donusumu~~ ✅
-   tamamlandi (`src/proxy.ts`).
-3. ~~`npm run dev` ile yerelde hizli kontrol~~ ✅ tamamlandi (ana sayfa,
-   admin login, urun listeleme 200 dondu).
-4. ~~Tum degisiklikleri commit'leyip GitHub'a push et~~ ✅ tamamlandi.
-5. **Sirada:** `npx wrangler login` ile bu makineyi Cloudflare hesabina
-   bagla (tarayicida oturum acmak gerekiyor - bu adim kullanicinin kendisi
-   tarafindan tetiklenmeli). Giris yapildiktan sonra devam:
-   - **Build command**'i `npm run build` yerine `npx opennextjs-cloudflare
-     build` olarak degistir (Next build'i de icinde calistirir).
-   - **Deploy command** `npx wrangler deploy` olarak kalabilir (varsayilan
-     dogru).
-   - "Connect" butonuna bas.
-7. Cloudflare'de **Settings -> Variables and secrets** kismina asagidaki
-   ortam degiskenlerini ekle (Production, gerekirse Preview icin de):
-   - `DATABASE_URL` (Neon baglanti adresi - kullanicida mevcut, ben yerel
-     `.env` dosyasina yazdim ama Cloudflare'e ELLE girilmesi gerekiyor,
-     guvenlik icin buraya tekrar yazilmadi)
-   - `NEXTAUTH_SECRET` (yerel `.env` dosyasinda mevcut)
-   - `NEXTAUTH_URL` = `https://bollmark.com`
-   - `ADMIN_EMAIL`, `ADMIN_PASSWORD`
-   - `PREVIEW_PASSWORD` (yerel `.env` dosyasinda mevcut - magaza onizleme
-     kapisinin sifresi; bu eklenmezse canlida `?preview=...` calismaz ve
-     herkes surekli yapim-asamasinda sayfasini gorur)
-8. **Compatibility flags**'e (Settings -> Runtime, ekran goruntusunde bu alan
-   zaten goruldu) `nodejs_compat` ekle (Prisma ve next-auth/bcryptjs icin
-   gerekli). `wrangler.jsonc` icinde de zaten tanimli, ama dashboard
-   tarafinda da kontrol edilmeli.
-9. Deploy'u tetikle, build loglarini kontrol et, hata olursa Claude'a
-   yapistir.
-10. **Domains** sekmesinden `bollmark.com`'un bu Worker'a bagli oldugunu
-    dogrula (kullanici daha once baglamis oldugunu belirtti).
+1. **Kullanicinin Cloudflare dashboard'dan yapmasi gerekenler:**
+   - Workers & Pages -> `bollmark` -> Settings -> Domains & Routes'tan
+     `bollmark.com` ve `www.bollmark.com` custom domain kayitlarini KALDIR
+     (eski Cloudflare Worker denemesinden kalma, yeni DNS kayitlariyla
+     cakisir).
+   - `bollmark.com` zone'unda DNS -> Records: apex (`@`) ve `www` icin
+     **A kaydi -> 76.76.21.21**, Proxy status **"DNS only"** (gri bulut,
+     turuncu degil - proxy acikken Vercel SSL dogrulamasi basarisiz olur).
+2. Kullanici bu adimlari tamamladiktan sonra Claude'a haber vermeli,
+   Claude `vercel domains inspect` ile dogrulamayi kontrol edecek.
+3. Domain aktif olunca `bollmark.com` uzerinden ayni testler (gate,
+   preview, admin login) tekrar dogrulanmali.
+4. **Otomatik deploy** istenirse: Vercel dashboard'dan
+   Settings -> Git -> Connect Git Repository ile GitHub App yetkilendirmesi
+   kullanici tarafindan yapilmali (Claude'un CLI'dan bunu tetikleyememesi
+   Cloudflare'deki ile ayni sinirlama). O ana kadar her degisiklik icin
+   elle `vercel deploy --prod` gerekiyor.
 
 ## Onemli notlar / hatirlatmalar
 
@@ -172,6 +238,15 @@ okutman yeterli.
   yerel gelistirme hem canli site AYNI Neon veritabanini kullaniyor. Yerelde
   test verisi eklerken dikkatli olunmali (canli veriyle karismasin).
 - GitHub repo: https://github.com/R7Zenith/bollmark.git (branch: `main`)
-- Cloudflare Workers proje adi: `bollmark` (hesap: ozilevent@gmail.com,
-  GitHub: R7Zenith)
-- Domain: bollmark.com (Cloudflare uzerinde, daha once aktiflestirilmis)
+- **Canli site artik Vercel'de** - Vercel proje adi: `bollmark` (takim:
+  `bollmark`, kullanici: `r7zenith`). Cloudflare Workers denemesi
+  (`bollmark` worker'i) 3MB boyut limiti yuzunden yarim birakildi, kod
+  hala repoda duruyor ama kullanilmiyor.
+- Domain: bollmark.com - DNS hala Cloudflare'de yonetiliyor (nameserver
+  degismedi), ama artik A kaydiyla Vercel'e (`76.76.21.21`) isaret ediyor
+  (bkz. yukaridaki "Simdi yapilmasi gerekenler").
+- Prisma artik v7.10.0, "engine-free" `prisma-client` generator'i
+  kullaniyor (`src/generated/prisma`'ya uretiliyor, .gitignore'da).
+  `@prisma/adapter-neon` API'si degisti: `new PrismaNeon({ connectionString })`
+  seklinde dogrudan config aliyor, artik ayrica bir `Pool` nesnesi
+  olusturmaya gerek yok.
