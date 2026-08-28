@@ -208,25 +208,32 @@ adi veya sifre hatali" verdi**. Kok neden arastirmasi:
    kaliyor (nameserver degistirilmiyor) - kullaniciya Cloudflare DNS
    panelinden yapmasi gereken adimlar anlatildi (asagida).
 
-## Simdi yapilmasi gerekenler (kaldigimiz yer)
+## Tamamlandi: domain + otomatik deploy
 
-1. **Kullanicinin Cloudflare dashboard'dan yapmasi gerekenler:**
-   - Workers & Pages -> `bollmark` -> Settings -> Domains & Routes'tan
-     `bollmark.com` ve `www.bollmark.com` custom domain kayitlarini KALDIR
-     (eski Cloudflare Worker denemesinden kalma, yeni DNS kayitlariyla
-     cakisir).
-   - `bollmark.com` zone'unda DNS -> Records: apex (`@`) ve `www` icin
-     **A kaydi -> 76.76.21.21**, Proxy status **"DNS only"** (gri bulut,
-     turuncu degil - proxy acikken Vercel SSL dogrulamasi basarisiz olur).
-2. Kullanici bu adimlari tamamladiktan sonra Claude'a haber vermeli,
-   Claude `vercel domains inspect` ile dogrulamayi kontrol edecek.
-3. Domain aktif olunca `bollmark.com` uzerinden ayni testler (gate,
-   preview, admin login) tekrar dogrulanmali.
-4. **Otomatik deploy** istenirse: Vercel dashboard'dan
-   Settings -> Git -> Connect Git Repository ile GitHub App yetkilendirmesi
-   kullanici tarafindan yapilmali (Claude'un CLI'dan bunu tetikleyememesi
-   Cloudflare'deki ile ayni sinirlama). O ana kadar her degisiklik icin
-   elle `vercel deploy --prod` gerekiyor.
+- Kullanici Cloudflare DNS panelinden apex (`@`) ve `www` icin
+  **A kaydi -> 76.76.21.21** ekledi (Proxy status: DNS only / gri bulut).
+  Worker'daki eski custom domain kayitlarina dokunulmasina gerek kalmadi
+  (zaten DNS kaydi olarak gorunmuyorlardi, Worker'in kendi ozel
+  mekanizmasiydi).
+- DNS yayilmasi dogrulandi (`nslookup` ile 1.1.1.1 uzerinden), Vercel SSL
+  sertifikasi birkac dakika icinde otomatik olustu.
+- `https://bollmark.com` ve `https://www.bollmark.com` uzerinde tum
+  senaryolar tekrar dogrulandi: gate sayfasi, `?preview=<sifre>` cookie
+  akisi, ve tam NextAuth credentials login (curl ile) - hepsi basarili.
+- **GitHub baglantisi kullanici tarafindan Vercel dashboard'dan yapildi**
+  (Settings -> Git -> Connect Git Repository). Vercel API ile dogrulandi:
+  proje `R7Zenith/bollmark` reposuna, `main` production branch'ine bagli.
+  **Artik `main`'e her push otomatik olarak Vercel'e deploy oluyor** -
+  elle `vercel deploy --prod` calistirmaya gerek kalmadi.
+
+## Kalan/opsiyonel
+
+- Cloudflare tarafinda eskiden kalma `bollmark` Worker'i (wrangler.jsonc,
+  open-next.config.ts) hala repoda duruyor ama artik kullanilmiyor;
+  istenirse ileride temizlenebilir veya farkli bir amac icin tutulabilir.
+- Cloudflare Workers ve Vercel API token'lari bu oturumun scratchpad
+  dizininde (repo disinda) tutuluyor; sadece bu oturum sirasinda
+  kullanildi, commit edilmedi.
 
 ## Onemli notlar / hatirlatmalar
 
