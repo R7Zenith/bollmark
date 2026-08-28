@@ -1,6 +1,6 @@
 # Bollmark - Kurulum ve Canliya Alma Durumu
 
-Son guncelleme: 2026-08-28
+Son guncelleme: 2026-08-29
 
 Bu dosya, projeyi Claude Code ile kurup canliya alma surecinde nereye kadar
 gelindigini kaydeder. Kaldigimiz yerden devam etmek icin bu dosyayi Claude'a
@@ -225,6 +225,28 @@ adi veya sifre hatali" verdi**. Kok neden arastirmasi:
   proje `R7Zenith/bollmark` reposuna, `main` production branch'ine bagli.
   **Artik `main`'e her push otomatik olarak Vercel'e deploy oluyor** -
   elle `vercel deploy --prod` calistirmaya gerek kalmadi.
+
+## Yapim asamasinda sayfasi: beyaz border / scrollbar duzeltmesi (bu oturumda)
+
+Kullanici canli sitede `yapim-asamasinda` gate sayfasinin kenarlarinda
+beyaz bir border oldugunu ve bunun hem masaustunde hem mobilde dikey/yatay
+scrollbar acilmasina sebep oldugunu bildirdi.
+
+- **Kok neden**: `src/app/(gate)/layout.tsx` izole bir root layout - ana
+  `src/app/globals.css`'i import etmiyor. Bu yuzden tarayicinin varsayilan
+  `body { margin: 8px }` kurali hic sifirlanmiyordu; koyu arka planin
+  etrafinda beyaz kenarlik gibi gorunen sey aslinda bu margin'di, ve
+  `min-height:100vh` + bu fazladan margin toplami viewport'u asinca
+  scrollbar cikiyordu (mobilde adres cubugu yuzunden `100vh` gercek
+  gorunur alani yanlis hesapladigi icin sorun daha belirgindi).
+- **Duzeltme** (`src/app/(gate)/yapim-asamasinda/page.tsx` icindeki
+  `<style>` bloguna eklendi): `html, body { margin:0; padding:0;
+  height:100%; overflow-x:hidden; }` ve `.gate` icin `min-height:100vh`
+  yaninda `min-height:100dvh` (mobil viewport fallback'i, `dvh`
+  desteklenmeyen tarayicilarda `vh` degeri gecerli kaliyor).
+- Yerelde `npm run dev` ile dogrulandi (uretilen HTML'de yeni kurallarin
+  yer aldigi teyit edildi). Commit'lenip push edildi (`52d9dd3`) - Vercel
+  git baglantisi sayesinde otomatik deploy tetiklendi.
 
 ## Kalan/opsiyonel
 
