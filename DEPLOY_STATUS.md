@@ -446,5 +446,100 @@ veritabanina karsi, oturum acip):
   tablosu zaten Neon'a `db:push` ile eklendigi icin ayrica migration
   adimi gerekmiyor.
 
-**Sirada**: `ADMIN_PANEL_PLAN.md` Faz 2 (Urunler & Kategoriler - liste/detay
-sayfalarinin yeni bilesenlerle yeniden yazilmasi, arama/filtre/toplu islem).
+## Admin paneli yenilemesi - Faz 2: Urunler & Kategoriler (2026-08-29, yeni oturum)
+
+`ADMIN_PANEL_PLAN.md` Faz 2 kapsami uygulandi: urun liste/detay sayfalari
+Faz 1'de kurulan ortak bilesenlerle (Card, Badge, DataTable, SearchInput,
+FilterBar, BulkActionBar, Toast, EmptyState) yeniden yazildi, kategoriler
+sayfasina duzenleme/silme eklendi.
+
+1. **Urunler listesi** (`src/app/(site)/admin/urunler/page.tsx`) tamamen
+   yeniden yazildi:
+   - Server component olarak `q` (isim aramasi), `durum`, `kategori`, `sort`,
+     `dir` URL query parametrelerini okuyup Prisma sorgusuna uyguluyor
+     (stok siralamasi Prisma'da dogrudan desteklenmedigi icin variant
+     toplami hesaplandiktan sonra JS tarafinda siralaniyor).
+   - Yeni client bilesenler: `src/components/admin/products-filters.tsx`
+     (arama kutusu 300ms debounce + durum/kategori select'leri, URL'i
+     `router.push` ile guncelliyor) ve `src/components/admin/products-table.tsx`
+     (DataTable sarmalayicisi: kucuk gorsel thumbnail'i, renkli Badge
+     durum - Taslak=gri, Yayinda=yesil, Arsiv=yeni `gray-muted` tonu -,
+     tiklanabilir isim/fiyat/stok/olusturulma basliklari URL'e `sort`/`dir`
+     yaziyor, checkbox + BulkActionBar ile toplu "Yayina Al/Taslaga Al/
+     Arsivle/Sil").
+   - Toplu islemler icin yeni API route: `src/app/api/admin/urunler/bulk/route.ts`
+     (POST, oturum kontrollu, `SET_STATUS` ve `DELETE` aksiyonlari; silme
+     siparislere bagli bir urune denk gelirse FK hatasini yakalayip 409 +
+     aciklayici mesaj donduruyor, hicbir urun silinmiyor).
+   - Hic urun yoksa (DB'de toplam 0) tam sayfa `EmptyState` ("Henuz urun
+     yok" + "Ilk Urununu Ekle" butonu); filtre sonucu bos ama DB'de urun
+     varsa `DataTable`'in kendi "Sonuc bulunamadi" bos durumu gosteriliyor.
+   - `Badge` bilesenine yeni bir ton eklendi: `gray-muted` (Arsiv icin,
+     Taslak'in `gray` tonundan gorsel olarak ayrisan daha soluk gri).
+   - `DataTable` bilesenine opsiyonel `initialSort` prop'u eklendi (URL'deki
+     mevcut siralamayi sayfa yenilendiginde ok ikonuna yansitmak icin).
+2. **Urun duzenle** (`urunler/[id]/page.tsx`) ve **yeni urun**
+   (`urunler/yeni/page.tsx`) sayfalari `Card` bolumlerine ayrildi: Temel
+   Bilgiler / Fiyatlandirma (fiyat + daha once hic kullanilmayan
+   `compareAtCents` alani icin "indirim oncesi fiyat" eklendi) / Varyantlar
+   (beden-renk-stok, satir basi metin formati korundu) / Gorseller / Kategori
+   ve Durum.
+   - Duzenleme sayfasi artik sadece isim/aciklama/fiyat/durum degil, **gorsel
+     ve varyant listelerini de** guncelleyebiliyor (`prisma.$transaction` ile
+     urun + gorseller + varyantlar tek islemde guncelleniyor; varyant
+     silme bir siparise bagliysa (FK kisitlamasi) transaction hata verip
+     hicbir sey degismeden `?hata=kaydedilemedi` ile geri donuyor).
+   - Yeni `src/components/admin/save-bar.tsx`: forma `id="product-form"`
+     verilip bu client bilesen `input`/`change` olaylarini dinliyor, herhangi
+     bir alan degisince sayfanin altinda sabit (`sticky bottom-4`) "Kaydedilmemis
+     degisiklikler var - [Vazgec] [Kaydet]" cubugu beliriyor (Kaydet, HTML5
+     `form` attribute'u ile forma disaridan bagli submit butonu).
+   - Yeni `src/components/admin/product-feedback.tsx`: server action basarili/
+     hatali oldugunda `?basarili=...`/`?hata=...` query'sine redirect ediyor,
+     bu client bilesen mount'ta Toast gosterip URL'i temizliyor (Ayarlar
+     sayfasindaki `settings-feedback.tsx` deseniyle ayni).
+   - Yeni `src/components/admin/delete-product-form.tsx`: silme formunu
+     `window.confirm` ile sarmalayan kucuk bir client bilesen.
+3. **Kategoriler** (`src/app/(site)/admin/kategoriler/page.tsx`) `Card` ile
+   toparlandi, urun sayisi `Badge` olarak gosteriliyor.
+   - Yeni `src/components/admin/category-row.tsx`: her satir icin inline
+     duzenleme (kalem ikonuna tiklayinca isim input'una donusuyor) ve silme
+     (cop kutusu ikonu, `window.confirm`) eklendi.
+   - `deleteCategory` server action'i, silmeden once kategoriye bagli urun
+     sayisini kontrol ediyor: urun varsa silme engelleniyor ve
+     `?hata=urun-bagli` ile kullaniciya uyari toast'i gosteriliyor (kategori
+     silinmiyor).
+   - Yeni `src/components/admin/category-feedback.tsx`: ekleme/guncelleme/
+     silme sonrasi Toast bildirimi (ayni redirect+query deseni).
+
+**Test edildi** (`npm run build` hatasiz + `npm run dev` ile canli Neon
+veritabanina karsi, NextAuth credentials ile giris yapip `curl` uzerinden):
+- `/admin/urunler`, `?q=mont`, `?durum=DRAFT`, `?sort=price&dir=asc` hepsi
+  200 donuyor; arama gercek urunu buluyor, durum filtresi (eslesmeyen
+  durum) bos sonuc + "Sonuc bulunamadi" gosteriyor, thumbnail `<img>`
+  etiketi dogru gorsel URL'iyle render ediliyor.
+- **Urun olusturma**: React Server Action'in multipart/form-data + gizli
+  `$ACTION_ID_*` alani gerektirdigi tespit edilip (Faz 1'deki gibi) buna
+  gore test edildi - yeni test urunu basariyla olusturuldu, Card
+  bolumleriyle (Temel Bilgiler/Fiyatlandirma/Varyantlar/Gorseller/
+  Kategori ve Durum) dogru render edildi, `?basarili=olusturuldu` ile
+  yonlendirildi.
+- **Urun guncelleme**: bound server action'larin (`$ACTION_REF_N` +
+  `$ACTION_N:0`/`$ACTION_N:1` alanlari) HTML'deki tam kodlamasi curl ile
+  birebir tekrarlanarak test edildi - isim/fiyat/indirim-oncesi-fiyat/
+  varyant degisikligi Neon'a basariyla yazildi ve sayfada geri geldigi
+  dogrulandi.
+- **Toplu islemler**: `/api/admin/urunler/bulk` - durum degistirme (200,
+  DB'de dogrulandi), oturumsuz istek (401), toplu silme (200, urun
+  gercekten silindi, `GET` sonrasi 404).
+- **Kategoriler**: yeni test kategorisi olusturuldu; urune bagli mevcut
+  "Dis Giyim" kategorisini silmeye calisinca `?hata=urun-bagli` ile
+  engellendi (kategori silinmedi, dogrulandi); bagli urunu olmayan test
+  kategorisi basariyla silindi (`?basarili=silindi`).
+- Test sirasinda olusturulan tum test verileri (test urunu, test
+  kategorisi) temizlendi; gercek seed verisi (`Bollmark Oversize Mont`,
+  `Dis Giyim` kategorisi) dokunulmadan kaldi.
+- Degisiklikler commit'lenip GitHub'a push edildi (`fa96f2a`) - Vercel git
+  baglantisi sayesinde otomatik deploy tetiklendi.
+
+**Sirada**: `ADMIN_PANEL_PLAN.md` Faz 3 (Siparisler & Kargolar & Musteriler).
