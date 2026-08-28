@@ -44,7 +44,4 @@ next-env.d.ts
 .claude/
 bollmark.zip
 
-# cloudflare / opennext
-.open-next/
-.wrangler/
 .env*

@@ -248,14 +248,30 @@ scrollbar acilmasina sebep oldugunu bildirdi.
   yer aldigi teyit edildi). Commit'lenip push edildi (`52d9dd3`) - Vercel
   git baglantisi sayesinde otomatik deploy tetiklendi.
 
+## Cloudflare artiklarinin temizlenmesi (bu oturumda)
+
+Vercel'e tam gecis yapildigindan Cloudflare Workers/OpenNext kalintilari
+kaldirildi:
+
+- `wrangler.jsonc` ve `open-next.config.ts` dosyalari silindi.
+- `package.json`'dan `@opennextjs/cloudflare` ve `wrangler` devDependency'leri
+  cikarildi; `npm install` ile `package-lock.json` guncellendi (278 paket
+  kaldirildi).
+- `next.config.mjs`'deki `outputFileTracingExcludes` bloğu kaldirildi - bu,
+  Cloudflare Worker'in 3MB boyut limiti icin denenmis ama etkisiz kalmis bir
+  workaround'du (bkz. yukaridaki "Cloudflare Workers denemesi" bolumu).
+- `.gitignore`'dan `.open-next/` ve `.wrangler/` satirlari kaldirildi.
+- `npm run build` tekrar calistirilip basarili oldugu ve `/` + `/urunler`
+  rotalarinin hala statik (`○`) kaldigi dogrulandi.
+- Prisma semasindaki Neon adapter'i aciklayan yorum (Cloudflare/edge
+  ortamlarindan bahsediyor) bilincli olarak dokunulmadan birakildi - hala
+  gecerli bir mimari aciklama (Vercel de edge-uyumlu bir platform).
+
 ## Kalan/opsiyonel
 
-- Cloudflare tarafinda eskiden kalma `bollmark` Worker'i (wrangler.jsonc,
-  open-next.config.ts) hala repoda duruyor ama artik kullanilmiyor;
-  istenirse ileride temizlenebilir veya farkli bir amac icin tutulabilir.
-- Cloudflare Workers ve Vercel API token'lari bu oturumun scratchpad
-  dizininde (repo disinda) tutuluyor; sadece bu oturum sirasinda
-  kullanildi, commit edilmedi.
+- Cloudflare Workers ve Vercel API token'lari onceki oturumlarin scratchpad
+  dizininde (repo disinda) tutuldu; sadece o oturumlar sirasinda kullanildi,
+  hicbir zaman commit edilmedi.
 
 ## Onemli notlar / hatirlatmalar
 
