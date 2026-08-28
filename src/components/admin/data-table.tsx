@@ -20,6 +20,7 @@ interface DataTableProps<T> {
   selectable?: boolean;
   bulkActions?: (selectedIds: string[], clearSelection: () => void) => BulkAction[];
   onSortChange?: (key: string, direction: "asc" | "desc") => void;
+  initialSort?: { key: string; direction: "asc" | "desc" } | null;
   emptyTitle?: string;
   emptyDescription?: string;
   emptyAction?: React.ReactNode;
@@ -32,12 +33,13 @@ export function DataTable<T>({
   selectable = false,
   bulkActions,
   onSortChange,
+  initialSort = null,
   emptyTitle = "Kayit bulunamadi",
   emptyDescription,
   emptyAction
 }: DataTableProps<T>) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [sort, setSort] = useState<{ key: string; direction: "asc" | "desc" } | null>(null);
+  const [sort, setSort] = useState<{ key: string; direction: "asc" | "desc" } | null>(initialSort);
 
   const allIds = useMemo(() => data.map(getRowId), [data, getRowId]);
   const allSelected = selectable && allIds.length > 0 && allIds.every((id) => selected.has(id));

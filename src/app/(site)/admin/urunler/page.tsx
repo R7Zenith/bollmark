@@ -1,67 +1,108 @@
 import Link from "next/link";
+import { Plus, Package } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { formatPrice } from "@/lib/format";
+import { Button } from "@/components/admin/button";
+import { EmptyState } from "@/components/admin/empty-state";
+import { ProductsFilters } from "@/components/admin/products-filters";
+import { ProductsTable, type ProductRow } from "@/components/admin/products-table";
 
-const statusLabel: Record<string, string> = {
-  DRAFT: "Taslak",
-  PUBLISHED: "Yayinda",
-  ARCHIVED: "Arsiv"
-};
+type SortKey = "name" | "price" | "stock" | "createdAt";
+const sortKeys: SortKey[] = ["name", "price", "stock", "createdAt"];
 
-export default async function AdminProductsPage() {
-  const products = await prisma.product.findMany({
-    include: { images: { take: 1 }, variants: true },
-    orderBy: { createdAt: "desc" }
-  });
+interface SearchParams {
+  q?: string;
+  durum?: string;
+  kategori?: string;
+  sort?: string;
+  dir?: string;
+}
+
+export default async function AdminProductsPage({
+  searchParams
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const { q, durum, kategori, sort, dir } = await searchParams;
+
+  const totalCount = await prisma.product.count();
+
+  if (totalCount === 0) {
+    return (
+      <div>
+        <h1 className="text-2xl font-semibold text-admin-text">Urunler</h1>
+        <div className="mt-8 rounded-lg border border-admin-border bg-admin-surface">
+          <EmptyState
+            icon={Package}
+            title="Henuz urun yok"
+            description="Magazana ilk urununu ekleyerek basla."
+            action={
+              <Link href="/admin/urunler/yeni">
+                <Button>
+                  <Plus size={16} /> Ilk Urununu Ekle
+                </Button>
+              </Link>
+            }
+          />
+        </div>
+      </div>
+    );
+  }
+
+  const sortKey: SortKey = sortKeys.includes(sort as SortKey) ? (sort as SortKey) : "createdAt";
+  const sortDir: "asc" | "desc" = dir === "asc" ? "asc" : "desc";
+
+  const [products, categories] = await Promise.all([
+    prisma.product.findMany({
+      where: {
+        ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
+        ...(durum ? { status: durum } : {}),
+        ...(kategori ? { categoryId: kategori } : {})
+      },
+      include: { images: { take: 1, orderBy: { position: "asc" } }, variants: true },
+      orderBy:
+        sortKey === "name"
+          ? { name: sortDir }
+          : sortKey === "price"
+            ? { priceCents: sortDir }
+            : sortKey === "createdAt"
+              ? { createdAt: sortDir }
+              : { createdAt: "desc" }
+    }),
+    prisma.category.findMany({ orderBy: { name: "asc" } })
+  ]);
+
+  let rows: ProductRow[] = products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    status: p.status,
+    priceCents: p.priceCents,
+    stock: p.variants.reduce((sum, v) => sum + v.stock, 0),
+    createdAt: p.createdAt.toISOString(),
+    imageUrl: p.images[0]?.url ?? null
+  }));
+
+  if (sortKey === "stock") {
+    rows = rows.sort((a, b) => (sortDir === "asc" ? a.stock - b.stock : b.stock - a.stock));
+  }
 
   return (
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-admin-text">Urunler</h1>
-        <Link
-          href="/admin/urunler/yeni"
-          className="rounded-md bg-admin-accent px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700"
-        >
-          + Yeni Urun
+        <Link href="/admin/urunler/yeni">
+          <Button>
+            <Plus size={16} /> Yeni Urun
+          </Button>
         </Link>
       </div>
 
-      <table className="mt-8 w-full border-collapse overflow-hidden rounded-lg bg-admin-surface text-sm">
-        <thead>
-          <tr className="border-b border-admin-border text-left text-xs uppercase tracking-wide text-admin-text-muted">
-            <th className="px-4 py-3">Urun</th>
-            <th className="px-4 py-3">Durum</th>
-            <th className="px-4 py-3">Fiyat</th>
-            <th className="px-4 py-3">Stok</th>
-            <th className="px-4 py-3"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map((p) => {
-            const stock = p.variants.reduce((sum, v) => sum + v.stock, 0);
-            return (
-              <tr key={p.id} className="border-b border-admin-border text-admin-text">
-                <td className="px-4 py-3">{p.name}</td>
-                <td className="px-4 py-3">{statusLabel[p.status]}</td>
-                <td className="px-4 py-3">{formatPrice(p.priceCents)}</td>
-                <td className="px-4 py-3">{stock}</td>
-                <td className="px-4 py-3 text-right">
-                  <Link href={`/admin/urunler/${p.id}`} className="text-admin-accent hover:underline">
-                    Duzenle
-                  </Link>
-                </td>
-              </tr>
-            );
-          })}
-          {products.length === 0 && (
-            <tr>
-              <td colSpan={5} className="px-4 py-8 text-center text-admin-text-muted">
-                Henuz urun eklenmedi.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      <div className="mt-6">
+        <ProductsFilters categories={categories} />
+      </div>
+
+      <div className="mt-4">
+        <ProductsTable products={rows} initialSort={{ key: sortKey, direction: sortDir }} />
+      </div>
     </div>
   );
 }
