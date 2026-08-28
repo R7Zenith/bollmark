@@ -39,7 +39,7 @@ export default async function AdminShipmentsPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl">Kargolar</h1>
+      <h1 className="text-2xl font-semibold text-admin-text">Kargolar</h1>
 
       <div className="mt-8 space-y-4">
         {shipments.map((s) => {
@@ -48,36 +48,42 @@ export default async function AdminShipmentsPage() {
             <form
               key={s.id}
               action={updateWithId}
-              className="grid items-center gap-4 border border-line bg-white p-4 md:grid-cols-6"
+              className="grid items-center gap-4 rounded-lg border border-admin-border bg-admin-surface p-4 md:grid-cols-6"
             >
               <div className="md:col-span-2">
-                <p className="text-sm font-medium">{s.order.orderNumber}</p>
-                <p className="text-xs text-ink/50">{s.order.customerName}</p>
+                <p className="text-sm font-medium text-admin-text">{s.order.orderNumber}</p>
+                <p className="text-xs text-admin-text-muted">{s.order.customerName}</p>
               </div>
               <input
                 name="carrier"
                 defaultValue={s.carrier}
                 placeholder="Kargo Firmasi"
-                className="border border-line px-3 py-2 text-sm"
+                className="rounded-md border border-admin-border px-3 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
               />
               <input
                 name="trackingCode"
                 defaultValue={s.trackingCode ?? ""}
                 placeholder="Takip Kodu"
-                className="border border-line px-3 py-2 text-sm"
+                className="rounded-md border border-admin-border px-3 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
               />
-              <select name="status" defaultValue={s.status} className="border border-line px-3 py-2 text-sm">
+              <select
+                name="status"
+                defaultValue={s.status}
+                className="rounded-md border border-admin-border px-3 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+              >
                 {statuses.map((st) => (
                   <option key={st} value={st}>
                     {statusLabel[st]}
                   </option>
                 ))}
               </select>
-              <button className="bg-ink px-4 py-2 text-sm text-paper hover:bg-accent">Guncelle</button>
+              <button className="rounded-md bg-admin-accent px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+                Guncelle
+              </button>
             </form>
           );
         })}
-        {shipments.length === 0 && <p className="text-ink/50">Henuz kargo kaydi yok.</p>}
+        {shipments.length === 0 && <p className="text-admin-text-muted">Henuz kargo kaydi yok.</p>}
       </div>
     </div>
   );

@@ -17,18 +17,18 @@ export default async function AdminProductsPage() {
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="font-display text-3xl">Urunler</h1>
+        <h1 className="text-2xl font-semibold text-admin-text">Urunler</h1>
         <Link
           href="/admin/urunler/yeni"
-          className="bg-ink px-5 py-2 text-sm uppercase tracking-wide text-paper hover:bg-accent"
+          className="rounded-md bg-admin-accent px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700"
         >
           + Yeni Urun
         </Link>
       </div>
 
-      <table className="mt-8 w-full border-collapse bg-white text-sm">
+      <table className="mt-8 w-full border-collapse overflow-hidden rounded-lg bg-admin-surface text-sm">
         <thead>
-          <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-ink/50">
+          <tr className="border-b border-admin-border text-left text-xs uppercase tracking-wide text-admin-text-muted">
             <th className="px-4 py-3">Urun</th>
             <th className="px-4 py-3">Durum</th>
             <th className="px-4 py-3">Fiyat</th>
@@ -40,13 +40,13 @@ export default async function AdminProductsPage() {
           {products.map((p) => {
             const stock = p.variants.reduce((sum, v) => sum + v.stock, 0);
             return (
-              <tr key={p.id} className="border-b border-line">
+              <tr key={p.id} className="border-b border-admin-border text-admin-text">
                 <td className="px-4 py-3">{p.name}</td>
                 <td className="px-4 py-3">{statusLabel[p.status]}</td>
                 <td className="px-4 py-3">{formatPrice(p.priceCents)}</td>
                 <td className="px-4 py-3">{stock}</td>
                 <td className="px-4 py-3 text-right">
-                  <Link href={`/admin/urunler/${p.id}`} className="text-accent hover:underline">
+                  <Link href={`/admin/urunler/${p.id}`} className="text-admin-accent hover:underline">
                     Duzenle
                   </Link>
                 </td>
@@ -55,7 +55,7 @@ export default async function AdminProductsPage() {
           })}
           {products.length === 0 && (
             <tr>
-              <td colSpan={5} className="px-4 py-8 text-center text-ink/50">
+              <td colSpan={5} className="px-4 py-8 text-center text-admin-text-muted">
                 Henuz urun eklenmedi.
               </td>
             </tr>

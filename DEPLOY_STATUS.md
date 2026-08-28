@@ -1,6 +1,6 @@
 # Bollmark - Kurulum ve Canliya Alma Durumu
 
-Son guncelleme: 2026-08-28 (bu oturum)
+Son guncelleme: 2026-08-29 (bu oturum)
 
 Bu dosya, projeyi Claude Code ile kurup canliya alma surecinde nereye kadar
 gelindigini kaydeder. Kaldigimiz yerden devam etmek icin bu dosyayi Claude'a
@@ -339,3 +339,112 @@ kaldirildi:
   PC'sinde de ayri bir `.env` dosyasi olusturulmasi gerekiyor (DATABASE_URL,
   NEXTAUTH_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD, PREVIEW_PASSWORD - ev
   bilgisayariyla ayni degerler, ozellikle guncel PREVIEW_PASSWORD).
+
+## Admin paneli yenilemesi - Faz 1: Temel (2026-08-29, yeni oturum)
+
+Plan `ADMIN_PANEL_PLAN.md` dosyasinda cikarildi (Shopify tarzi profesyonel
+panel, notr indigo tema, fazlara bolunmus uygulama). Bu oturumda sadece
+**Faz 1 - Temel** kapsami uygulandi:
+
+1. **`lucide-react` kuruldu** (ikon kutuphanesi, `package.json`/`package-lock.json`).
+2. **Panele ozel renk paleti** eklendi (`tailwind.config.ts`) - magaza
+   tarafinin `ink/paper/accent/line` renklerine dokunulmadi, panel icin ayri
+   isimler kullanildi: `admin-bg` (#f6f6f7), `admin-surface` (#ffffff),
+   `admin-border` (#e3e3e5), `admin-text` (#1a1a1a), `admin-text-muted`
+   (#6b6b6f), `admin-accent` (indigo, #4f46e5).
+3. **Ortak panel bilesenleri** olusturuldu (`src/components/admin/`):
+   `button.tsx` (primary/secondary/danger/ghost), `badge.tsx` (sari/mavi/
+   yesil/kirmizi/gri tonlari), `card.tsx`, `data-table.tsx` (checkbox
+   kolonu + tiklanabilir siralama + secim durumuna gore `BulkActionBar` +
+   bos durum), `bulk-action-bar.tsx`, `search-input.tsx`, `filter-bar.tsx`,
+   `pagination.tsx` (link tabanli, `?page=`), `toast.tsx` (`ToastProvider`
+   + `useToast` context'i, sag-alt kose bildirimleri), `empty-state.tsx`,
+   `stat-card.tsx`, `sidebar.tsx`, `topbar.tsx`. Bu bilesenler simdilik
+   sadece Ayarlar sayfasinda (Card, Toast) ve yeni layout'ta (Sidebar,
+   Topbar) kullaniliyor; Urunler/Siparisler gibi listelerin DataTable'a
+   gecisi Faz 2/3'e birakildi.
+4. **Admin layout yenilendi** (`src/app/(site)/admin/layout.tsx`): eski
+   duz `<aside>` navigasyonu kaldirilip yeni `Sidebar` (lucide ikonlu, 7
+   bolum: Panel/Urunler/Kategoriler/Siparisler/Kargolar/**Musteriler**/
+   **Ayarlar** - son ikisi yeni) ve `Topbar` (calisan hizli arama kutusu +
+   kullanici menusu/cikis) ile degistirildi. Sayfa geneli `ToastProvider`
+   ile sarmalandi.
+   - **Hizli arama**: `src/app/api/admin/search/route.ts` yeni bir API
+     route - oturum kontrolu yapip (`getServerSession`, oturumsuzsa 401),
+     `q` parametresine gore urun adinda ve siparis no/musteri adinda
+     (case-insensitive, ilk 5 sonuc) arama yapiyor. `Topbar` bu route'u
+     250ms debounce ile cagirip sonuclari kucuk bir dropdown'da gosteriyor
+     (urun -> `/admin/urunler/[id]`, siparis -> `/admin/siparisler/[id]`).
+   - **Musteriler** sayfasi (`src/app/(site)/admin/musteriler/page.tsx`):
+     su an sadece `EmptyState` ile "Yakinda" mesaji gosteriyor (gercek
+     musteri listesi Faz 3'te, V1 turetilen liste olarak gelecek).
+5. **`StoreSettings` modeli** eklendi (`prisma/schema.prisma`) - tek
+   satirlik singleton kayit (`id` sabit `"singleton"` string literal ile
+   varsayilaniyor): `storeName`, `contactEmail`, `contactPhone`,
+   `defaultShippingCents`. `npm run db:push` ile Neon'a basariyla
+   uygulandi, ardindan `npx prisma generate` ile client yeniden uretildi.
+   - **Yeni bulgu - `prisma.config.ts` gerekiyor**: Prisma 7'de
+     `db push`/`generate` komutlari artik `.env`'i otomatik okumuyor,
+     kok dizinde bir `prisma.config.ts` dosyasi bekliyor. Proje koküne
+     bu dosya eklendi - Node'un yerlesik `process.loadEnvFile()` fonksiyonu
+     ile (ek bir `dotenv` bagimliligi eklemeden) `.env`'den `DATABASE_URL`
+     okunuyor; dosya yoksa (orn. Vercel'de degiskenler dogrudan enjekte
+     edildigi icin) hata sessizce yutuluyor, bu yuzden production build'i
+     etkilemiyor. **Not**: `prisma/seed.ts`'teki `import "dotenv/config"`
+     satirinin aslinda calismadigi fark edildi (`dotenv` paketi node_modules
+     kokunde yok, sadece ic bagimlilik olarak gomulu) - bu, mevcut/onceki
+     bir sorun, bu oturumda dokunulmadi (db:seed kullanilmadi).
+6. **Ayarlar sayfasi** (`src/app/(site)/admin/ayarlar/page.tsx`) tam
+   olarak yapildi:
+   - **Hesap**: giris yapan admin'in adi/e-postasi gosteriliyor + sifre
+     degistirme formu (server action: mevcut sifreyi `bcrypt.compare` ile
+     dogrulayip, yeni sifreyi `bcrypt.hash` ile `AdminUser.passwordHash`'e
+     yaziyor; yeni sifre en az 8 karakter ve tekrar alaniyla eslesmeli).
+   - **Magaza Bilgileri**: `StoreSettings` kaydini `upsert` ile
+     okuyup/olusturup gosteren form (magaza adi, iletisim email/telefon,
+     varsayilan kargo ucreti TL cinsinden) - server action ile kaydediliyor.
+   - **Onizleme Sifresi**: `PREVIEW_PASSWORD`'un bir Vercel ortam
+     degiskeni oldugunu, panelden degistirilemedigini, degistirmek icin
+     Vercel dashboard gerektigini belirten salt-bilgi kutusu (input yok).
+   - Basari/hata geri bildirimi icin `src/components/admin/settings-feedback.tsx`
+     eklendi: server action'lar `?basarili=...` / `?hata=...` query
+     parametresiyle yonlendiriyor, bu client bilesen mount'ta `useToast`
+     ile toast gosterip URL'i temizliyor (`router.replace`).
+7. **Diger mevcut admin sayfalari** (Panel/Urunler/Kategoriler/Siparisler/
+   Kargolar, urun duzenle/yeni, siparis detay) yeniden yazilmadi - sadece
+   yeni Sidebar/Topbar icine duzgun oturmalari icin class'lari (`border-line`
+   -> `border-admin-border`, `bg-ink` -> `bg-admin-accent`, `font-display`
+   basliklar -> sade `font-semibold` vb.) panel paletine uyacak sekilde
+   minimal guncellendi; sayfa yapilari/mantigi degismedi.
+
+**Test edildi** (`npm run build` hatasiz + `npm run dev` ile canli Neon
+veritabanina karsi, oturum acip):
+- Sidebar'daki 7 link ve Topbar arama kutusu `/admin` sayfasinda dogru
+  render ediliyor (HTML'de link/metin kontrolu).
+- `/api/admin/search?q=mont` gercek urunu (`Bollmark Oversize Mont`)
+  donduruyor; oturumsuz istek 401; 2 karakterden kisa sorgu bos sonuc
+  donduruyor.
+- `/admin/ayarlar`, `/admin/musteriler` ve diger tum admin sayfalari 200
+  donuyor.
+- **Magaza bilgileri kaydetme**: form gercekten submit edilip (React
+  Server Action'in multipart/form-data + gizli `$ACTION_ID_*` alani
+  gerektirdigi tespit edildi, curl ile buna gore test edildi) deger
+  Neon'a basariyla yazildigi ve sayfa yenilenince geri geldigi dogrulandi,
+  ardindan test verisi guvenli bos degerlere sifirlandi.
+- **Sifre degistirme - hata yolu**: kasten yanlis mevcut sifreyle
+  denendi, `bcrypt.compare` dogru sekilde reddedip `?hata=mevcut-sifre-yanlis`'a
+  yonlendirdi (gercek admin sifresi **degistirilmedi** - yerel gelistirme
+  canli Neon veritabanina bagli oldugu icin gercek sifreyle test
+  edilmedi, sadece hata yolu dogrulandi).
+- Test sirasinda gecmis bir oturumdan kalma, eski (StoreSettings eklenmeden
+  onceki) Prisma Client'i bellekte tutan bashi bos bir `npm run dev`
+  sureci bulunup kapatildi (`prisma generate` sonrasi dev sunucusunun
+  yeniden baslatilmasi gerekiyor, aksi halde singleton Prisma Client
+  guncellenmiyor).
+- Degisiklikler commit'lenip GitHub'a push edildi - Vercel git baglantisi
+  sayesinde otomatik deploy tetiklendi. **Not**: canlida `StoreSettings`
+  tablosu zaten Neon'a `db:push` ile eklendigi icin ayrica migration
+  adimi gerekmiyor.
+
+**Sirada**: `ADMIN_PANEL_PLAN.md` Faz 2 (Urunler & Kategoriler - liste/detay
+sayfalarinin yeni bilesenlerle yeniden yazilmasi, arama/filtre/toplu islem).

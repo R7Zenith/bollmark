@@ -102,6 +102,16 @@ model OrderItem {
   totalCents Int
 }
 
+// Magaza geneli ayarlar - tek satirlik "singleton" kayit (id her zaman "singleton")
+model StoreSettings {
+  id                   String   @id @default("singleton")
+  storeName            String   @default("Bollmark")
+  contactEmail         String   @default("")
+  contactPhone         String   @default("")
+  defaultShippingCents Int      @default(0)
+  updatedAt            DateTime @updatedAt
+}
+
 model Shipment {
   id           String         @id @default(cuid())
   orderId      String         @unique

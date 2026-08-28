@@ -21,27 +21,29 @@ export default async function AdminCategoriesPage() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl">Kategoriler</h1>
+      <h1 className="text-2xl font-semibold text-admin-text">Kategoriler</h1>
 
       <form action={createCategory} className="mt-6 flex max-w-md gap-3">
         <input
           name="name"
           required
           placeholder="Yeni kategori adi"
-          className="flex-1 border border-line px-4 py-2 text-sm"
+          className="flex-1 rounded-md border border-admin-border px-4 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
         />
-        <button className="bg-ink px-5 py-2 text-sm uppercase text-paper hover:bg-accent">Ekle</button>
+        <button className="rounded-md bg-admin-accent px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700">
+          Ekle
+        </button>
       </form>
 
-      <ul className="mt-8 max-w-md divide-y divide-line bg-white">
+      <ul className="mt-8 max-w-md divide-y divide-admin-border rounded-lg border border-admin-border bg-admin-surface">
         {categories.map((c) => (
-          <li key={c.id} className="flex items-center justify-between px-4 py-3 text-sm">
+          <li key={c.id} className="flex items-center justify-between px-4 py-3 text-sm text-admin-text">
             <span>{c.name}</span>
-            <span className="text-ink/50">{c._count.products} urun</span>
+            <span className="text-admin-text-muted">{c._count.products} urun</span>
           </li>
         ))}
         {categories.length === 0 && (
-          <li className="px-4 py-6 text-center text-sm text-ink/50">Henuz kategori yok.</li>
+          <li className="px-4 py-6 text-center text-sm text-admin-text-muted">Henuz kategori yok.</li>
         )}
       </ul>
     </div>

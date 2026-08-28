@@ -21,12 +21,12 @@ export default async function AdminDashboard() {
 
   return (
     <div>
-      <h1 className="font-display text-3xl">Genel Bakis</h1>
+      <h1 className="text-2xl font-semibold text-admin-text">Genel Bakis</h1>
       <div className="mt-8 grid grid-cols-2 gap-6 md:grid-cols-4">
         {stats.map((s) => (
-          <div key={s.label} className="border border-line bg-white p-6">
-            <p className="text-xs uppercase tracking-wide text-ink/50">{s.label}</p>
-            <p className="mt-2 text-2xl font-medium">{s.value}</p>
+          <div key={s.label} className="rounded-lg border border-admin-border bg-admin-surface p-6">
+            <p className="text-xs uppercase tracking-wide text-admin-text-muted">{s.label}</p>
+            <p className="mt-2 text-2xl font-semibold text-admin-text">{s.value}</p>
           </div>
         ))}
       </div>

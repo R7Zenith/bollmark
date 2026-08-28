@@ -56,40 +56,74 @@ export default async function NewProductPage() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="font-display text-3xl">Yeni Urun</h1>
+      <h1 className="text-2xl font-semibold text-admin-text">Yeni Urun</h1>
       <form action={createProduct} className="mt-8 space-y-5">
-        <input name="name" required placeholder="Urun Adi" className="w-full border border-line px-4 py-3" />
-        <input name="slug" required placeholder="url-uzantisi (orn. siyah-mont)" className="w-full border border-line px-4 py-3" />
-        <textarea name="description" required placeholder="Aciklama" rows={4} className="w-full border border-line px-4 py-3" />
+        <input
+          name="name"
+          required
+          placeholder="Urun Adi"
+          className="w-full rounded-md border border-admin-border px-4 py-3 focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+        />
+        <input
+          name="slug"
+          required
+          placeholder="url-uzantisi (orn. siyah-mont)"
+          className="w-full rounded-md border border-admin-border px-4 py-3 focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+        />
+        <textarea
+          name="description"
+          required
+          placeholder="Aciklama"
+          rows={4}
+          className="w-full rounded-md border border-admin-border px-4 py-3 focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+        />
         <div className="grid grid-cols-2 gap-4">
-          <input name="price" required type="number" step="0.01" placeholder="Fiyat (TL)" className="border border-line px-4 py-3" />
-          <select name="status" className="border border-line px-4 py-3">
+          <input
+            name="price"
+            required
+            type="number"
+            step="0.01"
+            placeholder="Fiyat (TL)"
+            className="rounded-md border border-admin-border px-4 py-3 focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+          />
+          <select
+            name="status"
+            className="rounded-md border border-admin-border px-4 py-3 focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+          >
             <option value="DRAFT">Taslak</option>
             <option value="PUBLISHED">Yayinda</option>
           </select>
         </div>
-        <select name="categoryId" className="w-full border border-line px-4 py-3">
+        <select
+          name="categoryId"
+          className="w-full rounded-md border border-admin-border px-4 py-3 focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+        >
           <option value="">Kategori sec (opsiyonel)</option>
           {categories.map((c) => (
             <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
         <div>
-          <label className="text-xs uppercase tracking-wide text-ink/50">Gorsel URL&apos;leri (her satira bir tane)</label>
-          <textarea name="images" rows={3} className="mt-1 w-full border border-line px-4 py-3" placeholder="https://..." />
+          <label className="text-xs uppercase tracking-wide text-admin-text-muted">Gorsel URL&apos;leri (her satira bir tane)</label>
+          <textarea
+            name="images"
+            rows={3}
+            className="mt-1 w-full rounded-md border border-admin-border px-4 py-3 focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+            placeholder="https://..."
+          />
         </div>
         <div>
-          <label className="text-xs uppercase tracking-wide text-ink/50">
+          <label className="text-xs uppercase tracking-wide text-admin-text-muted">
             Varyantlar - her satira: Beden,Renk,SKU,Stok
           </label>
           <textarea
             name="variants"
             rows={4}
-            className="mt-1 w-full border border-line px-4 py-3 font-mono text-sm"
+            className="mt-1 w-full rounded-md border border-admin-border px-4 py-3 font-mono text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
             placeholder={"M,Siyah,BLM-001-M-SYH,10\nL,Siyah,BLM-001-L-SYH,8"}
           />
         </div>
-        <button className="w-full bg-ink py-3 text-sm uppercase tracking-widest2 text-paper hover:bg-accent">
+        <button className="w-full rounded-md bg-admin-accent py-3 text-sm font-medium text-white hover:bg-indigo-700">
           Urunu Kaydet
         </button>
       </form>

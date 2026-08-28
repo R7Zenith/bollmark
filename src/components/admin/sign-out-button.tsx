@@ -6,7 +6,7 @@ export function SignOutButton() {
   return (
     <button
       onClick={() => signOut({ callbackUrl: "/admin/login" })}
-      className="text-sm text-ink/60 hover:text-accent"
+      className="text-sm text-admin-text-muted hover:text-admin-accent"
     >
       Cikis Yap
     </button>
