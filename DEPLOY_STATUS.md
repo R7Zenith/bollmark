@@ -1,6 +1,6 @@
 # Bollmark - Kurulum ve Canliya Alma Durumu
 
-Son guncelleme: 2026-08-29
+Son guncelleme: 2026-08-28 (bu oturum)
 
 Bu dosya, projeyi Claude Code ile kurup canliya alma surecinde nereye kadar
 gelindigini kaydeder. Kaldigimiz yerden devam etmek icin bu dosyayi Claude'a
@@ -295,3 +295,47 @@ kaldirildi:
   `@prisma/adapter-neon` API'si degisti: `new PrismaNeon({ connectionString })`
   seklinde dogrudan config aliyor, artik ayrica bir `Pool` nesnesi
   olusturmaya gerek yok.
+
+## Onizleme sifresi senkronizasyonu ve urun sayfasi hatasi (2026-08-28, yeni oturum)
+
+- **PREVIEW_PASSWORD uyusmazligi bulundu**: Yerel `.env`'deki `PREVIEW_PASSWORD`
+  degeri, Vercel'de tanimli gercek degerden farkliydi (gecmis Cloudflare/Vercel
+  gecisleri sirasinda `.env` guncel tutulmamis). Kullanici `?preview=...` linkini
+  denedi ama gate hala "yapim asamasinda" sayfasini gosteriyordu.
+  - Vercel dashboard'dan (kullanici giris yapti, Claude panelde islem yapti)
+    `PREVIEW_PASSWORD` yeni bir degerle degistirildi (deger burada gizli
+    tutuluyor, `.env` dosyasindan okunabilir).
+  - Degisiklik sonrasi Vercel'de **Redeploy** tetiklendi (env degisikligi mevcut
+    deployment'a otomatik yansimiyor, yeniden deploy gerekiyor).
+  - Yerel `.env`'deki `PREVIEW_PASSWORD` da ayni degerle guncellendi (Claude Code
+    araciligiyla, cunku `.env` dosyasina uzaktan yazma araclariyla dogrudan
+    yazma izni yok).
+  - Canlida (`https://bollmark.com/?preview=<sifre>`) ve yerelde
+    (`http://localhost:3000/?preview=...`) test edildi, ikisi de calisiyor.
+  - **Not**: `ADMIN_PASSWORD` de `.env`'de hala eski placeholder
+    (`guclu-bir-sifre-belirleyin`) olarak duruyor; gercek admin sifresi
+    veritabaninda kayitli (deger gizli tutuluyor), bu satiri guncellemek
+    gercek girisi etkilemez (sadece `db:seed` tekrar calistirilirsa devreye
+    girer).
+
+- **Next.js 16 dynamic route params hatasi bulundu ve duzeltildi**: Magazada
+  bir urune tiklandiginda (`/urunler/[slug]`) `PrismaClientValidationError` ile
+  sayfa hata veriyordu. Kok neden: Next.js 15+/16'da sayfa `params` prop'u artik
+  bir `Promise`, ama kod hala eski senkron sekilde (`params.slug`) okuyordu -
+  bu da Prisma sorgusuna gecersiz bir deger (Promise nesnesi) gonderiyordu.
+  Ayni desen 3 dosyada da vardi, ucu de duzeltildi (`params: Promise<...>` +
+  `await params`):
+  - `src/app/(site)/urunler/[slug]/page.tsx` (magaza urun detay sayfasi)
+  - `src/app/(site)/admin/urunler/[id]/page.tsx` (admin urun duzenleme)
+  - `src/app/(site)/admin/siparisler/[id]/page.tsx` (admin siparis detay)
+  - Yerelde `bollmark-oversize-mont` urun sayfasi test edildi, artik 200 donup
+    urun detaylarini (renk/beden secenekleri, sepete ekle) dogru gosteriyor.
+  - Degisiklik commit'lenip GitHub'a push edildi (`9ca8d55`) - Vercel git
+    baglantisi sayesinde otomatik deploy tetiklendi.
+
+## Kalan/opsiyonel (guncel)
+
+- Kullanici artik hem ev hem dukkan bilgisayarindan gelistirme yapacak; dukkan
+  PC'sinde de ayri bir `.env` dosyasi olusturulmasi gerekiyor (DATABASE_URL,
+  NEXTAUTH_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD, PREVIEW_PASSWORD - ev
+  bilgisayariyla ayni degerler, ozellikle guncel PREVIEW_PASSWORD).
