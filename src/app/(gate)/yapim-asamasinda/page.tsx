@@ -55,6 +55,12 @@ export default function YapimAsamasindaPage() {
   return (
     <div className={`${fraunces.variable} ${workSans.variable} gate`}>
       <style>{`
+        html, body {
+          margin:0;
+          padding:0;
+          height:100%;
+          overflow-x:hidden;
+        }
         .gate {
           --ink:#14171f;
           --ink-2:#1b1f29;
@@ -65,6 +71,7 @@ export default function YapimAsamasindaPage() {
           --line:#33384a;
           position:relative;
           min-height:100vh;
+          min-height:100dvh;
           overflow:hidden;
           background: radial-gradient(120% 90% at 50% -10%, #1d2230 0%, var(--ink) 55%);
           color: var(--paper);
