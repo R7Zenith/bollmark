@@ -1,62 +1,97 @@
-import Link from "next/link";
+import { Package } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { formatPrice } from "@/lib/format";
+import { EmptyState } from "@/components/admin/empty-state";
+import { OrdersFilters } from "@/components/admin/orders-filters";
+import { OrdersTable, type OrderRow } from "@/components/admin/orders-table";
 
-const statusLabel: Record<string, string> = {
-  PENDING_PAYMENT: "Odeme Bekliyor",
-  PAID: "Odendi",
-  PREPARING: "Hazirlaniyor",
-  SHIPPED: "Kargolandi",
-  DELIVERED: "Teslim Edildi",
-  CANCELLED: "Iptal",
-  REFUNDED: "Iade Edildi"
-};
+type SortKey = "orderNumber" | "customerName" | "total" | "createdAt";
+const sortKeys: SortKey[] = ["orderNumber", "customerName", "total", "createdAt"];
 
-export default async function AdminOrdersPage() {
+interface SearchParams {
+  q?: string;
+  durum?: string;
+  kargoDurum?: string;
+  baslangic?: string;
+  bitis?: string;
+  sort?: string;
+  dir?: string;
+}
+
+export default async function AdminOrdersPage({
+  searchParams
+}: {
+  searchParams: Promise<SearchParams>;
+}) {
+  const { q, durum, kargoDurum, baslangic, bitis, sort, dir } = await searchParams;
+
+  const totalCount = await prisma.order.count();
+
+  if (totalCount === 0) {
+    return (
+      <div>
+        <h1 className="text-2xl font-semibold text-admin-text">Siparisler</h1>
+        <div className="mt-8 rounded-lg border border-admin-border bg-admin-surface">
+          <EmptyState icon={Package} title="Henuz siparis yok" description="Magazandan ilk siparis geldiginde burada gorunecek." />
+        </div>
+      </div>
+    );
+  }
+
+  const sortKey: SortKey = sortKeys.includes(sort as SortKey) ? (sort as SortKey) : "createdAt";
+  const sortDir: "asc" | "desc" = dir === "asc" ? "asc" : "desc";
+
+  const bitisEnd = bitis ? new Date(`${bitis}T23:59:59.999`) : undefined;
+  const baslangicStart = baslangic ? new Date(`${baslangic}T00:00:00.000`) : undefined;
+
   const orders = await prisma.order.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { items: true }
+    where: {
+      ...(q
+        ? {
+            OR: [
+              { orderNumber: { contains: q, mode: "insensitive" as const } },
+              { customerName: { contains: q, mode: "insensitive" as const } },
+              { customerEmail: { contains: q, mode: "insensitive" as const } }
+            ]
+          }
+        : {}),
+      ...(durum ? { status: durum } : {}),
+      ...(kargoDurum === "YOK" ? { shipment: null } : kargoDurum ? { shipment: { status: kargoDurum } } : {}),
+      ...(baslangicStart || bitisEnd
+        ? { createdAt: { gte: baslangicStart, lte: bitisEnd } }
+        : {})
+    },
+    include: { shipment: true },
+    orderBy:
+      sortKey === "orderNumber"
+        ? { orderNumber: sortDir }
+        : sortKey === "customerName"
+          ? { customerName: sortDir }
+          : sortKey === "total"
+            ? { totalCents: sortDir }
+            : { createdAt: sortDir }
   });
+
+  const rows: OrderRow[] = orders.map((o) => ({
+    id: o.id,
+    orderNumber: o.orderNumber,
+    customerName: o.customerName,
+    status: o.status,
+    shipmentStatus: o.shipment?.status ?? null,
+    totalCents: o.totalCents,
+    createdAt: o.createdAt.toISOString()
+  }));
 
   return (
     <div>
       <h1 className="text-2xl font-semibold text-admin-text">Siparisler</h1>
 
-      <table className="mt-8 w-full border-collapse overflow-hidden rounded-lg bg-admin-surface text-sm">
-        <thead>
-          <tr className="border-b border-admin-border text-left text-xs uppercase tracking-wide text-admin-text-muted">
-            <th className="px-4 py-3">Siparis No</th>
-            <th className="px-4 py-3">Musteri</th>
-            <th className="px-4 py-3">Durum</th>
-            <th className="px-4 py-3">Tutar</th>
-            <th className="px-4 py-3">Tarih</th>
-            <th className="px-4 py-3"></th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((o) => (
-            <tr key={o.id} className="border-b border-admin-border text-admin-text">
-              <td className="px-4 py-3 font-mono">{o.orderNumber}</td>
-              <td className="px-4 py-3">{o.customerName}</td>
-              <td className="px-4 py-3">{statusLabel[o.status]}</td>
-              <td className="px-4 py-3">{formatPrice(o.totalCents)}</td>
-              <td className="px-4 py-3">{o.createdAt.toLocaleDateString("tr-TR")}</td>
-              <td className="px-4 py-3 text-right">
-                <Link href={`/admin/siparisler/${o.id}`} className="text-admin-accent hover:underline">
-                  Detay
-                </Link>
-              </td>
-            </tr>
-          ))}
-          {orders.length === 0 && (
-            <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-admin-text-muted">
-                Henuz siparis yok.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+      <div className="mt-6">
+        <OrdersFilters />
+      </div>
+
+      <div className="mt-4">
+        <OrdersTable orders={rows} initialSort={{ key: sortKey, direction: sortDir }} />
+      </div>
     </div>
   );
 }
