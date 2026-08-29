@@ -16,9 +16,9 @@ Karar verilenler (kullanicidan alindi):
 
 **Plan netlesti - bir sonraki adim Claude Code ile uygulamaya baslamak.**
 
-**Durum (guncel):** Faz 1 - Temel, Faz 2 - Urunler & Kategoriler ve Faz 3 -
-Siparisler & Kargolar & Musteriler tamamlandi (bkz. asagida 4. bolum ve
-DEPLOY_STATUS.md). Sirada **Faz 4 - Dashboard** var.
+**Durum (guncel):** Faz 1 - Temel, Faz 2 - Urunler & Kategoriler, Faz 3 -
+Siparisler & Kargolar & Musteriler ve Faz 4 - Dashboard tamamlandi (bkz.
+asagida 4. bolum ve DEPLOY_STATUS.md). **Planin 4 fazi da tamamlandi.**
 
 ## 1) Tasarim sistemi
 
@@ -163,8 +163,8 @@ Ust kisimda Shopify'daki gibi bir urun/siparis hizli arama kutusu olacak -
 3. **Faz 3 - Siparisler & Kargolar & Musteriler (tamamlandi):** Liste + detay
    sayfalari yenilendi (siparis listesinde odeme+kargo icin iki ayri badge),
    Musteriler (V1, turetilen) sayfasi eklendi.
-4. **Faz 4 - Dashboard:** Grafikler + "son siparisler" / "stogu azalan
-   urunler" mini listeleri eklenir.
+4. **Faz 4 - Dashboard (tamamlandi):** Grafikler + "son siparisler" / "stogu
+   azalan urunler" mini listeleri eklendi.
 
 Her faz kendi icinde test edilip commit'lenir (once yerelde `npm run dev`
 ile kontrol, sonra push -> Vercel otomatik deploy).
@@ -172,3 +172,10 @@ ile kontrol, sonra push -> Vercel otomatik deploy).
 ## 5) Netlesmesi gereken acik noktalar
 
 Hepsi netlesti - acik nokta kalmadi. Plan uygulamaya hazir.
+
+## 6) Plan tamamlandi
+
+Admin paneli yenileme plani (Faz 1-4) tamamlandi. Ileride eklenecekler icin
+V2 notlari (orn. gercek bir `Customer` modeli - su an Musteriler sayfasi
+Orders tablosundan turetilen bir V1 liste) yukarida "Musteriler" bolumunde
+duruyor.

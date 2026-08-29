@@ -687,3 +687,105 @@ NextAuth credentials ile giris yapip iki gecici test siparisi olusturarak -
 
 **Sirada**: `ADMIN_PANEL_PLAN.md` Faz 4 (Dashboard: grafikler, son
 siparisler / stogu azalan urunler mini listeleri).
+
+## Admin paneli yenilemesi - Faz 4: Dashboard (2026-08-29, yeni oturum)
+
+`ADMIN_PANEL_PLAN.md` Faz 4 kapsami uygulandi: dashboard (`/admin`) tamamen
+yeniden yazildi - Faz 1'de yazilip hic kullanilmayan `StatCard` bileseni
+devreye alindi, 30 gunluk siparis grafigi (`recharts`) ve iki mini liste
+eklendi. **Bu, planin son fazi - Faz 1-4 hepsi tamamlandi.**
+
+1. **`recharts` kuruldu** (`npm install recharts`, `package.json`/
+   `package-lock.json`).
+2. **Sayac kartlari `StatCard`'a gecti** (`src/app/(site)/admin/page.tsx`):
+   Toplam Urun (Package ikonu), Toplam Siparis (ShoppingCart), Odeme
+   Bekleyen (Clock), Ciro (Wallet). Siparis ve Ciro kartlarina trend eklendi:
+   bu ayin 1'inden bugune kadar olan siparis sayisi/ciro, gecen ayin ayni
+   gun sayisi kadarki (`Math.min(bugunun_gunu, gecen_ayin_gun_sayisi)`)
+   donemiyle karsilastiriliyor. **Karar**: onceki donemde hic siparis yoksa
+   (`previous === 0`) trend hic gosterilmiyor (sahte/yaniltici %/fark
+   uretilmiyor) - `src/app/(site)/admin/page.tsx` icindeki `trendFrom`
+   yardimci fonksiyonu bunu yapiyor. Toplam Urun ve Odeme Bekleyen
+   kartlarinda trend gosterilmedi (plan sadece siparis sayisi/ciro icin
+   trend istiyordu, stok/bekleyen siparis sayisi icin anlamli bir "onceki
+   donem" karsilastirmasi yok).
+3. **Son 30 gunluk siparis grafigi**: Prisma ile son 30 gunun siparisleri
+   (`createdAt`, `status`, `totalCents` alanlari) tek sorguda cekilip JS
+   tarafinda GUNE gore gruplaniyor; ciro sadece PAID/PREPARING/SHIPPED/
+   DELIVERED durumundaki siparislerden hesaplaniyor (dashboard'daki ana
+   ciro sayaciyla ayni filtre - `REVENUE_STATUSES` sabiti). Siparis olmayan
+   gunler 0 olarak diziye ekleniyor.
+   - **Bulunan ve duzeltilen hata (yerel test sirasinda)**: gun anahtarlari
+     ilk yazimda yerel saat (`setDate`/`setHours`) ile hesaplanip
+     `toISOString()` ile UTC string'e cevriliyordu - sunucu saat dilimi
+     UTC'den farkli oldugunda (bu makine Turkiye, UTC+3) bu, butun gunleri
+     bir gun geriye kaydiriyor ve BUGUNUN siparislerini grafikten tamamen
+     dusuruyordu (curl ile test edilirken grafigin flight payload'inda
+     "orders":0 hepsi ve bugunun tarihinin hic gorunmedigi fark edildi).
+     **Duzeltme**: hem 30 gunluk baslangic hem gun dongusu `Date.UTC(...)` /
+     `setUTCDate` ile tamamen UTC takvim gunlerine gore hesaplanacak sekilde
+     degistirildi, siparislerin `createdAt.toISOString().slice(0,10)`
+     anahtariyla eslesmesi garanti edildi (hangi sunucu saat diliminde
+     calisirsa calissin tutarli).
+   - Yeni client bileseni `src/components/admin/orders-chart.tsx`:
+     "use client", `recharts`'in `ResponsiveContainer` + `LineChart`'i,
+     tek renk (`#4f46e5`, admin-accent) cizgi, sade tooltip (siparis sayisi
+     + ciro TL olarak). Sayfa (server component) sadece duz veri dizisini
+     (`{ date, orders, revenueCents }[]`) bu bilesene prop olarak geciriyor
+     - proje kuralina uyularak JSX/render mantigi client bilesenin icinde
+     tutuldu, server->client'a JSX render fonksiyonu gecirilmedi.
+   - Grafik bir `Card` icinde "Son 30 Gun" basligiyla; hic siparis yoksa
+     (`orderCount === 0`) `EmptyState` gosteriliyor.
+4. **"Son Siparisler" mini listesi**: son 5 siparis (`createdAt desc`),
+   siparis no + musteri adi + tutar + `status.ts`'teki `orderStatusTone`/
+   `orderStatusLabel` ile Badge (Faz 3'teki `orders-table.tsx` ile ayni
+   desen), tiklaninca `/admin/siparisler/[id]`'ye giden `Link`. Hic siparis
+   yoksa `EmptyState`.
+5. **"Stogu Azalan Urunler" mini listesi**: `ProductVariant` uzerinden
+   `stock < 5` olan varyantlar, en dusuk stoklu ustte, en fazla 8 satir;
+   urun adi + beden/renk + kalan stok, tiklaninca `/admin/urunler/[id]`'ye
+   giden `Link`. Hic dusuk stoklu varyant yoksa sakin bir "Stok seviyeleri
+   iyi gorunuyor" metni (panik yaratmayan ifade, plan bunu istiyordu).
+6. **Layout**: ustte 4 `StatCard` (grid-cols-2 md:grid-cols-4 korundu),
+   altinda solda (2/3 genislik) grafik karti + sagda (1/3) Son Siparisler
+   karti, en altta tam genislik Stogu Azalan Urunler karti; mobilde
+   (`lg:` altinda) tek kolona dusuyor.
+
+**Test edildi** (`npm run build` hatasiz, `/` ve `/urunler` hala statik;
+`rm -rf .next` ile temizleyip `npm run dev` ile canli Neon veritabanina
+karsi, NextAuth credentials login'i `curl` ile `/api/auth/callback/credentials`
+uzerinden yapip authenticated cookie ile):
+- **StatCard sayilari**: gercek DB durumuyla (1 urun, 3 siparis, 1 odeme
+  bekleyen, ₺5.697 ciro) birebir eslesti dogrulandi.
+- **Trend**: veritabaninda onceki ay siparisi olmadigi icin (butun test
+  siparisleri bugun olusturulmus) trend metni **dogru sekilde
+  gosterilmedi** (sahte veri uretilmedigi dogrulandi) - "veri yetersizse
+  gosterme" karari bu senaryoda calistigi teyit edildi.
+- **30 gunluk grafik**: yukaridaki UTC duzeltmesinden sonra, React flight
+  payload'i (`curl` ciktisinda) incelenerek 30 gun anahtarinin dogru
+  uretildigi, bugunun tarihinin (`2026-08-29`) dizide yer aldigi ve
+  `orders:3, revenueCents:569700` ile gercek siparislerle esleştigi
+  (ana ciro sayaciyla ayni toplam) dogrulandi. **Not**: `recharts`'in
+  `ResponsiveContainer`i genislik olcumu icin tarayici hidrasyonu
+  gerektirdigi icin sunucu tarafi HTML'de (curl) grafik SVG'si tam
+  gorunmuyor - bu kutuphanenin bilinen/beklenen davranisi, gercek
+  tarayicida sorun teskil etmez; bu ortamda headless tarayici araci
+  olmadigi icin piksel-duzeyinde gorsel dogrulama yapilamadi (kullaniciya
+  onerilir).
+- **Son Siparisler listesi**: 3 gercek siparis dogru sirada (en yeni once),
+  dogru Badge tonlariyla (Odeme Bekliyor/Hazirlaniyor/Kargolandi) ve dogru
+  `/admin/siparisler/[id]` linkleriyle render edildi.
+- **Stogu Azalan Urunler**: gecici bir test varyanti (stock=2,
+  `TEST-LOWSTOCK-*` SKU'su ile) olusturulup dashboard'da dogru urun adi +
+  beden/renk + "2 adet" ile gorundugu dogrulandi, ardindan test verisi
+  Neon'dan silindi (gercek seed verisine dokunulmadi); silme sonrasi "Stok
+  seviyeleri iyi gorunuyor" mesaji tekrar goruldu.
+- Test icin kullanilan gecici `lowstock-test.ts` betigi (proje kokunde,
+  `prisma.config.ts`'teki gibi `process.loadEnvFile()` ile calisan) test
+  sonunda silindi, commit'e dahil edilmedi.
+- Degisiklikler commit'lenip GitHub'a push edildi - Vercel git baglantisi
+  sayesinde otomatik deploy tetiklendi.
+
+**Sirada**: Plan tamamlandi (Faz 1-4). Ileride eklenmesi istenirse gercek
+bir `Customer` modeli (V2, `ADMIN_PANEL_PLAN.md`'de Musteriler bolumunde
+not dusuldu) disinda acik bir madde kalmadi.
