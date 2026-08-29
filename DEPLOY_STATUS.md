@@ -542,4 +542,148 @@ veritabanina karsi, NextAuth credentials ile giris yapip `curl` uzerinden):
 - Degisiklikler commit'lenip GitHub'a push edildi (`fa96f2a`) - Vercel git
   baglantisi sayesinde otomatik deploy tetiklendi.
 
-**Sirada**: `ADMIN_PANEL_PLAN.md` Faz 3 (Siparisler & Kargolar & Musteriler).
+## Admin paneli yenilemesi - Faz 3: Siparisler & Kargolar & Musteriler (2026-08-29, yeni oturum)
+
+`ADMIN_PANEL_PLAN.md` Faz 3 kapsami uygulandi: siparis liste/detay sayfalari
+Faz 1/2'de kurulan ortak bilesenlerle yeniden yazildi, kargolar sayfasi
+DataTable + satir ici duzenlemeye gecti, musteriler sayfasi siparislerden
+turetilen gercek bir liste oldu (V1, sema degisikligi yok).
+
+1. **Ortak yardimcilar**: `src/lib/status.ts` - Order.status (7 deger) ve
+   Shipment.status (5 deger) icin Turkce etiket + Badge tonu eslemeleri tek
+   yerde tutuluyor (siparisler listesi/detayi, kargolar sayfasi hepsi buradan
+   okuyor). `src/lib/shipment.ts` - kargo guncelleme mantigi (`applyShipmentUpdate`,
+   FormData alir: shipmentId/carrier/trackingCode/status; durum
+   KARGOYA_VERILDI/TESLIM_EDILDI oldugunda ilgili tarih alanini otomatik
+   set eder) tek yerde tanimlandi; hem kargolar sayfasi hem siparis detay
+   sayfasi kendi kucuk "use server" sarmalayicisi icinden (kendi redirect
+   hedefiyle) bu fonksiyonu cagiriyor - kod tekrari onlendi, ayni zamanda
+   Next.js'in "use server" dosyalarinin sadece async fonksiyon export
+   edebilmesi kisitlamasina da uyuldu (sabitler/etiketler ayri, "use server"
+   olmayan bir dosyada).
+2. **Siparisler listesi** (`src/app/(site)/admin/siparisler/page.tsx`)
+   tamamen yeniden yazildi:
+   - `q` (siparis no, musteri adi **veya e-posta**), `durum` (Order.status),
+     `kargoDurum` (Shipment.status, veya kargo kaydi olmayanlar icin ozel
+     `YOK` degeri -> `shipment: null`), `baslangic`/`bitis` (createdAt
+     tarih araligi, gun sonu/basi ile), `sort`/`dir` URL parametreleri
+     Prisma sorgusuna uygulaniyor.
+   - Yeni `src/components/admin/orders-filters.tsx` (arama debounce +
+     odeme durumu/kargo durumu select'leri + iki tarih input'u,
+     products-filters.tsx'in ayni deseni) ve
+     `src/components/admin/orders-table.tsx` (DataTable sarmalayicisi:
+     odeme durumu ve kargo durumu **iki ayri renkli Badge yan yana**, kargo
+     kaydi yoksa gri "Kargo Yok"; checkbox + BulkActionBar ile toplu
+     "Odendi Olarak Isaretle / Hazirlaniyor Olarak Isaretle / Iptal Et" -
+     silme yok).
+   - Yeni API route `src/app/api/admin/siparisler/bulk/route.ts` (POST,
+     oturum kontrollu, sadece `SET_STATUS`, 7 durumdan biri).
+   - **Karar (plan acik birakmisti)**: musteriler sayfasindan gelen
+     "bu musterinin siparislerini goster" linki e-posta ile filtreleme
+     yaptigi icin, `q` aramasina `customerEmail` de eklendi (plan sadece
+     "siparis no / musteri adi" diyordu ama e-posta olmadan musteri->siparis
+     linki calismazdi).
+3. **Siparis detayi** (`siparisler/[id]/page.tsx`) Card bolumlerine
+   ayrildi: ust ozet (odeme+kargo Badge'leri yan yana + toplam tutar +
+   duruma gore tek buton: PENDING_PAYMENT->"Odendi Olarak Isaretle",
+   PAID->"Hazirlaniyor Olarak Isaretle", PREPARING->"Kargola",
+   **SHIPPED->"Teslim Edildi Olarak Isaretle"** (plan bu adimi belirtmemisti,
+   akisin tamamlanmasi icin eklendi) + CANCELLED/DELIVERED/REFUNDED disinda
+   her zaman "Iptal Et"), sol kolonda Urunler karti + Zaman Cizelgesi
+   (siparis olusturulma + varsa kargoya verilme/teslim tarihi, sade
+   div/Tailwind dikey timeline), sag kolonda Musteri karti ve
+   duzenlenebilir Kargo karti (`applyShipmentUpdate` kullanir, kaydedince
+   `#kargo` anchor'ina donuyor). Toast bildirimi icin
+   `src/components/admin/order-feedback.tsx` eklendi.
+4. **Kargolar** (`src/app/(site)/admin/kargolar/page.tsx`) `DataTable` +
+   satir ici duzenlemeye gecti: Yeni `src/components/admin/shipments-table.tsx`
+   client bileseni bir `editingId` state'i tutuyor, kalem ikonuna tiklanan
+   satirda Kargo Firmasi/Takip Kodu/Durum hucreleri input/select'e donusuyor
+   - bu alanlar DataTable'in ayri `<td>` hucrelerinde oldugu icin, tek bir
+     gizli `<form>` (Kargo Firmasi hucresinde) ile digerleri arasinda
+     HTML5'in yerlesik `form="..."` attribute'u kullanildi (projede
+     `save-bar.tsx`'teki submit butonunun forma disaridan baglanmasiyla
+     ayni teknik). Arama (siparis no) + durum filtresi icin yeni
+     `src/components/admin/kargolar-filters.tsx`. Toast icin yeni
+     `src/components/admin/shipment-feedback.tsx` (category-feedback.tsx'i
+     dogrudan yeniden kullanmaya calisildi ama o bilesen `/admin/kategoriler`
+     yoluna sabit yonlendirdigi icin kargolar sayfasini yanlis yere
+     redirect ediyordu - fark edilip ayri bir bilesene ayrildi).
+5. **Musteriler** (`src/app/(site)/admin/musteriler/page.tsx`) V1 olarak
+   gercek liste oldu (sema degisikligi yok): tum siparisler tek sorguda
+   cekilip `customerEmail`'e gore JS'te gruplaniyor (siparis sayisi, toplam
+   harcama toplaniyor; isim/en son siparis tarihi olarak **en yeni siparisin
+   degerleri** kullaniliyor - musteri isim degistirsin diye). **Karar (plan
+   acik birakmisti)**: liste varsayilan olarak **son siparis tarihine gore
+   azalan** sirali (en son alisveris yapan en üstte) - baska bir siralama
+   kriteri belirtilmemisti, en dogal varsayilan bu secildi. Arama (isim/
+   e-posta) icin yeni `src/components/admin/customers-filters.tsx`. Musteri
+   adina tiklaninca `/admin/siparisler?q=<email>` adresine yonlendiriyor.
+   - **Bulunan hata**: ilk yazimda `columns` (icinde JSX `render` fonksiyonlari
+     olan) dogrudan sayfa (server component) icinde tanimlanip `DataTable`
+     (client component) bilesenine prop olarak geciriliyordu - bu, Next.js'in
+     "fonksiyonlar Server'dan Client'a `use server` isaretlenmeden
+     gecirilemez" kuralina takilip calisma zamaninda hata verdi (curl ile
+     test edilirken RSC payload'inda acikca gorundu). **Duzeltme**: Faz 2'deki
+     `products-table.tsx`/`orders-table.tsx` deseniyle ayni sekilde, yeni bir
+     `src/components/admin/customers-table.tsx` client bileseni olusturulup
+     `columns` tanimi bu bilesenin **icine** tasindi, sayfa sadece duz veri
+     (`CustomerRow[]`) geciriyor.
+6. **`Card` bilesenine** (`src/components/admin/card.tsx`) opsiyonel `id`
+   prop'u eklendi - siparis detayindaki Kargo karti `id="kargo"` ile
+   isaretlenip "Kargola"/kargo guncelleme sonrasi `#kargo` anchor'ina
+   yonlendirmeyi mumkun kildi.
+
+**Test edildi** (`npm run build` hatasiz, TypeScript temiz, `/` ve
+`/urunler` hala statik; `npm run dev` ile canli Neon veritabanina karsi,
+NextAuth credentials ile giris yapip iki gecici test siparisi olusturarak -
+`POST /api/orders` ile - `curl` uzerinden):
+- **Onemli bulgu**: `npm run build` sonrasi ayni `.next` klasoru uzerine
+  `npm run dev` calistirildiginda TUM route'lar (hatta `/` ve `/admin/login`)
+  404 donduruyordu (build ve dev modlarinin `.next` cikti formati
+  cakisiyor). `rm -rf .next` ile temizleyip `npm run dev`'i sifirdan
+  baslatmak sorunu cozdu - build/dev modlarini ayni `.next` klasorunu
+  paylastirmadan, aralarinda `.next` silinerek gecis yapilmali.
+- Siparis listesi: arama (siparis no + e-posta), durum filtresi (eslesmeyen
+  durumda "Sonuc bulunamadi"), kargo durumu filtresi, tarih araligi (bugunu
+  iceren araliktda gorunuyor, dislayan aralikta bos), `sort=total`
+  siralamasi - hepsi dogrulandi.
+- Toplu islem API'si: oturumsuz istek 401; oturumlu `SET_STATUS=PAID`
+  200 donup DB'de dogrulandi.
+- Siparis detayi: bulk ile PAID yapilan siparis sirasiyla `curl` ile
+  React Server Action'in multipart/form-data kodlamasi (`$ACTION_REF_N` +
+  `$ACTION_N:0`/`$ACTION_N:1` alanlari, Faz 1/2'deki gibi HTML'den
+  birebir okunarak) kullanilarak PREPARING -> SHIPPED durumlarina
+  gecirildi; her adimda dogru sonraki buton ("Hazirlaniyor Olarak Isaretle"
+  -> "Kargola" -> "Teslim Edildi Olarak Isaretle") ve dogru Badge
+  goruldu; SHIPPED'e gecince redirect'in `#kargo` anchor'i icerdigi
+  dogrulandi. Kargo karti formu (carrier/trackingCode/status) ayni
+  yontemle gonderilip Neon'a yazildigi, zaman cizelgesine "Kargoya
+  Verildi" olayinin eklendigi ve kargolar sayfasina da yansidigi
+  dogrulandi.
+- Kargolar sayfasi: arama (siparis no) ve durum filtresi `curl` ile
+  dogrulandi. **Not**: satir ici duzenleme (kalem ikonu -> form) React
+  `useState` ile calisan istemci tarafi bir etkilesim oldugu icin (ilk
+  sunucu tarafi HTML'de duzenleme formu hic render edilmiyor, sadece
+  JS hydration sonrasi goruntuleniyor) `curl` ile uctan uca test
+  edilemedi - ayni paylasilan `applyShipmentUpdate` fonksiyonu siparis
+  detay sayfasindaki kargo formu uzerinden basariyla test edildi, kod
+  yolu ayni. Gercek tarayicida pencil-tikla-duzenle-kaydet akisinin
+  gorsel olarak da dogrulanmasi onerilir.
+- Musteriler sayfasi: yukaridaki DataTable/Server-Client fonksiyon hatasi
+  bulunup duzeltildikten sonra, iki test siparisi (ayni e-posta,
+  farkli musteri adi) tek bir musteri satirinda dogru toplaniyor
+  (siparis sayisi=2, toplam harcama=iki siparisin toplami, isim=en son
+  siparisteki ad) dogrulandi; arama (isim/e-posta) ve bos sonuc durumu
+  calisiyor; musteri satirina tiklaninca `/admin/siparisler?q=<email>`
+  adresinin (yukaridaki e-posta arama duzeltmesi sayesinde) dogru
+  siparisleri gosterdigi dogrulandi.
+- Test icin olusturulan iki gecici siparis (`test-faz3@example.com`,
+  cascade ile shipment/orderItem kayitlariyla birlikte) `tsx` ile yazilan
+  gecici bir betikle Neon'dan silindi, betik commit'lenmeden kaldirildi;
+  gercek seed verisine dokunulmadi.
+- Degisiklikler commit'lenip GitHub'a push edildi - Vercel git baglantisi
+  sayesinde otomatik deploy tetiklendi.
+
+**Sirada**: `ADMIN_PANEL_PLAN.md` Faz 4 (Dashboard: grafikler, son
+siparisler / stogu azalan urunler mini listeleri).

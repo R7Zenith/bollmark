@@ -16,9 +16,9 @@ Karar verilenler (kullanicidan alindi):
 
 **Plan netlesti - bir sonraki adim Claude Code ile uygulamaya baslamak.**
 
-**Durum (guncel):** Faz 1 - Temel tamamlandi ve Faz 2 - Urunler & Kategoriler
-(tamamlandi) (bkz. asagida 4. bolum ve DEPLOY_STATUS.md). Sirada **Faz 3 -
-Siparisler & Kargolar & Musteriler** var.
+**Durum (guncel):** Faz 1 - Temel, Faz 2 - Urunler & Kategoriler ve Faz 3 -
+Siparisler & Kargolar & Musteriler tamamlandi (bkz. asagida 4. bolum ve
+DEPLOY_STATUS.md). Sirada **Faz 4 - Dashboard** var.
 
 ## 1) Tasarim sistemi
 
@@ -160,9 +160,9 @@ Ust kisimda Shopify'daki gibi bir urun/siparis hizli arama kutusu olacak -
    (hesap bilgisi + magaza bilgileri formu) bu fazda tam olarak yapilir.
 2. **Faz 2 - Urunler & Kategoriler (tamamlandi):** Liste + detay sayfalari yeni bilesenlerle
    yeniden yazilir, arama/filtre/toplu islem eklenir.
-3. **Faz 3 - Siparisler & Kargolar & Musteriler:** Liste + detay sayfalari
-   yenilenir (siparis listesinde odeme+kargo icin iki ayri badge), Musteriler
-   (V1, turetilen) sayfasi eklenir.
+3. **Faz 3 - Siparisler & Kargolar & Musteriler (tamamlandi):** Liste + detay
+   sayfalari yenilendi (siparis listesinde odeme+kargo icin iki ayri badge),
+   Musteriler (V1, turetilen) sayfasi eklendi.
 4. **Faz 4 - Dashboard:** Grafikler + "son siparisler" / "stogu azalan
    urunler" mini listeleri eklenir.
 
