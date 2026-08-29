@@ -11,7 +11,7 @@ export function BulkActionBar({ count, actions }: { count: number; actions: Bulk
 
   return (
     <div className="flex items-center justify-between rounded-md border border-admin-accent bg-indigo-50 px-4 py-2.5">
-      <p className="text-sm font-medium text-admin-accent">{count} secili</p>
+      <p className="text-sm font-medium text-admin-accent">{count} seçili</p>
       <div className="flex items-center gap-2">
         {actions.map((action) => (
           <Button key={action.label} size="sm" variant={action.variant ?? "secondary"} onClick={action.onClick}>

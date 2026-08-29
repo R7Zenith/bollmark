@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { PREVIEW_COOKIE_MAX_AGE, PREVIEW_COOKIE_NAME, PREVIEW_GATE_PATH } from "@/lib/preview-gate";
 
-// /admin altindaki tum sayfalari giris yapmis yonetici ile sinirlar.
-// /admin/login sayfasi proxy() icinde ayrica ele alinir, buraya girmez.
+// /admin altındaki tüm sayfaları giriş yapmış yönetici ile sınırlar.
+// /admin/login sayfası proxy() içinde ayrıca ele alınır, buraya girmez.
 async function guardAdmin(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
   if (token) return NextResponse.next();
@@ -13,14 +13,14 @@ async function guardAdmin(request: NextRequest) {
   return NextResponse.redirect(signInUrl);
 }
 
-// Magaza icin sifreli onizleme kapisi.
-// - ?preview=DOGRU_SIFRE ile gelinirse 30 gunluk cookie birakip ayni sayfanin
-//   temiz (preview parametresi silinmis) haline yonlendirir.
-// - Gecerli cookie varsa dokunmadan gecirir.
-// - Cookie yoksa/yanlissa magaza sayfasini yapim-asamasinda sayfasina rewrite eder
-//   (adres cubugundaki URL degismez, sadece gosterilen icerik degisir).
-// - PREVIEW_PASSWORD tanimli degilse koruma tamamen devre disi kalir (yanlislikla
-//   herkesi kilitlememek icin).
+// Mağaza için şifreli önizleme kapısı.
+// - ?preview=DOGRU_SIFRE ile gelinirse 30 günlük cookie bırakıp aynı sayfanın
+//   temiz (preview parametresi silinmiş) haline yönlendirir.
+// - Geçerli cookie varsa dokunmadan geçirir.
+// - Cookie yoksa/yanlışsa mağaza sayfasını yapim-asamasinda sayfasına rewrite eder
+//   (adres çubuğundaki URL değişmez, sadece gösterilen içerik değişir).
+// - PREVIEW_PASSWORD tanımlı değilse koruma tamamen devre dışı kalır (yanlışlıkla
+//   herkesi kilitlememek için).
 function guardPreview(request: NextRequest) {
   const previewPassword = process.env.PREVIEW_PASSWORD;
   if (!previewPassword) return NextResponse.next();
@@ -50,7 +50,7 @@ function guardPreview(request: NextRequest) {
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Yapim-asamasinda sayfasinin kendisi ve /admin/login her zaman erisilebilir.
+  // Yapim-asamasinda sayfasının kendisi ve /admin/login her zaman erişilebilir.
   if (pathname === PREVIEW_GATE_PATH || pathname.startsWith("/admin/login")) {
     return NextResponse.next();
   }

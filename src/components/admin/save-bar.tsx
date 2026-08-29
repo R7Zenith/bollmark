@@ -24,7 +24,7 @@ export function SaveBar({ formId }: { formId: string }) {
 
   return (
     <div className="sticky bottom-4 z-40 mt-6 flex items-center justify-between rounded-lg border border-admin-accent bg-admin-surface px-5 py-3 shadow-lg">
-      <p className="text-sm font-medium text-admin-text">Kaydedilmemis degisiklikler var</p>
+      <p className="text-sm font-medium text-admin-text">Kaydedilmemiş değişiklikler var</p>
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -34,7 +34,7 @@ export function SaveBar({ formId }: { formId: string }) {
           }}
           className="rounded-md border border-admin-border px-4 py-2 text-sm font-medium text-admin-text hover:bg-admin-bg"
         >
-          Vazgec
+          Vazgeç
         </button>
         <button
           type="submit"

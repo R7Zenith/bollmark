@@ -1,10 +1,10 @@
 import { prisma } from "@/lib/prisma";
 import { shipmentStatuses, type ShipmentStatus } from "@/lib/status";
 
-// Kargolar sayfasi ve siparis detay sayfasi ayni guncelleme mantigini
-// paylasir - ikisi de kendi "use server" sarmalayicisi icinden bu fonksiyonu
-// cagirip kendi redirect hedefine yonlendirir (kod tekrarini onlemek icin
-// mantik burada tutuluyor).
+// Kargolar sayfası ve sipariş detay sayfası aynı güncelleme mantığını
+// paylaşır - ikisi de kendi "use server" sarmalayıcısı içinden bu fonksiyonu
+// çağırıp kendi redirect hedefine yönlendirir (kod tekrarını önlemek için
+// mantık burada tutuluyor).
 export async function applyShipmentUpdate(formData: FormData) {
   const shipmentId = String(formData.get("shipmentId") || "");
   const statusRaw = String(formData.get("status") || "");

@@ -6,14 +6,14 @@ import { useToast } from "@/components/admin/toast";
 
 const successMessages: Record<string, string> = {
   eklendi: "Kategori eklendi.",
-  guncellendi: "Kategori guncellendi.",
+  guncellendi: "Kategori güncellendi.",
   silindi: "Kategori silindi."
 };
 
 const errorMessages: Record<string, string> = {
-  "isim-gerekli": "Kategori adi girilmelidir.",
-  "urun-bagli": "Bu kategoriye bagli urunler oldugu icin silinemedi.",
-  bulunamadi: "Kategori bulunamadi."
+  "isim-gerekli": "Kategori adı girilmelidir.",
+  "urun-bagli": "Bu kategoriye bağlı ürünler olduğu için silinemedi.",
+  bulunamadi: "Kategori bulunamadı."
 };
 
 export function CategoryFeedback({ basarili, hata }: { basarili?: string; hata?: string }) {
@@ -25,7 +25,7 @@ export function CategoryFeedback({ basarili, hata }: { basarili?: string; hata?:
       showToast(successMessages[basarili], "success");
       router.replace("/admin/kategoriler");
     } else if (hata) {
-      showToast(errorMessages[hata] ?? "Bir hata olustu.", "error");
+      showToast(errorMessages[hata] ?? "Bir hata oluştu.", "error");
       router.replace("/admin/kategoriler");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

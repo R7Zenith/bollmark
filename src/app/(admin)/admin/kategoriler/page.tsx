@@ -61,7 +61,7 @@ export default async function AdminCategoriesPage({
           <input
             name="name"
             required
-            placeholder="Kategori adi"
+            placeholder="Kategori adı"
             className="flex-1 rounded-md border border-admin-border px-4 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
           />
           <button className="rounded-md bg-admin-accent px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700">
@@ -81,7 +81,7 @@ export default async function AdminCategoriesPage({
           />
         ))}
         {categories.length === 0 && (
-          <li className="px-4 py-6 text-center text-sm text-admin-text-muted">Henuz kategori yok.</li>
+          <li className="px-4 py-6 text-center text-sm text-admin-text-muted">Henüz kategori yok.</li>
         )}
       </ul>
     </div>

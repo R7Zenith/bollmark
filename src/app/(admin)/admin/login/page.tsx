@@ -23,7 +23,7 @@ export default function AdminLoginPage() {
 
     setLoading(false);
     if (res?.error) {
-      setError("E-posta veya sifre hatali.");
+      setError("E-posta veya şifre hatalı.");
       return;
     }
     router.push("/admin");
@@ -35,7 +35,7 @@ export default function AdminLoginPage() {
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-5 bg-paper p-10">
         <div className="text-center">
           <p className="font-display text-2xl uppercase tracking-widest2">Bollmark</p>
-          <p className="mt-1 text-xs uppercase tracking-wide text-ink/50">Yonetim Paneli</p>
+          <p className="mt-1 text-xs uppercase tracking-wide text-ink/50">Yönetim Paneli</p>
         </div>
         <input
           name="email"
@@ -48,7 +48,7 @@ export default function AdminLoginPage() {
           name="password"
           type="password"
           required
-          placeholder="Sifre"
+          placeholder="Şifre"
           className="w-full border border-line px-4 py-3"
         />
         {error && <p className="text-sm text-red-600">{error}</p>}
@@ -57,7 +57,7 @@ export default function AdminLoginPage() {
           disabled={loading}
           className="w-full bg-ink py-3 text-sm uppercase tracking-widest2 text-paper hover:bg-accent disabled:opacity-50"
         >
-          {loading ? "Giris yapiliyor..." : "Giris Yap"}
+          {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
         </button>
       </form>
     </div>

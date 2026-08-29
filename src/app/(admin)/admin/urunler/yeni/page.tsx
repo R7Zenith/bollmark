@@ -25,7 +25,7 @@ async function createProduct(formData: FormData) {
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
-  // Varyant satiri formati: Beden,Renk,SKU,Stok
+  // Varyant satırı formatı: Beden,Renk,SKU,Stok
   const variantLines = String(formData.get("variants") || "")
     .split("\n")
     .map((s) => s.trim())
@@ -65,40 +65,40 @@ export default async function NewProductPage() {
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-semibold text-admin-text">Yeni Urun</h1>
+      <h1 className="text-2xl font-semibold text-admin-text">Yeni Ürün</h1>
       <form id="product-form" action={createProduct} className="mt-8 space-y-6">
         <Card title="Temel Bilgiler">
           <div className="space-y-4">
             <div>
-              <label className={labelClass}>Urun Adi</label>
+              <label className={labelClass}>Ürün Adı</label>
               <input name="name" required className={`mt-1 ${inputClass}`} />
             </div>
             <div>
-              <label className={labelClass}>URL Uzantisi (slug)</label>
-              <input name="slug" required placeholder="orn. siyah-mont" className={`mt-1 ${inputClass}`} />
+              <label className={labelClass}>URL Uzantısı (slug)</label>
+              <input name="slug" required placeholder="örn. siyah-mont" className={`mt-1 ${inputClass}`} />
             </div>
             <div>
-              <label className={labelClass}>Aciklama</label>
+              <label className={labelClass}>Açıklama</label>
               <textarea name="description" required rows={4} className={`mt-1 ${inputClass}`} />
             </div>
           </div>
         </Card>
 
-        <Card title="Fiyatlandirma">
+        <Card title="Fiyatlandırma">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Fiyat (TL)</label>
               <input name="price" required type="number" step="0.01" className={`mt-1 ${inputClass}`} />
             </div>
             <div>
-              <label className={labelClass}>Indirim Oncesi Fiyat (TL, opsiyonel)</label>
+              <label className={labelClass}>İndirim Öncesi Fiyat (TL, opsiyonel)</label>
               <input name="compareAt" type="number" step="0.01" className={`mt-1 ${inputClass}`} />
             </div>
           </div>
         </Card>
 
         <Card title="Varyantlar">
-          <label className={labelClass}>Her satira: Beden,Renk,SKU,Stok</label>
+          <label className={labelClass}>Her satıra: Beden,Renk,SKU,Stok</label>
           <textarea
             name="variants"
             rows={4}
@@ -107,8 +107,8 @@ export default async function NewProductPage() {
           />
         </Card>
 
-        <Card title="Gorseller">
-          <label className={labelClass}>Gorsel URL&apos;leri (her satira bir tane)</label>
+        <Card title="Görseller">
+          <label className={labelClass}>Görsel URL&apos;leri (her satıra bir tane)</label>
           <textarea name="images" rows={3} className={`mt-1 ${inputClass}`} placeholder="https://..." />
         </Card>
 
@@ -117,7 +117,7 @@ export default async function NewProductPage() {
             <div>
               <label className={labelClass}>Kategori</label>
               <select name="categoryId" defaultValue="" className={`mt-1 ${inputClass}`}>
-                <option value="">Kategori sec (opsiyonel)</option>
+                <option value="">Kategori seç (opsiyonel)</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -129,14 +129,14 @@ export default async function NewProductPage() {
               <label className={labelClass}>Durum</label>
               <select name="status" defaultValue="DRAFT" className={`mt-1 ${inputClass}`}>
                 <option value="DRAFT">Taslak</option>
-                <option value="PUBLISHED">Yayinda</option>
+                <option value="PUBLISHED">Yayında</option>
               </select>
             </div>
           </div>
         </Card>
 
         <button className="w-full rounded-md bg-admin-accent py-3 text-sm font-medium text-white hover:bg-indigo-700">
-          Urunu Kaydet
+          Ürünü Kaydet
         </button>
 
         <SaveBar formId="product-form" />

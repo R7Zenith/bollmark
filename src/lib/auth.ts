@@ -10,10 +10,10 @@ export const authOptions: NextAuthOptions = {
   },
   providers: [
     CredentialsProvider({
-      name: "Yonetici Girisi",
+      name: "Yönetici Girişi",
       credentials: {
         email: { label: "E-posta", type: "email" },
-        password: { label: "Sifre", type: "password" }
+        password: { label: "Şifre", type: "password" }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;

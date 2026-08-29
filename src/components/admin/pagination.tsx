@@ -8,7 +8,7 @@ export function Pagination({
 }: {
   page: number;
   totalPages: number;
-  /** "?page=" parametresi eklenecek taban adres, orn. "/admin/urunler?durum=yayinda" */
+  /** "?page=" parametresi eklenecek taban adres, örn. "/admin/urunler?durum=yayinda" */
   baseUrl: string;
 }) {
   if (totalPages <= 1) return null;

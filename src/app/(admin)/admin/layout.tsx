@@ -8,7 +8,7 @@ import { Topbar } from "@/components/admin/topbar";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
 
-  // Giris sayfasinda oturum yoktur; middleware zaten korumali sayfalari yonlendirir.
+  // Giriş sayfasında oturum yoktur; middleware zaten korumalı sayfaları yönlendirir.
   if (!session) {
     return <AdminSessionProvider>{children}</AdminSessionProvider>;
   }

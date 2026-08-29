@@ -35,7 +35,7 @@ export function KargolarFilters() {
   return (
     <FilterBar>
       <SearchInput
-        placeholder="Siparis no'ya gore ara..."
+        placeholder="Sipariş no'ya göre ara..."
         value={q}
         onChange={(e) => setQ(e.target.value)}
         className="w-64"
@@ -45,7 +45,7 @@ export function KargolarFilters() {
         onChange={(e) => updateParam("durum", e.target.value)}
         className={selectClass}
       >
-        <option value="">Tum durumlar</option>
+        <option value="">Tüm durumlar</option>
         {shipmentStatuses.map((s) => (
           <option key={s} value={s}>
             {shipmentStatusLabel[s]}

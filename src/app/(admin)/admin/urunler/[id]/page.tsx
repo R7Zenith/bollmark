@@ -26,7 +26,7 @@ async function updateProduct(id: string, formData: FormData) {
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
-  // Varyant satiri formati: Beden,Renk,SKU,Stok
+  // Varyant satırı formatı: Beden,Renk,SKU,Stok
   const variantLines = String(formData.get("variants") || "")
     .split("\n")
     .map((s) => s.trim())
@@ -98,7 +98,7 @@ export default async function EditProductPage({
 
   return (
     <div className="max-w-2xl">
-      <h1 className="text-2xl font-semibold text-admin-text">Urunu Duzenle</h1>
+      <h1 className="text-2xl font-semibold text-admin-text">Ürünü Düzenle</h1>
 
       <ProductFeedback basarili={basarili} hata={hata} />
 
@@ -106,21 +106,21 @@ export default async function EditProductPage({
         <Card title="Temel Bilgiler">
           <div className="space-y-4">
             <div>
-              <label className={labelClass}>Urun Adi</label>
+              <label className={labelClass}>Ürün Adı</label>
               <input name="name" defaultValue={product.name} required className={`mt-1 ${inputClass}`} />
             </div>
             <div>
-              <label className={labelClass}>URL Uzantisi (slug)</label>
+              <label className={labelClass}>URL Uzantısı (slug)</label>
               <input name="slug" defaultValue={product.slug} required className={`mt-1 ${inputClass}`} />
             </div>
             <div>
-              <label className={labelClass}>Aciklama</label>
+              <label className={labelClass}>Açıklama</label>
               <textarea name="description" defaultValue={product.description} rows={4} className={`mt-1 ${inputClass}`} />
             </div>
           </div>
         </Card>
 
-        <Card title="Fiyatlandirma">
+        <Card title="Fiyatlandırma">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Fiyat (TL)</label>
@@ -133,7 +133,7 @@ export default async function EditProductPage({
               />
             </div>
             <div>
-              <label className={labelClass}>Indirim Oncesi Fiyat (TL, opsiyonel)</label>
+              <label className={labelClass}>İndirim Öncesi Fiyat (TL, opsiyonel)</label>
               <input
                 name="compareAt"
                 type="number"
@@ -146,7 +146,7 @@ export default async function EditProductPage({
         </Card>
 
         <Card title="Varyantlar">
-          <label className={labelClass}>Her satira: Beden,Renk,SKU,Stok</label>
+          <label className={labelClass}>Her satıra: Beden,Renk,SKU,Stok</label>
           <textarea
             name="variants"
             defaultValue={variantsValue}
@@ -156,8 +156,8 @@ export default async function EditProductPage({
           />
         </Card>
 
-        <Card title="Gorseller">
-          <label className={labelClass}>Gorsel URL&apos;leri (her satira bir tane)</label>
+        <Card title="Görseller">
+          <label className={labelClass}>Görsel URL&apos;leri (her satıra bir tane)</label>
           <textarea name="images" defaultValue={imagesValue} rows={3} className={`mt-1 ${inputClass}`} placeholder="https://..." />
         </Card>
 
@@ -178,8 +178,8 @@ export default async function EditProductPage({
               <label className={labelClass}>Durum</label>
               <select name="status" defaultValue={product.status} className={`mt-1 ${inputClass}`}>
                 <option value="DRAFT">Taslak</option>
-                <option value="PUBLISHED">Yayinda</option>
-                <option value="ARCHIVED">Arsiv</option>
+                <option value="PUBLISHED">Yayında</option>
+                <option value="ARCHIVED">Arşiv</option>
               </select>
             </div>
           </div>

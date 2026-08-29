@@ -35,7 +35,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) setLines(JSON.parse(raw));
     } catch {
-      // localStorage okunamazsa sessizce bos sepetle devam et
+      // localStorage okunamazsa sessizce boş sepetle devam et
     }
     setHydrated(true);
   }, []);
@@ -45,7 +45,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(lines));
     } catch {
-      // yazma basarisiz olursa (orn. gizli sekme) sessizce yut
+      // yazma başarısız olursa (örn. gizli sekme) sessizce yut
     }
   }, [lines, hydrated]);
 
@@ -92,6 +92,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
 export function useCart() {
   const ctx = useContext(CartContext);
-  if (!ctx) throw new Error("useCart, CartProvider icinde kullanilmalidir");
+  if (!ctx) throw new Error("useCart, CartProvider içinde kullanılmalıdır");
   return ctx;
 }

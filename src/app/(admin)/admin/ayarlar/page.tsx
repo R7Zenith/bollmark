@@ -75,7 +75,7 @@ export default async function AdminSettingsPage({
       <Card title="Hesap">
         <div className="mb-5 space-y-1 text-sm">
           <p className="text-admin-text">
-            <span className="text-admin-text-muted">Isim: </span>
+            <span className="text-admin-text-muted">İsim: </span>
             {adminUser?.name}
           </p>
           <p className="text-admin-text">
@@ -85,12 +85,12 @@ export default async function AdminSettingsPage({
         </div>
 
         <form action={changePassword} className="space-y-4">
-          <p className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">Sifre Degistir</p>
+          <p className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">Şifre Değiştir</p>
           <input
             name="currentPassword"
             type="password"
             required
-            placeholder="Mevcut sifre"
+            placeholder="Mevcut şifre"
             className="w-full rounded-md border border-admin-border px-4 py-2.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
           />
           <div className="grid grid-cols-2 gap-4">
@@ -99,7 +99,7 @@ export default async function AdminSettingsPage({
               type="password"
               required
               minLength={8}
-              placeholder="Yeni sifre (en az 8 karakter)"
+              placeholder="Yeni şifre (en az 8 karakter)"
               className="rounded-md border border-admin-border px-4 py-2.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
             />
             <input
@@ -107,21 +107,21 @@ export default async function AdminSettingsPage({
               type="password"
               required
               minLength={8}
-              placeholder="Yeni sifre (tekrar)"
+              placeholder="Yeni şifre (tekrar)"
               className="rounded-md border border-admin-border px-4 py-2.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
             />
           </div>
           <button className="rounded-md bg-admin-accent px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
-            Sifreyi Guncelle
+            Şifreyi Güncelle
           </button>
         </form>
       </Card>
 
-      <Card title="Magaza Bilgileri">
+      <Card title="Mağaza Bilgileri">
         <form action={updateStoreSettings} className="space-y-4">
           <div>
             <label className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">
-              Magaza Adi
+              Mağaza Adı
             </label>
             <input
               name="storeName"
@@ -132,7 +132,7 @@ export default async function AdminSettingsPage({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">
-                Iletisim E-postasi
+                İletişim E-postası
               </label>
               <input
                 name="contactEmail"
@@ -143,7 +143,7 @@ export default async function AdminSettingsPage({
             </div>
             <div>
               <label className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">
-                Iletisim Telefonu
+                İletişim Telefonu
               </label>
               <input
                 name="contactPhone"
@@ -154,7 +154,7 @@ export default async function AdminSettingsPage({
           </div>
           <div>
             <label className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">
-              Varsayilan Kargo Ucreti (TL)
+              Varsayılan Kargo Ücreti (TL)
             </label>
             <input
               name="defaultShipping"
@@ -165,18 +165,18 @@ export default async function AdminSettingsPage({
             />
           </div>
           <button className="rounded-md bg-admin-accent px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
-            Magaza Bilgilerini Kaydet
+            Mağaza Bilgilerini Kaydet
           </button>
         </form>
       </Card>
 
-      <Card title="Onizleme Sifresi">
+      <Card title="Önizleme Şifresi">
         <div className="flex gap-3 rounded-md bg-admin-bg p-4 text-sm text-admin-text-muted">
           <Info size={18} className="mt-0.5 flex-shrink-0 text-admin-accent" />
           <p>
-            Magaza onizleme sifresi (<code className="rounded bg-white px-1 py-0.5">PREVIEW_PASSWORD</code>) bir
-            Vercel ortam degiskenidir ve bu panelden goruntulenip degistirilemez. Degistirmek icin Vercel
-            dashboard&apos;undan Settings → Environment Variables kismini kullanip, ardindan yeniden deploy
+            Mağaza önizleme şifresi (<code className="rounded bg-white px-1 py-0.5">PREVIEW_PASSWORD</code>) bir
+            Vercel ortam değişkenidir ve bu panelden görüntülenip değiştirilemez. Değiştirmek için Vercel
+            dashboard&apos;undan Settings → Environment Variables kısmını kullanıp, ardından yeniden deploy
             tetiklemeniz gerekir.
           </p>
         </div>

@@ -5,15 +5,15 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/admin/toast";
 
 const errorMessages: Record<string, string> = {
-  "kullanici-bulunamadi": "Kullanici bulunamadi.",
-  "mevcut-sifre-yanlis": "Mevcut sifre yanlis.",
-  "sifre-kisa": "Yeni sifre en az 8 karakter olmali.",
-  "sifre-eslesmiyor": "Yeni sifreler eslesmiyor."
+  "kullanici-bulunamadi": "Kullanıcı bulunamadı.",
+  "mevcut-sifre-yanlis": "Mevcut şifre yanlış.",
+  "sifre-kisa": "Yeni şifre en az 8 karakter olmalı.",
+  "sifre-eslesmiyor": "Yeni şifreler eşleşmiyor."
 };
 
 const successMessages: Record<string, string> = {
-  hesap: "Sifre basariyla guncellendi.",
-  magaza: "Magaza bilgileri kaydedildi."
+  hesap: "Şifre başarıyla güncellendi.",
+  magaza: "Mağaza bilgileri kaydedildi."
 };
 
 export function SettingsFeedback({ basarili, hata }: { basarili?: string; hata?: string }) {
@@ -25,7 +25,7 @@ export function SettingsFeedback({ basarili, hata }: { basarili?: string; hata?:
       showToast(successMessages[basarili], "success");
       router.replace("/admin/ayarlar");
     } else if (hata) {
-      showToast(errorMessages[hata] ?? "Bir hata olustu.", "error");
+      showToast(errorMessages[hata] ?? "Bir hata oluştu.", "error");
       router.replace("/admin/ayarlar");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

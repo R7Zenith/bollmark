@@ -105,15 +105,15 @@ export default async function AdminDashboard() {
   }
 
   const stats = [
-    { label: "Toplam Urun", value: productCount, icon: Package, trend: undefined },
-    { label: "Toplam Siparis", value: orderCount, icon: ShoppingCart, trend: orderTrend },
-    { label: "Odeme Bekleyen", value: pendingOrders, icon: Clock, trend: undefined },
+    { label: "Toplam Ürün", value: productCount, icon: Package, trend: undefined },
+    { label: "Toplam Sipariş", value: orderCount, icon: ShoppingCart, trend: orderTrend },
+    { label: "Ödeme Bekleyen", value: pendingOrders, icon: Clock, trend: undefined },
     { label: "Ciro", value: formatPrice(revenue._sum.totalCents ?? 0), icon: Wallet, trend: revenueTrend }
   ];
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-admin-text">Genel Bakis</h1>
+      <h1 className="text-2xl font-semibold text-admin-text">Genel Bakış</h1>
 
       <div className="mt-8 grid grid-cols-2 gap-6 md:grid-cols-4">
         {stats.map((s) => (
@@ -122,17 +122,17 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <Card title="Son 30 Gun" className="lg:col-span-2">
+        <Card title="Son 30 Gün" className="lg:col-span-2">
           {orderCount === 0 ? (
-            <EmptyState title="Henuz siparis yok" description="Siparisler geldikce burada gunluk grafik gorunecek." />
+            <EmptyState title="Henüz sipariş yok" description="Siparişler geldikçe burada günlük grafik görünecek." />
           ) : (
             <OrdersChart data={chartData} />
           )}
         </Card>
 
-        <Card title="Son Siparisler">
+        <Card title="Son Siparişler">
           {recentOrders.length === 0 ? (
-            <EmptyState title="Henuz siparis yok" />
+            <EmptyState title="Henüz sipariş yok" />
           ) : (
             <ul className="divide-y divide-admin-border">
               {recentOrders.map((order) => (
@@ -157,9 +157,9 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="mt-6">
-        <Card title="Stogu Azalan Urunler">
+        <Card title="Stoku Azalan Ürünler">
           {lowStockVariants.length === 0 ? (
-            <p className="text-sm text-admin-text-muted">Stok seviyeleri iyi gorunuyor, dusuk stoklu varyant yok.</p>
+            <p className="text-sm text-admin-text-muted">Stok seviyeleri iyi görünüyor, düşük stoklu varyant yok.</p>
           ) : (
             <ul className="divide-y divide-admin-border">
               {lowStockVariants.map((variant) => (

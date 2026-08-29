@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
     ? body.ids.filter((id: unknown): id is string => typeof id === "string")
     : [];
   if (ids.length === 0) {
-    return NextResponse.json({ error: "Siparis secilmedi." }, { status: 400 });
+    return NextResponse.json({ error: "Sipariş seçilmedi." }, { status: 400 });
   }
 
   if (body.action === "SET_STATUS" && allowedStatuses.has(body.status)) {
@@ -25,5 +25,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  return NextResponse.json({ error: "Gecersiz istek." }, { status: 400 });
+  return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
 }

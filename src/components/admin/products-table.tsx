@@ -19,7 +19,7 @@ export interface ProductRow {
   imageUrl: string | null;
 }
 
-const statusLabel: Record<string, string> = { DRAFT: "Taslak", PUBLISHED: "Yayinda", ARCHIVED: "Arsiv" };
+const statusLabel: Record<string, string> = { DRAFT: "Taslak", PUBLISHED: "Yayında", ARCHIVED: "Arşiv" };
 const statusTone: Record<string, BadgeTone> = { DRAFT: "gray", PUBLISHED: "green", ARCHIVED: "gray-muted" };
 
 async function bulkRequest(body: Record<string, unknown>) {
@@ -54,30 +54,30 @@ export function ProductsTable({
   async function handleStatusChange(ids: string[], status: string, clearSelection: () => void) {
     const { ok, error } = await bulkRequest({ ids, action: "SET_STATUS", status });
     if (ok) {
-      showToast("Urun durumu guncellendi.", "success");
+      showToast("Ürün durumu güncellendi.", "success");
       clearSelection();
       router.refresh();
     } else {
-      showToast(error ?? "Bir hata olustu.", "error");
+      showToast(error ?? "Bir hata oluştu.", "error");
     }
   }
 
   async function handleDelete(ids: string[], clearSelection: () => void) {
-    if (!window.confirm(`${ids.length} urunu silmek istediginize emin misiniz?`)) return;
+    if (!window.confirm(`${ids.length} ürünü silmek istediğinize emin misiniz?`)) return;
     const { ok, error } = await bulkRequest({ ids, action: "DELETE" });
     if (ok) {
-      showToast("Urunler silindi.", "success");
+      showToast("Ürünler silindi.", "success");
       clearSelection();
       router.refresh();
     } else {
-      showToast(error ?? "Bir hata olustu.", "error");
+      showToast(error ?? "Bir hata oluştu.", "error");
     }
   }
 
   const columns: DataTableColumn<ProductRow>[] = [
     {
       key: "name",
-      header: "Urun",
+      header: "Ürün",
       sortable: true,
       render: (row) => (
         <Link href={`/admin/urunler/${row.id}`} className="flex items-center gap-3 hover:underline">
@@ -114,7 +114,7 @@ export function ProductsTable({
     },
     {
       key: "createdAt",
-      header: "Olusturulma",
+      header: "Oluşturulma",
       sortable: true,
       render: (row) => new Date(row.createdAt).toLocaleDateString("tr-TR")
     },
@@ -124,7 +124,7 @@ export function ProductsTable({
       align: "right",
       render: (row) => (
         <Link href={`/admin/urunler/${row.id}`} className="text-admin-accent hover:underline">
-          Duzenle
+          Düzenle
         </Link>
       )
     }
@@ -132,9 +132,9 @@ export function ProductsTable({
 
   function bulkActions(selectedIds: string[], clearSelection: () => void): BulkAction[] {
     return [
-      { label: "Yayina Al", variant: "secondary", onClick: () => handleStatusChange(selectedIds, "PUBLISHED", clearSelection) },
-      { label: "Taslaga Al", variant: "secondary", onClick: () => handleStatusChange(selectedIds, "DRAFT", clearSelection) },
-      { label: "Arsivle", variant: "secondary", onClick: () => handleStatusChange(selectedIds, "ARCHIVED", clearSelection) },
+      { label: "Yayına Al", variant: "secondary", onClick: () => handleStatusChange(selectedIds, "PUBLISHED", clearSelection) },
+      { label: "Taslağa Al", variant: "secondary", onClick: () => handleStatusChange(selectedIds, "DRAFT", clearSelection) },
+      { label: "Arşivle", variant: "secondary", onClick: () => handleStatusChange(selectedIds, "ARCHIVED", clearSelection) },
       { label: "Sil", variant: "danger", onClick: () => handleDelete(selectedIds, clearSelection) }
     ];
   }
@@ -148,8 +148,8 @@ export function ProductsTable({
       bulkActions={bulkActions}
       onSortChange={handleSortChange}
       initialSort={initialSort}
-      emptyTitle="Sonuc bulunamadi"
-      emptyDescription="Arama veya filtre kriterlerine uygun urun yok."
+      emptyTitle="Sonuç bulunamadı"
+      emptyDescription="Arama veya filtre kriterlerine uygun ürün yok."
     />
   );
 }

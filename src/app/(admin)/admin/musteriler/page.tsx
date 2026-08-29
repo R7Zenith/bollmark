@@ -27,9 +27,9 @@ export default async function AdminCustomersPage({
   if (orders.length === 0) {
     return (
       <div>
-        <h1 className="text-2xl font-semibold text-admin-text">Musteriler</h1>
+        <h1 className="text-2xl font-semibold text-admin-text">Müşteriler</h1>
         <div className="mt-8 rounded-lg border border-admin-border bg-admin-surface">
-          <EmptyState icon={Users} title="Henuz musteri yok" description="Ilk siparis geldiginde musteriler burada listelenecek." />
+          <EmptyState icon={Users} title="Henüz müşteri yok" description="İlk sipariş geldiğinde müşteriler burada listelenecek." />
         </div>
       </div>
     );
@@ -69,7 +69,7 @@ export default async function AdminCustomersPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-admin-text">Musteriler</h1>
+      <h1 className="text-2xl font-semibold text-admin-text">Müşteriler</h1>
 
       <div className="mt-6">
         <CustomersFilters />

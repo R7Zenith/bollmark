@@ -7,7 +7,7 @@ import { SiteFooter } from "@/components/site-footer";
 export const metadata: Metadata = {
   title: "Bollmark | Modern Giyim",
   description:
-    "Bollmark - ozenle secilmis kumaslar, minimal kesimler. Sezonun one cikan giyim parcalari."
+    "Bollmark - özenle seçilmiş kumaşlar, minimal kesimler. Sezonun öne çıkan giyim parçaları."
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

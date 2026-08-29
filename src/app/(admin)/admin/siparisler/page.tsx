@@ -29,9 +29,9 @@ export default async function AdminOrdersPage({
   if (totalCount === 0) {
     return (
       <div>
-        <h1 className="text-2xl font-semibold text-admin-text">Siparisler</h1>
+        <h1 className="text-2xl font-semibold text-admin-text">Siparişler</h1>
         <div className="mt-8 rounded-lg border border-admin-border bg-admin-surface">
-          <EmptyState icon={Package} title="Henuz siparis yok" description="Magazandan ilk siparis geldiginde burada gorunecek." />
+          <EmptyState icon={Package} title="Henüz sipariş yok" description="Mağazandan ilk sipariş geldiğinde burada görünecek." />
         </div>
       </div>
     );
@@ -83,7 +83,7 @@ export default async function AdminOrdersPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold text-admin-text">Siparisler</h1>
+      <h1 className="text-2xl font-semibold text-admin-text">Siparişler</h1>
 
       <div className="mt-6">
         <OrdersFilters />

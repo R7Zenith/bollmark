@@ -12,13 +12,13 @@ export const orderStatuses = [
 export type OrderStatus = (typeof orderStatuses)[number];
 
 export const orderStatusLabel: Record<OrderStatus, string> = {
-  PENDING_PAYMENT: "Odeme Bekliyor",
-  PAID: "Odendi",
-  PREPARING: "Hazirlaniyor",
-  SHIPPED: "Kargolandi",
+  PENDING_PAYMENT: "Ödeme Bekliyor",
+  PAID: "Ödendi",
+  PREPARING: "Hazırlanıyor",
+  SHIPPED: "Kargolandı",
   DELIVERED: "Teslim Edildi",
-  CANCELLED: "Iptal",
-  REFUNDED: "Iade Edildi"
+  CANCELLED: "İptal",
+  REFUNDED: "İade Edildi"
 };
 
 export const orderStatusTone: Record<OrderStatus, BadgeTone> = {
@@ -41,11 +41,11 @@ export const shipmentStatuses = [
 export type ShipmentStatus = (typeof shipmentStatuses)[number];
 
 export const shipmentStatusLabel: Record<ShipmentStatus, string> = {
-  HAZIRLANIYOR: "Hazirlaniyor",
+  HAZIRLANIYOR: "Hazırlanıyor",
   KARGOYA_VERILDI: "Kargoya Verildi",
-  DAGITIMDA: "Dagitimda",
+  DAGITIMDA: "Dağıtımda",
   TESLIM_EDILDI: "Teslim Edildi",
-  IADE: "Iade"
+  IADE: "İade"
 };
 
 export const shipmentStatusTone: Record<ShipmentStatus, BadgeTone> = {

@@ -5,13 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useToast } from "@/components/admin/toast";
 
 const successMessages: Record<string, string> = {
-  olusturuldu: "Urun olusturuldu.",
-  guncellendi: "Degisiklikler kaydedildi."
+  olusturuldu: "Ürün oluşturuldu.",
+  guncellendi: "Değişiklikler kaydedildi."
 };
 
 const errorMessages: Record<string, string> = {
-  kaydedilemedi: "Degisiklikler kaydedilemedi. Varyantlardan biri mevcut bir siparise bagli olabilir.",
-  silinemedi: "Urun silinemedi. Mevcut siparislere bagli olabilir."
+  kaydedilemedi: "Değişiklikler kaydedilemedi. Varyantlardan biri mevcut bir siparişe bağlı olabilir.",
+  silinemedi: "Ürün silinemedi. Mevcut siparişlere bağlı olabilir."
 };
 
 export function ProductFeedback({ basarili, hata }: { basarili?: string; hata?: string }) {
@@ -24,7 +24,7 @@ export function ProductFeedback({ basarili, hata }: { basarili?: string; hata?: 
       showToast(successMessages[basarili], "success");
       router.replace(pathname);
     } else if (hata) {
-      showToast(errorMessages[hata] ?? "Bir hata olustu.", "error");
+      showToast(errorMessages[hata] ?? "Bir hata oluştu.", "error");
       router.replace(pathname);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps

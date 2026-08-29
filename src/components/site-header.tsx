@@ -13,8 +13,8 @@ export function SiteHeader() {
           Bollmark
         </Link>
         <nav className="hidden gap-8 text-sm uppercase tracking-wide md:flex">
-          <Link href="/urunler" className="hover:text-accent">Tum Urunler</Link>
-          <Link href="/urunler?kategori=outerwear" className="hover:text-accent">Dis Giyim</Link>
+          <Link href="/urunler" className="hover:text-accent">Tüm Ürünler</Link>
+          <Link href="/urunler?kategori=outerwear" className="hover:text-accent">Dış Giyim</Link>
           <Link href="/#hikaye" className="hover:text-accent">Hikayemiz</Link>
         </nav>
         <Link

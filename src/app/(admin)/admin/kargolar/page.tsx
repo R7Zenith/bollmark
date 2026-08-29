@@ -38,7 +38,7 @@ export default async function AdminShipmentsPage({
       <div>
         <h1 className="text-2xl font-semibold text-admin-text">Kargolar</h1>
         <div className="mt-8 rounded-lg border border-admin-border bg-admin-surface">
-          <EmptyState icon={Truck} title="Henuz kargo kaydi yok" description="Bir siparis olustugunda kargo kaydi burada gorunecek." />
+          <EmptyState icon={Truck} title="Henüz kargo kaydı yok" description="Bir sipariş oluştuğunda kargo kaydı burada görünecek." />
         </div>
       </div>
     );

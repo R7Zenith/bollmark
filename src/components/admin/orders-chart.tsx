@@ -24,7 +24,7 @@ function CustomTooltip({
   return (
     <div className="rounded-md border border-admin-border bg-admin-surface px-3 py-2 text-xs shadow-sm">
       <p className="font-medium text-admin-text">{date}</p>
-      <p className="mt-1 text-admin-text-muted">Siparis: {point.orders}</p>
+      <p className="mt-1 text-admin-text-muted">Sipariş: {point.orders}</p>
       <p className="text-admin-text-muted">Ciro: {formatPrice(point.revenueCents)}</p>
     </div>
   );

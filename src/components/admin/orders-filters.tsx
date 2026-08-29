@@ -37,7 +37,7 @@ export function OrdersFilters() {
   return (
     <FilterBar>
       <SearchInput
-        placeholder="Siparis no, musteri adi veya e-postaya gore ara..."
+        placeholder="Sipariş no, müşteri adı veya e-postaya göre ara..."
         value={q}
         onChange={(e) => setQ(e.target.value)}
         className="w-64"
@@ -47,7 +47,7 @@ export function OrdersFilters() {
         onChange={(e) => updateParam("durum", e.target.value)}
         className={selectClass}
       >
-        <option value="">Tum odeme durumlari</option>
+        <option value="">Tüm ödeme durumları</option>
         {orderStatuses.map((s) => (
           <option key={s} value={s}>
             {orderStatusLabel[s]}
@@ -59,7 +59,7 @@ export function OrdersFilters() {
         onChange={(e) => updateParam("kargoDurum", e.target.value)}
         className={selectClass}
       >
-        <option value="">Tum kargo durumlari</option>
+        <option value="">Tüm kargo durumları</option>
         {shipmentStatuses.map((s) => (
           <option key={s} value={s}>
             {shipmentStatusLabel[s]}

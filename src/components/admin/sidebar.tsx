@@ -14,11 +14,11 @@ import {
 
 const navItems = [
   { href: "/admin", label: "Panel", icon: LayoutDashboard, exact: true },
-  { href: "/admin/urunler", label: "Urunler", icon: ShoppingBag },
+  { href: "/admin/urunler", label: "Ürünler", icon: ShoppingBag },
   { href: "/admin/kategoriler", label: "Kategoriler", icon: Tag },
-  { href: "/admin/siparisler", label: "Siparisler", icon: Package },
+  { href: "/admin/siparisler", label: "Siparişler", icon: Package },
   { href: "/admin/kargolar", label: "Kargolar", icon: Truck },
-  { href: "/admin/musteriler", label: "Musteriler", icon: Users },
+  { href: "/admin/musteriler", label: "Müşteriler", icon: Users },
   { href: "/admin/ayarlar", label: "Ayarlar", icon: Settings }
 ];
 

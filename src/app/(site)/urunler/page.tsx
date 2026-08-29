@@ -10,11 +10,11 @@ export default async function ProductsPage({
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
-      <h1 className="font-display text-4xl">Tum Urunler</h1>
-      <p className="mt-2 text-ink/60">{products.length} urun</p>
+      <h1 className="font-display text-4xl">Tüm Ürünler</h1>
+      <p className="mt-2 text-ink/60">{products.length} ürün</p>
 
       {products.length === 0 ? (
-        <p className="mt-10 text-ink/60">Bu kategoride henuz urun bulunmuyor.</p>
+        <p className="mt-10 text-ink/60">Bu kategoride henüz ürün bulunmuyor.</p>
       ) : (
         <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-4">
           {products.map((p) => (

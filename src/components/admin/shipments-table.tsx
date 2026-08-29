@@ -32,7 +32,7 @@ export function ShipmentsTable({
   const columns: DataTableColumn<ShipmentRow>[] = [
     {
       key: "orderNumber",
-      header: "Siparis No",
+      header: "Sipariş No",
       render: (row) => (
         <div>
           <Link href={`/admin/siparisler/${row.orderId}`} className="font-mono font-medium text-admin-text hover:underline">
@@ -44,12 +44,12 @@ export function ShipmentsTable({
     },
     {
       key: "carrier",
-      header: "Kargo Firmasi",
+      header: "Kargo Firması",
       render: (row) =>
         row.id === editingId ? (
           <form id={`ship-form-${row.id}`} action={updateAction}>
             <input type="hidden" name="shipmentId" value={row.id} />
-            <input name="carrier" defaultValue={row.carrier} placeholder="Kargo Firmasi" className={inputClass} />
+            <input name="carrier" defaultValue={row.carrier} placeholder="Kargo Firması" className={inputClass} />
           </form>
         ) : (
           row.carrier || <span className="text-admin-text-muted">-</span>
@@ -101,7 +101,7 @@ export function ShipmentsTable({
               onClick={() => setEditingId(null)}
               className="rounded-md border border-admin-border px-3 py-1.5 text-xs font-medium text-admin-text hover:bg-admin-bg"
             >
-              Vazgec
+              Vazgeç
             </button>
             <button
               type="submit"
@@ -116,7 +116,7 @@ export function ShipmentsTable({
             type="button"
             onClick={() => setEditingId(row.id)}
             className="rounded-md p-1.5 text-admin-text-muted hover:bg-admin-bg"
-            title="Duzenle"
+            title="Düzenle"
           >
             <Pencil size={15} />
           </button>
@@ -129,8 +129,8 @@ export function ShipmentsTable({
       columns={columns}
       data={shipments}
       getRowId={(row) => row.id}
-      emptyTitle="Sonuc bulunamadi"
-      emptyDescription="Arama veya filtre kriterlerine uygun kargo kaydi yok."
+      emptyTitle="Sonuç bulunamadı"
+      emptyDescription="Arama veya filtre kriterlerine uygun kargo kaydı yok."
     />
   );
 }

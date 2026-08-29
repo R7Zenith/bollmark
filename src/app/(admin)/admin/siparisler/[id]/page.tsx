@@ -58,18 +58,18 @@ export default async function OrderDetailPage({
   const status = order.status as OrderStatus;
   const nextStatusAction =
     status === "PENDING_PAYMENT"
-      ? { label: "Odendi Olarak Isaretle", target: "PAID" as OrderStatus }
+      ? { label: "Ödendi Olarak İşaretle", target: "PAID" as OrderStatus }
       : status === "PAID"
-        ? { label: "Hazirlaniyor Olarak Isaretle", target: "PREPARING" as OrderStatus }
+        ? { label: "Hazırlanıyor Olarak İşaretle", target: "PREPARING" as OrderStatus }
         : status === "PREPARING"
           ? { label: "Kargola", target: "SHIPPED" as OrderStatus }
           : status === "SHIPPED"
-            ? { label: "Teslim Edildi Olarak Isaretle", target: "DELIVERED" as OrderStatus }
+            ? { label: "Teslim Edildi Olarak İşaretle", target: "DELIVERED" as OrderStatus }
             : null;
   const canCancel = status !== "CANCELLED" && status !== "DELIVERED" && status !== "REFUNDED";
 
   const timeline = [
-    { label: "Siparis Olusturuldu", date: order.createdAt },
+    { label: "Sipariş Oluşturuldu", date: order.createdAt },
     ...(order.shipment?.shippedAt ? [{ label: "Kargoya Verildi", date: order.shipment.shippedAt }] : []),
     ...(order.shipment?.deliveredAt ? [{ label: "Teslim Edildi", date: order.shipment.deliveredAt }] : [])
   ].sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -79,7 +79,7 @@ export default async function OrderDetailPage({
       <OrderFeedback basarili={basarili} hata={hata} />
 
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-admin-text">Siparis {order.orderNumber}</h1>
+        <h1 className="text-2xl font-semibold text-admin-text">Sipariş {order.orderNumber}</h1>
         <p className="text-sm text-admin-text-muted">{order.createdAt.toLocaleDateString("tr-TR")}</p>
       </div>
 
@@ -107,7 +107,7 @@ export default async function OrderDetailPage({
             {canCancel && (
               <form action={setOrderStatus.bind(null, order.id, "CANCELLED" as OrderStatus)}>
                 <Button type="submit" variant="danger" size="sm">
-                  Iptal Et
+                  İptal Et
                 </Button>
               </form>
             )}
@@ -117,7 +117,7 @@ export default async function OrderDetailPage({
 
       <div className="mt-6 grid gap-6 md:grid-cols-3">
         <div className="space-y-6 md:col-span-2">
-          <Card title="Urunler">
+          <Card title="Ürünler">
             <div className="divide-y divide-admin-border">
               {order.items.map((item) => (
                 <div key={item.id} className="flex justify-between py-3 text-sm text-admin-text first:pt-0 last:pb-0">
@@ -134,7 +134,7 @@ export default async function OrderDetailPage({
             </div>
           </Card>
 
-          <Card title="Zaman Cizelgesi">
+          <Card title="Zaman Çizelgesi">
             <ol className="space-y-4">
               {timeline.map((event, i) => (
                 <li key={i} className="flex gap-3">
@@ -155,7 +155,7 @@ export default async function OrderDetailPage({
         </div>
 
         <div className="space-y-6">
-          <Card title="Musteri">
+          <Card title="Müşteri">
             <p className="text-sm text-admin-text">{order.customerName}</p>
             <p className="text-sm text-admin-text-muted">{order.customerEmail}</p>
             <p className="text-sm text-admin-text-muted">{order.customerPhone}</p>
@@ -170,7 +170,7 @@ export default async function OrderDetailPage({
               <form action={updateShipmentAction.bind(null, order.id)} className="space-y-3">
                 <input type="hidden" name="shipmentId" value={order.shipment.id} />
                 <div>
-                  <label className={labelClass}>Kargo Firmasi</label>
+                  <label className={labelClass}>Kargo Firması</label>
                   <input name="carrier" defaultValue={order.shipment.carrier} className={`mt-1 ${inputClass}`} />
                 </div>
                 <div>
@@ -188,11 +188,11 @@ export default async function OrderDetailPage({
                   </select>
                 </div>
                 <Button type="submit" size="sm" className="w-full justify-center">
-                  Kargo Bilgilerini Guncelle
+                  Kargo Bilgilerini Güncelle
                 </Button>
               </form>
             ) : (
-              <p className="text-sm text-admin-text-muted">Bu siparise ait kargo kaydi yok.</p>
+              <p className="text-sm text-admin-text-muted">Bu siparişe ait kargo kaydı yok.</p>
             )}
           </Card>
         </div>

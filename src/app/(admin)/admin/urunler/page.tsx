@@ -29,16 +29,16 @@ export default async function AdminProductsPage({
   if (totalCount === 0) {
     return (
       <div>
-        <h1 className="text-2xl font-semibold text-admin-text">Urunler</h1>
+        <h1 className="text-2xl font-semibold text-admin-text">Ürünler</h1>
         <div className="mt-8 rounded-lg border border-admin-border bg-admin-surface">
           <EmptyState
             icon={Package}
-            title="Henuz urun yok"
-            description="Magazana ilk urununu ekleyerek basla."
+            title="Henüz ürün yok"
+            description="Mağazana ilk ürününü ekleyerek başla."
             action={
               <Link href="/admin/urunler/yeni">
                 <Button>
-                  <Plus size={16} /> Ilk Urununu Ekle
+                  <Plus size={16} /> İlk Ürününü Ekle
                 </Button>
               </Link>
             }
@@ -88,10 +88,10 @@ export default async function AdminProductsPage({
   return (
     <div>
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-admin-text">Urunler</h1>
+        <h1 className="text-2xl font-semibold text-admin-text">Ürünler</h1>
         <Link href="/admin/urunler/yeni">
           <Button>
-            <Plus size={16} /> Yeni Urun
+            <Plus size={16} /> Yeni Ürün
           </Button>
         </Link>
       </div>

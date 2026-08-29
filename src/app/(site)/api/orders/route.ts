@@ -22,9 +22,9 @@ const orderSchema = z.object({
   lines: z.array(lineSchema).min(1)
 });
 
-// NOT: Bu asamada gercek bir odeme saglayicisi (iyzico vb.) baglanmadigi icin
-// siparis "PENDING_PAYMENT" durumunda olusturulur. Odeme entegrasyonu
-// eklendiginde bu route saglayicidan gelen basari bildirimiyle guncellenecek.
+// NOT: Bu aşamada gerçek bir ödeme sağlayıcısı (iyzico vb.) bağlanmadığı için
+// sipariş "PENDING_PAYMENT" durumunda oluşturulur. Ödeme entegrasyonu
+// eklendiğinde bu route sağlayıcıdan gelen başarı bildirimiyle güncellenecek.
 export async function POST(req: NextRequest) {
   const body = await req.json();
   const parsed = orderSchema.safeParse(body);

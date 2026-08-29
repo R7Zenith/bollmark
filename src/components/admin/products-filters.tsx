@@ -34,7 +34,7 @@ export function ProductsFilters({ categories }: { categories: { id: string; name
   return (
     <FilterBar>
       <SearchInput
-        placeholder="Urun adina gore ara..."
+        placeholder="Ürün adına göre ara..."
         value={q}
         onChange={(e) => setQ(e.target.value)}
         className="w-64"
@@ -44,17 +44,17 @@ export function ProductsFilters({ categories }: { categories: { id: string; name
         onChange={(e) => updateParam("durum", e.target.value)}
         className={selectClass}
       >
-        <option value="">Tum durumlar</option>
+        <option value="">Tüm durumlar</option>
         <option value="DRAFT">Taslak</option>
-        <option value="PUBLISHED">Yayinda</option>
-        <option value="ARCHIVED">Arsiv</option>
+        <option value="PUBLISHED">Yayında</option>
+        <option value="ARCHIVED">Arşiv</option>
       </select>
       <select
         defaultValue={searchParams.get("kategori") ?? ""}
         onChange={(e) => updateParam("kategori", e.target.value)}
         className={selectClass}
       >
-        <option value="">Tum kategoriler</option>
+        <option value="">Tüm kategoriler</option>
         {categories.map((c) => (
           <option key={c.id} value={c.id}>
             {c.name}

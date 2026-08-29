@@ -31,7 +31,7 @@ export function CustomersFilters() {
   return (
     <FilterBar>
       <SearchInput
-        placeholder="Isim veya e-postaya gore ara..."
+        placeholder="İsim veya e-postaya göre ara..."
         value={q}
         onChange={(e) => setQ(e.target.value)}
         className="w-64"

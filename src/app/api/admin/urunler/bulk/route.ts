@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     ? body.ids.filter((id: unknown): id is string => typeof id === "string")
     : [];
   if (ids.length === 0) {
-    return NextResponse.json({ error: "Urun secilmedi." }, { status: 400 });
+    return NextResponse.json({ error: "Ürün seçilmedi." }, { status: 400 });
   }
 
   if (body.action === "DELETE") {
@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     } catch {
       return NextResponse.json(
-        { error: "Secili urunlerden biri veya birkaci mevcut siparislere bagli oldugu icin silinemedi." },
+        { error: "Seçili ürünlerden biri veya birkaçı mevcut siparişlere bağlı olduğu için silinemedi." },
         { status: 409 }
       );
     }
@@ -36,5 +36,5 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
-  return NextResponse.json({ error: "Gecersiz istek." }, { status: 400 });
+  return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
 }

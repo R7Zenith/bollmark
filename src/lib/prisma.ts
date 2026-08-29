@@ -1,8 +1,8 @@
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 
-// Next.js gelistirme modunda hot-reload sirasinda birden fazla PrismaClient
-// olusmasini engellemek icin global'e tek bir ornek kaydediyoruz.
+// Next.js geliştirme modunda hot-reload sırasında birden fazla PrismaClient
+// oluşmasını engellemek için global'e tek bir örnek kaydediyoruz.
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 
 function createPrismaClient() {

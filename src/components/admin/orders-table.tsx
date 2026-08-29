@@ -51,18 +51,18 @@ export function OrdersTable({
   async function handleStatusChange(ids: string[], status: string, clearSelection: () => void) {
     const { ok, error } = await bulkRequest({ ids, action: "SET_STATUS", status });
     if (ok) {
-      showToast("Siparis durumu guncellendi.", "success");
+      showToast("Sipariş durumu güncellendi.", "success");
       clearSelection();
       router.refresh();
     } else {
-      showToast(error ?? "Bir hata olustu.", "error");
+      showToast(error ?? "Bir hata oluştu.", "error");
     }
   }
 
   const columns: DataTableColumn<OrderRow>[] = [
     {
       key: "orderNumber",
-      header: "Siparis No",
+      header: "Sipariş No",
       sortable: true,
       render: (row) => (
         <Link href={`/admin/siparisler/${row.id}`} className="font-mono font-medium text-admin-text hover:underline">
@@ -72,13 +72,13 @@ export function OrdersTable({
     },
     {
       key: "customerName",
-      header: "Musteri",
+      header: "Müşteri",
       sortable: true,
       render: (row) => row.customerName
     },
     {
       key: "status",
-      header: "Odeme Durumu",
+      header: "Ödeme Durumu",
       render: (row) => (
         <Badge tone={orderStatusTone[row.status as keyof typeof orderStatusTone]}>
           {orderStatusLabel[row.status as keyof typeof orderStatusLabel] ?? row.status}
@@ -125,17 +125,17 @@ export function OrdersTable({
   function bulkActions(selectedIds: string[], clearSelection: () => void): BulkAction[] {
     return [
       {
-        label: "Odendi Olarak Isaretle",
+        label: "Ödendi Olarak İşaretle",
         variant: "secondary",
         onClick: () => handleStatusChange(selectedIds, "PAID", clearSelection)
       },
       {
-        label: "Hazirlaniyor Olarak Isaretle",
+        label: "Hazırlanıyor Olarak İşaretle",
         variant: "secondary",
         onClick: () => handleStatusChange(selectedIds, "PREPARING", clearSelection)
       },
       {
-        label: "Iptal Et",
+        label: "İptal Et",
         variant: "danger",
         onClick: () => handleStatusChange(selectedIds, "CANCELLED", clearSelection)
       }
@@ -151,8 +151,8 @@ export function OrdersTable({
       bulkActions={bulkActions}
       onSortChange={handleSortChange}
       initialSort={initialSort}
-      emptyTitle="Sonuc bulunamadi"
-      emptyDescription="Arama veya filtre kriterlerine uygun siparis yok."
+      emptyTitle="Sonuç bulunamadı"
+      emptyDescription="Arama veya filtre kriterlerine uygun sipariş yok."
     />
   );
 }

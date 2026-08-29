@@ -36,7 +36,7 @@ export function CategoryRow({
           type="button"
           onClick={() => setEditing(false)}
           className="rounded-md p-1.5 text-admin-text-muted hover:bg-admin-bg"
-          title="Vazgec"
+          title="Vazgeç"
         >
           <X size={16} />
         </button>
@@ -48,14 +48,14 @@ export function CategoryRow({
     <li className="flex items-center justify-between px-4 py-3 text-sm text-admin-text">
       <div className="flex items-center gap-3">
         <span>{name}</span>
-        <Badge tone="gray">{productCount} urun</Badge>
+        <Badge tone="gray">{productCount} ürün</Badge>
       </div>
       <div className="flex items-center gap-1">
         <button
           type="button"
           onClick={() => setEditing(true)}
           className="rounded-md p-1.5 text-admin-text-muted hover:bg-admin-bg"
-          title="Duzenle"
+          title="Düzenle"
         >
           <Pencil size={15} />
         </button>
@@ -65,11 +65,11 @@ export function CategoryRow({
             if (productCount > 0) {
               e.preventDefault();
               window.alert(
-                `Bu kategoriye bagli ${productCount} urun var. Once bu urunleri baska bir kategoriye tasiyin veya kategorisiz birakin.`
+                `Bu kategoriye bağlı ${productCount} ürün var. Önce bu ürünleri başka bir kategoriye taşıyın veya kategorisiz bırakın.`
               );
               return;
             }
-            if (!window.confirm(`"${name}" kategorisini silmek istediginize emin misiniz?`)) {
+            if (!window.confirm(`"${name}" kategorisini silmek istediğinize emin misiniz?`)) {
               e.preventDefault();
             }
           }}

@@ -11,13 +11,13 @@ export default function CartPage() {
   if (lines.length === 0) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-24 text-center">
-        <h1 className="font-display text-3xl">Sepetiniz Bos</h1>
-        <p className="mt-3 text-ink/60">Alisverise baslamak icin urunlerimize goz atin.</p>
+        <h1 className="font-display text-3xl">Sepetiniz Boş</h1>
+        <p className="mt-3 text-ink/60">Alışverişe başlamak için ürünlerimize göz atın.</p>
         <Link
           href="/urunler"
           className="mt-8 inline-block border border-ink px-8 py-3 text-sm uppercase tracking-wide hover:bg-ink hover:text-paper"
         >
-          Urunleri Kesfet
+          Ürünleri Keşfet
         </Link>
       </div>
     );
@@ -50,7 +50,7 @@ export default function CartPage() {
                   onClick={() => removeLine(line.variantId)}
                   className="text-xs uppercase text-ink/50 hover:text-accent"
                 >
-                  Kaldir
+                  Kaldır
                 </button>
               </div>
             </div>
@@ -68,7 +68,7 @@ export default function CartPage() {
         href="/odeme"
         className="mt-8 block w-full bg-ink py-4 text-center text-sm uppercase tracking-widest2 text-paper hover:bg-accent"
       >
-        Odemeye Gec
+        Ödemeye Geç
       </Link>
     </div>
   );

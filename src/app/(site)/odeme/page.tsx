@@ -42,12 +42,12 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error("Siparis olusturulamadi");
+      if (!res.ok) throw new Error("Sipariş oluşturulamadı");
       const data = await res.json();
       clear();
       router.push(`/odeme/tesekkurler?siparis=${data.orderNumber}`);
     } catch {
-      setError("Bir sorun olustu, lutfen tekrar deneyin.");
+      setError("Bir sorun oluştu, lütfen tekrar deneyin.");
     } finally {
       setSubmitting(false);
     }
@@ -56,7 +56,7 @@ export default function CheckoutPage() {
   if (lines.length === 0) {
     return (
       <div className="mx-auto max-w-2xl px-6 py-24 text-center">
-        <p className="text-ink/60">Sepetiniz bos oldugu icin odeme adimina gecemezsiniz.</p>
+        <p className="text-ink/60">Sepetiniz boş olduğu için ödeme adımına geçemezsiniz.</p>
       </div>
     );
   }
@@ -73,15 +73,15 @@ export default function CheckoutPage() {
         <input name="customerPhone" required placeholder="Telefon" className="w-full border border-line px-4 py-3" />
         <input name="shippingAddress" required placeholder="Adres" className="w-full border border-line px-4 py-3" />
         <div className="grid gap-4 md:grid-cols-3">
-          <input name="city" required placeholder="Il" className="border border-line px-4 py-3" />
-          <input name="district" required placeholder="Ilce" className="border border-line px-4 py-3" />
+          <input name="city" required placeholder="İl" className="border border-line px-4 py-3" />
+          <input name="district" required placeholder="İlçe" className="border border-line px-4 py-3" />
           <input name="postalCode" placeholder="Posta Kodu" className="border border-line px-4 py-3" />
         </div>
-        <textarea name="note" placeholder="Siparis notu (opsiyonel)" className="w-full border border-line px-4 py-3" rows={3} />
+        <textarea name="note" placeholder="Sipariş notu (opsiyonel)" className="w-full border border-line px-4 py-3" rows={3} />
 
         <div className="border border-dashed border-line bg-white p-4 text-sm text-ink/60">
-          Odeme adimi henuz test modundadir; gercek kart tahsilati yapilmaz. Bir odeme saglayicisi
-          (orn. iyzico) baglandiginda bu alan otomatik olarak degisecektir.
+          Ödeme adımı henüz test modundadır; gerçek kart tahsilatı yapılmaz. Bir ödeme sağlayıcısı
+          (örn. iyzico) bağlandığında bu alan otomatik olarak değişecektir.
         </div>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
@@ -91,12 +91,12 @@ export default function CheckoutPage() {
           disabled={submitting}
           className="w-full bg-ink py-4 text-sm uppercase tracking-widest2 text-paper hover:bg-accent disabled:opacity-50"
         >
-          {submitting ? "Isleniyor..." : "Siparisi Tamamla"}
+          {submitting ? "İşleniyor..." : "Siparişi Tamamla"}
         </button>
       </form>
 
       <aside className="h-fit border border-line bg-white p-6">
-        <h2 className="font-display text-xl">Siparis Ozeti</h2>
+        <h2 className="font-display text-xl">Sipariş Özeti</h2>
         <div className="mt-4 space-y-3 text-sm">
           {lines.map((l) => (
             <div key={l.variantId} className="flex justify-between">
@@ -114,7 +114,7 @@ export default function CheckoutPage() {
           </div>
           <div className="flex justify-between">
             <span>Kargo</span>
-            <span>{shippingCents === 0 ? "Ucretsiz" : formatPrice(shippingCents)}</span>
+            <span>{shippingCents === 0 ? "Ücretsiz" : formatPrice(shippingCents)}</span>
           </div>
           <div className="flex justify-between text-base font-medium">
             <span>Toplam</span>

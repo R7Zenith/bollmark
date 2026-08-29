@@ -68,19 +68,19 @@ export function Topbar() {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           onFocus={() => query.trim().length >= 2 && setOpen(true)}
-          placeholder="Urun veya siparis ara..."
+          placeholder="Ürün veya sipariş ara..."
           className="w-full rounded-md border border-admin-border bg-admin-bg py-2 pl-9 pr-3 text-sm text-admin-text placeholder:text-admin-text-muted focus:border-admin-accent focus:bg-admin-surface focus:outline-none focus:ring-1 focus:ring-admin-accent"
         />
         {open && query.trim().length >= 2 && (
           <div className="absolute left-0 right-0 top-full z-20 mt-2 max-h-96 overflow-y-auto rounded-md border border-admin-border bg-admin-surface shadow-lg">
-            {!results && <p className="px-4 py-3 text-sm text-admin-text-muted">Araniyor...</p>}
+            {!results && <p className="px-4 py-3 text-sm text-admin-text-muted">Aranıyor...</p>}
             {results && !hasResults && (
-              <p className="px-4 py-3 text-sm text-admin-text-muted">Sonuc bulunamadi.</p>
+              <p className="px-4 py-3 text-sm text-admin-text-muted">Sonuç bulunamadı.</p>
             )}
             {results && results.products.length > 0 && (
               <div>
                 <p className="px-4 pt-3 text-xs font-medium uppercase tracking-wide text-admin-text-muted">
-                  Urunler
+                  Ürünler
                 </p>
                 {results.products.map((p) => (
                   <Link
@@ -98,7 +98,7 @@ export function Topbar() {
             {results && results.orders.length > 0 && (
               <div>
                 <p className="px-4 pt-3 text-xs font-medium uppercase tracking-wide text-admin-text-muted">
-                  Siparisler
+                  Siparişler
                 </p>
                 {results.orders.map((o) => (
                   <Link
