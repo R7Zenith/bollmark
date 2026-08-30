@@ -9,7 +9,8 @@ import {
   Package,
   Truck,
   Users,
-  Settings
+  Settings,
+  SlidersHorizontal
 } from "lucide-react";
 
 const navItems = [
@@ -19,7 +20,8 @@ const navItems = [
   { href: "/admin/siparisler", label: "Siparişler", icon: Package },
   { href: "/admin/kargolar", label: "Kargolar", icon: Truck },
   { href: "/admin/musteriler", label: "Müşteriler", icon: Users },
-  { href: "/admin/ayarlar", label: "Ayarlar", icon: Settings }
+  { href: "/admin/ayarlar/varyant-ozellikleri", label: "Varyant Özellikleri", icon: SlidersHorizontal },
+  { href: "/admin/ayarlar", label: "Ayarlar", icon: Settings, exact: true }
 ];
 
 export function Sidebar() {

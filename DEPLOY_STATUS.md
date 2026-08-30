@@ -1088,5 +1088,72 @@ saglandi).
 uygulandi, hicbir veri kaybolmadi (4 varyantin da Beden/Renk bilgisi yeni
 tablolarda korundu), mevcut admin ve magaza akislari (henuz redesign
 edilmemis UI ile) sorunsuz calismaya devam ediyor. Faz B (Varyant
-Ozellikleri admin CRUD ekrani) icin sonraki adim hazir. Degisiklikler henuz
-commit'lenmedi - kullanicinin onayi bekleniyor.
+Ozellikleri admin CRUD ekrani) icin sonraki adim hazir. Degisiklikler
+commit'lendi (`275af25`).
+
+## Varyant Ozellikleri V2 - Faz B (bu oturum)
+
+Faz B ("Varyant Ozellikleri admin sayfasi") uygulandi: yeni
+`/admin/ayarlar/varyant-ozellikleri` sayfasi, ozellik (Beden, Renk, ...)
+ve deger (S, M, L / Siyah, Beyaz, ...) CRUD'u + siralama + Renk ozelligi
+icin hex renk secici.
+
+1. **Ek onayli sema degisikligi**: `ProductVariantOption.value` iliskisine
+   `onDelete: Cascade` eklendi (bir ozellik degeri silindiginde onu
+   kullanan varyantlardaki bag satirlari da silinsin, varyantin kendisi
+   etkilenmesin - planin "silme engellenmez ama onay istenir" kuralini
+   uygulayabilmek icin gerekliydi). Bu da canli DB'ye karsi bir
+   `prisma db push` gerektirdi; otomatik mod siniflandiricisi tekrar
+   engelledi, kullaniciya ayrica anlatilip acik onay alindi, veri kaybi
+   uyarisi olmadan (sadece FK davranisi degisiyor) sorunsuz uygulandi.
+2. **Yeni sayfa**: `src/app/(admin)/admin/ayarlar/varyant-ozellikleri/page.tsx`
+   - "Ozellik Ekle" formu (isim benzersizligi kontrolu).
+   - Her ozellik bir Card: yukari/asagi ok ile siralama (`position` swap),
+     silme (onay + kullanildigi varyant sayisi bilgisi).
+   - Deger listesi: yukari/asagi siralama, silme (kullanim sayisi > 0 ise
+     confirm mesaji farkli - "N varyantta kullaniliyor, yine de silmek
+     istiyor musunuz?").
+   - Renk ozelliginde (`attribute.name === "Renk"`, TR locale-insensitive)
+     her degerin yaninda renk yuvarlagi + `<input type="color">` (degisince
+     otomatik kaydediliyor - `ColorAutoSubmitInput` client bileseni).
+   - Yeni paylasilan client bilesenler: `confirm-submit-button.tsx`
+     (jenerik onayli sil butonu, `delete-product-form.tsx`'teki desenin
+     genellestirilmis hali), `color-auto-submit-input.tsx`.
+   - `src/components/admin/sidebar.tsx`'e link eklendi (mevcut "Ayarlar"in
+     yanina).
+3. **Yerel test**: `npx tsc --noEmit` ve `npm run build` hatasiz (yeni route
+   `/admin/ayarlar/varyant-ozellikleri` build ciktisinda gorunuyor).
+   `npm run dev` ile:
+   - Girissiz istek beklenen sekilde `/admin/login`'e yonlendirildi (route
+     korumasi bozulmamis).
+   - **Not**: Bu oturumda NextAuth credentials girisi `.env`'deki
+     `ADMIN_EMAIL`/`ADMIN_PASSWORD` ile denendi ama basarisiz oldu (401) -
+     muhtemelen admin kullanicisinin DB'deki sifre hash'i, `.env`'deki
+     mevcut `ADMIN_PASSWORD` degerinden farkli bir sifreyle olusturulmus
+     (onceki bir oturumda elle degistirilmis olabilir). Bu, bu fazin
+     degisiklikleriyle ilgisiz onceden var olan bir durum - kullaniciya
+     bildirilmesi gerekiyor, arastirilip cozulmedi (kapsam disi).
+   - Bu yuzden CRUD mantigi tarayici yerine dogrudan ayni Prisma
+     islemleriyle (gecici, sonradan silinen bir betikle) canli DB'ye karsi
+     test edildi: ozellik/deger olusturma, siralama (position swap),
+     deger silince sadece `ProductVariantOption` baginin cascade silinip
+     **varyantin kendisinin etkilenmedigi** dogrulandi, ozellik silince
+     alti degerlerin de silindigi dogrulandi. Test verisi (gecici
+     `TestOzellik` ozelligi ve gecici bir varyant) sonrasinda tamamen
+     temizlendi, gercek veriye dokunulmadi.
+
+**Sonuc**: Faz B tamamlandi. Magaza sahibi artik Beden/Renk (ve istenirse
+"Kalip" gibi ucuncu bir ozellik) degerlerini serbest metin yazmadan, tanimli
+bir havuzdan yonetebiliyor; Renk icin hex renk onizlemesi var. VariantEditor
+UI'i (urun duzenleme ekranindaki kutucukla secim) hala Faz D'de - simdilik
+serbest metin girisi bu havuza yaziyor.
+
+**Admin girisi sorunu duzeltildi (kullaniciyla teyit edilip)**: `.env`'deki
+mevcut `ADMIN_PASSWORD` degeriyle canli DB'deki admin kullanicisinin
+(`admin@bollmark.com`) sifre hash'i yeniden olusturuldu (gecici tek
+seferlik betikle, sonra silindi). Bu islem de canli DB'ye yazdigi icin
+kullaniciya ayrica anlatilip acik onay alindi. Sonrasinda NextAuth
+credentials girisi `curl` ile denenip **basarili** oldu (200, gecerli
+session donuyor), ardindan `/admin/ayarlar/varyant-ozellikleri` sayfasi
+gercek oturumla cekilip Beden/Renk verilerinin dogru goruntulendigi
+dogrulandi.
