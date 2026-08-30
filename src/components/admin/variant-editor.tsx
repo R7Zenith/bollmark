@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { Button } from "@/components/admin/button";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
+import { MultiImageField, type ImageEntry } from "@/components/admin/multi-image-field";
 
 export type AttributeOption = {
   id: string;
@@ -126,13 +127,17 @@ function ColorDot({ hexColor }: { hexColor: string }) {
 
 export function VariantEditor({
   fieldName,
+  colorImagesFieldName,
   initialRows,
+  initialColorImages,
   attributes,
   defaultPriceLabel,
   defaultCompareAtLabel
 }: {
   fieldName: string;
+  colorImagesFieldName: string;
   initialRows: VariantRow[];
+  initialColorImages: Record<string, ImageEntry[]>;
   attributes: AttributeOption[];
   defaultPriceLabel: string;
   defaultCompareAtLabel: string;
@@ -141,6 +146,20 @@ export function VariantEditor({
     initialRows.length > 0 ? initialRows : [emptyVariantRow()]
   );
   const [selected, setSelected] = useState<Record<string, Set<string>>>({});
+  const [colorImages, setColorImages] = useState<Record<string, ImageEntry[]>>(initialColorImages);
+
+  const colorAttribute = attributes.find((a) => a.isColor);
+  const activeColorValueIds = colorAttribute
+    ? Array.from(
+        new Set(
+          rows.flatMap((r) => r.optionValueIds.filter((id) => colorAttribute.values.some((v) => v.id === id)))
+        )
+      )
+    : [];
+
+  function setColorImagesFor(valueId: string, images: ImageEntry[]) {
+    setColorImages((prev) => ({ ...prev, [valueId]: images }));
+  }
 
   function updateRow(clientId: string, patch: Partial<VariantRow>) {
     setRows((prev) => prev.map((r) => (r.clientId === clientId ? { ...r, ...patch } : r)));
@@ -376,7 +395,49 @@ export function VariantEditor({
       <Button type="button" variant="secondary" size="sm" onClick={addRow}>
         <Plus size={14} /> Varyant Ekle
       </Button>
+
+      <div className="space-y-4 rounded-lg border border-admin-border bg-admin-bg/40 p-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">Renk Görselleri</p>
+        {!colorAttribute ? (
+          <p className="text-sm text-admin-text-muted">
+            Görsel eklemek için önce bir Renk özelliği tanımlayın.
+          </p>
+        ) : activeColorValueIds.length === 0 ? (
+          <p className="text-sm text-admin-text-muted">
+            Görsel eklemek için yukarıdan en az bir {colorAttribute.name.toLowerCase()} seçip varyant oluşturun.
+          </p>
+        ) : (
+          activeColorValueIds.map((valueId) => {
+            const val = colorAttribute.values.find((v) => v.id === valueId);
+            if (!val) return null;
+            return (
+              <div key={valueId} className="space-y-2">
+                <p className="flex items-center gap-1.5 text-sm font-medium text-admin-text">
+                  {val.hexColor && <ColorDot hexColor={val.hexColor} />}
+                  {val.value}
+                </p>
+                <MultiImageField
+                  images={colorImages[valueId] ?? []}
+                  onChange={(next) => setColorImagesFor(valueId, next)}
+                  addLabel="Görsel Ekle"
+                />
+              </div>
+            );
+          })
+        )}
+      </div>
+
       <input type="hidden" name={fieldName} value={JSON.stringify(serializeVariantRows(rows))} />
+      <input
+        type="hidden"
+        name={colorImagesFieldName}
+        value={JSON.stringify(
+          activeColorValueIds.map((valueId) => ({
+            valueId,
+            urls: (colorImages[valueId] ?? []).map((i) => i.url.trim()).filter(Boolean)
+          }))
+        )}
+      />
     </div>
   );
 }

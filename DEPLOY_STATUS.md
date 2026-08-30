@@ -1423,3 +1423,56 @@ Faz 3 ("Urun genel gorselleri") uygulandi.
 **Sonuc**: Faz 3 tamamlandi. Magaza sahibi artik urun genel gorsellerini
 hem URL yapistirarak hem bilgisayarindan yukleyerek ekleyebiliyor,
 siralayabiliyor, silebiliyor.
+
+## Gorsel Yonetimi Yenileme - Faz 4 (bu oturum)
+
+Faz 4 ("Renk bazli varyant galerisi") uygulandi.
+
+1. **`variant-editor.tsx`**: `colorImages: Record<valueId, {url}[]>` state'i
+   eklendi (`initialColorImages` prop'undan besleniyor). Secili satirlarin
+   (`rows`) `optionValueIds`'inden, `isColor:true` olan attribute'un
+   degerleri arasindan **su an tabloda kullanilan** benzersiz renk
+   `valueId`'leri turetiliyor (`activeColorValueIds`). "Varyant Oluştur"
+   kutusunun altina, DataTable'dan sonra yeni bir "Renk Görselleri" karti
+   eklendi: her aktif renk icin baslik (renk noktasi + isim) + Faz 2'nin
+   `MultiImageField`'i. Hic `isColor` attribute yoksa "Görsel eklemek icin
+   once bir Renk özelligi tanımlayın" notu, attribute var ama henuz secili
+   renk yoksa "yukaridan secip varyant olusturun" notu gosteriliyor. Yeni
+   gizli input `colorImagesJson`, sadece **aktif** renkleri (gorunen
+   MultiImageField'lardaki veriyi) `{valueId, urls}[]` olarak gonderiyor.
+2. **`urunler/yeni/page.tsx` ve `urunler/[id]/page.tsx`**:
+   - Yeni `parseColorImagesJson` yardimcisi (bos/URL olmayan girisleri
+     filtreliyor).
+   - `createProduct`: transaction icinde varyantlar olusturulduktan sonra
+     her `{valueId, urls}` icin `tx.productOptionImage.createMany` ile
+     sirali kayit acılıyor.
+   - `updateProduct`: varyant `deleteMany`'den sonra
+     `tx.productOptionImage.deleteMany({ where: { productId } })` + ayni
+     `createMany` deseni (tam yeniden yazma - product genel gorselleri ile
+     ayni desen).
+   - `[id]/page.tsx` sorgusuna `optionImages: { orderBy: { position: "asc" } }`
+     eklendi, `valueId`'ye gore gruplanip `initialColorImages` olarak
+     `VariantEditor`'a geciliyor.
+3. **Uctan uca test (gercek Neon DB'ye karsi, gercek admin oturumuyla)**:
+   `npm run dev` + curl ile NextAuth login, React Server Action
+   `$ACTION_ID_*`/bound `$ACTION_REF_*`+`$ACTION_N:0/1` alanlari gercek
+   sayfa HTML'inden okunup ayni sekilde tekrarlandi (Faz A'daki gibi):
+   - **Olusturma**: mevcut "Beden" (S/M) x "Renk" (Siyah/Bej) degerleriyle
+     **4 varyantli** bir test urunu (`faz4-test-urun`) olusturuldu, Siyah'a
+     **2**, Bej'e **1** gorsel atandi. DB'den geri okunup 4 varyantin
+     dogru `optionValueIds`'e sahip oldugu ve `ProductOptionImage`'in
+     **dogru `valueId` + sirayla** (Siyah: pos 0,1; Bej: pos 0) kaydedildigi
+     dogrulandi.
+   - **Guncelleme**: ayni urunun duzenleme sayfasi cekilip render edilen
+     HTML'de "Renk Görselleri" basligi ve 3 gorsel URL'inin gectigi
+     dogrulandi (initialColorImages dogru besleniyor); ardindan bound
+     `updateProduct` action'i curl ile tetiklenip Siyah'a **3.
+     gorsel eklendi, Bej'in tum gorselleri kaldirildi** - DB'den geri
+     okunup Siyah'ta tam 3 satir (dogru sira), Bej'de 0 satir kaldigi
+     (eski satirlarin `deleteMany` ile gercekten silindigi) dogrulandi.
+   - Test urunu ve gecici betikler temizlendi.
+4. `npx tsc --noEmit` ve `npm run build` hatasiz.
+
+**Sonuc**: Faz 4 tamamlandi. Magaza sahibi artik her renk icin bedenden
+bagimsiz, birden fazla fotograftan olusan bir galeri tanimlayabiliyor;
+renk yoksa bu bolum otomatik gizleniyor.

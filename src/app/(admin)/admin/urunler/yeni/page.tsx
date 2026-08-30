@@ -34,6 +34,25 @@ function parseVariantsJson(raw: string): SerializedVariant[] {
     }));
 }
 
+function parseColorImagesJson(raw: string): { valueId: string; urls: string[] }[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  return parsed
+    .filter((v): v is Record<string, unknown> => typeof v === "object" && v !== null)
+    .map((v) => ({
+      valueId: typeof v.valueId === "string" ? v.valueId : "",
+      urls: Array.isArray(v.urls)
+        ? v.urls.filter((u): u is string => typeof u === "string" && u.trim().length > 0).map((u) => u.trim())
+        : []
+    }))
+    .filter((v) => v.valueId && v.urls.length > 0);
+}
+
 const inputClass =
   "w-full rounded-md border border-admin-border px-4 py-2.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
 const labelClass = "text-xs font-medium uppercase tracking-wide text-admin-text-muted";
@@ -57,6 +76,7 @@ async function createProduct(formData: FormData) {
     .map((s) => s.trim())
     .filter(Boolean);
   const variants = parseVariantsJson(String(formData.get("variantsJson") || "[]"));
+  const colorImages = parseColorImagesJson(String(formData.get("colorImagesJson") || "[]"));
 
   const skuSet = new Set<string>();
   for (const v of variants) {
@@ -99,6 +119,11 @@ async function createProduct(formData: FormData) {
             compareAtCents: v.compareAtCents,
             options: { create: v.optionValueIds.map((valueId) => ({ valueId })) }
           }
+        });
+      }
+      for (const c of colorImages) {
+        await tx.productOptionImage.createMany({
+          data: c.urls.map((url, i) => ({ productId: created.id, valueId: c.valueId, url, position: i }))
         });
       }
       return created;
@@ -163,7 +188,9 @@ export default async function NewProductPage({
         <Card title="Varyantlar">
           <VariantEditor
             fieldName="variantsJson"
+            colorImagesFieldName="colorImagesJson"
             initialRows={[]}
+            initialColorImages={{}}
             attributes={attributeOptions}
             defaultPriceLabel="ürün fiyatı"
             defaultCompareAtLabel="Boş = indirim gösterilmez"

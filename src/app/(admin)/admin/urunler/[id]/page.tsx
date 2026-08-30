@@ -42,6 +42,25 @@ function parseVariantsJson(raw: string): SerializedVariant[] {
     }));
 }
 
+function parseColorImagesJson(raw: string): { valueId: string; urls: string[] }[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  return parsed
+    .filter((v): v is Record<string, unknown> => typeof v === "object" && v !== null)
+    .map((v) => ({
+      valueId: typeof v.valueId === "string" ? v.valueId : "",
+      urls: Array.isArray(v.urls)
+        ? v.urls.filter((u): u is string => typeof u === "string" && u.trim().length > 0).map((u) => u.trim())
+        : []
+    }))
+    .filter((v) => v.valueId && v.urls.length > 0);
+}
+
 const inputClass =
   "w-full rounded-md border border-admin-border px-4 py-2.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
 const labelClass = "text-xs font-medium uppercase tracking-wide text-admin-text-muted";
@@ -64,6 +83,7 @@ async function updateProduct(id: string, formData: FormData) {
     .map((s) => s.trim())
     .filter(Boolean);
   const variants = parseVariantsJson(String(formData.get("variantsJson") || "[]"));
+  const colorImages = parseColorImagesJson(String(formData.get("colorImagesJson") || "[]"));
 
   const skuSet = new Set<string>();
   for (const v of variants) {
@@ -106,6 +126,12 @@ async function updateProduct(id: string, formData: FormData) {
           }
         });
       }
+      await tx.productOptionImage.deleteMany({ where: { productId: id } });
+      for (const c of colorImages) {
+        await tx.productOptionImage.createMany({
+          data: c.urls.map((url, i) => ({ productId: id, valueId: c.valueId, url, position: i }))
+        });
+      }
     });
   } catch {
     redirect(`/admin/urunler/${id}?hata=kaydedilemedi`);
@@ -138,7 +164,8 @@ export default async function EditProductPage({
       where: { id },
       include: {
         variants: { include: variantOptionsInclude },
-        images: { orderBy: { position: "asc" } }
+        images: { orderBy: { position: "asc" } },
+        optionImages: { orderBy: { position: "asc" } }
       }
     }),
     prisma.category.findMany({ orderBy: { name: "asc" } }),
@@ -153,6 +180,10 @@ export default async function EditProductPage({
   const updateWithId = updateProduct.bind(null, product.id);
   const deleteWithId = deleteProduct.bind(null, product.id);
   const initialImages = product.images.map((i) => i.url);
+  const initialColorImages: Record<string, { url: string }[]> = {};
+  for (const img of product.optionImages) {
+    (initialColorImages[img.valueId] ??= []).push({ url: img.url });
+  }
   const variantRows: VariantRow[] = product.variants.map((v) => ({
     clientId: v.id,
     id: v.id,
@@ -220,7 +251,9 @@ export default async function EditProductPage({
         <Card title="Varyantlar">
           <VariantEditor
             fieldName="variantsJson"
+            colorImagesFieldName="colorImagesJson"
             initialRows={variantRows}
+            initialColorImages={initialColorImages}
             attributes={attributeOptions}
             defaultPriceLabel={defaultPriceLabel}
             defaultCompareAtLabel={defaultCompareAtLabel}
