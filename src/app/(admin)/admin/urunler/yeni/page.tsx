@@ -3,8 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/admin/card";
 import { SaveBar } from "@/components/admin/save-bar";
 import { ProductFeedback } from "@/components/admin/product-feedback";
-import { VariantEditor, type SerializedVariant } from "@/components/admin/variant-editor";
-import { resolveOptionValueIds } from "@/lib/variant-attributes";
+import { VariantEditor, type AttributeOption, type SerializedVariant } from "@/components/admin/variant-editor";
 
 function parseVariantsJson(raw: string): SerializedVariant[] {
   let parsed: unknown;
@@ -17,9 +16,11 @@ function parseVariantsJson(raw: string): SerializedVariant[] {
   return parsed
     .filter((v): v is Record<string, unknown> => typeof v === "object" && v !== null)
     .map((v) => ({
-      size: String(v.size ?? "").trim() || "TEK EBAT",
-      color: String(v.color ?? "").trim() || "STANDART",
+      optionValueIds: Array.isArray(v.optionValueIds)
+        ? v.optionValueIds.filter((id): id is string => typeof id === "string" && id.length > 0)
+        : [],
       sku: String(v.sku ?? "").trim(),
+      barcode: typeof v.barcode === "string" && v.barcode.trim() ? v.barcode.trim() : null,
       stock: Math.max(0, Math.round(Number(v.stock) || 0)),
       priceCents:
         typeof v.priceCents === "number" && Number.isFinite(v.priceCents) && v.priceCents > 0
@@ -63,11 +64,11 @@ async function createProduct(formData: FormData) {
     if (skuSet.has(sku)) redirect("/admin/urunler/yeni?hata=sku-tekrar");
     skuSet.add(sku);
   }
-  const sizeColorSet = new Set<string>();
+  const comboSet = new Set<string>();
   for (const v of variants) {
-    const key = `${v.size}::${v.color}`;
-    if (sizeColorSet.has(key)) redirect("/admin/urunler/yeni?hata=varyant-tekrar");
-    sizeColorSet.add(key);
+    const key = [...v.optionValueIds].sort().join("::");
+    if (comboSet.has(key)) redirect("/admin/urunler/yeni?hata=varyant-tekrar");
+    comboSet.add(key);
   }
 
   let product;
@@ -88,19 +89,16 @@ async function createProduct(formData: FormData) {
         }
       });
       for (const v of variants) {
-        const optionValueIds = await resolveOptionValueIds(tx, [
-          { attributeName: "Beden", value: v.size },
-          { attributeName: "Renk", value: v.color }
-        ]);
         await tx.productVariant.create({
           data: {
             productId: created.id,
             sku: v.sku || `${slug}-${Math.random().toString(36).slice(2, 8)}`,
+            barcode: v.barcode,
             stock: v.stock,
             priceCents: v.priceCents,
             compareAtCents: v.compareAtCents,
             imageUrl: v.imageUrl,
-            options: { create: optionValueIds.map((valueId) => ({ valueId })) }
+            options: { create: v.optionValueIds.map((valueId) => ({ valueId })) }
           }
         });
       }
@@ -119,10 +117,17 @@ export default async function NewProductPage({
   searchParams: Promise<{ hata?: string }>;
 }) {
   const { hata } = await searchParams;
-  const categories = await prisma.category.findMany({ orderBy: { name: "asc" } });
+  const [categories, attributes] = await Promise.all([
+    prisma.category.findMany({ orderBy: { name: "asc" } }),
+    prisma.variantAttribute.findMany({
+      orderBy: { position: "asc" },
+      include: { values: { orderBy: { position: "asc" } } }
+    })
+  ]);
+  const attributeOptions: AttributeOption[] = attributes;
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-5xl">
       <h1 className="text-2xl font-semibold text-admin-text">Yeni Ürün</h1>
       <ProductFeedback hata={hata} />
       <form id="product-form" action={createProduct} className="mt-8 space-y-6">
@@ -160,6 +165,7 @@ export default async function NewProductPage({
           <VariantEditor
             fieldName="variantsJson"
             initialRows={[]}
+            attributes={attributeOptions}
             defaultPriceLabel="ürün fiyatı"
             defaultCompareAtLabel="Boş = indirim gösterilmez"
           />

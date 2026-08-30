@@ -4,8 +4,13 @@ import { Card } from "@/components/admin/card";
 import { SaveBar } from "@/components/admin/save-bar";
 import { ProductFeedback } from "@/components/admin/product-feedback";
 import { DeleteProductForm } from "@/components/admin/delete-product-form";
-import { VariantEditor, type VariantRow, type SerializedVariant } from "@/components/admin/variant-editor";
-import { optionValue, resolveOptionValueIds, variantOptionsInclude } from "@/lib/variant-attributes";
+import {
+  VariantEditor,
+  type AttributeOption,
+  type VariantRow,
+  type SerializedVariant
+} from "@/components/admin/variant-editor";
+import { variantOptionsInclude } from "@/lib/variant-attributes";
 
 function parseVariantsJson(raw: string): SerializedVariant[] {
   let parsed: unknown;
@@ -19,9 +24,11 @@ function parseVariantsJson(raw: string): SerializedVariant[] {
     .filter((v): v is Record<string, unknown> => typeof v === "object" && v !== null)
     .map((v) => ({
       id: typeof v.id === "string" ? v.id : undefined,
-      size: String(v.size ?? "").trim() || "TEK EBAT",
-      color: String(v.color ?? "").trim() || "STANDART",
+      optionValueIds: Array.isArray(v.optionValueIds)
+        ? v.optionValueIds.filter((id): id is string => typeof id === "string" && id.length > 0)
+        : [],
       sku: String(v.sku ?? "").trim(),
+      barcode: typeof v.barcode === "string" && v.barcode.trim() ? v.barcode.trim() : null,
       stock: Math.max(0, Math.round(Number(v.stock) || 0)),
       priceCents:
         typeof v.priceCents === "number" && Number.isFinite(v.priceCents) && v.priceCents > 0
@@ -66,13 +73,13 @@ async function updateProduct(id: string, formData: FormData) {
     }
     skuSet.add(sku);
   }
-  const sizeColorSet = new Set<string>();
+  const comboSet = new Set<string>();
   for (const v of variants) {
-    const key = `${v.size}::${v.color}`;
-    if (sizeColorSet.has(key)) {
+    const key = [...v.optionValueIds].sort().join("::");
+    if (comboSet.has(key)) {
       redirect(`/admin/urunler/${id}?hata=varyant-tekrar`);
     }
-    sizeColorSet.add(key);
+    comboSet.add(key);
   }
 
   try {
@@ -87,19 +94,16 @@ async function updateProduct(id: string, formData: FormData) {
       });
       await tx.productVariant.deleteMany({ where: { productId: id } });
       for (const v of variants) {
-        const optionValueIds = await resolveOptionValueIds(tx, [
-          { attributeName: "Beden", value: v.size },
-          { attributeName: "Renk", value: v.color }
-        ]);
         await tx.productVariant.create({
           data: {
             productId: id,
             sku: v.sku || `${slug}-${Math.random().toString(36).slice(2, 8)}`,
+            barcode: v.barcode,
             stock: v.stock,
             priceCents: v.priceCents,
             compareAtCents: v.compareAtCents,
             imageUrl: v.imageUrl,
-            options: { create: optionValueIds.map((valueId) => ({ valueId })) }
+            options: { create: v.optionValueIds.map((valueId) => ({ valueId })) }
           }
         });
       }
@@ -130,7 +134,7 @@ export default async function EditProductPage({
 }) {
   const { id } = await params;
   const { basarili, hata } = await searchParams;
-  const [product, categories] = await Promise.all([
+  const [product, categories, attributes] = await Promise.all([
     prisma.product.findUnique({
       where: { id },
       include: {
@@ -138,9 +142,14 @@ export default async function EditProductPage({
         images: { orderBy: { position: "asc" } }
       }
     }),
-    prisma.category.findMany({ orderBy: { name: "asc" } })
+    prisma.category.findMany({ orderBy: { name: "asc" } }),
+    prisma.variantAttribute.findMany({
+      orderBy: { position: "asc" },
+      include: { values: { orderBy: { position: "asc" } } }
+    })
   ]);
   if (!product) notFound();
+  const attributeOptions: AttributeOption[] = attributes;
 
   const updateWithId = updateProduct.bind(null, product.id);
   const deleteWithId = deleteProduct.bind(null, product.id);
@@ -148,9 +157,9 @@ export default async function EditProductPage({
   const variantRows: VariantRow[] = product.variants.map((v) => ({
     clientId: v.id,
     id: v.id,
-    size: optionValue(v, "Beden"),
-    color: optionValue(v, "Renk"),
+    optionValueIds: v.options.map((o) => o.valueId),
     sku: v.sku,
+    barcode: v.barcode ?? "",
     stock: String(v.stock),
     price: v.priceCents !== null ? (v.priceCents / 100).toFixed(2) : "",
     compareAt: v.compareAtCents !== null ? (v.compareAtCents / 100).toFixed(2) : "",
@@ -162,7 +171,7 @@ export default async function EditProductPage({
     : "Boş = indirim gösterilmez";
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-5xl">
       <h1 className="text-2xl font-semibold text-admin-text">Ürünü Düzenle</h1>
 
       <ProductFeedback basarili={basarili} hata={hata} />
@@ -214,6 +223,7 @@ export default async function EditProductPage({
           <VariantEditor
             fieldName="variantsJson"
             initialRows={variantRows}
+            attributes={attributeOptions}
             defaultPriceLabel={defaultPriceLabel}
             defaultCompareAtLabel={defaultCompareAtLabel}
           />

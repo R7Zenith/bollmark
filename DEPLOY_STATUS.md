@@ -1205,3 +1205,61 @@ kullanilabiliyor. **Onemli**: bu ozelligin canlida calismasi icin ayni
 degiskenlerinde de tanimli olmasi gerekiyor - store projeye baglandiginda
 Vercel bunu genelde otomatik ekliyor, ama deploy sonrasi ayrica dogrulanmali
 (Settings -> Environment Variables -> Production sekmesi).
+
+## Varyant Ozellikleri V2 - Faz D (bu oturum)
+
+Faz D ("VariantEditor yeniden tasarim") uygulandi - planin en buyuk UI
+degisikligi. Beden/Renk artik serbest metin degil, Faz B'deki ozellik
+havuzundan kutucukla secilip otomatik kombinasyon uretiliyor.
+
+1. **`variant-editor.tsx` bastan yazildi**:
+   - `VariantRow`/`SerializedVariant` artik `size`/`color` yerine
+     `optionValueIds: string[]` ve `barcode` tasiyor.
+   - Yeni `AttributeOption` tipi ve `attributes` prop'u - her ozellik icin
+     bir kutucuk grubu (chip toggle), Renk gibi hex renkli degerlerde
+     yanlarinda renk yuvarlagi.
+   - "Varyantları Oluştur" butonu -> `generateVariantCombinations()` (yeni,
+     disari export edilen saf fonksiyon): secili degerlerin kartezyen
+     kombinasyonunu uretir (2 beden x 2 renk = 4 satir), zaten var olan
+     kombinasyonlari (ayni `optionValueIds` seti, sirasiz) tekrar eklemez,
+     mevcut satirlarin stok/fiyat/barkod/SKU/gorseli degismeden kalir.
+   - Tablo sutunlari artik dinamik: tanimli her ozellik icin bir salt-okunur
+     sutun (secim yukaridan yapiliyor), ardindan SKU, **Barkod** (yeni),
+     Stok, Fiyat, Indirim Fiyati, Gorsel, Sil. Ozellik sayisi/isimleri
+     magaza sahibinin Faz B'de tanimladigina gore otomatik degisiyor (orn.
+     ileride "Kalip" eklenirse kod degismeden yeni sutun cikar).
+2. **`urunler/yeni/page.tsx` ve `urunler/[id]/page.tsx`**: `VariantEditor`'a
+   artik tanimli `VariantAttribute`+degerleri prop olarak geciliyor.
+   Yazma tarafi sadelesti - Faz A/B'de kullanilan `resolveOptionValueIds`
+   (serbest metinden ozellik degeri bul/olustur) artik gerekmiyor, cunku
+   secilen degerlerin ID'leri UI'dan doğrudan geliyor; `options: { create:
+   optionValueIds.map(valueId => ({ valueId })) }` ile direkt baglaniyor.
+   Kopya kombinasyon kontrolu artik `size::color` yerine siralanmis
+   `optionValueIds` anahtariyla yapiliyor.
+   - **Dar tablo sorunu (kapsamin 1. maddesi)**: plandaki iki secenekten
+     basit olani uygulandi - bu iki sayfanin icerik genisligi `max-w-2xl`
+     (672px) yerine `max-w-5xl` (1024px) yapildi. Paylasilan `DataTable`
+     bileseni (urun/siparis listelerinde de kullanildigi icin) degistirilmedi,
+     tasma durumunda hala kendi `overflow-x-auto`'su devrede.
+3. **Yerel test**: `npx tsc --noEmit` ve `npm run build` hatasiz.
+   - `generateVariantCombinations` DB'siz, saf fonksiyon olarak test edildi
+     (gecici betikle): 2x2 secimden 4 doğru kombinasyon uretti, ayni secimle
+     tekrar cagirinca yeni satir eklemedi, var olan bir satirin elle
+     girilmis stok/fiyati korundu, `serializeVariantRows` ciktisinda
+     `optionValueIds`/`barcode` dogru gorunuyor.
+   - Sunucu action'larinin yaptigi Prisma islemleri (urun+varyant olustur
+     with barkod+optionValueIds, sonra sil+yeniden olustur - update
+     action'in deseni) gercek DB'ye karsi gecici bir test urunuyle
+     dogrulandi, sonra silindi.
+   - Gercek admin oturumuyla mevcut urunun (`bollmark-oversize-mont`)
+     duzenleme sayfasi cekildi: kutucuklu ozellik secici, "Varyantları
+     Oluştur" butonu, "Barkod" sutunu ve 4 varyantin doğru Beden/Renk
+     etiketleriyle goruntulendigi HTML'de dogrulandi.
+
+**Sonuc**: Faz D tamamlandi. Magaza sahibi artik urun duzenlerken Beden/Renk
+degerlerini kutucukla secip "Varyantları Oluştur" ile toplu satir
+uretebiliyor, her varyanta barkod girebiliyor, tablo daha genis bir alanda
+goruntuleniyor. Sirada Faz E var: `effectivePrice` mantiginin
+`optionValueIds` ile calismaya devam ettiginin (siparis/sepet akisi)
+dogrulanmasi - schema degisikligi fiyat okuma akisini bozmamali ama
+regresyon testi sart. Degisiklikler henuz commit'lenmedi.
