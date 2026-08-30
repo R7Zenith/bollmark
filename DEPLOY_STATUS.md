@@ -1259,7 +1259,41 @@ havuzundan kutucukla secilip otomatik kombinasyon uretiliyor.
 **Sonuc**: Faz D tamamlandi. Magaza sahibi artik urun duzenlerken Beden/Renk
 degerlerini kutucukla secip "Varyantları Oluştur" ile toplu satir
 uretebiliyor, her varyanta barkod girebiliyor, tablo daha genis bir alanda
-goruntuleniyor. Sirada Faz E var: `effectivePrice` mantiginin
-`optionValueIds` ile calismaya devam ettiginin (siparis/sepet akisi)
-dogrulanmasi - schema degisikligi fiyat okuma akisini bozmamali ama
-regresyon testi sart. Degisiklikler henuz commit'lenmedi.
+goruntuleniyor. Degisiklikler commit'lendi (`7f13782`).
+
+## Varyant Ozellikleri V2 - Faz E (bu oturum)
+
+Faz E ("Siparis/sepet akisi kontrolu") uygulandi - kod degisikligi yok,
+sadece dogrulama. Amac: `effectivePrice` mantiginin ve `/api/orders`
+route'unun, `size`/`color` kaldirilip `ProductVariantOption`'a gecilmesinden
+sonra da dogru calismaya devam ettigini kanitlamak.
+
+`src/app/(site)/api/orders/route.ts` incelendi: fiyat hesaplama zaten hicbir
+zaman `size`/`color`'a bakmiyordu - sadece `variantId` ile DB'den varyanti
+bulup `effectivePrice(product, variant)` (varyantin `priceCents`'i varsa o,
+yoksa urunun genel fiyati) kullaniyor. Bu alanlar Faz A'da hic degismedi,
+yani riskin dusuk oldugu onceden biliniyordu - yine de plan acikca regresyon
+testi istedigi icin gercek bir uctan uca senaryo calistirildi:
+
+1. Gecici bir test urunu (100 TL genel fiyat) + 2 varyant olusturuldu:
+   biri kendine ozel fiyatla (80 TL, Beden:M + Renk:Bej), digeri fiyat
+   alani bos (urunun 100 TL genel fiyatina dusmesi beklenen).
+2. `npm run dev` calisirken gercek `POST /api/orders` istegi atildi (2x
+   80 TL varyant + 1x genel fiyat varyanti): **201**, `subtotalCents=26000`
+   (dogru), kargo esigi altinda oldugu icin `shippingCents=4900`,
+   `totalCents=30900` - hepsi beklenenle birebir eslesti.
+3. **Guvenlik regresyonu**: istekte satira sahte bir `priceCents: 1` alani
+   eklenip sunucunun bunu yoksayip yoksaymadigi test edildi - siparis
+   yine dogru **8000** (varyantin gercek fiyati) uzerinden olusturuldu,
+   istemciden gelen fiyat hicbir sekilde kullanilmadi.
+4. Test siparisleri ve test urunu (varyantlariyla birlikte,
+   `onDelete: Cascade`) temizlendi, gecici test betigi silindi.
+
+**Sonuc**: Faz E tamamlandi, regresyon yok. Varyant Ozellikleri V2 planinin
+tum fazlari (A-E) bu oturumda tamamlandi: sema + veri tasima, Varyant
+Ozellikleri admin ekrani, Vercel Blob ile gorsel yukleme, VariantEditor'un
+kutucuklu/otomatik kombinasyonlu yeniden tasarimi ve siparis akisinin
+dogrulanmasi. Degisiklikler asama asama commit'lendi; **push henuz
+yapilmadi** - kullanicinin onayi bekleniyor. Ayrica canliya (Vercel) deploy
+sonrasi `BLOB_READ_WRITE_TOKEN` production ortam degiskeninin gercekten
+tanimli oldugu ayrica dogrulanmali (bkz. Faz C notu).
