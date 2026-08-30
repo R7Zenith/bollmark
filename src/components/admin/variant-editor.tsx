@@ -5,6 +5,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { Button } from "@/components/admin/button";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
+import { VariantImageCell } from "@/components/admin/variant-image-cell";
 
 export type VariantRow = {
   clientId: string;
@@ -240,13 +241,11 @@ export function VariantEditor({
     },
     {
       key: "imageUrl",
-      header: "Görsel URL",
+      header: "Görsel",
       render: (row) => (
-        <input
+        <VariantImageCell
           value={row.imageUrl}
-          onChange={(e) => updateRow(row.clientId, { imageUrl: e.target.value })}
-          placeholder="https://..."
-          className={cellInputClass}
+          onChange={(url) => updateRow(row.clientId, { imageUrl: url })}
         />
       )
     },

@@ -1157,3 +1157,51 @@ credentials girisi `curl` ile denenip **basarili** oldu (200, gecerli
 session donuyor), ardindan `/admin/ayarlar/varyant-ozellikleri` sayfasi
 gercek oturumla cekilip Beden/Renk verilerinin dogru goruntulendigi
 dogrulandi.
+
+## Varyant Ozellikleri V2 - Faz C (bu oturum)
+
+Faz C ("Gorsel yukleme - Vercel Blob") uygulandi: varyant gorseli artik
+sadece URL yapistirma degil, bilgisayardan dogrudan yuklenebiliyor.
+
+1. **Blob store kurulumu (kullaniciyla birlikte, birkac deneme gerekti)**:
+   - Ilk olusturulan store **Private** erisimliydi - Vercel'de erisim modu
+     (Public/Private) **sadece store olusturulurken** secilebiliyor, sonradan
+     degistirilemiyor (bkz. Vercel resmi dokumantasyonu:
+     https://vercel.com/docs/vercel-blob/private-storage ve
+     https://vercel.com/docs/vercel-blob/public-storage). Private store'da
+     dosyalar public URL ile servis edilemiyor (sadece yetkilendirilmis bir
+     fonksiyon uzerinden veya en fazla 7 gunluk imzali URL ile) - urun
+     gorselleri icin (kalici, herkese acik olmasi gereken) uygun degildi.
+   - Kullanici store'u silip **Public** erisimle yeniden olusturdu, projeye
+     bagladi, yeni `BLOB_READ_WRITE_TOKEN` degeri paylasti - yerel `.env`'e
+     islendi.
+2. **Paket**: `@vercel/blob` eklendi (`package.json`).
+3. **Upload endpoint**: `src/app/api/admin/upload/route.ts` - oturum
+   kontrolu (401 yetkisiz), dosya tipi kontrolu (sadece jpg/png/webp, 400),
+   boyut kontrolu (max 5MB, 400), basarili yuklemede `put()` ile Blob'a
+   yazip donen public URL'i JSON olarak donuyor.
+4. **VariantEditor entegrasyonu**: `src/components/admin/variant-image-cell.tsx`
+   (yeni client bileseni) - kucuk bir "yukle" kutusu/thumbnail, yukleme
+   sirasinda spinner, hata mesaji, "Degistir"/kaldirma. `variant-editor.tsx`
+   "Gorsel URL" text input'unu bu bilesenle degistirdi (serbest URL alani
+   plana gore zorunlu tutulmadigi icin kaldirildi, sadece dosya yukleme
+   var).
+5. **Yerel test**: `npx tsc --noEmit` ve `npm run build` hatasiz (yeni route
+   `/api/admin/upload` build ciktisinda gorunuyor). `npm run dev` ile
+   canli oturuma karsi `curl` uzerinden:
+   - Gecerli bir PNG basariyla yuklendi, donen URL dogrudan taraycidan
+     (auth'suz) **200** donup goruntuyu servis etti - gercekten public
+     oldugu dogrulandi.
+   - Yanlis dosya tipi (`.txt`) **400** + doğru hata mesajiyla reddedildi.
+   - Oturumsuz istek **401** ile reddedildi.
+   - Test icin yuklenen gecici gorsel, testin sonunda Blob'dan silindi
+     (`del()`).
+
+**Sonuc**: Faz C tamamlandi. Magaza sahibi artik varyant gorselini
+bilgisayarindan dogrudan surukleyip/secip yukleyebiliyor, gorsel Vercel
+Blob'da kaliciyor ve herkese acik URL ile hem admin panelde hem magazada
+kullanilabiliyor. **Onemli**: bu ozelligin canlida calismasi icin ayni
+`BLOB_READ_WRITE_TOKEN` degerinin Vercel projesinin **production** ortam
+degiskenlerinde de tanimli olmasi gerekiyor - store projeye baglandiginda
+Vercel bunu genelde otomatik ekliyor, ama deploy sonrasi ayrica dogrulanmali
+(Settings -> Environment Variables -> Production sekmesi).
