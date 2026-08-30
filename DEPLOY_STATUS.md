@@ -1523,3 +1523,60 @@ Faz 5 ("Vitrin senkronizasyonu") uygulandi.
 6. `npx tsc --noEmit` ve `npm run build` hatasiz.
 
 **Sonuc**: Faz 5 tamamlandi.
+
+## Gorsel Yonetimi Yenileme - Faz 6 (bu oturum)
+
+Faz 6 ("Test/temizlik") uygulandi - `GORSEL_YONETIMI_PLANI.md`'nin Faz 1'den
+Faz F benzeri son kabul testine kadar **tum fazlari (1-6)** bu oturumda
+tamamlandi. Gercek Neon DB'ye ve calisan `npm run dev` sunucusuna karsi,
+onceki fazlarin hepsini **tek akista** birlikte dogrulayan bir kabul testi:
+
+1. 2 renk (Siyah: 2 gorsel, Bej: 1 gorsel) x 2 beden'den **3 varyantli**
+   bir urun (`faz6-kabul-testi`) admin panel server action'i (curl ile
+   gercek form submit) uzerinden olusturuldu - biri ozel fiyatli (400 TL),
+   genel urun gorseli de (fallback icin) eklendi, indirim-oncesi fiyat
+   (349,90 TL) tanimlandi.
+2. Vitrin sayfasi (`/urunler/faz6-kabul-testi`, onizleme sifresi cookie'siyle)
+   cekildi: fiyat/indirim-oncesi-fiyat dogru (₺300/₺350 - TL bazinda
+   yuvarlanmis gosterim), varsayilan rengin (Siyah) gorseli ilk `<img>`'de
+   dogru, her iki rengin galeri verisi de sayfa payload'inda mevcuttu.
+3. Ozel fiyatli (M-Siyah, 400 TL) varyanttan **gercek bir siparis**
+   verildi (`POST /api/orders`, adet=2): `subtotalCents=79980`,
+   `shippingCents=4900`, `totalCents=84880` - hepsi beklenenle birebir
+   eslesti (varyant fiyatlandirma + siparis akisinin sema degisikliklerinden
+   etkilenmedigi dogrulandi).
+4. **Renk ozelligi hic kullanilmayan urun** senaryosu ayrica test edildi
+   (`faz6b-renksiz-urun`, sadece Beden secilmis 2 varyant): vitrinde "Renk"
+   secici hic gorunmedi (sadece "Beden"), galeri dogru sekilde genel urun
+   gorseline duştu; admin duzenleme sayfasinda "Renk Görselleri" karti
+   "Görsel eklemek için yukarıdan en az bir renk seçip varyant oluşturun"
+   notuyla goruntulendi (bolum tamamen gizlenmiyor, kullaniciyi
+   yonlendiriyor - Faz 1'deki "Renk" attribute'u DB'de zaten `isColor:true`
+   oldugu icin bu, planin "hicbir Renk ozelligi tanimli degilse" (attribute
+   bile yokken) senaryosundan farkli, daha sik karsilasilacak bir durum;
+   attribute'un kendisi hic yoksa "önce bir Renk özelligi tanımlayın" notu
+   gösteriliyor - kod yolu `variant-editor.tsx` icinde ayrica mevcut).
+5. Tum test verileri (2 test urunu, siparis) ve gecici test betikleri
+   temizlendi.
+6. `npx tsc --noEmit` ve `npm run build` hatasiz.
+
+**Sonuc**: `GORSEL_YONETIMI_PLANI.md`'nin **tum fazlari (1-6)** bu
+oturumda tamamlandi:
+- Sema: `VariantAttribute.isColor`, `ProductOptionImage` modeli,
+  `ProductVariant.imageUrl`'in kaldirilmasi (veri kaybi olmadan, kullanici
+  onayiyla).
+- Ortak `ImageField`/`MultiImageField` bilesenleri.
+- Urun genel gorselleri artik URL + PC'den yukleme destekliyor.
+- Varyant tablosundaki tekil gorsel sutunu kalkti, yerine renk bazli,
+  cok-gorselli "Renk Görselleri" galerisi geldi.
+- Vitrinde renk secimi ile galeri senkronize (fallback dahil).
+- Tum akis (olusturma, guncelleme, silme, siparis, renksiz urun kenar
+  durumu) gercek DB'ye karsi dogrulandi.
+
+Degisiklikler faz faz, ayri commit'lerle **yerel olarak** commit'lendi
+(push edilmedi - kullanicinin son onayi bekleniyor). **Bilinen kapsam
+disi konu** (plan Bolum 4'te de belirtilmisti, Faz C'deki
+`variant-image-cell.tsx` icin de gecerliydi): bir gorsel kaldirilip/
+degistirildiginde eski Vercel Blob dosyasi silinmiyor - bu, kullanicinin
+mevcut Blob deposunda zamanla kullanilmayan dosya birikmesine yol acabilir,
+ayri bir iyilestirme olarak ele alinmali.
