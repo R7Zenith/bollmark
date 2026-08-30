@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/format";
+import { effectivePrice } from "@/lib/variant";
 
 const lineSchema = z.object({
   productId: z.string(),
   variantId: z.string(),
-  quantity: z.number().int().positive(),
-  priceCents: z.number().int().positive()
+  quantity: z.number().int().positive()
 });
 
 const orderSchema = z.object({
@@ -33,7 +33,34 @@ export async function POST(req: NextRequest) {
   }
   const data = parsed.data;
 
-  const subtotalCents = data.lines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
+  // Fiyat hicbir zaman istemciden gelen deger uzerinden hesaplanmaz - her
+  // satirin gecerli fiyati (varyant override'i veya urunun genel fiyati)
+  // burada veritabanindan yeniden okunur. Bu hem musterinin gordugu fiyatla
+  // sipariş tutarinin her zaman tutarli olmasini saglar, hem de istemci
+  // tarafinda degistirilmis bir fiyatla siparis verilmesini engeller.
+  const productIds = [...new Set(data.lines.map((l) => l.productId))];
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds } },
+    include: { variants: true }
+  });
+  const productById = new Map(products.map((p) => [p.id, p]));
+
+  const resolvedLines: { productId: string; variantId: string; quantity: number; priceCents: number }[] = [];
+  for (const line of data.lines) {
+    const product = productById.get(line.productId);
+    const variant = product?.variants.find((v) => v.id === line.variantId);
+    if (!product || !variant) {
+      return NextResponse.json({ error: "Sepetteki bir ürün veya varyant artık mevcut değil." }, { status: 400 });
+    }
+    resolvedLines.push({
+      productId: line.productId,
+      variantId: line.variantId,
+      quantity: line.quantity,
+      priceCents: effectivePrice(product, variant)
+    });
+  }
+
+  const subtotalCents = resolvedLines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
   const shippingCents = subtotalCents >= 100000 ? 0 : 4900;
   const totalCents = subtotalCents + shippingCents;
 
@@ -52,7 +79,7 @@ export async function POST(req: NextRequest) {
       shippingCents,
       totalCents,
       items: {
-        create: data.lines.map((l) => ({
+        create: resolvedLines.map((l) => ({
           productId: l.productId,
           variantId: l.variantId,
           quantity: l.quantity,

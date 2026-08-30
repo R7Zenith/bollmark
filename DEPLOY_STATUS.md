@@ -919,3 +919,67 @@ degerlendirildi.
 
 **Sirada**: Faz D - Sipariş akışı düzeltmesi (kritik: sepet + siparis
 olusturma varyant fiyatini dogru okumali).
+
+## Varyant yonetimi yenilemesi - Faz D: Siparis akisi duzeltmesi - kritik (2026-08-30, ayni oturum)
+
+Planin en kritik adimi: varyant fiyati admin panelinde girilebiliyor olsa
+bile, sepete ekleme ve siparis olusturma hala urunun genel fiyatini
+okuyorsa musteri hicbir zaman dogru tutari odemiyordu. Bu fazda iki katmanli
+bir duzeltme yapildi.
+
+1. **`src/components/add-to-cart.tsx`**: `Variant` tipine `priceCents:
+   number | null` eklendi, `effectivePrice` (`src/lib/variant.ts`, Faz A)
+   ile secili varyantin gecerli fiyati hesaplanip hem "Sepete Ekle" buton
+   metninde hem de `addLine()`'a gonderilen `priceCents` degerinde
+   kullaniliyor - eskiden ikisi de sabit `product.priceCents` idi.
+   - **Kapsam siniri (plana sadik kalindi)**: urun sayfasinin ustundeki ana
+     fiyat/indirim bloğu ve gorsel galerisi **dokunulmadan** birakildi -
+     bunlarin secime gore dinamik guncellenmesi plan tarafindan acikca
+     "ileride" olarak isaretlenmisti. Sadece "Sepete Ekle" butonunun
+     gosterdigi/gonderdigi fiyat duzeltildi (bu, siparis tutarinin dogrulugu
+     icin zorunluydu, dinamik gorsel/fiyat gosterimi degil).
+   - `src/app/(site)/urunler/[slug]/page.tsx`: `AddToCart`'a gecirilen
+     `variants` listesine `priceCents` alani eklendi (`getProductBySlug`
+     zaten Faz A'dan beri bu alani donduruyor, sadece prop'a aktarilmiyordu).
+2. **`src/app/(site)/api/orders/route.ts`** - **daha onemli/asil duzeltme**:
+   Route eskiden siparis tutarini **tamamen istemcinin gonderdigi
+   `priceCents` degerine** guveniyordu (tarayici konsolundan degistirilebilir
+   bir deger, admin panelindeki varyant fiyati zaten hic okunmuyordu). Bu
+   fazda `lineSchema`'dan `priceCents` alani tamamen kaldirildi; route artik
+   her satir icin `productId`+`variantId`'yi veritabanindan (`prisma.product.findMany`
+   + `include: { variants: true }`) yeniden cekip `effectivePrice(product,
+   variant)` ile **sunucu tarafinda** fiyati hesapliyor. Boylece: (a) varyant
+   fiyati artik gercekten siparise yansiyor, (b) istemci tarafinda
+   degistirilmis/sahte bir fiyatla siparis verilmesi **artik mumkun degil**
+   (onceki davranis bir guvenlik acigiydi, bu fazin dogal bir sonucu olarak
+   kapatildi). Gecersiz urun/varyant id'si gelirse 400 + acikca mesajla
+   reddediliyor. `src/app/(site)/odeme/page.tsx`'teki checkout formu artik
+   `priceCents`'i sunucuya gondermiyor (zaten kullanilmiyordu).
+
+**Test edildi** (yerelde `npm run dev`, canli Neon veritabanina karsi,
+gecici bir test urunu ile - **kullanicinin acikca istedigi gercek uctan uca
+senaryo**):
+- Genel fiyati **100 TL** olan bir test urunu, **250 TL** fiyat override'li
+  bir "L" varyanti ile olusturuldu (admin panel server action'i uzerinden,
+  onceki fazlardaki curl yontemiyle).
+- `POST /api/orders`'a bu varyant icin miktar=2 ve **kasten yanlis/dusuk bir
+  `priceCents` (1 kurus)** gonderildi. Siparis basariyla olustu (201) ve
+  veritabaninda dogrulandi: `unitPriceCents=25000` (varyantin gercek
+  override fiyati, ne genel urun fiyati ne de gonderilen sahte deger),
+  `totalCents(satir)=50000`, `subtotalCents=50000`, kargo esigi asilmadigi
+  icin `shippingCents=4900`, siparis `totalCents=54900` - **hepsi dogru**.
+  Bu, hem varyant fiyatinin artik dogru okundugunu hem de istemci tarafinda
+  fiyat manipulasyonunun artik mumkun olmadigini kanitliyor.
+- Ayni urune fiyat override'i **olmayan** bir "M" varyanti eklendi, miktar=3
+  ile siparis verildi: `unitPriceCents=10000` (urunun genel fiyatina dogru
+  sekilde dustu) dogrulandi.
+- Var olmayan bir `variantId` ile istek atildi: `400` + "Sepetteki bir ürün
+  veya varyant artık mevcut değil." mesaji dondu (dogrulandi).
+- Test icin kullanilan gecici Prisma betikleri (`tmp-get-variant-id.ts`,
+  `tmp-verify-order.ts`, `tmp-cleanup.ts`, proje kokunde) test sonunda hem
+  test urunu/siparislerini Neon'dan sildiler hem de kendileri silindi -
+  commit'e dahil edilmediler. `npm run build` hatasiz.
+
+**Sirada**: Faz E - genel test (varyant ekleme/silme/duzenleme, bos fiyat
+alaninin urun fiyatina dusmesi, toplu indirim - Faz D'de zaten dogrulanan
+siparis tutari haric hepsi tekrar gozden gecirilecek).

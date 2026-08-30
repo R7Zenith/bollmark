@@ -31,8 +31,7 @@ export default function CheckoutPage() {
       lines: lines.map((l) => ({
         productId: l.productId,
         variantId: l.variantId,
-        quantity: l.quantity,
-        priceCents: l.priceCents
+        quantity: l.quantity
       }))
     };
 

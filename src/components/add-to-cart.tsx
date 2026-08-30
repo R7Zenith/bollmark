@@ -4,12 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
+import { effectivePrice } from "@/lib/variant";
 
 type Variant = {
   id: string;
   size: string;
   color: string;
   stock: number;
+  priceCents: number | null;
 };
 
 export function AddToCart({
@@ -35,6 +37,8 @@ export function AddToCart({
 
   const selected = variants.find((v) => v.size === size && v.color === color);
   const outOfStock = !selected || selected.stock <= 0;
+  // Varyantin kendi fiyati varsa o kullanilir, yoksa urunun genel fiyatina duser
+  const selectedPriceCents = selected ? effectivePrice({ priceCents }, selected) : priceCents;
 
   const handleAdd = () => {
     if (!selected || outOfStock) return;
@@ -44,7 +48,7 @@ export function AddToCart({
       name,
       size,
       color,
-      priceCents,
+      priceCents: selectedPriceCents,
       image,
       quantity: 1
     });
@@ -93,7 +97,7 @@ export function AddToCart({
         disabled={outOfStock}
         className="w-full bg-ink py-4 text-sm uppercase tracking-widest2 text-paper transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
       >
-        {outOfStock ? "Stokta Yok" : added ? "Sepete Eklendi ✓" : `Sepete Ekle · ${formatPrice(priceCents)}`}
+        {outOfStock ? "Stokta Yok" : added ? "Sepete Eklendi ✓" : `Sepete Ekle · ${formatPrice(selectedPriceCents)}`}
       </button>
 
       {added && (

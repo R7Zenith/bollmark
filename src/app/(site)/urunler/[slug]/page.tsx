@@ -47,7 +47,13 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             name={product.name}
             priceCents={product.priceCents}
             image={mainImage}
-            variants={product.variants}
+            variants={product.variants.map((v) => ({
+              id: v.id,
+              size: v.size,
+              color: v.color,
+              stock: v.stock,
+              priceCents: v.priceCents
+            }))}
           />
         </div>
       </div>
