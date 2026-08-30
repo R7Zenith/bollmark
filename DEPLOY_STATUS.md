@@ -875,3 +875,47 @@ bir uctan uca senaryo** calistirildi:
 
 **Sirada**: Faz C - Toplu islem (checkbox + BulkActionBar zaten VariantEditor
 icinde hazir; simdi yuzde indirim/stok/silme aksiyonlarinin dogrulanmasi).
+
+## Varyant yonetimi yenilemesi - Faz C: Toplu islem (2026-08-30, ayni oturum)
+
+Checkbox ile coklu secim ve `BulkActionBar` entegrasyonu aslinda Faz B'de
+`VariantEditor` yazilirken bitmisti (`DataTable`'in kendi `selectable` +
+`bulkActions` mekanizmasi yeniden kullanildi - ayri bir bilesen gerekmedi).
+Bu fazda odak, uc aksiyonun (% indirim, stok ekle/cikar, secilenleri sil)
+gercekten dogru hesapladigini test edilebilir hale getirip dogrulamakti.
+
+1. **Kucuk refactor**: Yuzde indirim ve stok delta hesaplama mantigi,
+   bileşen icine gomulu `onClick` closure'larindan disari cikarilip iki
+   saf fonksiyon olarak export edildi: `applyPercentDiscount(rows,
+   selectedIds, pct)` ve `applyStockDelta(rows, selectedIds, delta)`
+   (`src/components/admin/variant-editor.tsx`). Davranis degismedi, sadece
+   test edilebilir hale geldi - React state guncellemesi hala ayni
+   `setRows((prev) => applyXxx(prev, ...))` deseniyle yapiliyor.
+   - **% Indirim**: sadece secili VE fiyati doldurulmus satirlara uygulanir
+     (fiyati bos - urun fiyatini kullanan - satirlara dokunulmaz, cunku
+     hangi taban fiyattan indirim yapilacagi belirsiz olurdu). Sonuc
+     `Math.max(0, ...)` ile negatife dusmez.
+   - **Stok Ekle/Cikar**: pozitif veya negatif tam sayi kabul eder, sonuc
+     yine `Math.max(0, ...)` ile 0'in altina dusmez.
+   - **Secilenleri Sil**: `window.confirm` sonrasi satirlari state'ten
+     cikarir (mevcut urun/kategori sayfalarindaki silme onayi deseniyle
+     ayni).
+2. Proje kokunde gecici bir `tmp-variant-editor-test.ts` betigi yazilip
+   `npx tsx` ile calistirildi (onceki oturumdaki `lowstock-test.ts`
+   deseniyle ayni - repo disina cikmadan, DB'ye dokunmadan, saf fonksiyon
+   testi): 10 senaryo (yuzde indirimin secili olmayan/fiyati bos satirlara
+   dokunmadigini, stok delta'nin 0 siniri asmadigini, `serializeVariantRows`'un
+   tamamen bos satirlari elemesini ve TL->cent donusumunu dogru yaptigini
+   kontrol ediyor) - **hepsi basarili**. Test betigi calistirildiktan sonra
+   silindi, commit'e dahil edilmedi.
+
+**Test edildi**: Yukaridaki 10 otomatik senaryo + `npm run build` hatasiz.
+Checkbox/BulkActionBar UI etkilesimi (tiklama) bu ortamda headless bir
+tarayici araci olmadigi icin gorsel olarak denenmedi (Faz 4'teki `recharts`
+notuyla ayni kisit) - ancak alttaki hesaplama mantigi ve `DataTable`'in
+zaten Urunler/Siparisler sayfalarinda calistigi dogrulanmis secim/BulkActionBar
+mekanizmasi degistirilmeden yeniden kullanildigi icin risk dusuk
+degerlendirildi.
+
+**Sirada**: Faz D - Sipariş akışı düzeltmesi (kritik: sepet + siparis
+olusturma varyant fiyatini dogru okumali).

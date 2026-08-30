@@ -63,6 +63,24 @@ export function serializeVariantRows(rows: VariantRow[]): SerializedVariant[] {
     }));
 }
 
+export function applyPercentDiscount(rows: VariantRow[], selectedIds: string[], pct: number): VariantRow[] {
+  return rows.map((r) => {
+    if (!selectedIds.includes(r.clientId)) return r;
+    const baseCents = r.price.trim() ? Math.round(Number(r.price) * 100) : null;
+    if (baseCents === null) return r;
+    const nextCents = Math.max(0, Math.round(baseCents * (1 - pct / 100)));
+    return { ...r, price: (nextCents / 100).toFixed(2) };
+  });
+}
+
+export function applyStockDelta(rows: VariantRow[], selectedIds: string[], delta: number): VariantRow[] {
+  return rows.map((r) => {
+    if (!selectedIds.includes(r.clientId)) return r;
+    const next = Math.max(0, Math.round(Number(r.stock) || 0) + delta);
+    return { ...r, stock: String(next) };
+  });
+}
+
 const cellInputClass =
   "w-full min-w-[6rem] rounded border border-admin-border px-2 py-1.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
 
@@ -106,15 +124,7 @@ export function VariantEditor({
             window.alert("Geçerli bir yüzde girin (0-100 arası).");
             return;
           }
-          setRows((prev) =>
-            prev.map((r) => {
-              if (!selectedIds.includes(r.clientId)) return r;
-              const baseCents = r.price.trim() ? Math.round(Number(r.price) * 100) : null;
-              if (baseCents === null) return r;
-              const nextCents = Math.max(0, Math.round(baseCents * (1 - pct / 100)));
-              return { ...r, price: (nextCents / 100).toFixed(2) };
-            })
-          );
+          setRows((prev) => applyPercentDiscount(prev, selectedIds, pct));
           clearSelection();
         }
       },
@@ -131,13 +141,7 @@ export function VariantEditor({
             window.alert("Geçerli bir sayı girin.");
             return;
           }
-          setRows((prev) =>
-            prev.map((r) => {
-              if (!selectedIds.includes(r.clientId)) return r;
-              const next = Math.max(0, Math.round(Number(r.stock) || 0) + delta);
-              return { ...r, stock: String(next) };
-            })
-          );
+          setRows((prev) => applyStockDelta(prev, selectedIds, delta));
           clearSelection();
         }
       },
