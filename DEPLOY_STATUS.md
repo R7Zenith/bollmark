@@ -1476,3 +1476,50 @@ Faz 4 ("Renk bazli varyant galerisi") uygulandi.
 **Sonuc**: Faz 4 tamamlandi. Magaza sahibi artik her renk icin bedenden
 bagimsiz, birden fazla fotograftan olusan bir galeri tanimlayabiliyor;
 renk yoksa bu bolum otomatik gizleniyor.
+
+## Gorsel Yonetimi Yenileme - Faz 5 (bu oturum)
+
+Faz 5 ("Vitrin senkronizasyonu") uygulandi.
+
+1. **`src/lib/catalog.ts`**: `getProductBySlug` sorgusuna
+   `optionImages: { include: { value: true }, orderBy: { position: "asc" } }`
+   eklendi.
+2. **`src/lib/variant-attributes.ts`**: Yeni `colorValueId(variant)`
+   yardimcisi - bir varyantin renk ekseni (`isColor:true`) icin secili
+   degerinin id'sini donduruyor, `ProductOptionImage` galerisiyle
+   eslestirmek icin.
+3. **`src/components/product-viewer.tsx` (yeni, eski `add-to-cart.tsx`'in
+   yerini aliyor)**: Renk secimi ile galeriyi ortak state altinda
+   birlestiren client bileseni. Renk/beden butonlari + sepete ekle
+   `add-to-cart.tsx`'ten tasindi, ustune kategori etiketi, baslik,
+   fiyat/indirim-oncesi-fiyat ve aciklama da eklendi (eskiden sayfada
+   sabitti). Secili rengin `colorGalleries[valueId]`'i varsa galeri onu
+   gosteriyor, yoksa `fallbackImages`'a (urunun genel gorselleri, o da
+   yoksa sabit bir Unsplash gorseline) duşuyor.
+4. **`src/app/(site)/urunler/[slug]/page.tsx`**: Sadelesti - `ProductViewer`'i
+   cagirip `optionImages`'i `valueId`'ye gore gruplayip `colorGalleries`
+   olarak, her varyanti `colorValueId` ile birlikte geciyor. Eski
+   `add-to-cart.tsx` silindi (hicbir yerde referansi kalmadi).
+5. **Uctan uca test (gercek Neon DB'ye karsi, gercek `npm run dev`
+   sunucusuna curl ile)**:
+   - Magazanin `?preview=...` sifre duvari oldugu kesfedilip
+     (`PREVIEW_COOKIE_NAME=bm_preview`) once cookie alindi.
+   - 2 renkli (Siyah/Bej), her birine 1 gorsel atanmis **PUBLISHED**
+     bir test urunu (`faz5-test-urun`) olusturuldu, sayfa curl ile cekildi:
+     ilk render'da **varsayilan/ilk renk olan Siyah'in gorseli** dogru
+     `<img>` (next/image) etiketinde goruldu, Renk/Beden buton gruplari
+     dogru secili durumla (Siyah secili, Bej degil) render edildi, **her
+     iki rengin de** galeri verisi (client'a Bej'e gecince kullanilacak
+     sekilde) sayfa payload'inda mevcuttu.
+   - **Fallback dogrulamasi**: renk galerisi hic tanimlanmamis mevcut
+     seed urunu (`bollmark-oversize-mont`) cekilip, galerinin dogru
+     sekilde urunun genel gorseline (`ProductImage`) duştugu dogrulandi.
+   - **Not**: renk butonuna tiklandiginda React state degisiminin gercek
+     tarayicida galeriyi degistirdigi, bu ortamda headless tarayici
+     olmadigi icin piksel-duzeyinde dogrulanamadi (onceki fazlardaki
+     `recharts` notuyla ayni kisitlama) - kullaniciya tarayicidan elle
+     kontrol onerilir.
+   - Test urunu ve gecici betikler temizlendi.
+6. `npx tsc --noEmit` ve `npm run build` hatasiz.
+
+**Sonuc**: Faz 5 tamamlandi.

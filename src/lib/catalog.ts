@@ -18,6 +18,7 @@ export async function getProductBySlug(slug: string) {
     include: {
       images: { orderBy: { position: "asc" } },
       variants: { include: variantOptionsInclude },
+      optionImages: { include: { value: true }, orderBy: { position: "asc" } },
       category: true
     }
   });

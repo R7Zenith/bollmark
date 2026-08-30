@@ -38,6 +38,16 @@ export function optionValue(variant: VariantOptionInclude, attributeName: string
   return variant.options.find((o) => o.value.attribute.name === attributeName)?.value.value ?? "";
 }
 
+export type VariantColorOptionInclude = {
+  options: { valueId: string; value: { attribute: { isColor: boolean } } }[];
+};
+
+// Bir varyantin renk ekseni (isColor:true) icin secili degerinin id'sini dondurur -
+// renk bazli gorsel galerisini (ProductOptionImage) bu id ile eslestirmek icin.
+export function colorValueId(variant: VariantColorOptionInclude): string | null {
+  return variant.options.find((o) => o.value.attribute.isColor)?.valueId ?? null;
+}
+
 export function optionLabel(variant: VariantOptionInclude): string {
   return variant.options.map((o) => `${o.value.attribute.name}: ${o.value.value}`).join(" · ");
 }

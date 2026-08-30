@@ -1,0 +1,162 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useCart } from "@/lib/cart";
+import { formatPrice } from "@/lib/format";
+import { effectivePrice } from "@/lib/variant";
+
+type Variant = {
+  id: string;
+  size: string;
+  color: string;
+  colorValueId: string | null;
+  stock: number;
+  priceCents: number | null;
+};
+
+// Renk secimine gore galeriyi ve sepete ekleme akisini ortak state altinda
+// birlestiren bilesen. Secili rengin ProductOptionImage seti varsa galeri
+// onu gosterir, yoksa urunun genel gorsellerine duser (fallback).
+export function ProductViewer({
+  productId,
+  productName,
+  categoryName,
+  description,
+  priceCents,
+  compareAtCents,
+  fallbackImages,
+  colorGalleries,
+  variants
+}: {
+  productId: string;
+  productName: string;
+  categoryName: string | null;
+  description: string;
+  priceCents: number;
+  compareAtCents: number | null;
+  fallbackImages: { url: string; alt: string }[];
+  colorGalleries: Record<string, string[]>;
+  variants: Variant[];
+}) {
+  const { addLine } = useCart();
+  const router = useRouter();
+
+  const sizes = Array.from(new Set(variants.map((v) => v.size)));
+  const colors = Array.from(new Set(variants.map((v) => v.color)));
+  const [size, setSize] = useState(sizes[0] ?? "");
+  const [color, setColor] = useState(colors[0] ?? "");
+  const [added, setAdded] = useState(false);
+
+  const selected = variants.find((v) => v.size === size && v.color === color);
+  const outOfStock = !selected || selected.stock <= 0;
+  const selectedPriceCents = selected ? effectivePrice({ priceCents }, selected) : priceCents;
+
+  const selectedColorValueId =
+    variants.find((v) => v.color === color)?.colorValueId ?? null;
+
+  const galleryImages = useMemo(() => {
+    const urls = selectedColorValueId ? colorGalleries[selectedColorValueId] : undefined;
+    if (urls && urls.length > 0) return urls.map((url) => ({ url, alt: productName }));
+    if (fallbackImages.length > 0) return fallbackImages;
+    return [{ url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1200", alt: productName }];
+  }, [selectedColorValueId, colorGalleries, fallbackImages, productName]);
+
+  const handleAdd = () => {
+    if (!selected || outOfStock) return;
+    addLine({
+      productId,
+      variantId: selected.id,
+      name: productName,
+      size,
+      color,
+      priceCents: selectedPriceCents,
+      image: galleryImages[0].url,
+      quantity: 1
+    });
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1800);
+  };
+
+  return (
+    <div className="grid gap-12 md:grid-cols-2">
+      <div className="grid gap-4">
+        {galleryImages.map((img, i) => (
+          <div key={`${img.url}-${i}`} className="relative aspect-[3/4] overflow-hidden bg-line">
+            <Image src={img.url} alt={img.alt} fill className="object-cover" />
+          </div>
+        ))}
+      </div>
+
+      <div>
+        {categoryName && <p className="text-xs uppercase tracking-widest2 text-accent">{categoryName}</p>}
+        <h1 className="mt-2 font-display text-4xl">{productName}</h1>
+        <div className="mt-4 flex items-center gap-3">
+          <span className="text-xl">{formatPrice(selectedPriceCents)}</span>
+          {compareAtCents && compareAtCents > selectedPriceCents && (
+            <span className="text-ink/40 line-through">{formatPrice(compareAtCents)}</span>
+          )}
+        </div>
+        <p className="mt-6 leading-relaxed text-ink/70">{description}</p>
+
+        <div className="mt-8 space-y-6">
+          {colors.length > 0 && colors.some(Boolean) && (
+            <div>
+              <p className="text-xs uppercase tracking-wide text-ink/60">Renk</p>
+              <div className="mt-2 flex gap-2">
+                {colors.map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setColor(c)}
+                    className={`border px-4 py-2 text-sm ${
+                      color === c ? "border-ink bg-ink text-paper" : "border-line"
+                    }`}
+                  >
+                    {c}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {sizes.length > 0 && sizes.some(Boolean) && (
+            <div>
+              <p className="text-xs uppercase tracking-wide text-ink/60">Beden</p>
+              <div className="mt-2 flex gap-2">
+                {sizes.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setSize(s)}
+                    className={`border px-4 py-2 text-sm ${
+                      size === s ? "border-ink bg-ink text-paper" : "border-line"
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={handleAdd}
+            disabled={outOfStock}
+            className="w-full bg-ink py-4 text-sm uppercase tracking-widest2 text-paper transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {outOfStock ? "Stokta Yok" : added ? "Sepete Eklendi ✓" : `Sepete Ekle · ${formatPrice(selectedPriceCents)}`}
+          </button>
+
+          {added && (
+            <button
+              onClick={() => router.push("/sepet")}
+              className="w-full border border-ink py-3 text-sm uppercase tracking-wide hover:bg-ink hover:text-paper"
+            >
+              Sepete Git
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
