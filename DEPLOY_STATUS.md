@@ -1377,3 +1377,23 @@ kaldirildi.
 gorsel sutunu yok (gecici olarak - Faz 4'te renk bazli galeri UI'i
 gelecek), urun genel gorselleri (eski `<textarea>`) ve DB semasi sonraki
 fazlar icin hazir.
+
+## Gorsel Yonetimi Yenileme - Faz 2 (bu oturum)
+
+Faz 2 ("Ortak gorsel bilesenleri") uygulandi.
+
+1. **`src/components/admin/image-field.tsx` (yeni)**: Tek bir gorsel icin
+   hem URL yapistirma hem PC'den yukleme sunan ortak bilesen - kucuk
+   onizleme + "Kaldir" + URL metin girisi (blur/Enter'da `onChange`
+   tetikler, dis degisiklikler `useEffect` ile senkronize edilir) + dosya
+   yukleme butonu. Faz 1'de silinen `variant-image-cell.tsx`'in isini
+   gorup ustune URL girisini geri getiriyor.
+2. **`src/components/admin/multi-image-field.tsx` (yeni)**: Birden cok
+   gorselden olusan bir listeyi (`{ url: string }[]`) yonetiyor - her
+   satirda `ImageField`, yukari/asagi siralama, silme, "Gorsel Ekle"
+   butonu.
+3. **Test**: DB'siz, saf UI bileseni oldugu icin `npx tsc --noEmit` ve
+   `npm run build` ile derleme/build dogrulandi (henuz hicbir sayfada
+   kullanilmiyor, Faz 3/4'te baglanacak).
+
+**Sonuc**: Faz 2 tamamlandi.
