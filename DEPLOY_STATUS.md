@@ -1289,11 +1289,42 @@ testi istedigi icin gercek bir uctan uca senaryo calistirildi:
 4. Test siparisleri ve test urunu (varyantlariyla birlikte,
    `onDelete: Cascade`) temizlendi, gecici test betigi silindi.
 
-**Sonuc**: Faz E tamamlandi, regresyon yok. Varyant Ozellikleri V2 planinin
-tum fazlari (A-E) bu oturumda tamamlandi: sema + veri tasima, Varyant
+**Sonuc**: Faz E tamamlandi, regresyon yok.
+
+## Varyant Ozellikleri V2 - Faz F (bu oturum)
+
+Faz F ("Test") uygulandi - planda ayrica listelenen, tum parcalari **tek
+bir akista birlikte** dogrulayan son kabul testi (kullanici bu fazin
+atlandigini fark edip sordu, once ayri ayri fazlarin kendi testleriyle
+yetinilmisti). Gercek Neon DB'ye ve calisan `npm run dev` sunucusuna karsi,
+gecici bir betikle uctan uca senaryo:
+
+1. Varyant Ozellikleri sayfasinin yaptigi gibi **yeni bir ucuncu ozellik**
+   ("Kalip Faz F" -> "Slim" degeri) DB'ye eklendi - mimarinin "yeni bir
+   ozellik eklenince sema/kod degismeden calisir" iddiasi kanitlandi.
+2. VariantEditor'un yaptigi gibi **2 Beden x 1 Renk x 1 Kalip = 2
+   kombinasyon** `generateVariantCombinations` ile uretildi.
+3. Bir varyanta **barkod** ve bir onceki oturumda gercekten Vercel Blob'a
+   yuklenmis **gercek bir gorsel URL'i** atandi; digerine toplu **%20
+   indirim** (150 -> 120 TL) ve **hepsine +10 stok** (5 -> 15) uygulandi
+   (`applyPercentDiscount`/`applyStockDelta`).
+4. Bu veriler `createProduct` server action'inin yaptigi Prisma
+   islemleriyle gercek bir urune yazildi; DB'den geri okunup barkod,
+   gorsel URL'i, fiyat ve stogun **hepsinin dogru kaydedildigi**
+   dogrulandi.
+5. Barkodlu/gorselli varyanttan (100 TL) **gercek bir siparis** verildi
+   (`POST /api/orders`, adet=3): `subtotalCents=30000`,
+   `totalCents=34900` (kargo dahil) - beklenenle birebir eslesti.
+6. Tum test verisi (siparis, urun+varyantlari, gecici "Kalip Faz F"
+   ozelligi ve degeri, yuklenen test gorseli Blob'dan) temizlendi; gecici
+   test betikleri silindi, commit'e dahil edilmedi.
+
+**Sonuc**: Faz F tamamlandi. Varyant Ozellikleri V2 planinin **tum
+fazlari (A-F)** bu oturumda tamamlandi: sema + veri tasima, Varyant
 Ozellikleri admin ekrani, Vercel Blob ile gorsel yukleme, VariantEditor'un
-kutucuklu/otomatik kombinasyonlu yeniden tasarimi ve siparis akisinin
-dogrulanmasi. Degisiklikler asama asama commit'lendi; **push henuz
-yapilmadi** - kullanicinin onayi bekleniyor. Ayrica canliya (Vercel) deploy
-sonrasi `BLOB_READ_WRITE_TOKEN` production ortam degiskeninin gercekten
-tanimli oldugu ayrica dogrulanmali (bkz. Faz C notu).
+kutucuklu/otomatik kombinasyonlu yeniden tasarimi, siparis akisinin
+dogrulanmasi ve hepsinin birlikte calistigi uctan uca kabul testi.
+Degisiklikler asama asama commit'lendi; **push henuz yapilmadi** -
+kullanicinin onayi bekleniyor. Ayrica canliya (Vercel) deploy sonrasi
+`BLOB_READ_WRITE_TOKEN` production ortam degiskeninin gercekten tanimli
+oldugu ayrica dogrulanmali (bkz. Faz C notu).
