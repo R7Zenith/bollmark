@@ -1,3 +1,29 @@
+## Plan tamamlandı (2026-08-30)
+
+Bu planın 5 fazının (A: Şema, B: Admin UI, C: Toplu İşlem, D: Sipariş Akışı
+Düzeltmesi, E: Test) tamamı sırayla uygulandı ve her biri gerçek Neon
+veritabanına karşı çalışan senaryolarla doğrulandı. Detaylı kayıt için
+`DEPLOY_STATUS.md`'deki "Varyant yönetimi yenilemesi - Faz A/B/C/D/E"
+bölümlerine bakın. Özet:
+
+- **Faz A**: `ProductVariant`'a opsiyonel `priceCents`/`compareAtCents`/
+  `imageUrl` eklendi, `src/lib/variant.ts` (`effectivePrice`/
+  `effectiveCompareAt`) yardımcıları oluşturuldu.
+- **Faz B**: CSV textarea kaldırıldı, yerine `VariantEditor` (gerçek tablo,
+  satır ekle/sil, her satırda fiyat/indirim/görsel) geldi.
+- **Faz C**: Checkbox seçimi + `BulkActionBar` ile toplu %indirim/stok/
+  silme aksiyonları eklendi ve otomatik testlerle doğrulandı.
+- **Faz D (kritik)**: Sepete ekleme ve `/api/orders` artık varyant fiyatını
+  doğru okuyor; sipariş tutarı artık istemciden değil, sunucuda veritabanı
+  üzerinden yeniden hesaplanıyor (fiyat manipülasyonu kapatıldı).
+- **Faz E**: Tüm fazların birlikte çalıştığı uçtan uca bir senaryo (toplu
+  indirimli + boş fiyatlı varyantlarla gerçek sipariş) doğrulandı.
+
+Planda "ileride" olarak işaretlenen maddelere (site tarafında dinamik fiyat
+gösterimi, fiyat aralığı gösterimi, barkod) bilinçli olarak dokunulmadı.
+
+---
+
 # Bollmark - Ürün Varyantı Yönetimi Yenileme Planı (taslak)
 
 Bu dosya, admin panelindeki ürün detay sayfasında varyant (beden/renk) yönetimini

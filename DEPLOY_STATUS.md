@@ -983,3 +983,49 @@ senaryo**):
 **Sirada**: Faz E - genel test (varyant ekleme/silme/duzenleme, bos fiyat
 alaninin urun fiyatina dusmesi, toplu indirim - Faz D'de zaten dogrulanan
 siparis tutari haric hepsi tekrar gozden gecirilecek).
+
+## Varyant yonetimi yenilemesi - Faz E: Genel test (2026-08-30, ayni oturum)
+
+Onceki dort faz zaten kendi kapsamlarini tek tek dogrulamisti (Faz B: varyant
+ekle/sil/duzenle uctan uca; Faz C: toplu islem hesaplamalari 10 senaryoyla;
+Faz D: siparis tutari, hem override'li hem override'siz varyantla). Bu fazda
+odak, **bunlarin hepsinin tek bir akista birlikte** dogru calistigini
+(bilesenlerin ayri ayri degil, birlikte kullanildiginda da sorunsuz oldugunu)
+gostermekti - ayrica planin acikca istedigi "toplu indirim uygulanmis bir
+varyantla gercek siparis" senaryosu daha once tam olarak denenmemisti.
+
+Yerelde `npm run dev`, canli Neon'a karsi, NextAuth ile giris yapilip gecici
+bir test urunuyle (`faz-e-test-urun`):
+
+1. Admin panel server action'i uzerinden **3 varyantli** bir urun olusturuldu:
+   ikisine **%20 toplu indirim uygulanmis gibi** (100 TL -> 80 TL, 200 TL ->
+   160 TL - `applyPercentDiscount`'in Faz C'de dogrulanan ciktisiyla birebir
+   ayni degerler) fiyat girildi, ucuncusu (L bedeni) **fiyat alani bos**
+   birakildi (urunun 100 TL genel fiyatina dusmesi beklenen senaryo).
+2. Urun duzenleme sayfasi tekrar acilip **hepsinin dogru kaydedildigi**
+   dogrulandi (80.00, 160.00 TL goruldu; L bedeninin stok/SKU'su goruldu,
+   fiyat alani bos).
+3. Fiyati bos birakilan L varyanti icin **gercek bir siparis** verildi
+   (`POST /api/orders`, miktar=1): `unitPriceCents=10000` (urunun genel
+   100 TL fiyati) dogru sekilde uygulandi, `totalCents=14900` (10000 +
+   4900 kargo) dogrulandi.
+4. Test siparisi ve test urunu (3 varyantiyla birlikte, `onDelete: Cascade`)
+   Neon'dan tamamen silindi; kullanilan gecici betik (`tmp-cleanup2.ts`)
+   de silindi, commit'e dahil edilmedi.
+5. `rm -rf .next && npm run build` - **hatasiz**, tum route'lar onceki
+   fazlardaki gibi derlendi.
+   - **Yan not**: `npm run lint` bu oturumda "Invalid project directory
+     provided, no such directory: .../lint" hatasi veriyor - Next.js
+     16.3.3'te `next lint` komutunun kendisiyle ilgili, bu fazin
+     degisiklikleriyle **ilgisiz** onceden var olan bir durum (ESLint 9
+     flat-config'e gecisle ilgili olabilir, arastirilmadi - `npm run build`
+     zaten TypeScript tip kontrolunu de yapiyor).
+
+**Sonuc**: Plan `VARYANT_YONETIMI_PLANI.md`'deki 5 fazin (A-E) tamami
+tamamlandi ve her biri gercek Neon veritabanina karsi calisan senaryolarla
+dogrulandi. Varyant bazinda opsiyonel fiyat/indirim/gorsel, gercek bir
+tablo UI'i, toplu islem ve - en kritik olarak - siparis tutarinin artik
+dogru (ve istemci tarafinda manipule edilemez) hesaplandigi calisir
+durumda. Degisiklikler asama asama commit'lendi; push henuz yapilmadi
+(kullanicinin onayi bekleniyor - Vercel git baglantisi sayesinde push
+sonrasi otomatik deploy tetiklenecek).
