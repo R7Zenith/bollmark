@@ -820,3 +820,58 @@ opsiyonel ve henuz hicbir yerde okunmuyor/yaziliyor).
 
 **Sirada**: Faz B - Admin UI (VariantEditor bileseni, CSV textarea'nin
 kaldirilmasi).
+
+## Varyant yonetimi yenilemesi - Faz B: Admin UI (2026-08-30, ayni oturum)
+
+CSV formatli tek metin kutusu ("Beden,Renk,SKU,Stok" satir satir) tamamen
+kaldirildi, yerine gercek bir tablo bileseni geldi.
+
+1. **`src/components/admin/variant-editor.tsx`** (yeni, "use client") -
+   mevcut `DataTable` (checkbox secimi + `BulkActionBar` zaten dahili
+   destekliyor) uzerine kurulu. Sutunlar: Beden, Renk, SKU, Stok, Fiyat
+   (TL, opsiyonel, placeholder "Varsayılan: {ürün fiyatı} TL"), İndirim
+   Öncesi (TL, opsiyonel), Görsel URL (opsiyonel), sil ikonu. Her hucre
+   kendi input'una sahip, state React `useState<VariantRow[]>` ile client
+   tarafinda tutuluyor. "+ Varyant Ekle" butonu (`Button` bileseni) altta
+   bos bir satir ekliyor. Form gonderilirken state `serializeVariantRows`
+   ile sayisal alanlara (priceCents/compareAtCents cent cinsine, bos ise
+   `null`) cevrilip gizli `<input type="hidden" name="variantsJson">`
+   alanina `JSON.stringify` ile yaziliyor.
+2. **`urunler/[id]/page.tsx`** ve **`urunler/yeni/page.tsx`**: `updateProduct`/
+   `createProduct` server action'lari artik `variantsJson`'u parse edip
+   dogruluyor (`parseVariantsJson` yardimci fonksiyonu, negatif olmayan
+   stok, gecersiz sayilar `null`'a dusuyor). Kaydetmeden once **SKU tekilligi**
+   ve **beden+renk kombinasyonu tekilligi** JS tarafinda onceden kontrol
+   ediliyor (DB'deki `@@unique` kisitlamasina denk gelmeden once anlamli
+   hata mesaji vermek icin) - ihlal varsa `?hata=sku-tekrar` veya
+   `?hata=varyant-tekrar` ile geri donuluyor.
+   - **Karar**: `urunler/yeni/page.tsx` daha once hic `?hata=` ile geri
+     donmuyordu (create action'da try/catch yoktu); bu fazda eklendi -
+     sayfa artik `searchParams` okuyup mevcut `ProductFeedback` bilesenini
+     (Faz 2'den, zaten genel amacli) kullaniyor.
+3. **`src/components/admin/product-feedback.tsx`**: yeni iki hata mesaji
+   eklendi (`sku-tekrar`, `varyant-tekrar`) - digerleriyle ayni desen.
+4. **Yan not**: `git pull` ile gelen `package.json` degisikligi (`recharts`)
+   yerel `node_modules`'a hic yansimamisti; Faz A'da fark edilip `npm install`
+   ile duzeltildi (bu notu tekrarlamaya gerek yok, sadece derleme calisir
+   durumda tutuldu).
+
+**Test edildi**: `npm run build` hatasiz. Ayrica yerel `npm run dev` +
+NextAuth credentials login (curl, Faz 2/3'teki ayni yontem) ile **gercek
+bir uctan uca senaryo** calistirildi:
+- `/admin/urunler/yeni` sayfasi VariantEditor'i dogru render etti (tablo
+  basliklari, "Varyant Ekle" butonu, gizli `variantsJson` alani HTML'de
+  goruldu).
+- React Server Action'in gerektirdigi multipart/form-data + `$ACTION_ID_*`
+  (basit action) / `$ACTION_REF_N` + `$ACTION_N:0`/`:1` (bound action,
+  update/delete icin) alanlari HTML'den okunup curl ile birebir
+  tekrarlanarak: 2 varyantli (biri fiyat override'li) bir test urunu
+  **olusturuldu** (dogrulandi: her iki varyant da dogru SKU/fiyat/indirim
+  ile edit sayfasinda goruldu) -> **guncellendi** (bir varyant silindi,
+  yeni bir varyant eklendi, digerinin stogu degistirildi - hepsi dogru
+  yansidi) -> **silindi** (urun ve varyantlari Neon'dan kalkti, sonraki
+  istek 404 dondu). Test verisi tamamen temizlendi, gercek seed verisine
+  dokunulmadi.
+
+**Sirada**: Faz C - Toplu islem (checkbox + BulkActionBar zaten VariantEditor
+icinde hazir; simdi yuzde indirim/stok/silme aksiyonlarinin dogrulanmasi).

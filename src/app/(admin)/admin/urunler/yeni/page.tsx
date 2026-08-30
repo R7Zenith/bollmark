@@ -2,6 +2,35 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/admin/card";
 import { SaveBar } from "@/components/admin/save-bar";
+import { ProductFeedback } from "@/components/admin/product-feedback";
+import { VariantEditor, type SerializedVariant } from "@/components/admin/variant-editor";
+
+function parseVariantsJson(raw: string): SerializedVariant[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  return parsed
+    .filter((v): v is Record<string, unknown> => typeof v === "object" && v !== null)
+    .map((v) => ({
+      size: String(v.size ?? "").trim() || "TEK EBAT",
+      color: String(v.color ?? "").trim() || "STANDART",
+      sku: String(v.sku ?? "").trim(),
+      stock: Math.max(0, Math.round(Number(v.stock) || 0)),
+      priceCents:
+        typeof v.priceCents === "number" && Number.isFinite(v.priceCents) && v.priceCents > 0
+          ? Math.round(v.priceCents)
+          : null,
+      compareAtCents:
+        typeof v.compareAtCents === "number" && Number.isFinite(v.compareAtCents) && v.compareAtCents > 0
+          ? Math.round(v.compareAtCents)
+          : null,
+      imageUrl: typeof v.imageUrl === "string" && v.imageUrl.trim() ? v.imageUrl.trim() : null
+    }));
+}
 
 const inputClass =
   "w-full rounded-md border border-admin-border px-4 py-2.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
@@ -25,47 +54,67 @@ async function createProduct(formData: FormData) {
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
-  // Varyant satırı formatı: Beden,Renk,SKU,Stok
-  const variantLines = String(formData.get("variants") || "")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const variants = parseVariantsJson(String(formData.get("variantsJson") || "[]"));
 
-  const product = await prisma.product.create({
-    data: {
-      name,
-      slug,
-      description,
-      priceCents,
-      compareAtCents,
-      status,
-      categoryId,
-      images: {
-        create: imageUrls.map((url, i) => ({ url, position: i }))
-      },
-      variants: {
-        create: variantLines.map((line) => {
-          const [size, color, sku, stock] = line.split(",").map((p) => p.trim());
-          return {
-            size: size || "TEK EBAT",
-            color: color || "STANDART",
-            sku: sku || `${slug}-${Math.random().toString(36).slice(2, 8)}`,
-            stock: Number(stock || 0)
-          };
-        })
+  const skuSet = new Set<string>();
+  for (const v of variants) {
+    const sku = v.sku || `${slug}-${Math.random().toString(36).slice(2, 8)}`;
+    if (skuSet.has(sku)) redirect("/admin/urunler/yeni?hata=sku-tekrar");
+    skuSet.add(sku);
+  }
+  const sizeColorSet = new Set<string>();
+  for (const v of variants) {
+    const key = `${v.size}::${v.color}`;
+    if (sizeColorSet.has(key)) redirect("/admin/urunler/yeni?hata=varyant-tekrar");
+    sizeColorSet.add(key);
+  }
+
+  let product;
+  try {
+    product = await prisma.product.create({
+      data: {
+        name,
+        slug,
+        description,
+        priceCents,
+        compareAtCents,
+        status,
+        categoryId,
+        images: {
+          create: imageUrls.map((url, i) => ({ url, position: i }))
+        },
+        variants: {
+          create: variants.map((v) => ({
+            size: v.size,
+            color: v.color,
+            sku: v.sku || `${slug}-${Math.random().toString(36).slice(2, 8)}`,
+            stock: v.stock,
+            priceCents: v.priceCents,
+            compareAtCents: v.compareAtCents,
+            imageUrl: v.imageUrl
+          }))
+        }
       }
-    }
-  });
+    });
+  } catch {
+    redirect("/admin/urunler/yeni?hata=kaydedilemedi");
+  }
 
   redirect(`/admin/urunler/${product.id}?basarili=olusturuldu`);
 }
 
-export default async function NewProductPage() {
+export default async function NewProductPage({
+  searchParams
+}: {
+  searchParams: Promise<{ hata?: string }>;
+}) {
+  const { hata } = await searchParams;
   const categories = await prisma.category.findMany({ orderBy: { name: "asc" } });
 
   return (
     <div className="max-w-2xl">
       <h1 className="text-2xl font-semibold text-admin-text">Yeni Ürün</h1>
+      <ProductFeedback hata={hata} />
       <form id="product-form" action={createProduct} className="mt-8 space-y-6">
         <Card title="Temel Bilgiler">
           <div className="space-y-4">
@@ -98,12 +147,11 @@ export default async function NewProductPage() {
         </Card>
 
         <Card title="Varyantlar">
-          <label className={labelClass}>Her satıra: Beden,Renk,SKU,Stok</label>
-          <textarea
-            name="variants"
-            rows={4}
-            className={`mt-1 ${inputClass} font-mono`}
-            placeholder={"M,Siyah,BLM-001-M-SYH,10\nL,Siyah,BLM-001-L-SYH,8"}
+          <VariantEditor
+            fieldName="variantsJson"
+            initialRows={[]}
+            defaultPriceLabel="ürün fiyatı"
+            defaultCompareAtLabel="Boş = indirim gösterilmez"
           />
         </Card>
 

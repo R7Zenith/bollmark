@@ -4,6 +4,35 @@ import { Card } from "@/components/admin/card";
 import { SaveBar } from "@/components/admin/save-bar";
 import { ProductFeedback } from "@/components/admin/product-feedback";
 import { DeleteProductForm } from "@/components/admin/delete-product-form";
+import { VariantEditor, type VariantRow, type SerializedVariant } from "@/components/admin/variant-editor";
+
+function parseVariantsJson(raw: string): SerializedVariant[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  return parsed
+    .filter((v): v is Record<string, unknown> => typeof v === "object" && v !== null)
+    .map((v) => ({
+      id: typeof v.id === "string" ? v.id : undefined,
+      size: String(v.size ?? "").trim() || "TEK EBAT",
+      color: String(v.color ?? "").trim() || "STANDART",
+      sku: String(v.sku ?? "").trim(),
+      stock: Math.max(0, Math.round(Number(v.stock) || 0)),
+      priceCents:
+        typeof v.priceCents === "number" && Number.isFinite(v.priceCents) && v.priceCents > 0
+          ? Math.round(v.priceCents)
+          : null,
+      compareAtCents:
+        typeof v.compareAtCents === "number" && Number.isFinite(v.compareAtCents) && v.compareAtCents > 0
+          ? Math.round(v.compareAtCents)
+          : null,
+      imageUrl: typeof v.imageUrl === "string" && v.imageUrl.trim() ? v.imageUrl.trim() : null
+    }));
+}
 
 const inputClass =
   "w-full rounded-md border border-admin-border px-4 py-2.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
@@ -26,11 +55,24 @@ async function updateProduct(id: string, formData: FormData) {
     .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
-  // Varyant satırı formatı: Beden,Renk,SKU,Stok
-  const variantLines = String(formData.get("variants") || "")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const variants = parseVariantsJson(String(formData.get("variantsJson") || "[]"));
+
+  const skuSet = new Set<string>();
+  for (const v of variants) {
+    const sku = v.sku || `${slug}-${Math.random().toString(36).slice(2, 8)}`;
+    if (skuSet.has(sku)) {
+      redirect(`/admin/urunler/${id}?hata=sku-tekrar`);
+    }
+    skuSet.add(sku);
+  }
+  const sizeColorSet = new Set<string>();
+  for (const v of variants) {
+    const key = `${v.size}::${v.color}`;
+    if (sizeColorSet.has(key)) {
+      redirect(`/admin/urunler/${id}?hata=varyant-tekrar`);
+    }
+    sizeColorSet.add(key);
+  }
 
   try {
     await prisma.$transaction([
@@ -44,16 +86,16 @@ async function updateProduct(id: string, formData: FormData) {
       }),
       prisma.productVariant.deleteMany({ where: { productId: id } }),
       prisma.productVariant.createMany({
-        data: variantLines.map((line) => {
-          const [size, color, sku, stock] = line.split(",").map((p) => p.trim());
-          return {
-            productId: id,
-            size: size || "TEK EBAT",
-            color: color || "STANDART",
-            sku: sku || `${slug}-${Math.random().toString(36).slice(2, 8)}`,
-            stock: Number(stock || 0)
-          };
-        })
+        data: variants.map((v) => ({
+          productId: id,
+          size: v.size,
+          color: v.color,
+          sku: v.sku || `${slug}-${Math.random().toString(36).slice(2, 8)}`,
+          stock: v.stock,
+          priceCents: v.priceCents,
+          compareAtCents: v.compareAtCents,
+          imageUrl: v.imageUrl
+        }))
       })
     ]);
   } catch {
@@ -94,7 +136,21 @@ export default async function EditProductPage({
   const updateWithId = updateProduct.bind(null, product.id);
   const deleteWithId = deleteProduct.bind(null, product.id);
   const imagesValue = product.images.map((i) => i.url).join("\n");
-  const variantsValue = product.variants.map((v) => `${v.size},${v.color},${v.sku},${v.stock}`).join("\n");
+  const variantRows: VariantRow[] = product.variants.map((v) => ({
+    clientId: v.id,
+    id: v.id,
+    size: v.size,
+    color: v.color,
+    sku: v.sku,
+    stock: String(v.stock),
+    price: v.priceCents !== null ? (v.priceCents / 100).toFixed(2) : "",
+    compareAt: v.compareAtCents !== null ? (v.compareAtCents / 100).toFixed(2) : "",
+    imageUrl: v.imageUrl ?? ""
+  }));
+  const defaultPriceLabel = `${(product.priceCents / 100).toFixed(2)} TL`;
+  const defaultCompareAtLabel = product.compareAtCents
+    ? `Varsayılan: ${(product.compareAtCents / 100).toFixed(2)} TL`
+    : "Boş = indirim gösterilmez";
 
   return (
     <div className="max-w-2xl">
@@ -146,13 +202,11 @@ export default async function EditProductPage({
         </Card>
 
         <Card title="Varyantlar">
-          <label className={labelClass}>Her satıra: Beden,Renk,SKU,Stok</label>
-          <textarea
-            name="variants"
-            defaultValue={variantsValue}
-            rows={4}
-            className={`mt-1 ${inputClass} font-mono`}
-            placeholder={"M,Siyah,BLM-001-M-SYH,10\nL,Siyah,BLM-001-L-SYH,8"}
+          <VariantEditor
+            fieldName="variantsJson"
+            initialRows={variantRows}
+            defaultPriceLabel={defaultPriceLabel}
+            defaultCompareAtLabel={defaultCompareAtLabel}
           />
         </Card>
 

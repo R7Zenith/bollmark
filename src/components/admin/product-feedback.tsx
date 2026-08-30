@@ -11,7 +11,9 @@ const successMessages: Record<string, string> = {
 
 const errorMessages: Record<string, string> = {
   kaydedilemedi: "Değişiklikler kaydedilemedi. Varyantlardan biri mevcut bir siparişe bağlı olabilir.",
-  silinemedi: "Ürün silinemedi. Mevcut siparişlere bağlı olabilir."
+  silinemedi: "Ürün silinemedi. Mevcut siparişlere bağlı olabilir.",
+  "sku-tekrar": "Aynı SKU'ya sahip birden fazla varyant var. Her varyantın SKU'su tekil olmalı.",
+  "varyant-tekrar": "Aynı beden/renk kombinasyonuna sahip birden fazla varyant var."
 };
 
 export function ProductFeedback({ basarili, hata }: { basarili?: string; hata?: string }) {
