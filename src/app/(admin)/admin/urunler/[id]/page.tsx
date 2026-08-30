@@ -10,6 +10,7 @@ import {
   type VariantRow,
   type SerializedVariant
 } from "@/components/admin/variant-editor";
+import { ProductImagesField } from "@/components/admin/product-images-field";
 import { variantOptionsInclude } from "@/lib/variant-attributes";
 
 function parseVariantsJson(raw: string): SerializedVariant[] {
@@ -151,7 +152,7 @@ export default async function EditProductPage({
 
   const updateWithId = updateProduct.bind(null, product.id);
   const deleteWithId = deleteProduct.bind(null, product.id);
-  const imagesValue = product.images.map((i) => i.url).join("\n");
+  const initialImages = product.images.map((i) => i.url);
   const variantRows: VariantRow[] = product.variants.map((v) => ({
     clientId: v.id,
     id: v.id,
@@ -227,8 +228,7 @@ export default async function EditProductPage({
         </Card>
 
         <Card title="Görseller">
-          <label className={labelClass}>Görsel URL&apos;leri (her satıra bir tane)</label>
-          <textarea name="images" defaultValue={imagesValue} rows={3} className={`mt-1 ${inputClass}`} placeholder="https://..." />
+          <ProductImagesField name="images" initialImages={initialImages} />
         </Card>
 
         <Card title="Kategori ve Durum">

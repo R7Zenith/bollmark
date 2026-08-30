@@ -1397,3 +1397,29 @@ Faz 2 ("Ortak gorsel bilesenleri") uygulandi.
    kullanilmiyor, Faz 3/4'te baglanacak).
 
 **Sonuc**: Faz 2 tamamlandi.
+
+## Gorsel Yonetimi Yenileme - Faz 3 (bu oturum)
+
+Faz 3 ("Urun genel gorselleri") uygulandi.
+
+1. **`src/components/admin/product-images-field.tsx` (yeni)**: `MultiImageField`'i
+   sarmalayan client bileseni - state'i `\n` ile birlestirip `images` adinda
+   gizli bir input'a yaziyor, boylece server tarafi (`createProduct`/
+   `updateProduct` icindeki `.split("\n")` mantigi) **hic degismedi**.
+2. **`urunler/yeni/page.tsx`** ve **`urunler/[id]/page.tsx`**: "Gorseller"
+   kartindaki eski `<textarea name="images">` yerine `ProductImagesField`
+   kullanildi (yeni sayfada bos liste, duzenleme sayfasinda mevcut
+   `product.images` sirali sekilde `initialImages` olarak geciliyor).
+3. **Uctan uca test (gercek Neon DB'ye karsi)**: `npm run dev` calisirken
+   NextAuth credentials login'i `curl` ile yapilip oturum cookie'si alindi,
+   `/admin/urunler/yeni` sayfasinin gercek HTML'inden React Server Action
+   `$ACTION_ID_*` degeri okundu, ayni multipart form POST'u curl ile
+   tekrarlanip **2 URL** iceren `images` alaniyla gecici bir test urunu
+   olusturuldu (`faz3-test-urun`). DB'den geri okunup **iki `ProductImage`
+   satirinin da dogru URL ve sirayla (`position: 0,1`)** kaydedildigi
+   dogrulandi. Test urunu ve gecici betikler sonrasinda silindi.
+4. `npx tsc --noEmit` ve `npm run build` hatasiz.
+
+**Sonuc**: Faz 3 tamamlandi. Magaza sahibi artik urun genel gorsellerini
+hem URL yapistirarak hem bilgisayarindan yukleyerek ekleyebiliyor,
+siralayabiliyor, silebiliyor.

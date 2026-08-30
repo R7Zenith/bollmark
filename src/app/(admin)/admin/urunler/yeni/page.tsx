@@ -4,6 +4,7 @@ import { Card } from "@/components/admin/card";
 import { SaveBar } from "@/components/admin/save-bar";
 import { ProductFeedback } from "@/components/admin/product-feedback";
 import { VariantEditor, type AttributeOption, type SerializedVariant } from "@/components/admin/variant-editor";
+import { ProductImagesField } from "@/components/admin/product-images-field";
 
 function parseVariantsJson(raw: string): SerializedVariant[] {
   let parsed: unknown;
@@ -170,8 +171,7 @@ export default async function NewProductPage({
         </Card>
 
         <Card title="Görseller">
-          <label className={labelClass}>Görsel URL&apos;leri (her satıra bir tane)</label>
-          <textarea name="images" rows={3} className={`mt-1 ${inputClass}`} placeholder="https://..." />
+          <ProductImagesField name="images" initialImages={[]} />
         </Card>
 
         <Card title="Kategori ve Durum">
