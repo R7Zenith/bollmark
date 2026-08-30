@@ -29,8 +29,7 @@ function parseVariantsJson(raw: string): SerializedVariant[] {
       compareAtCents:
         typeof v.compareAtCents === "number" && Number.isFinite(v.compareAtCents) && v.compareAtCents > 0
           ? Math.round(v.compareAtCents)
-          : null,
-      imageUrl: typeof v.imageUrl === "string" && v.imageUrl.trim() ? v.imageUrl.trim() : null
+          : null
     }));
 }
 
@@ -97,7 +96,6 @@ async function createProduct(formData: FormData) {
             stock: v.stock,
             priceCents: v.priceCents,
             compareAtCents: v.compareAtCents,
-            imageUrl: v.imageUrl,
             options: { create: v.optionValueIds.map((valueId) => ({ valueId })) }
           }
         });

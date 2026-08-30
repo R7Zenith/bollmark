@@ -37,8 +37,7 @@ function parseVariantsJson(raw: string): SerializedVariant[] {
       compareAtCents:
         typeof v.compareAtCents === "number" && Number.isFinite(v.compareAtCents) && v.compareAtCents > 0
           ? Math.round(v.compareAtCents)
-          : null,
-      imageUrl: typeof v.imageUrl === "string" && v.imageUrl.trim() ? v.imageUrl.trim() : null
+          : null
     }));
 }
 
@@ -102,7 +101,6 @@ async function updateProduct(id: string, formData: FormData) {
             stock: v.stock,
             priceCents: v.priceCents,
             compareAtCents: v.compareAtCents,
-            imageUrl: v.imageUrl,
             options: { create: v.optionValueIds.map((valueId) => ({ valueId })) }
           }
         });
@@ -162,8 +160,7 @@ export default async function EditProductPage({
     barcode: v.barcode ?? "",
     stock: String(v.stock),
     price: v.priceCents !== null ? (v.priceCents / 100).toFixed(2) : "",
-    compareAt: v.compareAtCents !== null ? (v.compareAtCents / 100).toFixed(2) : "",
-    imageUrl: v.imageUrl ?? ""
+    compareAt: v.compareAtCents !== null ? (v.compareAtCents / 100).toFixed(2) : ""
   }));
   const defaultPriceLabel = `${(product.priceCents / 100).toFixed(2)} TL`;
   const defaultCompareAtLabel = product.compareAtCents

@@ -1331,3 +1331,49 @@ tetiklenmeli. **Deploy sonrasi dogrulanmasi gereken tek nokta**:
 degiskenlerinde de tanimli oldugu (Settings -> Environment Variables ->
 Production sekmesi) - bu oturumda sadece yerel `.env` dogrulandi, canli
 ortamda gorsel yukleme ayrica test edilmedi.
+
+## Gorsel Yonetimi Yenileme - Faz 1 (bu oturum)
+
+`GORSEL_YONETIMI_PLANI.md`'nin Faz 1'i ("Sema") uygulandi: renk bazli
+gorsel galerisinin altyapisi kuruldu, eski varyant-bazli tekil `imageUrl`
+kaldirildi.
+
+1. **`prisma/schema.prisma`**:
+   - `VariantAttribute.isColor Boolean @default(false)` eklendi - hangi
+     ozelligin "renk ekseni" oldugunu artik koda gomulu `"Renk"` string
+     eslesmesi yerine acikca isaretliyor.
+   - Yeni `ProductOptionImage` modeli eklendi (`productId`, `valueId`,
+     `url`, `position`) - bir urunun bir rengine ait birden fazla fotograf
+     tutabiliyor. `Product.optionImages` ve `VariantAttributeValue.optionImages`
+     iliski alanlari eklendi.
+   - `ProductVariant.imageUrl` alani **kaldirildi**.
+2. **Veri tasima (gercek Neon DB'ye karsi)**: Once mevcut veri incelendi -
+   hicbir varyantta `imageUrl` dolu degildi (0 satir), tasinacak veri
+   yoktu. Gecici bir betikle (`scripts/tmp-migrate-images.ts`, is bitince
+   silindi) "Renk" adli mevcut attribute `isColor: true` yapildi (1 satir
+   guncellendi) ve genel amacli tasima mantigi (renkli varyant ->
+   `ProductOptionImage`, renksiz varyant -> `Product.images` fallback,
+   dedupe ile) yazilip calistirildi - dogrulama: 0 varyant tasindi (beklenen,
+   cunku kaynak veri zaten bostu).
+3. **Kolon silme (geri donusumsuz)**: `npx prisma db push` once additive
+   degisiklikleri (isColor + ProductOptionImage) sorunsuz uyguladi. `imageUrl`
+   kolonunu dusuren ikinci `db push --accept-data-loss` calistirmasinda
+   Prisma'nin AI-ajan guvenlik kilidi devreye girdi
+   (`PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION` gerektiriyor) - kullaniciya
+   durum (islem, risk, veri kaybi olmadigi bilgisi) acikca anlatilip
+   `AskUserQuestion` ile onay alindi, onay sonrasi komut calistirildi.
+   Kolon basariyla dusuruldu.
+4. **Kod guncellemesi (build'i yesilde tutmak icin ayni fazda yapildi)**:
+   `imageUrl` referanslari `variant-editor.tsx` (`VariantRow`/`SerializedVariant`
+   tiplerinden ve tablodan "Gorsel" sutunu), `urunler/yeni/page.tsx` ve
+   `urunler/[id]/page.tsx` (`parseVariantsJson`, `createProduct`/`updateProduct`,
+   `variantRows` okuma) icinden kaldirildi. Artik kullanilmayan
+   `variant-image-cell.tsx` silindi (Faz 2/4'te yerini ortak `ImageField`/
+   `MultiImageField` + renk galerisi alacak). `AttributeOption` tipine
+   `isColor: boolean` eklendi (Faz 4'te kullanilacak).
+5. **Test**: `npx tsc --noEmit` ve `npm run build` hatasiz gecti.
+
+**Sonuc**: Faz 1 tamamlandi, veri kaybi olmadi. Varyant tablosunda artik
+gorsel sutunu yok (gecici olarak - Faz 4'te renk bazli galeri UI'i
+gelecek), urun genel gorselleri (eski `<textarea>`) ve DB semasi sonraki
+fazlar icin hazir.

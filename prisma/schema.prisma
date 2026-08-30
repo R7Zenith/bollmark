@@ -40,6 +40,7 @@ model Product {
   category    Category?     @relation(fields: [categoryId], references: [id])
   images      ProductImage[]
   variants    ProductVariant[]
+  optionImages ProductOptionImage[]
   orderItems  OrderItem[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -59,6 +60,7 @@ model VariantAttribute {
   id        String                  @id @default(cuid())
   name      String                  @unique // "Beden", "Renk"
   position  Int                     @default(0)
+  isColor   Boolean                 @default(false) // renk bazli gorsel galerisi bu ozellik ekseninde gruplanir
   values    VariantAttributeValue[]
   createdAt DateTime                @default(now())
 }
@@ -72,8 +74,24 @@ model VariantAttributeValue {
   hexColor     String?                // sadece Renk gibi ozellikler icin opsiyonel, ornek "#111111"
   position     Int                    @default(0)
   variantLinks ProductVariantOption[]
+  optionImages ProductOptionImage[]
 
   @@unique([attributeId, value])
+}
+
+// Renk (veya isColor=true olan baska bir ozellik) bazinda urun gorsel seti -
+// bedenden bagimsiz, bir renge ait birden fazla fotograf tutar.
+model ProductOptionImage {
+  id        String                 @id @default(cuid())
+  productId String
+  product   Product                @relation(fields: [productId], references: [id], onDelete: Cascade)
+  valueId   String
+  value     VariantAttributeValue  @relation(fields: [valueId], references: [id], onDelete: Cascade)
+  url       String
+  position  Int                    @default(0)
+  createdAt DateTime               @default(now())
+
+  @@index([productId, valueId])
 }
 
 // Bir varyantin secili ozellik degerleri ile baglantisi (coka-cok)
@@ -95,7 +113,6 @@ model ProductVariant {
   stock          Int      @default(0)
   priceCents     Int?     // opsiyonel - bos ise Product.priceCents kullanilir
   compareAtCents Int?     // opsiyonel - bos ise Product.compareAtCents kullanilir
-  imageUrl       String?  // opsiyonel varyant gorseli
   options        ProductVariantOption[]
   productId      String
   product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)

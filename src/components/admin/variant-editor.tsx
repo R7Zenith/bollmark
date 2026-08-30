@@ -5,11 +5,11 @@ import { Plus, Trash2 } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { Button } from "@/components/admin/button";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
-import { VariantImageCell } from "@/components/admin/variant-image-cell";
 
 export type AttributeOption = {
   id: string;
   name: string;
+  isColor: boolean;
   values: { id: string; value: string; hexColor: string | null }[];
 };
 
@@ -22,7 +22,6 @@ export type VariantRow = {
   stock: string;
   price: string;
   compareAt: string;
-  imageUrl: string;
 };
 
 export type SerializedVariant = {
@@ -33,7 +32,6 @@ export type SerializedVariant = {
   stock: number;
   priceCents: number | null;
   compareAtCents: number | null;
-  imageUrl: string | null;
 };
 
 function newClientId(): string {
@@ -50,8 +48,7 @@ export function emptyVariantRow(): VariantRow {
     barcode: "",
     stock: "0",
     price: "",
-    compareAt: "",
-    imageUrl: ""
+    compareAt: ""
   };
 }
 
@@ -69,8 +66,7 @@ export function serializeVariantRows(rows: VariantRow[]): SerializedVariant[] {
       barcode: r.barcode.trim() || null,
       stock: Math.max(0, Math.round(Number(r.stock) || 0)),
       priceCents: r.price.trim() ? Math.round(Number(r.price) * 100) : null,
-      compareAtCents: r.compareAt.trim() ? Math.round(Number(r.compareAt) * 100) : null,
-      imageUrl: r.imageUrl.trim() || null
+      compareAtCents: r.compareAt.trim() ? Math.round(Number(r.compareAt) * 100) : null
     }));
 }
 
@@ -299,16 +295,6 @@ export function VariantEditor({
           onChange={(e) => updateRow(row.clientId, { compareAt: e.target.value })}
           placeholder={defaultCompareAtLabel}
           className={`${cellInputClass} w-32`}
-        />
-      )
-    },
-    {
-      key: "imageUrl",
-      header: "Görsel",
-      render: (row) => (
-        <VariantImageCell
-          value={row.imageUrl}
-          onChange={(url) => updateRow(row.clientId, { imageUrl: url })}
         />
       )
     },
