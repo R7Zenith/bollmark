@@ -1324,7 +1324,10 @@ fazlari (A-F)** bu oturumda tamamlandi: sema + veri tasima, Varyant
 Ozellikleri admin ekrani, Vercel Blob ile gorsel yukleme, VariantEditor'un
 kutucuklu/otomatik kombinasyonlu yeniden tasarimi, siparis akisinin
 dogrulanmasi ve hepsinin birlikte calistigi uctan uca kabul testi.
-Degisiklikler asama asama commit'lendi; **push henuz yapilmadi** -
-kullanicinin onayi bekleniyor. Ayrica canliya (Vercel) deploy sonrasi
-`BLOB_READ_WRITE_TOKEN` production ortam degiskeninin gercekten tanimli
-oldugu ayrica dogrulanmali (bkz. Faz C notu).
+Degisiklikler asama asama commit'lenip GitHub'a push edildi
+(`ff2fd6b..0984b58`) - Vercel git baglantisi sayesinde otomatik deploy
+tetiklenmeli. **Deploy sonrasi dogrulanmasi gereken tek nokta**:
+`BLOB_READ_WRITE_TOKEN` degerinin Vercel projesinin **production** ortam
+degiskenlerinde de tanimli oldugu (Settings -> Environment Variables ->
+Production sekmesi) - bu oturumda sadece yerel `.env` dogrulandi, canli
+ortamda gorsel yukleme ayrica test edilmedi.
