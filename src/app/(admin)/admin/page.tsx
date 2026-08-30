@@ -8,6 +8,7 @@ import { Badge } from "@/components/admin/badge";
 import { EmptyState } from "@/components/admin/empty-state";
 import { OrdersChart, type DailyOrdersPoint } from "@/components/admin/orders-chart";
 import { orderStatusLabel, orderStatusTone } from "@/lib/status";
+import { optionLabel, variantOptionsInclude } from "@/lib/variant-attributes";
 
 const REVENUE_STATUSES = ["PAID", "PREPARING", "SHIPPED", "DELIVERED"];
 
@@ -75,7 +76,13 @@ export default async function AdminDashboard() {
       where: { stock: { lt: 5 } },
       orderBy: { stock: "asc" },
       take: 8,
-      select: { id: true, size: true, color: true, stock: true, productId: true, product: { select: { name: true } } }
+      select: {
+        id: true,
+        stock: true,
+        productId: true,
+        product: { select: { name: true } },
+        ...variantOptionsInclude
+      }
     })
   ]);
 
@@ -170,9 +177,7 @@ export default async function AdminDashboard() {
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-admin-text">{variant.product.name}</p>
-                      <p className="text-xs text-admin-text-muted">
-                        {variant.size} / {variant.color}
-                      </p>
+                      <p className="text-xs text-admin-text-muted">{optionLabel(variant)}</p>
                     </div>
                     <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-red-600">
                       <AlertTriangle size={14} />

@@ -54,21 +54,52 @@ model ProductImage {
   product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
+// Beden, Renk gibi varyant ozellik tipleri (magaza genelinde tanimli)
+model VariantAttribute {
+  id        String                  @id @default(cuid())
+  name      String                  @unique // "Beden", "Renk"
+  position  Int                     @default(0)
+  values    VariantAttributeValue[]
+  createdAt DateTime                @default(now())
+}
+
+// Bir ozelligin alabilecegi degerler (S, M, L / Siyah, Beyaz ...)
+model VariantAttributeValue {
+  id           String                 @id @default(cuid())
+  attributeId  String
+  attribute    VariantAttribute       @relation(fields: [attributeId], references: [id], onDelete: Cascade)
+  value        String                 // "M", "Siyah"
+  hexColor     String?                // sadece Renk gibi ozellikler icin opsiyonel, ornek "#111111"
+  position     Int                    @default(0)
+  variantLinks ProductVariantOption[]
+
+  @@unique([attributeId, value])
+}
+
+// Bir varyantin secili ozellik degerleri ile baglantisi (coka-cok)
+model ProductVariantOption {
+  id        String                @id @default(cuid())
+  variantId String
+  variant   ProductVariant        @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  valueId   String
+  value     VariantAttributeValue @relation(fields: [valueId], references: [id])
+
+  @@unique([variantId, valueId])
+}
+
 // Beden / renk gibi varyantlar, her biri kendi stok adedine sahip
 model ProductVariant {
   id             String   @id @default(cuid())
-  size           String
-  color          String
   sku            String   @unique
+  barcode        String?  // opsiyonel, SKU'dan ayri, kasa/etiket icin
   stock          Int      @default(0)
   priceCents     Int?     // opsiyonel - bos ise Product.priceCents kullanilir
   compareAtCents Int?     // opsiyonel - bos ise Product.compareAtCents kullanilir
   imageUrl       String?  // opsiyonel varyant gorseli
+  options        ProductVariantOption[]
   productId      String
   product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   orderItems     OrderItem[]
-
-  @@unique([productId, size, color])
 }
 
 model Order {

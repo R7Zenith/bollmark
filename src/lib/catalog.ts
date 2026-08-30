@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { variantOptionsInclude } from "@/lib/variant-attributes";
 
 export async function getPublishedProducts(categorySlug?: string) {
   return prisma.product.findMany({
@@ -16,7 +17,7 @@ export async function getProductBySlug(slug: string) {
     where: { slug },
     include: {
       images: { orderBy: { position: "asc" } },
-      variants: true,
+      variants: { include: variantOptionsInclude },
       category: true
     }
   });

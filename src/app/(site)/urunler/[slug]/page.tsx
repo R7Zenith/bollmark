@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { getProductBySlug } from "@/lib/catalog";
 import { formatPrice } from "@/lib/format";
 import { AddToCart } from "@/components/add-to-cart";
+import { optionValue } from "@/lib/variant-attributes";
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -49,8 +50,8 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             image={mainImage}
             variants={product.variants.map((v) => ({
               id: v.id,
-              size: v.size,
-              color: v.color,
+              size: optionValue(v, "Beden"),
+              color: optionValue(v, "Renk"),
               stock: v.stock,
               priceCents: v.priceCents
             }))}

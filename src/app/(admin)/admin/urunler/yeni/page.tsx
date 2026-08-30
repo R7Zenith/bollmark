@@ -4,6 +4,7 @@ import { Card } from "@/components/admin/card";
 import { SaveBar } from "@/components/admin/save-bar";
 import { ProductFeedback } from "@/components/admin/product-feedback";
 import { VariantEditor, type SerializedVariant } from "@/components/admin/variant-editor";
+import { resolveOptionValueIds } from "@/lib/variant-attributes";
 
 function parseVariantsJson(raw: string): SerializedVariant[] {
   let parsed: unknown;
@@ -71,30 +72,39 @@ async function createProduct(formData: FormData) {
 
   let product;
   try {
-    product = await prisma.product.create({
-      data: {
-        name,
-        slug,
-        description,
-        priceCents,
-        compareAtCents,
-        status,
-        categoryId,
-        images: {
-          create: imageUrls.map((url, i) => ({ url, position: i }))
-        },
-        variants: {
-          create: variants.map((v) => ({
-            size: v.size,
-            color: v.color,
+    product = await prisma.$transaction(async (tx) => {
+      const created = await tx.product.create({
+        data: {
+          name,
+          slug,
+          description,
+          priceCents,
+          compareAtCents,
+          status,
+          categoryId,
+          images: {
+            create: imageUrls.map((url, i) => ({ url, position: i }))
+          }
+        }
+      });
+      for (const v of variants) {
+        const optionValueIds = await resolveOptionValueIds(tx, [
+          { attributeName: "Beden", value: v.size },
+          { attributeName: "Renk", value: v.color }
+        ]);
+        await tx.productVariant.create({
+          data: {
+            productId: created.id,
             sku: v.sku || `${slug}-${Math.random().toString(36).slice(2, 8)}`,
             stock: v.stock,
             priceCents: v.priceCents,
             compareAtCents: v.compareAtCents,
-            imageUrl: v.imageUrl
-          }))
-        }
+            imageUrl: v.imageUrl,
+            options: { create: optionValueIds.map((valueId) => ({ valueId })) }
+          }
+        });
       }
+      return created;
     });
   } catch {
     redirect("/admin/urunler/yeni?hata=kaydedilemedi");

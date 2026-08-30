@@ -1029,3 +1029,64 @@ dogru (ve istemci tarafinda manipule edilemez) hesaplandigi calisir
 durumda. Degisiklikler asama asama commit'lendi; push henuz yapilmadi
 (kullanicinin onayi bekleniyor - Vercel git baglantisi sayesinde push
 sonrasi otomatik deploy tetiklenecek).
+
+## Varyant Ozellikleri V2 - Faz A (bu oturum)
+
+`VARYANT_OZELLIKLERI_V2_PLANI.md` okundu, Faz A ("Sema") uygulandi: Beden/
+Renk artik serbest metin degil, magaza genelinde tanimli bir "Varyant
+Ozellikleri" havuzundan geliyor (CRUD ekrani Faz B'de gelecek; bu fazda
+sadece veri katmani ve mevcut ekranlarin **calismaya devam etmesi**
+saglandi).
+
+1. **Riskli islem oncesi onay**: `prisma db push`, canli/tek Neon
+   veritabanina karsi `size`/`color` sutunlarini silecegi icin Prisma'nin
+   kendi "AI ajani" guvenlik kontrolune takildi. Kullaniciya durum (islem,
+   neden, geri donusu olmadigi, bunun uretim DB'si oldugu) acikca anlatildi
+   ve **acik onay alindi** ("onaylıyorum"), ancak sonra
+   `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION` ile komut calistirildi.
+2. **Yedekleme**: pg_dump/psql bu makinede kurulu olmadigindan, Prisma
+   uzerinden tum tablolari (urun, varyant, siparis, vb.) JSON'a doken tek
+   seferlik bir betik yazildi (`scripts/backup-before-variant-v2.ts`) ve
+   sema degisikliginden hemen once calistirildi (1 urun, 4 varyant, 3
+   siparis - kucuk bir veri seti, yedek scratchpad'e kaydedildi, musteri
+   verisi icerdigi icin repoya dahil edilmedi).
+3. **Sema degisikligi**: `prisma/schema.prisma`'ya `VariantAttribute`,
+   `VariantAttributeValue`, `ProductVariantOption` modelleri eklendi;
+   `ProductVariant`'a `barcode` (opsiyonel) eklendi, `size`/`color`
+   kaldirildi. `npx prisma db push --accept-data-loss` ile Neon'a
+   uygulandi, ardindan `npx prisma generate`.
+4. **Veri tasima**: `scripts/migrate-variant-attributes.ts`, adim 2'deki
+   JSON yedekten okuyup (DB'de artik size/color olmadigi icin), SKU
+   eslestirmesiyle mevcut 4 varyanti "Beden"/"Renk" ozellik degerlerine
+   bagladi (`ProductVariantOption` satirlari olusturuldu). Sonuc: "Baglanan
+   varyant: 4, eslesmeyen: 0".
+5. **Kod uyarlamasi (Faz A kapsaminda zorunlu, uygulamanin derlenebilir/
+   calisir kalmasi icin)**: Yeni ortak yardimci `src/lib/variant-attributes.ts`
+   eklendi (`resolveOptionValueIds` - serbest metinden ozellik degeri
+   upsert eder, `optionValue`/`optionLabel` - okuma tarafinda gosterim).
+   VariantEditor UI'i **henuz degistirilmedi** (serbest metin Beden/Renk
+   input'lari duruyor - kutucukla secim Faz D'de gelecek); sadece bu
+   input'lardan gelen deger artik dogrudan sutuna degil, ozellik havuzuna
+   yaziliyor. Guncellenen dosyalar: `prisma/seed.ts`,
+   `src/lib/catalog.ts`, `src/app/(admin)/admin/page.tsx`,
+   `src/app/(admin)/admin/urunler/yeni/page.tsx`,
+   `src/app/(admin)/admin/urunler/[id]/page.tsx`,
+   `src/app/(site)/urunler/[slug]/page.tsx`.
+6. **Yerel test**: `npx tsc --noEmit` temiz, `npm run build` hatasiz (tum
+   route'lar onceki gibi derlendi). `npm run dev` ile canli Neon'a karsi:
+   - Magaza urun sayfasi (`/urunler/bollmark-oversize-mont`, preview
+     cookie ile) dogru Beden (S/M/L) ve Renk (Siyah/Bej) degerlerini
+     gosterdi - options iliskisinden okuma dogrulandi.
+   - Admin panel sorgulari (dusuk stok listesi, urun duzenleme formu) ayni
+     helper'lar ile test edilip dogru etiketler (orn. "Beden: M · Renk:
+     Bej") ve varyant sayisi (4) dogrulandi.
+   - `npm run lint` onceki fazlarda da bilinen, bu degisiklikle ilgisiz
+     "Invalid project directory" hatasini vermeye devam ediyor (build zaten
+     TS kontrolu yapiyor).
+
+**Sonuc**: Faz A tamamlandi. Sema + veri tasima canli DB'de basariyla
+uygulandi, hicbir veri kaybolmadi (4 varyantin da Beden/Renk bilgisi yeni
+tablolarda korundu), mevcut admin ve magaza akislari (henuz redesign
+edilmemis UI ile) sorunsuz calismaya devam ediyor. Faz B (Varyant
+Ozellikleri admin CRUD ekrani) icin sonraki adim hazir. Degisiklikler henuz
+commit'lenmedi - kullanicinin onayi bekleniyor.

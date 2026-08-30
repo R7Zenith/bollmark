@@ -5,6 +5,7 @@ import { SaveBar } from "@/components/admin/save-bar";
 import { ProductFeedback } from "@/components/admin/product-feedback";
 import { DeleteProductForm } from "@/components/admin/delete-product-form";
 import { VariantEditor, type VariantRow, type SerializedVariant } from "@/components/admin/variant-editor";
+import { optionValue, resolveOptionValueIds, variantOptionsInclude } from "@/lib/variant-attributes";
 
 function parseVariantsJson(raw: string): SerializedVariant[] {
   let parsed: unknown;
@@ -75,29 +76,34 @@ async function updateProduct(id: string, formData: FormData) {
   }
 
   try {
-    await prisma.$transaction([
-      prisma.product.update({
+    await prisma.$transaction(async (tx) => {
+      await tx.product.update({
         where: { id },
         data: { name, slug, description, priceCents, compareAtCents, categoryId, status }
-      }),
-      prisma.productImage.deleteMany({ where: { productId: id } }),
-      prisma.productImage.createMany({
+      });
+      await tx.productImage.deleteMany({ where: { productId: id } });
+      await tx.productImage.createMany({
         data: imageUrls.map((url, i) => ({ productId: id, url, position: i }))
-      }),
-      prisma.productVariant.deleteMany({ where: { productId: id } }),
-      prisma.productVariant.createMany({
-        data: variants.map((v) => ({
-          productId: id,
-          size: v.size,
-          color: v.color,
-          sku: v.sku || `${slug}-${Math.random().toString(36).slice(2, 8)}`,
-          stock: v.stock,
-          priceCents: v.priceCents,
-          compareAtCents: v.compareAtCents,
-          imageUrl: v.imageUrl
-        }))
-      })
-    ]);
+      });
+      await tx.productVariant.deleteMany({ where: { productId: id } });
+      for (const v of variants) {
+        const optionValueIds = await resolveOptionValueIds(tx, [
+          { attributeName: "Beden", value: v.size },
+          { attributeName: "Renk", value: v.color }
+        ]);
+        await tx.productVariant.create({
+          data: {
+            productId: id,
+            sku: v.sku || `${slug}-${Math.random().toString(36).slice(2, 8)}`,
+            stock: v.stock,
+            priceCents: v.priceCents,
+            compareAtCents: v.compareAtCents,
+            imageUrl: v.imageUrl,
+            options: { create: optionValueIds.map((valueId) => ({ valueId })) }
+          }
+        });
+      }
+    });
   } catch {
     redirect(`/admin/urunler/${id}?hata=kaydedilemedi`);
   }
@@ -127,7 +133,10 @@ export default async function EditProductPage({
   const [product, categories] = await Promise.all([
     prisma.product.findUnique({
       where: { id },
-      include: { variants: true, images: { orderBy: { position: "asc" } } }
+      include: {
+        variants: { include: variantOptionsInclude },
+        images: { orderBy: { position: "asc" } }
+      }
     }),
     prisma.category.findMany({ orderBy: { name: "asc" } })
   ]);
@@ -139,8 +148,8 @@ export default async function EditProductPage({
   const variantRows: VariantRow[] = product.variants.map((v) => ({
     clientId: v.id,
     id: v.id,
-    size: v.size,
-    color: v.color,
+    size: optionValue(v, "Beden"),
+    color: optionValue(v, "Renk"),
     sku: v.sku,
     stock: String(v.stock),
     price: v.priceCents !== null ? (v.priceCents / 100).toFixed(2) : "",
