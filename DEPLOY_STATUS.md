@@ -789,3 +789,34 @@ uzerinden yapip authenticated cookie ile):
 **Sirada**: Plan tamamlandi (Faz 1-4). Ileride eklenmesi istenirse gercek
 bir `Customer` modeli (V2, `ADMIN_PANEL_PLAN.md`'de Musteriler bolumunde
 not dusuldu) disinda acik bir madde kalmadi.
+
+## Varyant yonetimi yenilemesi - Faz A: Sema (2026-08-30, yeni oturum)
+
+Plan `VARYANT_YONETIMI_PLANI.md` dosyasinda cikarildi (varyant basina
+opsiyonel fiyat/indirim/gorsel + toplu duzenleme). Bu oturumda Faz A -
+Sema kapsami uygulandi.
+
+1. **`ProductVariant` modeline** (`prisma/schema.prisma`) uc yeni opsiyonel
+   alan eklendi: `priceCents` (Int?), `compareAtCents` (Int?), `imageUrl`
+   (String?). Hicbiri zorunlu degil - bos birakilirsa urunun genel
+   `Product.priceCents`/`compareAtCents` degeri gecerli olmaya devam eder
+   (geriye donuk uyumlu, mevcut varyantlar hicbir deger kaybetmedi).
+2. **`npm run db:push`** Neon'a basariyla uygulandi, ardindan
+   `npx prisma generate` ile client yeniden uretildi.
+3. **`src/lib/variant.ts`** eklendi: `effectivePrice(product, variant)` ve
+   `effectiveCompareAt(product, variant)` yardimci fonksiyonlari - varyantin
+   kendi degeri varsa onu, yoksa urunun genel degerini donduruyor. Bu iki
+   fonksiyon Faz B (admin formu varsayilan fiyat placeholder'i) ve Faz D
+   (sepet/siparis fiyat hesabi) tarafindan ortak kullanilacak.
+4. **Yan bulgu**: `git pull` ile gelen son 5 commit `package.json`'a
+   `recharts` bagimliligini eklemisti ama yerel `node_modules` guncel
+   degildi, bu yuzden `npm run build` `recharts` bulunamadi hatasi verdi
+   (bu oturumun degisikligiyle ilgisiz). `npm install` ile duzeltildi.
+
+**Test edildi**: `rm -rf .next` + `npm run build` hatasiz calisti (tum
+route'lar ayni sekilde derlendi, sema degisikligi TypeScript/Prisma Client
+tarafinda hicbir mevcut kullanimi bozmadi - cunku yeni alanlarin hepsi
+opsiyonel ve henuz hicbir yerde okunmuyor/yaziliyor).
+
+**Sirada**: Faz B - Admin UI (VariantEditor bileseni, CSV textarea'nin
+kaldirilmasi).

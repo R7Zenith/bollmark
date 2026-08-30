@@ -56,14 +56,17 @@ model ProductImage {
 
 // Beden / renk gibi varyantlar, her biri kendi stok adedine sahip
 model ProductVariant {
-  id        String   @id @default(cuid())
-  size      String
-  color     String
-  sku       String   @unique
-  stock     Int      @default(0)
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  orderItems OrderItem[]
+  id             String   @id @default(cuid())
+  size           String
+  color          String
+  sku            String   @unique
+  stock          Int      @default(0)
+  priceCents     Int?     // opsiyonel - bos ise Product.priceCents kullanilir
+  compareAtCents Int?     // opsiyonel - bos ise Product.compareAtCents kullanilir
+  imageUrl       String?  // opsiyonel varyant gorseli
+  productId      String
+  product        Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  orderItems     OrderItem[]
 
   @@unique([productId, size, color])
 }
