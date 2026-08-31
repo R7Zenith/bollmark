@@ -6,6 +6,7 @@ import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { Button } from "@/components/admin/button";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
 import { MultiImageField, type ImageEntry } from "@/components/admin/multi-image-field";
+import { SearchableMultiSelect } from "@/components/admin/searchable-multi-select";
 
 export type AttributeOption = {
   id: string;
@@ -354,26 +355,12 @@ export function VariantEditor({
                 {attr.values.length === 0 ? (
                   <p className="text-sm text-admin-text-muted">Bu özellik için henüz değer eklenmedi.</p>
                 ) : (
-                  <div className="flex flex-wrap gap-2">
-                    {attr.values.map((val) => {
-                      const isSelected = selected[attr.id]?.has(val.id) ?? false;
-                      return (
-                        <button
-                          key={val.id}
-                          type="button"
-                          onClick={() => toggleValue(attr.id, val.id)}
-                          className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                            isSelected
-                              ? "border-admin-accent bg-indigo-50 text-admin-accent"
-                              : "border-admin-border text-admin-text hover:bg-admin-bg"
-                          }`}
-                        >
-                          {val.hexColor && <ColorDot hexColor={val.hexColor} />}
-                          {val.value}
-                        </button>
-                      );
-                    })}
-                  </div>
+                  <SearchableMultiSelect
+                    options={attr.values}
+                    selectedIds={selected[attr.id] ?? new Set()}
+                    onToggle={(valueId) => toggleValue(attr.id, valueId)}
+                    placeholder={`${attr.name} ara veya seç...`}
+                  />
                 )}
               </div>
             ))}
