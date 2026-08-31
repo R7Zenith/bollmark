@@ -5,6 +5,9 @@ import { SaveBar } from "@/components/admin/save-bar";
 import { ProductFeedback } from "@/components/admin/product-feedback";
 import { VariantEditor, type AttributeOption, type SerializedVariant } from "@/components/admin/variant-editor";
 import { ProductImagesField } from "@/components/admin/product-images-field";
+import { TagsField } from "@/components/admin/tags-field";
+import { buildCategoryOptions } from "@/lib/category-tree";
+import { GENDER_OPTIONS } from "@/lib/product-options";
 
 function parseVariantsJson(raw: string): SerializedVariant[] {
   let parsed: unknown;
@@ -34,7 +37,30 @@ function parseVariantsJson(raw: string): SerializedVariant[] {
     }));
 }
 
-function parseColorImagesJson(raw: string): { valueId: string; urls: string[] }[] {
+type ImageWithAlt = { url: string; alt: string };
+
+function parseImagesWithAlt(raw: unknown): ImageWithAlt[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((v): v is Record<string, unknown> => typeof v === "object" && v !== null)
+    .map((v) => ({
+      url: typeof v.url === "string" ? v.url.trim() : "",
+      alt: typeof v.alt === "string" ? v.alt.trim() : ""
+    }))
+    .filter((v) => v.url);
+}
+
+function parseProductImagesJson(raw: string): ImageWithAlt[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  return parseImagesWithAlt(parsed);
+}
+
+function parseColorImagesJson(raw: string): { valueId: string; images: ImageWithAlt[] }[] {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -46,11 +72,20 @@ function parseColorImagesJson(raw: string): { valueId: string; urls: string[] }[
     .filter((v): v is Record<string, unknown> => typeof v === "object" && v !== null)
     .map((v) => ({
       valueId: typeof v.valueId === "string" ? v.valueId : "",
-      urls: Array.isArray(v.urls)
-        ? v.urls.filter((u): u is string => typeof u === "string" && u.trim().length > 0).map((u) => u.trim())
-        : []
+      images: parseImagesWithAlt(v.images)
     }))
-    .filter((v) => v.valueId && v.urls.length > 0);
+    .filter((v) => v.valueId && v.images.length > 0);
+}
+
+function parseTagIdsJson(raw: string): string[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  return parsed.filter((v): v is string => typeof v === "string" && v.length > 0);
 }
 
 const inputClass =
@@ -71,10 +106,14 @@ async function createProduct(formData: FormData) {
   const compareAtCents = compareAtRaw ? Math.round(Number(compareAtRaw) * 100) : null;
   const categoryId = String(formData.get("categoryId") || "") || null;
   const status = String(formData.get("status") || "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
-  const imageUrls = String(formData.get("images") || "")
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const brandId = String(formData.get("brandId") || "") || null;
+  const material = String(formData.get("material") || "").trim() || null;
+  const origin = String(formData.get("origin") || "").trim() || null;
+  const careInstructions = String(formData.get("careInstructions") || "").trim() || null;
+  const gender = String(formData.get("gender") || "").trim() || null;
+  const isFeatured = formData.get("isFeatured") === "on";
+  const tagIds = parseTagIdsJson(String(formData.get("tagIds") || "[]"));
+  const images = parseProductImagesJson(String(formData.get("images") || "[]"));
   const variants = parseVariantsJson(String(formData.get("variantsJson") || "[]"));
   const colorImages = parseColorImagesJson(String(formData.get("colorImagesJson") || "[]"));
 
@@ -103,8 +142,15 @@ async function createProduct(formData: FormData) {
           compareAtCents,
           status,
           categoryId,
+          brandId,
+          material,
+          origin,
+          careInstructions,
+          gender,
+          isFeatured,
+          tags: { connect: tagIds.map((tagId) => ({ id: tagId })) },
           images: {
-            create: imageUrls.map((url, i) => ({ url, position: i }))
+            create: images.map((img, i) => ({ url: img.url, alt: img.alt, position: i }))
           }
         }
       });
@@ -123,7 +169,13 @@ async function createProduct(formData: FormData) {
       }
       for (const c of colorImages) {
         await tx.productOptionImage.createMany({
-          data: c.urls.map((url, i) => ({ productId: created.id, valueId: c.valueId, url, position: i }))
+          data: c.images.map((img, i) => ({
+            productId: created.id,
+            valueId: c.valueId,
+            url: img.url,
+            alt: img.alt,
+            position: i
+          }))
         });
       }
       return created;
@@ -141,14 +193,17 @@ export default async function NewProductPage({
   searchParams: Promise<{ hata?: string }>;
 }) {
   const { hata } = await searchParams;
-  const [categories, attributes] = await Promise.all([
+  const [categories, attributes, brands, tags] = await Promise.all([
     prisma.category.findMany({ orderBy: { name: "asc" } }),
     prisma.variantAttribute.findMany({
       orderBy: { position: "asc" },
       include: { values: { orderBy: { position: "asc" } } }
-    })
+    }),
+    prisma.brand.findMany({ orderBy: { name: "asc" } }),
+    prisma.tag.findMany({ orderBy: { name: "asc" } })
   ]);
   const attributeOptions: AttributeOption[] = attributes;
+  const categoryOptions = buildCategoryOptions(categories);
 
   return (
     <div className="max-w-5xl">
@@ -201,15 +256,67 @@ export default async function NewProductPage({
           <ProductImagesField name="images" initialImages={[]} />
         </Card>
 
+        <Card title="Ürün Detayları">
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Materyal</label>
+                <input name="material" placeholder="örn. %95 Pamuk, %5 Elastan" className={`mt-1 ${inputClass}`} />
+              </div>
+              <div>
+                <label className={labelClass}>Menşei</label>
+                <input name="origin" placeholder="örn. Türkiye'de üretilmiştir" className={`mt-1 ${inputClass}`} />
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>Bakım Talimatı</label>
+              <textarea
+                name="careInstructions"
+                rows={2}
+                placeholder="örn. 30°C'de yıkayın, ütülemeyin"
+                className={`mt-1 ${inputClass}`}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Cinsiyet</label>
+              <select name="gender" defaultValue="" className={`mt-1 ${inputClass}`}>
+                <option value="">Belirtilmedi</option>
+                {GENDER_OPTIONS.map((g) => (
+                  <option key={g} value={g}>
+                    {g}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Etiketler</label>
+              <div className="mt-1">
+                <TagsField fieldName="tagIds" allTags={tags} initialSelectedIds={[]} />
+              </div>
+            </div>
+          </div>
+        </Card>
+
         <Card title="Kategori ve Durum">
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className={labelClass}>Kategori</label>
               <select name="categoryId" defaultValue="" className={`mt-1 ${inputClass}`}>
                 <option value="">Kategori seç (opsiyonel)</option>
-                {categories.map((c) => (
+                {categoryOptions.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.name}
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Marka</label>
+              <select name="brandId" defaultValue="" className={`mt-1 ${inputClass}`}>
+                <option value="">Marka seç (opsiyonel)</option>
+                {brands.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
                   </option>
                 ))}
               </select>
@@ -220,6 +327,16 @@ export default async function NewProductPage({
                 <option value="DRAFT">Taslak</option>
                 <option value="PUBLISHED">Yayında</option>
               </select>
+            </div>
+            <div className="flex items-end pb-2.5">
+              <label className="flex items-center gap-2 text-sm text-admin-text">
+                <input
+                  type="checkbox"
+                  name="isFeatured"
+                  className="h-4 w-4 rounded border-admin-border text-admin-accent focus:ring-admin-accent"
+                />
+                Öne Çıkan Ürün
+              </label>
             </div>
           </div>
         </Card>

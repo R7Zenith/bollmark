@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
 import { ImageField } from "@/components/admin/image-field";
 import { Button } from "@/components/admin/button";
 
-export type ImageEntry = { url: string };
+export type ImageEntry = { url: string; alt?: string };
 
 // Birden cok gorselden olusan bir listeyi yonetir: her satirda ImageField,
 // yukari/asagi siralama, silme, "Gorsel Ekle" butonu.
@@ -18,7 +18,11 @@ export function MultiImageField({
   addLabel?: string;
 }) {
   function updateAt(index: number, url: string) {
-    onChange(images.map((img, i) => (i === index ? { url } : img)));
+    onChange(images.map((img, i) => (i === index ? { ...img, url } : img)));
+  }
+
+  function updateAltAt(index: number, alt: string) {
+    onChange(images.map((img, i) => (i === index ? { ...img, alt } : img)));
   }
 
   function removeAt(index: number) {
@@ -34,14 +38,19 @@ export function MultiImageField({
   }
 
   function add() {
-    onChange([...images, { url: "" }]);
+    onChange([...images, { url: "", alt: "" }]);
   }
 
   return (
     <div className="space-y-2">
       {images.map((img, i) => (
         <div key={i} className="flex items-center gap-2 rounded border border-admin-border bg-admin-surface p-2">
-          <ImageField value={img.url} onChange={(url) => updateAt(i, url)} />
+          <ImageField
+            value={img.url}
+            onChange={(url) => updateAt(i, url)}
+            altValue={img.alt ?? ""}
+            onAltChange={(alt) => updateAltAt(i, alt)}
+          />
           <div className="flex shrink-0 flex-col gap-0.5">
             <button
               type="button"

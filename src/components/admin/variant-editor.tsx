@@ -421,7 +421,9 @@ export function VariantEditor({
         value={JSON.stringify(
           activeColorValueIds.map((valueId) => ({
             valueId,
-            urls: (colorImages[valueId] ?? []).map((i) => i.url.trim()).filter(Boolean)
+            images: (colorImages[valueId] ?? [])
+              .map((i) => ({ url: i.url.trim(), alt: (i.alt ?? "").trim() }))
+              .filter((i) => i.url)
           }))
         )}
       />

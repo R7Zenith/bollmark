@@ -13,6 +13,9 @@ const successMessages: Record<string, string> = {
 const errorMessages: Record<string, string> = {
   "isim-gerekli": "Kategori adı girilmelidir.",
   "urun-bagli": "Bu kategoriye bağlı ürünler olduğu için silinemedi.",
+  "alt-kategori-bagli": "Bu kategorinin alt kategorileri olduğu için silinemedi.",
+  "kendine-bagli": "Bir kategori kendi üst kategorisi olamaz.",
+  dongu: "Bir kategori, kendi alt kategorisinin altına taşınamaz.",
   bulunamadi: "Kategori bulunamadı."
 };
 

@@ -9,11 +9,15 @@ import { ImagePlus, Loader2, X } from "lucide-react";
 export function ImageField({
   value,
   onChange,
-  placeholder = "https://... (gorsel URL'i yapistirin)"
+  placeholder = "https://... (gorsel URL'i yapistirin)",
+  altValue,
+  onAltChange
 }: {
   value: string;
   onChange: (url: string) => void;
   placeholder?: string;
+  altValue?: string;
+  onAltChange?: (alt: string) => void;
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -115,6 +119,14 @@ export function ImageField({
           </button>
           {error && <span className="text-xs text-red-600">{error}</span>}
         </div>
+        {onAltChange && (
+          <input
+            value={altValue ?? ""}
+            onChange={(e) => onAltChange(e.target.value)}
+            placeholder="Alt metin (opsiyonel)"
+            className="w-full rounded border border-admin-border px-2 py-1.5 text-xs text-admin-text-muted focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+          />
+        )}
       </div>
     </div>
   );
