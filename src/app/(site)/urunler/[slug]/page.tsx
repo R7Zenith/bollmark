@@ -19,7 +19,12 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         productId={product.id}
         productName={product.name}
         categoryName={product.category?.name ?? null}
+        brandName={product.brand?.name ?? null}
         description={product.description}
+        material={product.material}
+        origin={product.origin}
+        careInstructions={product.careInstructions}
+        sizeGuide={product.category?.sizeGuide ?? null}
         priceCents={product.priceCents}
         compareAtCents={product.compareAtCents}
         fallbackImages={product.images.map((img) => ({ url: img.url, alt: img.alt || product.name }))}

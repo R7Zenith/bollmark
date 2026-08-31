@@ -23,7 +23,12 @@ export function ProductViewer({
   productId,
   productName,
   categoryName,
+  brandName,
   description,
+  material,
+  origin,
+  careInstructions,
+  sizeGuide,
   priceCents,
   compareAtCents,
   fallbackImages,
@@ -33,7 +38,12 @@ export function ProductViewer({
   productId: string;
   productName: string;
   categoryName: string | null;
+  brandName: string | null;
   description: string;
+  material: string | null;
+  origin: string | null;
+  careInstructions: string | null;
+  sizeGuide: string | null;
   priceCents: number;
   compareAtCents: number | null;
   fallbackImages: { url: string; alt: string }[];
@@ -90,7 +100,11 @@ export function ProductViewer({
       </div>
 
       <div>
-        {categoryName && <p className="text-xs uppercase tracking-widest2 text-accent">{categoryName}</p>}
+        {(categoryName || brandName) && (
+          <p className="text-xs uppercase tracking-widest2 text-accent">
+            {[categoryName, brandName].filter(Boolean).join(" · ")}
+          </p>
+        )}
         <h1 className="mt-2 font-display text-4xl">{productName}</h1>
         <div className="mt-4 flex items-center gap-3">
           <span className="text-xl">{formatPrice(selectedPriceCents)}</span>
@@ -99,6 +113,33 @@ export function ProductViewer({
           )}
         </div>
         <p className="mt-6 leading-relaxed text-ink/70">{description}</p>
+
+        {(material || origin || careInstructions) && (
+          <div className="mt-6 space-y-1 border-t border-line pt-6 text-sm text-ink/70">
+            {material && (
+              <p>
+                <span className="font-medium text-ink">Materyal:</span> {material}
+              </p>
+            )}
+            {origin && (
+              <p>
+                <span className="font-medium text-ink">Menşei:</span> {origin}
+              </p>
+            )}
+            {careInstructions && (
+              <p>
+                <span className="font-medium text-ink">Bakım:</span> {careInstructions}
+              </p>
+            )}
+          </div>
+        )}
+
+        {sizeGuide && (
+          <div className="mt-6 border-t border-line pt-6">
+            <p className="text-xs uppercase tracking-wide text-ink/60">Beden Tablosu</p>
+            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink/70">{sizeGuide}</p>
+          </div>
+        )}
 
         <div className="mt-8 space-y-6">
           {colors.length > 0 && colors.some(Boolean) && (

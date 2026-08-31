@@ -4,7 +4,7 @@ import { getPublishedProducts } from "@/lib/catalog";
 import { ProductCard } from "@/components/product-card";
 
 export default async function HomePage() {
-  const products = await getPublishedProducts();
+  const products = await getPublishedProducts(undefined, { featuredFirst: true });
 
   return (
     <div>

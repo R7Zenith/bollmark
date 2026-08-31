@@ -1,14 +1,19 @@
 import { prisma } from "@/lib/prisma";
 import { variantOptionsInclude } from "@/lib/variant-attributes";
 
-export async function getPublishedProducts(categorySlug?: string) {
+export async function getPublishedProducts(
+  categorySlug?: string,
+  options?: { featuredFirst?: boolean }
+) {
   return prisma.product.findMany({
     where: {
       status: "PUBLISHED",
       category: categorySlug ? { slug: categorySlug } : undefined
     },
     include: { images: { orderBy: { position: "asc" } } },
-    orderBy: { createdAt: "desc" }
+    orderBy: options?.featuredFirst
+      ? [{ isFeatured: "desc" }, { createdAt: "desc" }]
+      : { createdAt: "desc" }
   });
 }
 
@@ -19,7 +24,8 @@ export async function getProductBySlug(slug: string) {
       images: { orderBy: { position: "asc" } },
       variants: { include: variantOptionsInclude },
       optionImages: { include: { value: true }, orderBy: { position: "asc" } },
-      category: true
+      category: true,
+      brand: true
     }
   });
 }
