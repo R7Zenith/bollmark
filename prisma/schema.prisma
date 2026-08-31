@@ -21,11 +21,31 @@ model AdminUser {
 }
 
 model Category {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  parentId  String?
+  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children  Category[] @relation("CategoryHierarchy")
+  sizeGuide String?
+  products  Product[]
+  createdAt DateTime   @default(now())
+}
+
+model Brand {
   id        String    @id @default(cuid())
   name      String
   slug      String    @unique
+  logoUrl   String?
   products  Product[]
   createdAt DateTime  @default(now())
+}
+
+model Tag {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  slug     String    @unique
+  products Product[]
 }
 
 model Product {
@@ -38,6 +58,14 @@ model Product {
   status      String        @default("DRAFT")
   categoryId  String?
   category    Category?     @relation(fields: [categoryId], references: [id])
+  brandId     String?
+  brand       Brand?        @relation(fields: [brandId], references: [id])
+  material    String?
+  origin      String?
+  careInstructions String?
+  gender      String?
+  tags        Tag[]
+  isFeatured  Boolean       @default(false)
   images      ProductImage[]
   variants    ProductVariant[]
   optionImages ProductOptionImage[]
@@ -88,6 +116,7 @@ model ProductOptionImage {
   valueId   String
   value     VariantAttributeValue  @relation(fields: [valueId], references: [id], onDelete: Cascade)
   url       String
+  alt       String                 @default("")
   position  Int                    @default(0)
   createdAt DateTime               @default(now())
 
