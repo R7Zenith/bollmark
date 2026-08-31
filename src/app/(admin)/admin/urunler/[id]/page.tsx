@@ -12,6 +12,7 @@ import {
 } from "@/components/admin/variant-editor";
 import { ProductImagesField } from "@/components/admin/product-images-field";
 import { variantOptionsInclude } from "@/lib/variant-attributes";
+import { deleteBlobUrls } from "@/lib/blob";
 
 function parseVariantsJson(raw: string): SerializedVariant[] {
   let parsed: unknown;
@@ -102,6 +103,18 @@ async function updateProduct(id: string, formData: FormData) {
     comboSet.add(key);
   }
 
+  const existing = await prisma.product.findUnique({
+    where: { id },
+    select: {
+      images: { select: { url: true } },
+      optionImages: { select: { url: true } }
+    }
+  });
+  const oldUrls = [
+    ...(existing?.images.map((i) => i.url) ?? []),
+    ...(existing?.optionImages.map((i) => i.url) ?? [])
+  ];
+
   try {
     await prisma.$transaction(async (tx) => {
       await tx.product.update({
@@ -137,16 +150,32 @@ async function updateProduct(id: string, formData: FormData) {
     redirect(`/admin/urunler/${id}?hata=kaydedilemedi`);
   }
 
+  const newUrls = new Set([...imageUrls, ...colorImages.flatMap((c) => c.urls)]);
+  const removedUrls = oldUrls.filter((url) => !newUrls.has(url));
+  await deleteBlobUrls(removedUrls);
+
   redirect(`/admin/urunler/${id}?basarili=guncellendi`);
 }
 
 async function deleteProduct(id: string) {
   "use server";
+  const existing = await prisma.product.findUnique({
+    where: { id },
+    select: {
+      images: { select: { url: true } },
+      optionImages: { select: { url: true } }
+    }
+  });
+  const urls = [
+    ...(existing?.images.map((i) => i.url) ?? []),
+    ...(existing?.optionImages.map((i) => i.url) ?? [])
+  ];
   try {
     await prisma.product.delete({ where: { id } });
   } catch {
     redirect(`/admin/urunler/${id}?hata=silinemedi`);
   }
+  await deleteBlobUrls(urls);
   redirect("/admin/urunler");
 }
 

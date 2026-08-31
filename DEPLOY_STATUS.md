@@ -1580,3 +1580,47 @@ disi konu** (plan Bolum 4'te de belirtilmisti, Faz C'deki
 degistirildiginde eski Vercel Blob dosyasi silinmiyor - bu, kullanicinin
 mevcut Blob deposunda zamanla kullanilmayan dosya birikmesine yol acabilir,
 ayri bir iyilestirme olarak ele alinmali.
+
+## Vercel Blob temizligi - kullanilmayan gorsellerin silinmesi (2026-08-31)
+
+Görsel Yönetimi Yenileme'nin (Faz 1-6) "kapsam dışı" olarak not düşülen
+maddesi ele alındı: bir görsel kaldırılıp/değiştirildiğinde eski Vercel
+Blob dosyası artık siliniyor, depoda kullanılmayan dosya birikmesi
+önlendi.
+
+1. **`src/lib/blob.ts` (yeni)**: `deleteBlobUrls(urls)` yardımcısı -
+   verilen url listesinden sadece `*.public.blob.vercel-storage.com`
+   host'unda barınanları (yani kullanıcının elle yapıştırdığı harici
+   url'leri değil, gerçekten bu sitenin PC'den yüklediği dosyaları)
+   filtreleyip `@vercel/blob`'un `del()` fonksiyonuyla siliyor. Silme
+   hatası (ağ sorunu, dosya zaten silinmiş olma vb.) yutuluyor - bu
+   temizlik hiçbir zaman asıl ürün kaydetme/silme işlemini
+   engellememeli.
+2. **`urunler/[id]/page.tsx` - `updateProduct`**: Transaction'dan önce
+   ürünün mevcut `images` + `optionImages` url'leri okunuyor
+   (`oldUrls`). Transaction başarıyla bitince yeni gönderilen url
+   kümesiyle (`imageUrls` + tüm renk galerilerindeki url'ler)
+   karşılaştırılıp artık hiçbir yerde kullanılmayanlar
+   `deleteBlobUrls` ile siliniyor.
+3. **`urunler/[id]/page.tsx` - `deleteProduct`**: Ürün silinmeden önce
+   tüm `images` + `optionImages` url'leri okunuyor, DB'den silme
+   başarılı olunca aynı `deleteBlobUrls` ile bu görsellerin hepsi
+   Blob'dan da temizleniyor.
+4. **Not**: bu, "kaydet"/"sil" anındaki temizliktir. Kullanıcı bir
+   görseli PC'den yükleyip (yeni bir blob oluşturup) sonra formu hiç
+   kaydetmeden sayfadan ayrılırsa, o tek seferlik yetim blob bu akışla
+   temizlenmiyor - bu, ayrıca ele alınabilecek küçük bir kenar durumu
+   olarak not düşülüyor.
+5. **Test (yerel PC, 2026-08-31)**: `npm install` (eksik `@vercel/blob`
+   ve güncel Prisma client'ı kurdu) sonrasında `npx tsc --noEmit` ve
+   `npm run build` temiz geçti. Ayrıca gerçek Neon DB'ye ve gerçek
+   Vercel Blob deposuna karşı uçtan uca bir test yapıldı: geçici bir
+   script ile Blob'a test dosyası yüklendi, `images` alanında bu url'i
+   taşıyan geçici bir ürün DB'de oluşturuldu, `updateProduct` akışı
+   simüle edilerek görsel kaldırılıp `deleteBlobUrls` çağrıldı,
+   ardından `list()` ile dosyanın Blob deposundan gerçekten silindiği
+   doğrulandı (`SONUC: BASARILI`). Test ürünü ve script sonrasında
+   temizlendi.
+
+**Sonuc**: Test edildi, `main`'e push edildi - Vercel git bağlantısı
+otomatik deploy'u tetikleyecek.
