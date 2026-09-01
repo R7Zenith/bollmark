@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/format";
 import { effectivePrice } from "@/lib/variant";
+import { validateCoupon, CouponInvalidError } from "@/lib/coupons";
+import { calculateShippingCents } from "@/lib/shipping";
 
 const lineSchema = z.object({
   productId: z.string(),
@@ -19,6 +21,7 @@ const orderSchema = z.object({
   district: z.string().min(2),
   postalCode: z.string().optional(),
   note: z.string().optional(),
+  couponCode: z.string().optional(),
   lines: z.array(lineSchema).min(1)
 });
 
@@ -61,35 +64,66 @@ export async function POST(req: NextRequest) {
   }
 
   const subtotalCents = resolvedLines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
-  const shippingCents = subtotalCents >= 100000 ? 0 : 4900;
-  const totalCents = subtotalCents + shippingCents;
 
-  const order = await prisma.order.create({
-    data: {
-      orderNumber: generateOrderNumber(),
-      customerName: data.customerName,
-      customerEmail: data.customerEmail,
-      customerPhone: data.customerPhone,
-      shippingAddress: data.shippingAddress,
-      city: data.city,
-      district: data.district,
-      postalCode: data.postalCode,
-      note: data.note,
-      subtotalCents,
-      shippingCents,
-      totalCents,
-      items: {
-        create: resolvedLines.map((l) => ({
-          productId: l.productId,
-          variantId: l.variantId,
-          quantity: l.quantity,
-          unitPriceCents: l.priceCents,
-          totalCents: l.priceCents * l.quantity
-        }))
-      },
-      shipment: { create: {} }
+  try {
+    const order = await prisma.$transaction(async (tx) => {
+      // Indirim de fiyat gibi hicbir zaman istemciden gelen deger uzerinden
+      // hesaplanmaz - istemci sadece kupon KODUNU gonderir, tutar burada
+      // (validateCoupon icinde) sunucuda yeniden hesaplanir. usedCount artisi
+      // ayni transaction icinde yapilir ki yaris durumunda (iki musterinin
+      // ayni kuponun son kullanim hakkini es zamanli tuketmesi) limit asilmasin.
+      let discountCents = 0;
+      let couponId: string | null = null;
+      let freeShipping = false;
+      if (data.couponCode) {
+        const result = await validateCoupon(tx, data.couponCode, subtotalCents);
+        if (!result.valid) {
+          throw new CouponInvalidError(result.message);
+        }
+        discountCents = result.discountCents;
+        freeShipping = result.freeShipping;
+        couponId = result.couponId;
+        await tx.coupon.update({ where: { id: couponId }, data: { usedCount: { increment: 1 } } });
+      }
+
+      const shippingCents = calculateShippingCents(subtotalCents - discountCents, freeShipping);
+      const totalCents = subtotalCents - discountCents + shippingCents;
+
+      return tx.order.create({
+        data: {
+          orderNumber: generateOrderNumber(),
+          customerName: data.customerName,
+          customerEmail: data.customerEmail,
+          customerPhone: data.customerPhone,
+          shippingAddress: data.shippingAddress,
+          city: data.city,
+          district: data.district,
+          postalCode: data.postalCode,
+          note: data.note,
+          subtotalCents,
+          discountCents,
+          couponId,
+          shippingCents,
+          totalCents,
+          items: {
+            create: resolvedLines.map((l) => ({
+              productId: l.productId,
+              variantId: l.variantId,
+              quantity: l.quantity,
+              unitPriceCents: l.priceCents,
+              totalCents: l.priceCents * l.quantity
+            }))
+          },
+          shipment: { create: {} }
+        }
+      });
+    });
+
+    return NextResponse.json({ orderNumber: order.orderNumber }, { status: 201 });
+  } catch (error) {
+    if (error instanceof CouponInvalidError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
-  });
-
-  return NextResponse.json({ orderNumber: order.orderNumber }, { status: 201 });
+    throw error;
+  }
 }

@@ -176,12 +176,34 @@ model Order {
   postalCode    String?
   note          String?
   subtotalCents Int
+  discountCents Int         @default(0)
+  couponId      String?
+  coupon        Coupon?     @relation(fields: [couponId], references: [id])
   shippingCents Int         @default(0)
   totalCents    Int
   items         OrderItem[]
   shipment      Shipment?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+}
+
+// Indirim kodu / kampanya (v1: yuzde, sabit tutar, ucretsiz kargo). Kod hep
+// buyuk harfe normalize edilip saklanir. Indirim tutari ASLA istemciden
+// gelen degerle degil, her zaman sunucuda (bkz. lib/coupons.ts) yeniden
+// hesaplanir.
+model Coupon {
+  id            String    @id @default(cuid())
+  code          String    @unique
+  type          String              // "PERCENT" | "FIXED" | "FREE_SHIPPING"
+  value         Int       @default(0) // PERCENT: 1-100, FIXED: kurus, FREE_SHIPPING: kullanilmaz (0)
+  minOrderCents Int       @default(0)
+  usageLimit    Int?
+  usedCount     Int       @default(0)
+  startsAt      DateTime?
+  expiresAt     DateTime?
+  isActive      Boolean   @default(true)
+  orders        Order[]
+  createdAt     DateTime  @default(now())
 }
 
 model OrderItem {

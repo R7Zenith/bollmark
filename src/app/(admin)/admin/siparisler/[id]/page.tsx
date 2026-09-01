@@ -51,7 +51,7 @@ export default async function OrderDetailPage({
   const { basarili, hata } = await searchParams;
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { items: { include: { product: true } }, shipment: true }
+    include: { items: { include: { product: true } }, shipment: true, coupon: { select: { code: true } } }
   });
   if (!order) notFound();
 
@@ -127,9 +127,25 @@ export default async function OrderDetailPage({
                   <span>{formatPrice(item.totalCents)}</span>
                 </div>
               ))}
-              <div className="flex justify-between pt-3 text-sm font-medium text-admin-text">
-                <span>Toplam</span>
-                <span>{formatPrice(order.totalCents)}</span>
+              <div className="space-y-1 pt-3 text-sm text-admin-text">
+                <div className="flex justify-between text-admin-text-muted">
+                  <span>Ara Toplam</span>
+                  <span>{formatPrice(order.subtotalCents)}</span>
+                </div>
+                {order.discountCents > 0 && (
+                  <div className="flex justify-between text-admin-text-muted">
+                    <span>İndirim{order.coupon ? ` (${order.coupon.code})` : ""}</span>
+                    <span>-{formatPrice(order.discountCents)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between text-admin-text-muted">
+                  <span>Kargo</span>
+                  <span>{order.shippingCents === 0 ? "Ücretsiz" : formatPrice(order.shippingCents)}</span>
+                </div>
+                <div className="flex justify-between pt-1 font-medium">
+                  <span>Toplam</span>
+                  <span>{formatPrice(order.totalCents)}</span>
+                </div>
               </div>
             </div>
           </Card>

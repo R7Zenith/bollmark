@@ -4,14 +4,19 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
+import { CouponField, type CouponResult } from "@/components/coupon-field";
+import { calculateShippingCents } from "@/lib/shipping";
 
 export default function CheckoutPage() {
-  const { lines, totalCents, clear } = useCart();
+  const { lines, totalCents, couponCode, clear } = useCart();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [coupon, setCoupon] = useState<CouponResult>(null);
 
-  const shippingCents = totalCents >= 100000 ? 0 : 4900;
+  const discountCents = coupon?.discountCents ?? 0;
+  const shippingCents = calculateShippingCents(totalCents - discountCents, coupon?.freeShipping ?? false);
+  const grandTotalCents = totalCents - discountCents + shippingCents;
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -28,6 +33,7 @@ export default function CheckoutPage() {
       district: String(form.get("district") || ""),
       postalCode: String(form.get("postalCode") || ""),
       note: String(form.get("note") || ""),
+      couponCode: couponCode || undefined,
       lines: lines.map((l) => ({
         productId: l.productId,
         variantId: l.variantId,
@@ -41,8 +47,11 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      if (!res.ok) throw new Error("Sipariş oluşturulamadı");
       const data = await res.json();
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Sipariş oluşturulamadı, lütfen tekrar deneyin.");
+        return;
+      }
       clear();
       router.push(`/odeme/tesekkurler?siparis=${data.orderNumber}`);
     } catch {
@@ -106,18 +115,29 @@ export default function CheckoutPage() {
             </div>
           ))}
         </div>
+
+        <div className="mt-4 border-t border-line pt-4">
+          <CouponField subtotalCents={totalCents} onDiscountChange={setCoupon} />
+        </div>
+
         <div className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
           <div className="flex justify-between">
             <span>Ara Toplam</span>
             <span>{formatPrice(totalCents)}</span>
           </div>
+          {discountCents > 0 && (
+            <div className="flex justify-between text-accent">
+              <span>İndirim</span>
+              <span>-{formatPrice(discountCents)}</span>
+            </div>
+          )}
           <div className="flex justify-between">
             <span>Kargo</span>
             <span>{shippingCents === 0 ? "Ücretsiz" : formatPrice(shippingCents)}</span>
           </div>
           <div className="flex justify-between text-base font-medium">
             <span>Toplam</span>
-            <span>{formatPrice(totalCents + shippingCents)}</span>
+            <span>{formatPrice(grandTotalCents)}</span>
           </div>
         </div>
       </aside>
