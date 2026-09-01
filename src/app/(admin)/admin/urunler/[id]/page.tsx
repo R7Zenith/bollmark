@@ -16,6 +16,7 @@ import { variantOptionsInclude } from "@/lib/variant-attributes";
 import { deleteBlobUrls } from "@/lib/blob";
 import { buildCategoryOptions } from "@/lib/category-tree";
 import { GENDER_OPTIONS } from "@/lib/product-options";
+import { snapshotStockAlerts, carryOverOrQueueRestock, sendRestockNotifications } from "@/lib/stock-alerts";
 
 function parseVariantsJson(raw: string): SerializedVariant[] {
   let parsed: unknown;
@@ -153,6 +154,8 @@ async function updateProduct(id: string, formData: FormData) {
     ...(existing?.images.map((i) => i.url) ?? []),
     ...(existing?.optionImages.map((i) => i.url) ?? [])
   ];
+  const stockAlertSnapshot = await snapshotStockAlerts(id);
+  const restockQueue: { email: string; productName: string; productSlug: string }[] = [];
 
   try {
     await prisma.$transaction(async (tx) => {
@@ -181,7 +184,7 @@ async function updateProduct(id: string, formData: FormData) {
       });
       await tx.productVariant.deleteMany({ where: { productId: id } });
       for (const v of variants) {
-        await tx.productVariant.create({
+        const created = await tx.productVariant.create({
           data: {
             productId: id,
             sku: v.sku || `${slug}-${Math.random().toString(36).slice(2, 8)}`,
@@ -192,6 +195,13 @@ async function updateProduct(id: string, formData: FormData) {
             options: { create: v.optionValueIds.map((valueId) => ({ valueId })) }
           }
         });
+        await carryOverOrQueueRestock(
+          tx,
+          stockAlertSnapshot,
+          { id: created.id, sku: created.sku, stock: created.stock },
+          { name, slug },
+          restockQueue
+        );
       }
       await tx.productOptionImage.deleteMany({ where: { productId: id } });
       for (const c of colorImages) {
@@ -216,6 +226,7 @@ async function updateProduct(id: string, formData: FormData) {
   ]);
   const removedUrls = oldUrls.filter((url) => !newUrls.has(url));
   await deleteBlobUrls(removedUrls);
+  await sendRestockNotifications(restockQueue);
 
   redirect(`/admin/urunler/${id}?basarili=guncellendi`);
 }

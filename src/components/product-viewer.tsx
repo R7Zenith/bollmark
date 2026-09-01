@@ -7,6 +7,62 @@ import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { effectivePrice } from "@/lib/variant";
 
+// Bu esikten dusuk stok "Son N adet" uyarisi gosterir - e-posta gerektirmeyen
+// salt UI bir isaret. Ileride StoreSettings'e tasinabilir (Faz A'ya dahil degil).
+const LOW_STOCK_THRESHOLD = 3;
+
+// Stokta olmayan bir varyant secildiginde gosterilen "stok gelince haber ver"
+// formu. Kendi basina basari/hata durumunu yonetir, urun bilgisini disaridan
+// bilmesine gerek yok - sadece secili varyantin id'sini kullanir.
+function StockAlertForm({ variantId }: { variantId: string }) {
+  const [email, setEmail] = useState("");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (status === "loading") return;
+    setStatus("loading");
+    try {
+      const res = await fetch("/api/stok-bildirimi", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ variantId, email })
+      });
+      if (!res.ok) throw new Error();
+      setStatus("success");
+    } catch {
+      setStatus("error");
+    }
+  };
+
+  if (status === "success") {
+    return <p className="text-sm text-ink/70">Stok gelince size haber vereceğiz.</p>;
+  }
+
+  return (
+    <div>
+      <form onSubmit={handleSubmit} className="flex gap-2">
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="E-posta adresiniz"
+          className="w-full border border-line px-4 py-2.5 text-sm focus:border-ink focus:outline-none"
+        />
+        <button
+          type="submit"
+          disabled={status === "loading"}
+          className="shrink-0 border border-ink px-4 py-2.5 text-sm uppercase tracking-wide hover:bg-ink hover:text-paper disabled:opacity-40"
+        >
+          Haber Ver
+        </button>
+      </form>
+      {status === "error" && <p className="mt-2 text-sm text-red-600">Bir şeyler ters gitti, tekrar deneyin.</p>}
+    </div>
+  );
+}
+
 type Variant = {
   id: string;
   size: string;
@@ -180,6 +236,10 @@ export function ProductViewer({
             </div>
           )}
 
+          {!outOfStock && selected.stock <= LOW_STOCK_THRESHOLD && (
+            <p className="text-sm text-accent">Son {selected.stock} adet</p>
+          )}
+
           <button
             onClick={handleAdd}
             disabled={outOfStock}
@@ -187,6 +247,8 @@ export function ProductViewer({
           >
             {outOfStock ? "Stokta Yok" : added ? "Sepete Eklendi ✓" : `Sepete Ekle · ${formatPrice(selectedPriceCents)}`}
           </button>
+
+          {outOfStock && selected && <StockAlertForm variantId={selected.id} />}
 
           {added && (
             <button
