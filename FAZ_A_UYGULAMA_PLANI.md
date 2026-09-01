@@ -1,3 +1,24 @@
+## İlerleme Durumu (2026-09-01 itibarıyla)
+
+- ✅ **0) Ortak altyapı** — Resend hesabı açıldı, `bollmark.com` domaini
+  doğrulandı (`MAIL_FROM="Bollmark <siparis@bollmark.com>"`), `src/lib/mail.ts`,
+  `vercel.json` cron iskeleti. Commit: `f1d77c7`.
+- ✅ **A.3) Stok azlığı/tükendi bildirimi** — `StockAlert` modeli, mağazada
+  "haber ver" formu + "Son N adet" uyarısı, `/api/stok-bildirimi`,
+  `src/lib/stock-alerts.ts` (admin ürün kaydetme akışındaki varyant
+  silme/yeniden-oluşturma davranışına karşı SKU eşleştirmeli taşıma mantığı
+  dahil). Commit: `ac0d0e7`.
+- ✅ **A.1) Kampanya/indirim kodu modülü** — `Coupon` modeli, `/api/kuponlar/dogrula`,
+  `orders/route.ts` nihai hesaplama, `/admin/kampanyalar` sayfası, sepet/ödeme
+  entegrasyonu, `src/lib/shipping.ts` ile kargo eşiği tekilleştirmesi.
+  Commit: `eb6288f`.
+- Üç commit de `origin/main`'e push edildi.
+- ⏳ **Sıradaki adım: A.2) Terk edilmiş sepet hatırlatma** — henüz
+  başlanmadı. Kullanıcı onayı bekleniyor, devam etmeden önce bu dosyayı
+  tekrar oku (plan hâlâ geçerli, üstteki üç madde tamamlanmış durumda).
+
+---
+
 # Bollmark – Faz A Uygulama Planı (Kampanya, Sepet Hatırlatma, Stok Bildirimi)
 
 Bu dosya, `ADMIN_PANEL_ARASTIRMA_VE_ONERILER.md`'de önerilen fazlı yol
