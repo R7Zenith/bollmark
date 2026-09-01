@@ -17,6 +17,7 @@ model AdminUser {
   email        String   @unique
   passwordHash String
   role         String   @default("ADMIN")
+  isActive     Boolean  @default(true)
   createdAt    DateTime @default(now())
 }
 

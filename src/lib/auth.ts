@@ -2,6 +2,7 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
+import { adminRoles, type AdminRole } from "@/lib/roles";
 
 export const authOptions: NextAuthOptions = {
   session: { strategy: "jwt" },
@@ -21,12 +22,15 @@ export const authOptions: NextAuthOptions = {
         const user = await prisma.adminUser.findUnique({
           where: { email: credentials.email }
         });
-        if (!user) return null;
+        if (!user || !user.isActive) return null;
 
         const valid = await bcrypt.compare(credentials.password, user.passwordHash);
         if (!valid) return null;
 
-        return { id: user.id, name: user.name, email: user.email, role: user.role };
+        const role: AdminRole = (adminRoles as readonly string[]).includes(user.role)
+          ? (user.role as AdminRole)
+          : "ADMIN";
+        return { id: user.id, name: user.name, email: user.email, role };
       }
     })
   ],
