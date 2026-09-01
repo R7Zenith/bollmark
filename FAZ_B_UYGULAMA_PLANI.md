@@ -1,8 +1,24 @@
 ## İlerleme Durumu
 
-- Henüz başlanmadı — bu dosya onay sonrası Claude Code ile fazlara bölünerek
-  uygulanacak. Faz A (kampanya/kupon, terk edilmiş sepet hatırlatma, stok
-  bildirimi) tamamlanıp canlıda doğrulandı — bkz. `FAZ_A_UYGULAMA_PLANI.md`.
+- **0) Ortak altyapı TAMAMLANDI** (commit `a18f6dc`) — `src/lib/roles.ts`
+  (`AdminRole`, `personelAllowedPaths`, `isPathAllowedForRole`),
+  `src/lib/order-notifications.ts` (`notifyAdminNewOrder` /
+  `notifyCustomerStatusChange`, henüz hiçbir yerden çağrılmıyor — B.4'te
+  bağlanacak), `AdminUser.isActive` alanı (gerçek Neon DB'ye `db:push` ile
+  uygulandı, mevcut 2 admin kaydı `isActive: true` olarak doğrulandı),
+  `authorize()` artık pasif kullanıcıyı reddediyor, `session.user.role` /
+  `token.role` tipleri `AdminRole` ile daraltıldı. `npx tsc --noEmit` ve
+  `npm run build` temiz geçti.
+  - **Not:** Planda "middleware.ts" diye geçen dosya bu projede yok —
+    Next.js 16'da bu isim `src/proxy.ts` oldu (repo zaten bunu doğru
+    kullanıyor, `guardAdmin` fonksiyonu oturum kontrolü yapıyor). B.2'de
+    rol bazlı erişim kısıtlaması (`isPathAllowedForRole`) planın önerdiği
+    gibi layout/requireAdmin() yerine (veya onunla birlikte) buraya
+    eklenecek çünkü asıl route koruması burada.
+  - **Sıradaki adım: B.4 (Otomatik E-posta Bildirimleri).** Henüz
+    başlanmadı, onay bekliyor.
+- Faz A (kampanya/kupon, terk edilmiş sepet hatırlatma, stok bildirimi)
+  tamamlanıp canlıda doğrulandı — bkz. `FAZ_A_UYGULAMA_PLANI.md`.
 - **B.3 (kargo firması API entegrasyonu) kullanıcıdan bilgi bekliyor** —
   hangi kargo firması/firmaları (Yurtiçi, Aras, MNG, PTT...) ve o firmanın
   API kullanıcı adı/şifre/entegratör kodu paylaşılmadan gerçek API çağrısı
