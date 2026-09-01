@@ -18,6 +18,32 @@ export default function CheckoutPage() {
   const shippingCents = calculateShippingCents(totalCents - discountCents, coupon?.freeShipping ?? false);
   const grandTotalCents = totalCents - discountCents + shippingCents;
 
+  // Kullanici e-posta alanina yazip baska bir alana gectiginde (odeme
+  // tamamlanmadan once) sepeti arka planda kaydeder - terk edilmis sepet
+  // hatirlatmasinin yakalama adimi. Fire-and-forget: kullanici akisini
+  // hicbir sekilde yavaslatmaz/engellemez, hata sessizce yutulur.
+  const handleEmailBlur = (e: React.FocusEvent<HTMLInputElement>) => {
+    const email = e.target.value.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || lines.length === 0) return;
+    fetch("/api/sepet-kaydet", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        totalCents,
+        lines: lines.map((l) => ({
+          name: l.name,
+          size: l.size,
+          color: l.color,
+          quantity: l.quantity,
+          priceCents: l.priceCents
+        }))
+      })
+    }).catch(() => {
+      // sepet kaydedilemedi, sessizce yoksay
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setSubmitting(true);
@@ -76,8 +102,18 @@ export default function CheckoutPage() {
 
         <div className="grid gap-4 md:grid-cols-2">
           <input name="customerName" required placeholder="Ad Soyad" className="border border-line px-4 py-3" />
-          <input name="customerEmail" required type="email" placeholder="E-posta" className="border border-line px-4 py-3" />
+          <input
+            name="customerEmail"
+            required
+            type="email"
+            placeholder="E-posta"
+            onBlur={handleEmailBlur}
+            className="border border-line px-4 py-3"
+          />
         </div>
+        <p className="text-xs text-ink/50">
+          Ödemenizi tamamlamazsanız sepetinizi hatırlatmak için size e-posta gönderebiliriz.
+        </p>
         <input name="customerPhone" required placeholder="Telefon" className="w-full border border-line px-4 py-3" />
         <input name="shippingAddress" required placeholder="Adres" className="w-full border border-line px-4 py-3" />
         <div className="grid gap-4 md:grid-cols-3">

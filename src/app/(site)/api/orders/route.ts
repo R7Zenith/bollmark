@@ -119,6 +119,14 @@ export async function POST(req: NextRequest) {
       });
     });
 
+    // Best-effort, transaction disinda (deleteBlobUrls ile ayni desen): ayni
+    // e-posta icin acik (recoveredAt=null) terk edilmis sepet kayitlari
+    // "kurtarildi" olarak isaretlenir - artik hatirlatma gonderilmez. Hata
+    // olursa sadece loglanir, siparis olusturma basarisini etkilemez.
+    await prisma.abandonedCart
+      .updateMany({ where: { email: data.customerEmail, recoveredAt: null }, data: { recoveredAt: new Date() } })
+      .catch((error) => console.error("Terk edilmiş sepet kurtarma işaretlemesi başarısız (yoksayıldı):", error));
+
     return NextResponse.json({ orderNumber: order.orderNumber }, { status: 201 });
   } catch (error) {
     if (error instanceof CouponInvalidError) {

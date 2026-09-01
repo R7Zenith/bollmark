@@ -1,4 +1,4 @@
-## İlerleme Durumu (2026-09-01 itibarıyla)
+## İlerleme Durumu (2026-09-01 itibarıyla, güncellendi)
 
 - ✅ **0) Ortak altyapı** — Resend hesabı açıldı, `bollmark.com` domaini
   doğrulandı (`MAIL_FROM="Bollmark <siparis@bollmark.com>"`), `src/lib/mail.ts`,
@@ -12,10 +12,41 @@
   `orders/route.ts` nihai hesaplama, `/admin/kampanyalar` sayfası, sepet/ödeme
   entegrasyonu, `src/lib/shipping.ts` ile kargo eşiği tekilleştirmesi.
   Commit: `eb6288f`.
-- Üç commit de `origin/main`'e push edildi.
-- ⏳ **Sıradaki adım: A.2) Terk edilmiş sepet hatırlatma** — henüz
-  başlanmadı. Kullanıcı onayı bekleniyor, devam etmeden önce bu dosyayı
-  tekrar oku (plan hâlâ geçerli, üstteki üç madde tamamlanmış durumda).
+- Üç commit de `origin/main`'e push edildi (`eb7fbd3`).
+- 🔧 **Deploy düzeltmesi (aynı gün)**: Vercel'de build hep başarısız oluyordu,
+  bu yüzden yukarıdaki üç madde hiç canlıya çıkmamıştı. İki ayrı kök neden
+  bulunup düzeltildi ve push edildi:
+  1. `vercel.json`'daki cron job saatlik idi (`"0 * * * *"`) — Vercel Hobby
+     (ücretsiz) planda cron job'lar günde en fazla 1 kez çalışabiliyor, bu
+     satır deploy'u reddettiriyordu. Günlük olacak şekilde değiştirildi
+     (`"0 8 * * *"`, UTC 08:00 = TR saatiyle 11:00). **Not**: bu yüzden A.2
+     (sepet hatırlatma) artık "checkout terkinden 1 saat sonra" değil, günde
+     bir kez toplu taranacak şekilde çalışacak — kod tarafında sorun değil,
+     sadece tetikleme sıklığı bu kısıtla sınırlı.
+  2. `src/lib/mail.ts` modül yüklenirken (`const resend = new Resend(...)`)
+     `RESEND_API_KEY` tanımlı değilse throw ediyordu; bu da o dosyayı
+     (dolaylı olarak) import eden `/admin/urunler/[id]` gibi sayfaların
+     build'ini tamamen kırıyordu (Vercel'de `RESEND_API_KEY` env değişkeni
+     henüz eklenmemişti). `sendMail()` içinde Resend istemcisi artık lazy
+     (gönderim anında) oluşturuluyor, anahtar yoksa sessizce loglayıp
+     çıkıyor - build'i etkilemiyor.
+  - Bu iki düzeltme ile Vercel deploy'u başarılı oldu, `/admin/kampanyalar`
+    sayfası ve stok bildirimi artık canlıda çalışıyor (kullanıcı doğruladı).
+  - **Hâlâ yapılması gereken**: Vercel projesine `RESEND_API_KEY`,
+    `MAIL_FROM`, `CRON_SECRET` env değişkenlerinin eklenmesi — eklenmeden
+    mailler (sepet hatırlatma, stok bildirimi) sessizce gönderilmez, site
+    çalışmaya devam eder ama bu üç işlev fiilen "sessiz" kalır.
+- ✅ **A.2) Terk edilmiş sepet hatırlatma** — `AbandonedCart` modeli,
+  `/api/sepet-kaydet` (odeme sayfasında e-posta alanının `onBlur`'unda
+  fire-and-forget yakalama), `orders/route.ts`'te sipariş tamamlanınca
+  `recoveredAt` işaretleme, `GET /api/cron/sepet-hatirlatma`
+  (`CRON_SECRET` korumalı, `vercel.json`'daki günlük cron'la tetiklenir)
+  ile hatırlatma maili + `remindedAt` işaretleme. Checkout formuna KVKK
+  şeffaflık notu eklendi. Faz A'nın **son maddesi** tamamlandı — henüz
+  commit/push edilmedi, kullanıcı onayı bekleniyor.
+- Faz A'nın üç maddesi de (A.1, A.2, A.3) artık uygulanmış durumda; kalan
+  tek iş yukarıdaki "Hâlâ yapılması gereken" env değişkenlerinin Vercel'e
+  eklenmesi.
 
 ---
 
@@ -100,6 +131,14 @@ riski nedeniyle önerilmiyor.
    kullanılır — `deleteBlobUrls` fonksiyonundaki "temizlik asıl işlemi
    engellememeli" prensibiyle birebir aynı yaklaşım.
 
+   **Güncelleme (2026-09-01, deploy düzeltmesi):** yukarıdaki taslakta
+   `resend` istemcisi modül yüklenirken (`const resend = new Resend(...)`)
+   oluşturuluyordu - bu, `RESEND_API_KEY` tanımlı olmadan yapılan bir
+   `npm run build`'u kırdığı için gerçek koddaki `sendMail()` artık
+   istemciyi çağrıldığı anda (lazy) oluşturuyor ve anahtar yoksa erken
+   çıkıyor. Aşağıdaki A.2 uygulanırken bu güncel `src/lib/mail.ts`
+   kullanılmalı, yukarıdaki eski taslak değil.
+
 ### 0.2 Zamanlanmış görevler: Vercel Cron
 
 Sepet hatırlatma e-postalarının "checkout yarım kaldıktan 1 saat sonra"
@@ -125,6 +164,17 @@ CRON_SECRET="rastgele-uzun-bir-metin"
 env değişkenine eklenir, route içinde `request.headers.get("authorization")
 !== \`Bearer ${process.env.CRON_SECRET}\`` kontrolüyle yetkisiz çağrılar
 reddedilir (aşağıda A.2'de detaylandırıldı).
+
+**Güncelleme (2026-09-01, deploy düzeltmesi):** yukarıdaki `"0 * * * *"`
+(saatlik) schedule, Vercel Hobby (ücretsiz) planda cron job'ların günde en
+fazla 1 kez çalışabilmesi kısıtı yüzünden **build'i tamamen reddettiriyordu**
+- üç Faz A maddesi de bu yüzden hiç canlıya çıkmamıştı. Gerçek `vercel.json`
+artık `"0 8 * * *"` (günde 1 kez, UTC 08:00) kullanıyor. A.2 uygulanırken
+kod tarafında "1 saat sonra" mantığı aynen kalabilir (cron'un kendisi günde
+bir kez taradığı için pratikte gecikme artıyor, bu kabul edilebilir) - ileride
+Vercel Pro'ya geçilirse veya ücretsiz bir dış cron servisi (cron-job.org vb.)
+`/api/cron/sepet-hatirlatma`'yı saatlik çağıracak şekilde eklenirse
+`vercel.json`'daki satır kaldırılıp daha sık tetikleme sağlanabilir.
 
 ---
 
@@ -299,16 +349,16 @@ model AbandonedCart {
    `recoveredAt: new Date()` ile işaretlenir — artık hatırlatma
    gönderilmeyecek.
 3. **Hatırlatma (cron):** `GET /api/cron/sepet-hatirlatma` (Vercel Cron,
-   saatte bir tetiklenir, `Authorization: Bearer $CRON_SECRET` ile
-   korunur) şu koşullardaki kayıtları bulur: `recoveredAt IS NULL AND
-   remindedAt IS NULL AND createdAt <= now() - 1 saat`. Her biri için
-   Resend ile "Sepetinizde ürünler sizi bekliyor" e-postası gönderilir
-   (ürün adları + toplam tutar + `bollmark.com/sepet` linki içerir),
-   `remindedAt` işaretlenir. Aynı sorguda `createdAt <= now() - 30 gün`
-   olan ve hâlâ `recoveredAt IS NULL` kayıtlar (artık anlamsız,
-   kurtarılamayacak eski veri) opsiyonel olarak temizlenebilir — v1'de
-   basit tutmak için bu temizlik dahil edilmiyor, gerekirse ileride
-   ayrı bir bakım job'ı eklenir.
+   günde bir kez tetiklenir — bkz. yukarıdaki 0.2 güncellemesi,
+   `Authorization: Bearer $CRON_SECRET` ile korunur) şu koşullardaki
+   kayıtları bulur: `recoveredAt IS NULL AND remindedAt IS NULL AND
+   createdAt <= now() - 1 saat`. Her biri için Resend ile "Sepetinizde
+   ürünler sizi bekliyor" e-postası gönderilir (ürün adları + toplam
+   tutar + `bollmark.com/sepet` linki içerir), `remindedAt` işaretlenir.
+   Aynı sorguda `createdAt <= now() - 30 gün` olan ve hâlâ `recoveredAt
+   IS NULL` kayıtlar (artık anlamsız, kurtarılamayacak eski veri)
+   opsiyonel olarak temizlenebilir — v1'de basit tutmak için bu temizlik
+   dahil edilmiyor, gerekirse ileride ayrı bir bakım job'ı eklenir.
 4. **KVKK/e-posta izni notu:** Kullanıcı checkout formunda e-postasını
    "sipariş vermek için" giriyor, bu bilgiyi "sepet hatırlatma"
    amacıyla kullanmak Türkiye'de ticari elektronik ileti mevzuatı
@@ -387,11 +437,11 @@ listesi buna göre güncellendi (üç maddeye indirildi).
 
 `.env.example`'a eklenecek satırlar:
 ```
-# Resend (e-posta gönderimi: sepet hatırlatma, stok bildirimi)
+# Resend (e-posta gonderimi: sepet hatirlatma, stok bildirimi)
 RESEND_API_KEY=""
 MAIL_FROM="Bollmark <onboarding@resend.dev>"
 
-# Vercel Cron'un /api/cron/* rotalarını çağırırken kullandığı gizli anahtar
+# Vercel Cron'un /api/cron/* rotalarini cagirirken kullandigi gizli anahtar
 CRON_SECRET=""
 ```
 

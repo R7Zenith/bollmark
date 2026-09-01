@@ -206,6 +206,24 @@ model Coupon {
   createdAt     DateTime  @default(now())
 }
 
+// Terk edilmis sepet - checkout formunda e-posta girilip (onBlur) siparis
+// tamamlanmadan birakildiginda yakalanir. Ayni e-posta icin acik
+// (recoveredAt=null) kayit varsa guncellenir, yoksa yeni olusturulur.
+// Siparis basariyla tamamlaninca ayni e-postanin acik kayitlari
+// recoveredAt ile isaretlenir - artik hatirlatma gonderilmez.
+model AbandonedCart {
+  id          String    @id @default(cuid())
+  email       String
+  linesJson   String // CartLine[] JSON anlik goruntusu (urun adi, beden, renk, adet, fiyat)
+  totalCents  Int
+  recoveredAt DateTime? // ayni e-postayla siparis tamamlaninca isaretlenir
+  remindedAt  DateTime? // hatirlatma e-postasi gonderilince isaretlenir
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([email])
+}
+
 model OrderItem {
   id         String          @id @default(cuid())
   orderId    String
