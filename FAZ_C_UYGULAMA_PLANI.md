@@ -75,8 +75,29 @@
   güncellemesi ve negatif bakiyeye izin vermemesi, adres CRUD'u (ilk
   adresin otomatik varsayılan olması) hepsi doğrulandı. Test verisi
   (hesaplar, siparişler, adresler, puan hareketleri, audit log)
-  temizlendi. Commit: bir sonraki adımda atılacak.
-- Sıradaki: **C.6 (Wishlist).**
+  temizlendi. Commit: 4db2226.
+- **C.6 (Wishlist) tamamlandı.** `WishlistItem` modeli (`Customer`/`Product`
+  ilişkisi, `@@unique([customerId, productId])`). `src/lib/wishlist.tsx` —
+  `cart.tsx` ile aynı localStorage deseni, ama ikili kaynak: giriş
+  yapılmamışsa `bollmark-wishlist` localStorage anahtarı, giriş yapılmışsa
+  DB tek gerçek kaynak olur; giriş anında bir kerelik senkronizasyon
+  (`POST /api/favoriler/senkronize`, `skipDuplicates`) sonra localStorage
+  temizlenir. `GET/POST/DELETE /api/favoriler` — DB'ye karşı okuma/ekleme/
+  çıkarma (`upsert`/`delete` ile idempotent — aynı ürünü iki kez eklemek
+  hata vermiyor). UI: `product-card.tsx` ve `product-viewer.tsx`'e kalp
+  ikonu toggle, guest kullanıcıya ürün sayfasında "favorileriniz bu
+  cihazda saklanıyor" notu. Yeni sayfa `/hesap/favorilerim`
+  (`requireCustomer` ile korunur, `FavorilerimGrid` `useWishlist().ids`'e
+  göre canlı filtreler — kalpten çıkarılan ürün sayfa yenilenmeden
+  gridden kaybolur). `npx tsc --noEmit` + `npm run build` temiz. Gerçek
+  Neon DB'ye karşı test: guest GET boş liste döndü, giriş yapmış
+  müşteride ekle/tekrar-ekle(hata yok)/sil/senkronize/tekrar-senkronize
+  (hata yok) hepsi doğru çalıştı, `/hesap/favorilerim` guest'i
+  `/hesap/giris`'e yönlendirdi ve giriş yapmışsa ürünü doğru gösterdi,
+  ürün sayfasında kalp ikonu ve guest notu render edildi. Test verisi
+  (geçici müşteri hesabı, cascade ile wishlist kaydı) temizlendi. Commit:
+  bir sonraki adımda atılacak.
+- Sıradaki: **C.4 (Ürün Yorumu + Fotoğraf).**
 
 **Kapsam dışı bırakılan (kullanıcı isteğiyle):** Pazaryeri entegrasyonu
 (Trendyol/Hepsiburada/N11) ve e-Fatura/e-Arşiv entegrasyonu — bu ikisi

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "../globals.css";
 import { CartProvider } from "@/lib/cart";
+import { WishlistProvider } from "@/lib/wishlist";
 import { CustomerSessionProvider } from "@/components/customer-session-provider";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
@@ -17,9 +18,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans antialiased">
         <CustomerSessionProvider>
           <CartProvider>
-            <SiteHeader />
-            <main>{children}</main>
-            <SiteFooter />
+            <WishlistProvider>
+              <SiteHeader />
+              <main>{children}</main>
+              <SiteFooter />
+            </WishlistProvider>
           </CartProvider>
         </CustomerSessionProvider>
       </body>

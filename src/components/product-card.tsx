@@ -1,8 +1,13 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
+import { Heart } from "lucide-react";
 import { formatPrice } from "@/lib/format";
+import { useWishlist } from "@/lib/wishlist";
 
 export type ProductCardData = {
+  productId: string;
   slug: string;
   name: string;
   priceCents: number;
@@ -11,6 +16,9 @@ export type ProductCardData = {
 };
 
 export function ProductCard({ product }: { product: ProductCardData }) {
+  const { ids, toggle } = useWishlist();
+  const isWishlisted = ids.has(product.productId);
+
   return (
     <Link href={`/urunler/${product.slug}`} className="group block">
       <div className="relative aspect-[3/4] overflow-hidden bg-line">
@@ -21,6 +29,17 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           sizes="(min-width: 1024px) 25vw, 50vw"
           className="object-cover transition duration-500 group-hover:scale-105"
         />
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            toggle(product.productId);
+          }}
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-paper/90 text-ink transition hover:bg-paper"
+          title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
+        >
+          <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />
+        </button>
       </div>
       <div className="mt-3 flex items-baseline justify-between">
         <h3 className="text-sm uppercase tracking-wide">{product.name}</h3>

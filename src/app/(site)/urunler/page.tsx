@@ -21,6 +21,7 @@ export default async function ProductsPage({
             <ProductCard
               key={p.id}
               product={{
+                productId: p.id,
                 slug: p.slug,
                 name: p.name,
                 priceCents: p.priceCents,

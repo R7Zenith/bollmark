@@ -72,8 +72,23 @@ model Product {
   variants    ProductVariant[]
   optionImages ProductOptionImage[]
   orderItems  OrderItem[]
+  wishlistItems WishlistItem[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+}
+
+// Favoriler - guest kullanicida localStorage'da (bkz. lib/wishlist.tsx),
+// giris yapinca buraya senkronize edilir (@@unique tekrar eklemeyi
+// engeller, senkronizasyonda skipDuplicates ile sessizce atlanir).
+model WishlistItem {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  productId  String
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([customerId, productId])
 }
 
 model ProductImage {
@@ -212,6 +227,7 @@ model Customer {
   addresses     CustomerAddress[]
   orders        Order[]
   loyaltyLedger LoyaltyTransaction[]
+  wishlistItems WishlistItem[]
 }
 
 model CustomerAddress {

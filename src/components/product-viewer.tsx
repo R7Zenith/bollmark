@@ -3,7 +3,9 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { Heart } from "lucide-react";
 import { useCart } from "@/lib/cart";
+import { useWishlist } from "@/lib/wishlist";
 import { formatPrice } from "@/lib/format";
 import { effectivePrice } from "@/lib/variant";
 
@@ -107,7 +109,9 @@ export function ProductViewer({
   variants: Variant[];
 }) {
   const { addLine } = useCart();
+  const { ids: wishlistIds, isAuthenticated, toggle: toggleWishlist } = useWishlist();
   const router = useRouter();
+  const isWishlisted = wishlistIds.has(productId);
 
   const sizes = Array.from(new Set(variants.map((v) => v.size)));
   const colors = Array.from(new Set(variants.map((v) => v.color)));
@@ -161,7 +165,22 @@ export function ProductViewer({
             {[categoryName, brandName].filter(Boolean).join(" · ")}
           </p>
         )}
-        <h1 className="mt-2 font-display text-4xl">{productName}</h1>
+        <div className="mt-2 flex items-start justify-between gap-3">
+          <h1 className="font-display text-4xl">{productName}</h1>
+          <button
+            type="button"
+            onClick={() => toggleWishlist(productId)}
+            className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line hover:border-ink"
+            title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
+          >
+            <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
+          </button>
+        </div>
+        {!isAuthenticated && (
+          <p className="mt-1 text-xs text-ink/50">
+            Favorileriniz bu cihazda saklanıyor, kalıcı olması için giriş yapın.
+          </p>
+        )}
         <div className="mt-4 flex items-center gap-3">
           <span className="text-xl">{formatPrice(selectedPriceCents)}</span>
           {compareAtCents && compareAtCents > selectedPriceCents && (
