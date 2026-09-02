@@ -9,8 +9,7 @@ import { EmptyState } from "@/components/admin/empty-state";
 import { OrdersChart, type DailyOrdersPoint } from "@/components/admin/orders-chart";
 import { orderStatusLabel, orderStatusTone } from "@/lib/status";
 import { optionLabel, variantOptionsInclude } from "@/lib/variant-attributes";
-
-const REVENUE_STATUSES = ["PAID", "PREPARING", "SHIPPED", "DELIVERED"];
+import { REVENUE_STATUSES } from "@/lib/orders";
 
 function trendFrom(current: number, previous: number, formatValue: (n: number) => string) {
   if (previous === 0) return undefined;

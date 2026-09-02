@@ -105,6 +105,8 @@ async function createProduct(formData: FormData) {
   const priceCents = Math.round(Number(formData.get("price") || 0) * 100);
   const compareAtRaw = String(formData.get("compareAt") || "").trim();
   const compareAtCents = compareAtRaw ? Math.round(Number(compareAtRaw) * 100) : null;
+  const costRaw = String(formData.get("cost") || "").trim();
+  const costCents = costRaw ? Math.round(Number(costRaw) * 100) : null;
   const categoryId = String(formData.get("categoryId") || "") || null;
   const status = String(formData.get("status") || "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
   const brandId = String(formData.get("brandId") || "") || null;
@@ -141,6 +143,7 @@ async function createProduct(formData: FormData) {
           description,
           priceCents,
           compareAtCents,
+          costCents,
           status,
           categoryId,
           brandId,
@@ -238,6 +241,16 @@ export default async function NewProductPage({
             <div>
               <label className={labelClass}>İndirim Öncesi Fiyat (TL, opsiyonel)</label>
               <input name="compareAt" type="number" step="0.01" className={`mt-1 ${inputClass}`} />
+            </div>
+            <div>
+              <label className={labelClass}>Maliyet (TL, opsiyonel)</label>
+              <input
+                name="cost"
+                type="number"
+                step="0.01"
+                placeholder="Raporlarda kâr marjı için kullanılır"
+                className={`mt-1 ${inputClass}`}
+              />
             </div>
           </div>
         </Card>

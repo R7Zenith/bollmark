@@ -114,6 +114,8 @@ async function updateProduct(id: string, formData: FormData) {
   const priceCents = Math.round(Number(formData.get("price") || 0) * 100);
   const compareAtRaw = String(formData.get("compareAt") || "").trim();
   const compareAtCents = compareAtRaw ? Math.round(Number(compareAtRaw) * 100) : null;
+  const costRaw = String(formData.get("cost") || "").trim();
+  const costCents = costRaw ? Math.round(Number(costRaw) * 100) : null;
   const categoryId = String(formData.get("categoryId") || "") || null;
   const status = String(formData.get("status") || "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
   const brandId = String(formData.get("brandId") || "") || null;
@@ -168,6 +170,7 @@ async function updateProduct(id: string, formData: FormData) {
           description,
           priceCents,
           compareAtCents,
+          costCents,
           categoryId,
           status,
           brandId,
@@ -352,6 +355,17 @@ export default async function EditProductPage({
                 type="number"
                 step="0.01"
                 defaultValue={product.compareAtCents ? (product.compareAtCents / 100).toFixed(2) : ""}
+                className={`mt-1 ${inputClass}`}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Maliyet (TL, opsiyonel)</label>
+              <input
+                name="cost"
+                type="number"
+                step="0.01"
+                defaultValue={product.costCents !== null ? (product.costCents / 100).toFixed(2) : ""}
+                placeholder="Raporlarda kâr marjı için kullanılır"
                 className={`mt-1 ${inputClass}`}
               />
             </div>

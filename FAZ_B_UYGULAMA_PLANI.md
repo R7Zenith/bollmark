@@ -38,8 +38,24 @@
   engelliyor, sidebar sadece Panel/Siparişler/Kargolar gösteriyor, pasif
   hesapla giriş `401 CredentialsSignin` ile reddediliyor; ADMIN için
   regresyon yok. `npx tsc --noEmit` ve `npm run build` temiz geçti.
-  - **Sıradaki adım: B.5 (Gelişmiş Raporlama).** Henüz başlanmadı, onay
-    bekliyor.
+- **B.5 (Gelişmiş Raporlama) TAMAMLANDI** — `Product.costCents` (opsiyonel)
+  şemaya eklendi, ürün ekleme/düzenleme formlarına "Maliyet (TL)" alanı
+  eklendi. `src/lib/orders.ts`'e taşınan `REVENUE_STATUSES` artık hem
+  dashboard hem `/admin/raporlar` tarafından paylaşılıyor. Yeni sayfa
+  `/admin/raporlar` (`requireAdmin()` ile korunuyor, `personelAllowedPaths`
+  listesinde olmadığı için PERSONEL proxy seviyesinde de engelleniyor):
+  7/30/90 günlük filtre (`raporlar-filters.tsx`), en çok satan 10 ürün
+  tablosu (adet, ciro, kâr marjı — maliyeti girilmemiş ürünlerde "-" ve
+  ayrı bir not), yatay bar chart (`top-products-chart.tsx`, `orders-chart.tsx`
+  ile aynı stil), kategori/marka kırılımı (Prisma tek sorguda
+  gruplayamadığı için uygulamada iki aşamalı toplama). Sidebar'a "Raporlar"
+  öğesi eklendi (sadece ADMIN'e görünür). Gerçek Neon DB'ye karşı
+  `orderItem.groupBy` sorgusu ve kâr marjı hesaplaması manuel script ile
+  doğrulandı (3 test siparişinden `PENDING_PAYMENT` durumundaki doğru
+  şekilde hariç tutuldu, `PREPARING`+`SHIPPED` doğru toplandı, geçici
+  `costCents` ile marj yüzdesi doğru hesaplanıp test verisi temizlendi).
+  `npx tsc --noEmit` ve `npm run build` temiz geçti.
+  - **Sıradaki adım: B.1 (İade/Değişim - RMA).** Henüz başlanmadı.
 - Faz A (kampanya/kupon, terk edilmiş sepet hatırlatma, stok bildirimi)
   tamamlanıp canlıda doğrulandı — bkz. `FAZ_A_UYGULAMA_PLANI.md`.
 - **B.3 (kargo firması API entegrasyonu) kullanıcıdan bilgi bekliyor** —
