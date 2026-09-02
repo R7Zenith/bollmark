@@ -1,5 +1,28 @@
+import type { Metadata } from "next";
 import { getPublishedProducts } from "@/lib/catalog";
+import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/product-card";
+
+export async function generateMetadata({
+  searchParams
+}: {
+  searchParams: Promise<{ kategori?: string }>;
+}): Promise<Metadata> {
+  const { kategori } = await searchParams;
+  if (kategori) {
+    const category = await prisma.category.findUnique({ where: { slug: kategori }, select: { name: true } });
+    if (category) {
+      return {
+        title: `${category.name} | Bollmark`,
+        description: `Bollmark ${category.name} koleksiyonunu keşfedin.`
+      };
+    }
+  }
+  return {
+    title: "Tüm Ürünler | Bollmark",
+    description: "Bollmark'ın özenle seçilmiş kumaşlarla tasarlanan tüm ürünlerini keşfedin."
+  };
+}
 
 export default async function ProductsPage({
   searchParams

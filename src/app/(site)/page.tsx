@@ -1,7 +1,15 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { getPublishedProducts } from "@/lib/catalog";
 import { ProductCard } from "@/components/product-card";
+
+export const metadata: Metadata = {
+  title: "Bollmark | Modern Giyim",
+  description:
+    "Bollmark - özenle seçilmiş kumaşlar, minimal kesimler. Sezonun öne çıkan giyim parçalarını keşfedin.",
+  alternates: { canonical: "https://bollmark.com" }
+};
 
 export default async function HomePage() {
   const products = await getPublishedProducts(undefined, { featuredFirst: true });

@@ -164,7 +164,44 @@
   ilişkiyi doğru kurması, ürün sayfası rozetinin doğru göründüğü
   doğrulandı. Test verisi (ürünler, bundle'lar, kupon, sipariş, geçici
   admin) temizlendi. Commit: bir sonraki adımda atılacak.
-- Sıradaki: **C.8 (SEO Altyapısı) — son madde.**
+- **C.8 (SEO Altyapısı) tamamlandı — Faz C'nin son maddesi.**
+  `urunler/[slug]/page.tsx`'e `generateMetadata` (başlık/açıklama/OG image/
+  canonical) — `getProductBySlug` `React.cache()` ile sarmalandı ki
+  `generateMetadata` ve sayfa bileşeni aynı istekte veritabanını iki kez
+  sorgulamasın (Next.js'in resmi deseni). Ana sayfa ve `/urunler` (kategori
+  parametresine duyarlı) sayfalarına da `generateMetadata`/`metadata`
+  eklendi. `src/app/sitemap.ts` (published ürünler + kategoriler +
+  `LegalPage` slug'ları, `revalidate = 3600` — yeni ürün eklendiğinde yeni
+  bir deploy beklemeden makul sürede güncellenir) ve `src/app/robots.ts`
+  (`/admin` ve `/hesap` dışlanır). Ürün sayfasına JSON-LD (`Product`,
+  `Offer` + TRY fiyat + stok durumu, yorum varsa `aggregateRating` — yorum
+  yoksa alan hiç eklenmez). **Test sırasında bulunan ve düzeltilen gerçek
+  bir hata:** `proxy.ts`'teki `guardPreview` (mağaza önizleme şifresi
+  kapısı) `/robots.txt` ve `/sitemap.xml`'i de yakalayıp önizleme şifresi
+  yoksa "Çok yakında" sayfasına rewrite ediyordu — yani mağaza yayına
+  girene kadar arama motorları bu iki dosyaya hiç erişemeyecekti (gerçek
+  `robots.txt` yerine 200 durum kodlu ama içinde hiç direktif olmayan bir
+  HTML sayfası dönüyordu). `proxy.ts`'e bu iki yol için her zaman erişim
+  istisnası eklendi (`/admin/login` ile aynı bypass listesi). `npx tsc
+  --noEmit` + `npm run build` temiz. Gerçek Neon DB'ye karşı test:
+  `/robots.txt`'in artık önizleme şifresi olmadan da doğru içerikle (ve
+  `/admin`, `/hesap` disallow'larıyla) döndüğü, `/sitemap.xml`'in
+  published ürün/kategori/yasal sayfa URL'lerini içerdiği, ürün sayfası
+  `<title>`/OG/canonical etiketlerinin ve JSON-LD'nin (`Product`,
+  `TRY` fiyat) doğru göründüğü, yorum yokken `aggregateRating`'in JSON-LD'de
+  hiç bulunmadığı, bir yorum eklenince doğru `ratingValue`/`reviewCount`
+  ile göründüğü, ana sayfa/kategori sayfası başlıklarının doğru render
+  edildiği doğrulandı. Test verisi (geçici yorum) temizlendi. Commit: bir
+  sonraki adımda atılacak.
+
+## Faz C tamamlandı
+
+Plandaki sekiz maddenin tümü (C.3, C.5, C.1, C.6, C.4, C.7, C.2 [daraltılmış
+— bkz. yukarıdaki kullanıcı kararı], C.8) uygulandı, her biri gerçek Neon
+DB'ye karşı test edilip ayrı commit'lerle kaydedildi. Ertelenen tek kalem:
+**ön sipariş özelliği** (C.2'nin bir parçasıydı) — `orders/route.ts`'te
+gerçek stok kontrolü/düşümü olmadığı doğrulandıktan sonra kullanıcı kararıyla
+ayrı bir işe bırakıldı, stok yönetimi netleşince ele alınabilir.
 
 **Kapsam dışı bırakılan (kullanıcı isteğiyle):** Pazaryeri entegrasyonu
 (Trendyol/Hepsiburada/N11) ve e-Fatura/e-Arşiv entegrasyonu — bu ikisi

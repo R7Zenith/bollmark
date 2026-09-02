@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { variantOptionsInclude } from "@/lib/variant-attributes";
 
@@ -17,7 +18,10 @@ export async function getPublishedProducts(
   });
 }
 
-export async function getProductBySlug(slug: string) {
+// React.cache ile sarmalanir - ayni istek icinde hem generateMetadata hem
+// sayfa bileseni cagirdiginda ayni sorgu iki kez calismaz (Next.js'in
+// generateMetadata + sayfa arasinda veri paylasimi icin onerdigi desen).
+export const getProductBySlug = cache(async (slug: string) => {
   return prisma.product.findUnique({
     where: { slug },
     include: {
@@ -28,7 +32,7 @@ export async function getProductBySlug(slug: string) {
       brand: true
     }
   });
-}
+});
 
 export async function getCategories() {
   return prisma.category.findMany({ orderBy: { name: "asc" } });

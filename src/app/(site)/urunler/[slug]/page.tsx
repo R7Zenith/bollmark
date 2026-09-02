@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelatedProducts } from "@/lib/catalog";
 import { getProductReviewSummary } from "@/lib/reviews";
@@ -6,6 +7,28 @@ import { ProductViewer } from "@/components/product-viewer";
 import { ProductReviews, type ReviewView } from "@/components/product-reviews";
 import { ProductCard } from "@/components/product-card";
 import { optionValue, colorValueId } from "@/lib/variant-attributes";
+
+const BASE_URL = "https://bollmark.com";
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1200";
+
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const product = await getProductBySlug(slug);
+  if (!product || product.status !== "PUBLISHED") return {};
+
+  const image = product.images[0]?.url ?? FALLBACK_IMAGE;
+  return {
+    title: `${product.name} | Bollmark`,
+    description: product.description,
+    alternates: { canonical: `${BASE_URL}/urunler/${product.slug}` },
+    openGraph: {
+      title: product.name,
+      description: product.description,
+      url: `${BASE_URL}/urunler/${product.slug}`,
+      images: [{ url: image }]
+    }
+  };
+}
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -29,8 +52,32 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     createdAtLabel: r.createdAt.toLocaleDateString("tr-TR")
   }));
 
+  // Boş/sıfır rating göstermek yanıltıcı olur - yorum yoksa aggregateRating
+  // alanı hiç eklenmez.
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    description: product.description,
+    image: product.images[0]?.url ?? FALLBACK_IMAGE,
+    offers: {
+      "@type": "Offer",
+      priceCurrency: "TRY",
+      price: (product.priceCents / 100).toFixed(2),
+      availability: product.variants.some((v) => v.stock > 0)
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+      url: `${BASE_URL}/urunler/${product.slug}`
+    },
+    ...(count > 0 && avgRating != null
+      ? { aggregateRating: { "@type": "AggregateRating", ratingValue: avgRating.toFixed(1), reviewCount: count } }
+      : {})
+  };
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
+      {/* eslint-disable-next-line react/no-danger */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <ProductViewer
         productId={product.id}
         productName={product.name}

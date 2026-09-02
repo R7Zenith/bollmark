@@ -59,8 +59,16 @@ function guardPreview(request: NextRequest) {
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Yapim-asamasinda sayfasının kendisi ve /admin/login her zaman erişilebilir.
-  if (pathname === PREVIEW_GATE_PATH || pathname.startsWith("/admin/login")) {
+  // Yapim-asamasinda sayfasının kendisi, /admin/login ve arama motoru
+  // dosyaları (robots.txt/sitemap.xml) her zaman erişilebilir - aksi halde
+  // önizleme şifresi arkasındaki bir mağazada bu dosyalar da gizlenir ve
+  // taraycılar/arama motorları hiç erişemez (bkz. Faz C.8).
+  if (
+    pathname === PREVIEW_GATE_PATH ||
+    pathname.startsWith("/admin/login") ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml"
+  ) {
     return NextResponse.next();
   }
 
