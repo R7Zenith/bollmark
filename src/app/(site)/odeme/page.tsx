@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
@@ -60,6 +61,7 @@ export default function CheckoutPage() {
       postalCode: String(form.get("postalCode") || ""),
       note: String(form.get("note") || ""),
       couponCode: couponCode || undefined,
+      termsAccepted: form.get("termsAccepted") === "on",
       lines: lines.map((l) => ({
         productId: l.productId,
         variantId: l.variantId,
@@ -127,6 +129,21 @@ export default function CheckoutPage() {
           Ödeme adımı henüz test modundadır; gerçek kart tahsilatı yapılmaz. Bir ödeme sağlayıcısı
           (örn. iyzico) bağlandığında bu alan otomatik olarak değişecektir.
         </div>
+
+        <label className="flex items-start gap-2 text-sm text-ink/70">
+          <input type="checkbox" name="termsAccepted" required className="mt-0.5" />
+          <span>
+            <Link
+              href="/sayfa/mesafeli-satis-sozlesmesi"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-accent"
+            >
+              Mesafeli Satış Sözleşmesi
+            </Link>
+            &apos;ni okudum, kabul ediyorum.
+          </span>
+        </label>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 

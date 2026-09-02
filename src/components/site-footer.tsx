@@ -13,14 +13,26 @@ export function SiteFooter() {
         <div>
           <p className="text-sm font-semibold uppercase tracking-wide">Kurumsal</p>
           <ul className="mt-3 space-y-2 text-sm text-ink/70">
-            <li>Hakkımızda</li>
+            <li>
+              <Link href="/sayfa/hakkimizda" className="hover:text-accent">
+                Hakkımızda
+              </Link>
+            </li>
             <li>
               <Link href="/siparis-durumu" className="hover:text-accent">
                 İade &amp; Değişim
               </Link>
             </li>
-            <li>Kargo Bilgisi</li>
-            <li>Gizlilik Politikası</li>
+            <li>
+              <Link href="/sayfa/kargo-bilgisi" className="hover:text-accent">
+                Kargo Bilgisi
+              </Link>
+            </li>
+            <li>
+              <Link href="/sayfa/gizlilik-politikasi" className="hover:text-accent">
+                Gizlilik Politikası
+              </Link>
+            </li>
           </ul>
         </div>
         <div>

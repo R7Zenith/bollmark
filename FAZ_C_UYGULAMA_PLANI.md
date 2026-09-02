@@ -19,8 +19,30 @@
   `AuditLog` satırı oluşturdu, `/admin/islem-gecmisi` filtreleriyle doğru
   görünüyor, PERSONEL rolü sayfaya erişemiyor (307 → `/admin`). Test
   verisi (audit log satırları, geçici hesaplar, sipariş durumu) temizlendi.
-  Commit: bir sonraki adımda atılacak.
-- Sıradaki: **C.5 (Yasal Sayfalar + Checkout Onayı).**
+  Commit: 258646a.
+- **C.5 (Yasal Sayfalar + Checkout Onayı) tamamlandı.** `LegalPage` modeli +
+  seed'de 5 sabit sayfa (placeholder içerik). Site: `/sayfa/[slug]`
+  (bulunamayan slug → `notFound()`), footer'daki "Hakkımızda"/"Kargo
+  Bilgisi"/"Gizlilik Politikası" gerçek sayfalara bağlandı. Checkout:
+  zorunlu "Mesafeli Satış Sözleşmesi'ni okudum, kabul ediyorum" checkbox'ı
+  (yeni sekmede açılan link ile), `orders/route.ts`'teki `orderSchema`'ya
+  `termsAccepted: z.literal(true, ...)` eklendi — sunucu tarafında da
+  reddediliyor. Admin: `/admin/yasal-sayfalar` (5 sabit satır, başlık+içerik
+  düzenleme, `revalidatePath`), sidebar linki — sadece ADMIN. Yan not:
+  `prisma/seed.ts`'in `dotenv/config` importu `dotenv` paketi hiç
+  `package.json`'da olmadığı için zaten kırıktı (önceki fazlardan kalma bir
+  eksiklik) — `npm install --save-dev dotenv` ile düzeltildi, `npm run
+  db:seed` artık çalışıyor. `npx tsc --noEmit` + `npm run build` temiz.
+  Gerçek Neon DB'ye karşı test: site sayfaları (`/sayfa/hakkimizda` 200,
+  bilinmeyen slug 404, footer linkleri doğru), `POST /api/orders`
+  `termsAccepted` eksik/false iken 400, `true` iken 201; admin panelde
+  geçici test hesabıyla sayfa içeriği güncellenip `/sayfa/hakkimizda`'da
+  değişikliğin anında göründüğü (server action'ın progressive-enhancement
+  alanları curl ile taklit edilerek) doğrulandı, PERSONEL rolü
+  `/admin/yasal-sayfalar`'a erişemedi (307 → `/admin`). Test verisi
+  (geçici admin hesabı, test siparişi, düzenlenen içerik) temizlendi/geri
+  alındı. Commit: bir sonraki adımda atılacak.
+- Sıradaki: **C.1 (Müşteri Hesabı + Sadakat).**
 
 **Kapsam dışı bırakılan (kullanıcı isteğiyle):** Pazaryeri entegrasyonu
 (Trendyol/Hepsiburada/N11) ve e-Fatura/e-Arşiv entegrasyonu — bu ikisi

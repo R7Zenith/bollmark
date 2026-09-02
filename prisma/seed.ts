@@ -72,6 +72,43 @@ async function main() {
     }
   }
 
+  // Yasal sayfalar - placeholder icerik, gercek metinler admin panelden
+  // (/admin/yasal-sayfalar) daha sonra girilir.
+  const legalPages: { slug: string; title: string; content: string }[] = [
+    {
+      slug: "hakkimizda",
+      title: "Hakkımızda",
+      content: "Bollmark hakkında bilgiler burada yer alacak. (Yer tutucu içerik - admin panelden düzenleyin.)"
+    },
+    {
+      slug: "kargo-bilgisi",
+      title: "Kargo Bilgisi",
+      content: "Kargo süreleri ve ücretleri hakkında bilgiler burada yer alacak. (Yer tutucu içerik - admin panelden düzenleyin.)"
+    },
+    {
+      slug: "iade-kosullari",
+      title: "İade Koşulları",
+      content: "İade ve değişim koşulları burada yer alacak. (Yer tutucu içerik - admin panelden düzenleyin.)"
+    },
+    {
+      slug: "gizlilik-politikasi",
+      title: "Gizlilik Politikası",
+      content: "Kişisel verilerin işlenmesine dair gizlilik politikası burada yer alacak. (Yer tutucu içerik - admin panelden düzenleyin.)"
+    },
+    {
+      slug: "mesafeli-satis-sozlesmesi",
+      title: "Mesafeli Satış Sözleşmesi",
+      content: "Mesafeli satış sözleşmesi metni burada yer alacak. (Yer tutucu içerik - admin panelden düzenleyin.)"
+    }
+  ];
+  for (const page of legalPages) {
+    await prisma.legalPage.upsert({
+      where: { slug: page.slug },
+      update: {},
+      create: page
+    });
+  }
+
   console.log("Tohumlama tamamlandi. Admin girisi:", adminEmail);
 }
 

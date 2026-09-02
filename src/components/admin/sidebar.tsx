@@ -16,7 +16,8 @@ import {
   SlidersHorizontal,
   BarChart3,
   RotateCcw,
-  History
+  History,
+  FileText
 } from "lucide-react";
 import { isPathAllowedForRole } from "@/lib/roles";
 
@@ -33,6 +34,7 @@ const navItems = [
   { href: "/admin/personel", label: "Personel", icon: Users2 },
   { href: "/admin/raporlar", label: "Raporlar", icon: BarChart3 },
   { href: "/admin/islem-gecmisi", label: "İşlem Geçmişi", icon: History },
+  { href: "/admin/yasal-sayfalar", label: "Yasal Sayfalar", icon: FileText },
   { href: "/admin/ayarlar/varyant-ozellikleri", label: "Varyant Özellikleri", icon: SlidersHorizontal },
   { href: "/admin/ayarlar", label: "Ayarlar", icon: Settings, exact: true }
 ];
