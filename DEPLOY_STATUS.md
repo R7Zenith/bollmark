@@ -1,6 +1,6 @@
 # Bollmark - Kurulum ve Canliya Alma Durumu
 
-Son guncelleme: 2026-08-29 (bu oturum)
+Son guncelleme: 2026-09-03 (bu oturum)
 
 Bu dosya, projeyi Claude Code ile kurup canliya alma surecinde nereye kadar
 gelindigini kaydeder. Kaldigimiz yerden devam etmek icin bu dosyayi Claude'a
@@ -1678,3 +1678,104 @@ otomatik deploy'u tetikleyecek.
      birkaç değeri arayıp seçmesi, tarayıcı testi olarak önerilir.
 4. Değişiklikler commit'lenip `main`'e push edildi - Vercel git bağlantısı
    sayesinde otomatik deploy tetiklenecek.
+
+## Excel'den toplu ürün aktarımı + Koton görsel eşleştirme (2026-09-02/03, yeni oturum)
+
+Plan `EXCEL_URUN_AKTARIM_PLANI.md` dosyasında çıkarıldı (dükkanın checklist
+excel'inden admin panelden toplu ürün/varyant aktarımı + Koton.com'dan renk
+bazlı otomatik görsel/açıklama bulma). Faz A'dan F'ye kadar tek oturumda,
+aradan onay beklenmeden uygulandı (kullanıcı tercihi); sadece Faz F'nin
+**gerçek veritabanına ilk yazma** anında durulup soruldu, onay alındı.
+
+1. **`xlsx` (SheetJS) paketi eklendi** - hem `.xls` hem `.xlsx` okuyor.
+   `npm audit` 5 yüksek önem dereceli uyarı veriyor (SheetJS'in npm registry
+   paketindeki bilinen prototype-pollution/ReDoS sorunları) - bilinçli kabul
+   edildi, aynı `.xls` desteğine sahip bakımlı bir alternatif yok.
+2. **`lib/excel-import.ts`**: excel satırlarını tip güvenli okuyan parser
+   (`parseExcelFile` - eksik/bozuk satır olursa satır no'suyla hata biriktirir,
+   tüm dosyayı reddetmez; tekrarlayan barkod da satır hatası sayılır), ÜRÜN
+   KODU'na göre gruplama (`groupExcelRows`), ve asıl upsert mantığı
+   (`importProductGroups` - barkod bazlı: mevcut barkod varsa sadece
+   stok/fiyat güncellenir, yoksa yeni Product+ProductVariant oluşturulur;
+   Renk/Beden `resolveOptionValueIds` ile çözülür).
+   - **Bulunan performans sorunu**: ilk gerçek DB denemesinde satır başına
+     birkaç sorgu (Renk/Beden upsert x2, vs.) içeren tek bir
+     `prisma.$transaction` içinde 49 satır işlenirken Neon'un pooled
+     bağlantı gecikmesiyle **P2028 transaction timeout** (30sn'de bile
+     yetmedi) alındı. **Düzeltme**: Renk/Beden değer id'leri + marka id'si +
+     slug'lar transaction AÇILMADAN ÖNCE (düz `prisma` ile) çözülüp bir
+     cache'e alındı; transaction içinde sadece asıl product/variant
+     create/update sorguları kaldı. Yeniden denemede sorunsuz çalıştı.
+3. **`lib/koton-images.ts`**: barkod ile `koton.com/autocomplete/` araması
+   yapıp bulunan ürün sayfasını `?format=json` ile çekiyor, `base_code`
+   excel'deki ÜRÜN KODU ile karşılaştırıp doğru ürünü bulduğundan emin
+   oluyor, `variants` içindeki "Renk" grubundan **excel'de gerçekten olan**
+   renklerin `productimage_set` görsellerini indirip `@vercel/blob`'a
+   (`koton-import/` klasörü) yeniden yüklüyor, `urun_aciklama` alanını
+   Product.description olarak kaydediyor. Sadece **bu importla YENİ
+   oluşturulan** ürünler için çalışır (mevcut ürünün foto/açıklaması varsa
+   dokunulmaz). Ürünler arası ~900ms bekleme ile hız sınırlı, sıralı
+   çalışıyor; bir üründe hata/bulunamama diğerlerini durdurmuyor.
+   - Sadece o ürün grubunun **ilk satırındaki barkod** deneniyor, bulunamazsa
+     gruptaki diğer barkodlar denenmiyor (bilinçli v1 sınırı, plan da
+     böyleydi - ürün koduyla değil barkodla aramanın Koton'da daha güvenilir
+     olduğu belirtilmişti). İyileştirme fırsatı olarak not düşülüyor.
+4. **API route'ları**: `/api/admin/urunler/excel-yukle` (POST, sadece
+   parse+önizleme, DB'ye dokunmaz) ve `/api/admin/urunler/excel-aktar`
+   (POST, asıl upsert + ardından yeni ürünler için sıralı Koton
+   zenginleştirmesi) - `getServerSession` + `role === "ADMIN"` kontrolüyle.
+5. **`/admin/urunler/excel-yukle` sayfası**: dosya yükle -> önizleme
+   (ürün/varyant/stok özeti, kategori seçimi - tüm gruba tek seferde
+   uygulanıyor, opsiyonel) -> "İçe Aktar" -> sonuç raporu (kaç ürün/varyant
+   eklendi-güncellendi, hangi üründe Koton'da görsel bulunup bulunmadığı).
+   Ürünler listesine "Excel'den Yükle" butonu eklendi.
+6. **Faz F - gerçek Neon veritabanında uçtan uca test** (kullanıcı onayıyla):
+   - İlk çalıştırma: örnek `KOTON11052026CHECKLIST.xls` (49 satır, 6 ürün
+     kodu) -> 6 ürün + 49 varyant oluşturuldu; 6 üründen 4'ü Koton'da
+     bulunup görsel+açıklama otomatik eklendi (toplam 37 görsel), 2'si
+     bulunamayıp görselsiz DRAFT kaldı (beklenen yedek davranış).
+   - Aynı dosya tekrar yüklendi (idempotency testi): 0 yeni kayıt, sadece
+     6 üründe/49 varyantta stok/fiyat güncellendi, mevcut Koton açıklaması/
+     görselleri **dokunulmadan** kaldı - plandaki "tekrar yüklenirse
+     stok/fiyat güncellenir, foto/açıklama zaten varsa dokunulmaz" kuralı
+     doğrulandı.
+   - Commit'lendi, push edildi (`923f95c`) - Vercel otomatik deploy
+     tetikledi.
+
+### Ardından bulunan 2 hata (kullanıcı canlıda denedi, bu oturumda düzeltildi)
+
+**Hata 1 - Türkçe karakterli ürünlere tıklayınca "sayfa yok" hatası**:
+Bu projedeki Next.js sürümü, dinamik rota segmentlerini (`/urunler/[slug]`)
+**otomatik decode etmiyor** - standart Next.js'in aksine. Tarayıcı
+`düğmeli` gibi bir kelimeyi `%C3%BC%C4%9F...` şeklinde kodluyor, sunucu
+bunu çözmeden `params.slug` olarak veritabanında arıyor, bulamayıp
+`notFound()`'a düşüyordu. Sadece Türkçe karakter içeren slug'larda
+görünüyordu (`bollmark-oversize-mont` gibi düz İngilizce slug'lı eski
+üründe sorun yoktu - ilk testte gerçek Next dev sunucusunu (kullanıcının
+zaten çalışan `npm run dev` süreci, port 3000) `curl`/`fetch` ile,
+önizleme şifresi cookie'siyle (`PREVIEW_PASSWORD`) test edip
+`console.log` ile `params.slug`'ın ham (`%XX` kodlu) geldiği doğrulandı.
+**Düzeltme**: `src/app/(site)/urunler/[slug]/page.tsx`'te hem
+`generateMetadata` hem `ProductPage` içinde `decodeURIComponent(rawSlug)`
+uygulandı (try/catch ile, bozuk bir dizi gelirse ham değere düşer).
+Commit + push (`6849777`).
+
+**Hata 2 - Katalog/anasayfa/favoriler/ilgili-ürünlerde varsayılan foto**:
+Sadece renk bazlı galerisi (`ProductOptionImage` - Koton'dan gelen) olan,
+genel `Product.images`'ı boş olan ürünler; katalog (`/urunler`), anasayfa
+öne çıkanlar, favorilerim ve ürün detayındaki "Benzer Ürünler" bölümlerinde
+hep sabit unsplash placeholder fotoğrafı gösteriyordu (bu bölümler sadece
+`Product.images`'a bakıyordu). **Düzeltme**: `lib/catalog.ts`'e ortak
+`firstImageUrl()` yardımcı fonksiyonu eklendi (genel görsel yoksa renk
+galerisinden ilk fotoğrafa düşer), `getPublishedProducts`/`getRelatedProducts`
+sorgularına `optionImages` include edildi, 5 dosyadaki (`urunler/page.tsx`,
+`(site)/page.tsx`, `urunler/[slug]/page.tsx`, `hesap/favorilerim/page.tsx`,
+admin `urunler/page.tsx` liste thumbnail'i) ilgili yerler bu fonksiyona
+geçirildi. Gerçek sitede (`/urunler`, `/`) `curl`/`fetch` ile Koton görsel
+URL'lerinin artık HTML'de geçtiği doğrulandı. Commit + push (`b1464d0`).
+
+**Not**: Her iki hata da az önce eklenen Excel/Koton özelliğinden kaynaklı
+DEĞİL - siteye Türkçe karakterli slug'lı veya sadece renk-galerili (genel
+görseli boş) ilk ürünler bu importla eklendiği için daha önce hiç tetiklenmemiş,
+gizli kalmış genel site hatalarıydı. Yeni ürün eklenen her yerde tekrar
+karşılaşılabilir.
