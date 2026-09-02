@@ -120,8 +120,18 @@
   fotoğraflı yorumun (gerçek Vercel Blob'a public upload endpoint'i ile
   yüklenip) fotoğrafsız yorumdan önce sıralandığı doğrulandı. Test verisi
   (yorumlar, geçici admin hesabı, yüklenen test görseli Blob'dan silinerek)
-  temizlendi. Commit: bir sonraki adımda atılacak.
-- Sıradaki: **C.7 (İlgili Ürün).**
+  temizlendi. Commit: e802503.
+- **C.7 (İlgili Ürün) tamamlandı.** `lib/catalog.ts`'e `getRelatedProducts`
+  eklendi — aynı `categoryId`, kendisi hariç, `PUBLISHED`, öne çıkanlar
+  önce, en fazla 4 (`categoryId` null ise boş dizi). Ürün sayfasına
+  `ProductCard` grid'iyle "Benzer Ürünler" bölümü eklendi (hiç ilgili ürün
+  yoksa bölüm hiç render edilmiyor). Şema değişikliği yok, migration
+  gerekmedi. `npx tsc --noEmit` + `npm run build` temiz. Gerçek Neon
+  DB'ye karşı test: aynı kategoriye geçici bir "kardeş" ürün eklenip ürün
+  sayfasında göründüğü ve ürünün kendisinin listede çıkmadığı, kategorisiz
+  bir üründe bölümün hiç görünmediği doğrulandı. Test ürünleri silindi.
+  Commit: bir sonraki adımda atılacak.
+- Sıradaki: **C.2 (Bundle/Ön Sipariş).**
 
 **Kapsam dışı bırakılan (kullanıcı isteğiyle):** Pazaryeri entegrasyonu
 (Trendyol/Hepsiburada/N11) ve e-Fatura/e-Arşiv entegrasyonu — bu ikisi

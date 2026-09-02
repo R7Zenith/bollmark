@@ -33,3 +33,19 @@ export async function getProductBySlug(slug: string) {
 export async function getCategories() {
   return prisma.category.findMany({ orderBy: { name: "asc" } });
 }
+
+// Urun sayfasindaki "Benzer Urunler" bolumu icin - v1'de otomatik kategori
+// bazli oneri yeterli tutuluyor (elle eslestirme ayri, daha sonraki bir is).
+export async function getRelatedProducts(product: { id: string; categoryId: string | null }) {
+  if (!product.categoryId) return [];
+  return prisma.product.findMany({
+    where: {
+      categoryId: product.categoryId,
+      id: { not: product.id },
+      status: "PUBLISHED"
+    },
+    include: { images: { orderBy: { position: "asc" }, take: 1 } },
+    orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
+    take: 4
+  });
+}
