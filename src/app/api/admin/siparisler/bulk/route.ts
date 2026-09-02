@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { orderStatuses, type OrderStatus } from "@/lib/status";
 import { notifyCustomerStatusChange } from "@/lib/order-notifications";
+import { awardLoyaltyPoints } from "@/lib/loyalty";
 import { logAudit } from "@/lib/audit-log";
 
 const allowedStatuses = new Set<string>(orderStatuses);
@@ -31,6 +32,9 @@ export async function POST(request: NextRequest) {
       notifyCustomerStatusChange(order, status).catch((error) =>
         console.error("Sipariş durum bildirimi maili başarısız:", error)
       );
+      if (status === "DELIVERED") {
+        awardLoyaltyPoints(order).catch((error) => console.error("Sadakat puanı eklenemedi (yoksayıldı):", error));
+      }
       logAudit({
         actorEmail: session.user?.email ?? "bilinmiyor",
         actorRole: session.user?.role ?? "ADMIN",

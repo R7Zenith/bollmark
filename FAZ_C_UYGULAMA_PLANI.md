@@ -41,8 +41,42 @@
   alanları curl ile taklit edilerek) doğrulandı, PERSONEL rolü
   `/admin/yasal-sayfalar`'a erişemedi (307 → `/admin`). Test verisi
   (geçici admin hesabı, test siparişi, düzenlenen içerik) temizlendi/geri
-  alındı. Commit: bir sonraki adımda atılacak.
-- Sıradaki: **C.1 (Müşteri Hesabı + Sadakat).**
+  alındı. Commit: ad0bbba.
+- **C.1 (Müşteri Hesabı + Sadakat) tamamlandı.** `Customer`,
+  `CustomerAddress`, `LoyaltyTransaction` modelleri + `Order`'a `customerId`/
+  `pointsEarned`/`pointsRedeemed`/`loyaltyDiscountCents`. Ayrı NextAuth
+  örneği (`src/lib/customer-auth.ts`, çerez adı `musteri-oturum-token` —
+  admin çerezinden farklı; gerçek Neon DB'ye karşı **aynı tarayıcıda** hem
+  admin hem müşteri girişi yapılıp ikisinin birbirini etkilemediği
+  doğrulandı, çakışma çıkmadı) + `/api/musteri-auth/[...nextauth]`,
+  `/api/musteri-kayit`. Site: `/hesap/giris` (giriş+kayıt sekmeleri),
+  `/hesap` (özet), `/hesap/siparislerim` (iade/değişim talebi formu da
+  buraya taşındı, aynı `/api/iade-talebi`'ni kullanıyor), `/hesap/adreslerim`
+  (CRUD), `/hesap/puanlarim`; `site-header.tsx`'e "Hesabım" linki
+  (`CustomerSessionProvider`, `basePath="/api/musteri-auth"`). Sadakat:
+  `src/lib/loyalty.ts` (`awardLoyaltyPoints` — `Order.status` gerçekten
+  `DELIVERED`'a geçtiği 2 noktada çağrılır; `resolveLoyaltyRedemption` —
+  kupon deseniyle birebir aynı gerekçeyle bakiyeyi aşan istek
+  `LoyaltyInvalidError` ile reddedilir). Checkout'ta `LoyaltyField` (kupon
+  ile yan yana, ayrı indirim kalemi). Admin: `/admin/musteriler` artık
+  gerçek `Customer` tablosuyla birleştirilmiş liste (misafir + hesaplı,
+  "Hesaplı" rozeti + puan bakiyesi), satır aksiyonu "Puan Ekle/Çıkar"
+  (`ADMIN_DUZELTME`, audit log'a `LOYALTY_ADJUSTED` olarak yazılıyor,
+  bakiyeyi negatife düşüren istek reddediliyor). Client bileşenlerine
+  prisma sızmasını önlemek için `audit-actions.ts` deseniyle
+  `loyalty-constants.ts` ayrıldı (C.3'te öğrenilen Turbopack `node:module`
+  dersiyle önceden kaçınıldı). `npx tsc --noEmit` + `npm run build` temiz.
+  Gerçek Neon DB'ye karşı test: kayıt/giriş/duplicate-eposta, checkout'ta
+  hesaba bağlanan sipariş (`Order.customerId` doluyor), `DELIVERED`
+  sonrası doğru puan hesabı (₺1899 → 18 puan), checkout'ta puan
+  kullanımının indirimi doğru düşürmesi (10 puan → 1 TL) ve bakiyeyi aşan
+  istekle reddedilmesi, misafir siparişte hiç puan hareketi oluşmaması,
+  admin panelden puan düzeltmenin bakiyeyi/denetim kaydını doğru
+  güncellemesi ve negatif bakiyeye izin vermemesi, adres CRUD'u (ilk
+  adresin otomatik varsayılan olması) hepsi doğrulandı. Test verisi
+  (hesaplar, siparişler, adresler, puan hareketleri, audit log)
+  temizlendi. Commit: bir sonraki adımda atılacak.
+- Sıradaki: **C.6 (Wishlist).**
 
 **Kapsam dışı bırakılan (kullanıcı isteğiyle):** Pazaryeri entegrasyonu
 (Trendyol/Hepsiburada/N11) ve e-Fatura/e-Arşiv entegrasyonu — bu ikisi

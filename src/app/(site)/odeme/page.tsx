@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { CouponField, type CouponResult } from "@/components/coupon-field";
+import { LoyaltyField, type LoyaltyResult } from "@/components/loyalty-field";
 import { calculateShippingCents } from "@/lib/shipping";
 
 export default function CheckoutPage() {
@@ -14,10 +15,15 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [coupon, setCoupon] = useState<CouponResult>(null);
+  const [loyalty, setLoyalty] = useState<LoyaltyResult>(null);
 
   const discountCents = coupon?.discountCents ?? 0;
-  const shippingCents = calculateShippingCents(totalCents - discountCents, coupon?.freeShipping ?? false);
-  const grandTotalCents = totalCents - discountCents + shippingCents;
+  const loyaltyDiscountCents = loyalty?.discountCents ?? 0;
+  const shippingCents = calculateShippingCents(
+    totalCents - discountCents - loyaltyDiscountCents,
+    coupon?.freeShipping ?? false
+  );
+  const grandTotalCents = totalCents - discountCents - loyaltyDiscountCents + shippingCents;
 
   // Kullanici e-posta alanina yazip baska bir alana gectiginde (odeme
   // tamamlanmadan once) sepeti arka planda kaydeder - terk edilmis sepet
@@ -61,6 +67,7 @@ export default function CheckoutPage() {
       postalCode: String(form.get("postalCode") || ""),
       note: String(form.get("note") || ""),
       couponCode: couponCode || undefined,
+      pointsToRedeem: loyalty?.pointsRedeemed || undefined,
       termsAccepted: form.get("termsAccepted") === "on",
       lines: lines.map((l) => ({
         productId: l.productId,
@@ -169,8 +176,9 @@ export default function CheckoutPage() {
           ))}
         </div>
 
-        <div className="mt-4 border-t border-line pt-4">
+        <div className="mt-4 space-y-4 border-t border-line pt-4">
           <CouponField subtotalCents={totalCents} onDiscountChange={setCoupon} />
+          <LoyaltyField subtotalCents={totalCents - discountCents} onRedeemChange={setLoyalty} />
         </div>
 
         <div className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
@@ -182,6 +190,12 @@ export default function CheckoutPage() {
             <div className="flex justify-between text-accent">
               <span>İndirim</span>
               <span>-{formatPrice(discountCents)}</span>
+            </div>
+          )}
+          {loyaltyDiscountCents > 0 && (
+            <div className="flex justify-between text-accent">
+              <span>Puan İndirimi</span>
+              <span>-{formatPrice(loyaltyDiscountCents)}</span>
             </div>
           )}
           <div className="flex justify-between">

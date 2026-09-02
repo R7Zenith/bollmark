@@ -172,6 +172,10 @@ model Order {
   customerName  String
   customerEmail String
   customerPhone String
+  // Giris yapmis musteriye opsiyonel baglanti - misafir siparişte null kalir
+  // (Bollmark'ta hesap zorunlu degil, bkz. lib/customer-auth.ts).
+  customerId    String?
+  customer      Customer?   @relation(fields: [customerId], references: [id])
   shippingAddress String
   city          String
   district      String
@@ -181,6 +185,10 @@ model Order {
   discountCents Int         @default(0)
   couponId      String?
   coupon        Coupon?     @relation(fields: [couponId], references: [id])
+  // Sadakat puani kazanc/kullanim alanlari - bkz. lib/loyalty.ts
+  pointsEarned         Int  @default(0)
+  pointsRedeemed       Int  @default(0)
+  loyaltyDiscountCents Int  @default(0)
   shippingCents Int         @default(0)
   totalCents    Int
   items         OrderItem[]
@@ -188,6 +196,49 @@ model Order {
   returnRequests ReturnRequest[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+}
+
+// Musteri hesabi - opsiyonel katman, misafir siparis akisi bundan bagimsiz
+// calismaya devam eder (bkz. lib/customer-auth.ts). Admin girisinden
+// (AdminUser/authOptions) tamamen ayri bir NextAuth ornegi kullanir.
+model Customer {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String
+  phone         String?
+  passwordHash  String
+  loyaltyPoints Int      @default(0)
+  createdAt     DateTime @default(now())
+  addresses     CustomerAddress[]
+  orders        Order[]
+  loyaltyLedger LoyaltyTransaction[]
+}
+
+model CustomerAddress {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  label      String // "Ev", "Is" vb.
+  name       String
+  phone      String
+  address    String
+  city       String
+  district   String
+  postalCode String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+}
+
+// Pozitif = kazanc (siparis DELIVERED oldugunda), negatif = kullanim
+// (checkout'ta indirime cevrildiginde) veya admin elle duzeltmesi.
+model LoyaltyTransaction {
+  id         String   @id @default(cuid())
+  customerId String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  points     Int
+  reason     String // "SIPARIS_KAZANC" | "SIPARIS_KULLANIM" | "ADMIN_DUZELTME"
+  orderId    String?
+  createdAt  DateTime @default(now())
 }
 
 // Iade / degisim talebi. Bollmark'ta musteri hesabi olmadigi icin (siparis

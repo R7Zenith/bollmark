@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { applyShipmentUpdate } from "@/lib/shipment";
 import { notifyCustomerStatusChange } from "@/lib/order-notifications";
+import { awardLoyaltyPoints } from "@/lib/loyalty";
 import { logAudit } from "@/lib/audit-log";
 import {
   orderStatusLabel,
@@ -34,6 +35,9 @@ async function setOrderStatus(id: string, status: OrderStatus) {
     notifyCustomerStatusChange(order, status).catch((error) =>
       console.error("Sipariş durum bildirimi maili başarısız:", error)
     );
+    if (status === "DELIVERED") {
+      awardLoyaltyPoints(order).catch((error) => console.error("Sadakat puanı eklenemedi (yoksayıldı):", error));
+    }
     logAudit({
       actorEmail: session?.user?.email ?? "bilinmiyor",
       actorRole: session?.user?.role ?? "ADMIN",
@@ -157,6 +161,12 @@ export default async function OrderDetailPage({
                     <span>-{formatPrice(order.discountCents)}</span>
                   </div>
                 )}
+                {order.loyaltyDiscountCents > 0 && (
+                  <div className="flex justify-between text-admin-text-muted">
+                    <span>Puan İndirimi ({order.pointsRedeemed} puan)</span>
+                    <span>-{formatPrice(order.loyaltyDiscountCents)}</span>
+                  </div>
+                )}
                 <div className="flex justify-between text-admin-text-muted">
                   <span>Kargo</span>
                   <span>{order.shippingCents === 0 ? "Ücretsiz" : formatPrice(order.shippingCents)}</span>
@@ -165,6 +175,9 @@ export default async function OrderDetailPage({
                   <span>Toplam</span>
                   <span>{formatPrice(order.totalCents)}</span>
                 </div>
+                {order.pointsEarned > 0 && (
+                  <p className="pt-1 text-xs text-admin-text-muted">Müşteri bu siparişten {order.pointsEarned} puan kazandı.</p>
+                )}
               </div>
             </div>
           </Card>

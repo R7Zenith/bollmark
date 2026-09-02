@@ -8,7 +8,10 @@ declare module "next-auth" {
   }
 
   interface Session {
-    user?: DefaultSession["user"] & { role?: AdminRole };
+    // role: sadece admin oturumunda (auth.ts) dolu olur. id: sadece musteri
+    // oturumunda (customer-auth.ts) dolu olur - iki ayri NextAuth ornegi
+    // ayni global Session tipini paylastigi icin ikisi de opsiyonel.
+    user?: DefaultSession["user"] & { role?: AdminRole; id?: string };
   }
 }
 
