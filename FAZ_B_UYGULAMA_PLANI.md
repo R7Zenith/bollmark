@@ -80,7 +80,19 @@
   bozulma görülmüştü, uygulama kodunda sorun değildi). Test verileri
   silinip sipariş durumu eski haline (`SHIPPED`) döndürüldü. `npx tsc
   --noEmit` ve `npm run build` temiz geçti.
-  - Faz B'de B.3 dışında her madde tamamlandı. **B.3 (kargo firması API
+  - **Düzeltme (B.5):** `/admin/raporlar` sayfası açılmıyordu (siyah ekran,
+  "This page couldn't load") — `raporlar/page.tsx` (server component)
+  `DataTable`'a (client component) doğrudan `render` fonksiyonu içeren
+  `columns`/`getRowId` prop'ları geçiriyordu; Next.js RSC sınırı
+  fonksiyonların bu şekilde geçmesine izin vermiyor (yalnızca `"use
+  server"` server action'lar geçebilir), sayfa 500 dönüyordu. `tsc`/`build`
+  bunu yakalamadı (sadece tip kontrolü, RSC serileştirme kontrolü değil) -
+  gerçek bir admin oturumuyla (geçici test hesabı) `curl` ile sayfa
+  denenince fark edildi. Diğer tablolarda zaten kullanılan desene uyularak
+  (`shipments-table.tsx`, `customers-table.tsx`) columns tanımları kendi
+  client component'lerine (`top-products-table.tsx`, `breakdown-table.tsx`)
+  taşındı, sayfa artık sadece düz veri geçiriyor. Test hesabı silindi.
+- Faz B'de B.3 dışında her madde tamamlandı. **B.3 (kargo firması API
     entegrasyonu) tamamen erteledi** — kullanıcı henüz hiçbir kargo
     firmasıyla anlaşmadı, "şimdi yapılabilecek" soyutlama katmanı dahil
     bu iş çok sonraya bırakıldı; kargo firması netleşmeden bu maddeye
