@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Package } from "lucide-react";
+import { Plus, Package, FileSpreadsheet } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { Button } from "@/components/admin/button";
@@ -38,11 +38,18 @@ export default async function AdminProductsPage({
             title="Henüz ürün yok"
             description="Mağazana ilk ürününü ekleyerek başla."
             action={
-              <Link href="/admin/urunler/yeni">
-                <Button>
-                  <Plus size={16} /> İlk Ürününü Ekle
-                </Button>
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link href="/admin/urunler/excel-yukle">
+                  <Button variant="secondary">
+                    <FileSpreadsheet size={16} /> Excel'den Yükle
+                  </Button>
+                </Link>
+                <Link href="/admin/urunler/yeni">
+                  <Button>
+                    <Plus size={16} /> İlk Ürününü Ekle
+                  </Button>
+                </Link>
+              </div>
             }
           />
         </div>
@@ -91,11 +98,18 @@ export default async function AdminProductsPage({
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-admin-text">Ürünler</h1>
-        <Link href="/admin/urunler/yeni">
-          <Button>
-            <Plus size={16} /> Yeni Ürün
-          </Button>
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/admin/urunler/excel-yukle">
+            <Button variant="secondary">
+              <FileSpreadsheet size={16} /> Excel'den Yükle
+            </Button>
+          </Link>
+          <Link href="/admin/urunler/yeni">
+            <Button>
+              <Plus size={16} /> Yeni Ürün
+            </Button>
+          </Link>
+        </div>
       </div>
 
       <div className="mt-6">
