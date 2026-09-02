@@ -3,6 +3,7 @@ import { requireCustomer } from "@/lib/require-customer";
 import { HesapNav } from "@/components/hesap-nav";
 import { FavorilerimGrid } from "@/components/favorilerim-grid";
 import type { ProductCardData } from "@/components/product-card";
+import { firstImageUrl } from "@/lib/catalog";
 
 export default async function HesapFavorilerimPage() {
   const session = await requireCustomer();
@@ -10,7 +11,14 @@ export default async function HesapFavorilerimPage() {
 
   const items = await prisma.wishlistItem.findMany({
     where: { customerId },
-    include: { product: { include: { images: { orderBy: { position: "asc" }, take: 1 } } } },
+    include: {
+      product: {
+        include: {
+          images: { orderBy: { position: "asc" }, take: 1 },
+          optionImages: { orderBy: { position: "asc" }, take: 1 }
+        }
+      }
+    },
     orderBy: { createdAt: "desc" }
   });
 
@@ -20,7 +28,7 @@ export default async function HesapFavorilerimPage() {
     name: item.product.name,
     priceCents: item.product.priceCents,
     compareAtCents: item.product.compareAtCents,
-    image: item.product.images[0]?.url ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800"
+    image: firstImageUrl(item.product) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800"
   }));
 
   return (

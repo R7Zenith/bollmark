@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getPublishedProducts } from "@/lib/catalog";
+import { getPublishedProducts, firstImageUrl } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/product-card";
 
@@ -49,7 +49,7 @@ export default async function ProductsPage({
                 name: p.name,
                 priceCents: p.priceCents,
                 compareAtCents: p.compareAtCents,
-                image: p.images[0]?.url ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800"
+                image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800"
               }}
             />
           ))}

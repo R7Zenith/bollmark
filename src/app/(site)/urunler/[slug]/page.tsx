@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProductBySlug, getRelatedProducts } from "@/lib/catalog";
+import { getProductBySlug, getRelatedProducts, firstImageUrl } from "@/lib/catalog";
 import { getProductReviewSummary } from "@/lib/reviews";
 import { getBundleForProduct } from "@/lib/bundles";
 import { ProductViewer } from "@/components/product-viewer";
@@ -29,7 +29,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const product = await getProductBySlug(decodeSlug(rawSlug));
   if (!product || product.status !== "PUBLISHED") return {};
 
-  const image = product.images[0]?.url ?? FALLBACK_IMAGE;
+  const image = firstImageUrl(product) ?? FALLBACK_IMAGE;
   return {
     title: `${product.name} | Bollmark`,
     description: product.description,
@@ -72,7 +72,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
     "@type": "Product",
     name: product.name,
     description: product.description,
-    image: product.images[0]?.url ?? FALLBACK_IMAGE,
+    image: firstImageUrl(product) ?? FALLBACK_IMAGE,
     offers: {
       "@type": "Offer",
       priceCurrency: "TRY",
@@ -130,7 +130,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
                   name: p.name,
                   priceCents: p.priceCents,
                   compareAtCents: p.compareAtCents,
-                  image: p.images[0]?.url ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800"
+                  image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800"
                 }}
               />
             ))}

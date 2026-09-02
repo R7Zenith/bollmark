@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { getPublishedProducts } from "@/lib/catalog";
+import { getPublishedProducts, firstImageUrl } from "@/lib/catalog";
 import { ProductCard } from "@/components/product-card";
 
 export const metadata: Metadata = {
@@ -60,7 +60,7 @@ export default async function HomePage() {
                   name: p.name,
                   priceCents: p.priceCents,
                   compareAtCents: p.compareAtCents,
-                  image: p.images[0]?.url ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800"
+                  image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800"
                 }}
               />
             ))}

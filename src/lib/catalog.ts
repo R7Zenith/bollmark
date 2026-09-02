@@ -2,6 +2,13 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { variantOptionsInclude } from "@/lib/variant-attributes";
 
+// Genel urun gorseli (Product.images) yoksa - Excel/Koton aktariminda oldugu
+// gibi sadece renk bazli galeri (ProductOptionImage) doldurulmus olabilir -
+// oraya duser. Katalog/kart gorunumlerinde tek, temsili bir fotograf yeterli.
+export function firstImageUrl(product: { images: { url: string }[]; optionImages: { url: string }[] }): string | null {
+  return product.images[0]?.url ?? product.optionImages[0]?.url ?? null;
+}
+
 export async function getPublishedProducts(
   categorySlug?: string,
   options?: { featuredFirst?: boolean }
@@ -11,7 +18,10 @@ export async function getPublishedProducts(
       status: "PUBLISHED",
       category: categorySlug ? { slug: categorySlug } : undefined
     },
-    include: { images: { orderBy: { position: "asc" } } },
+    include: {
+      images: { orderBy: { position: "asc" } },
+      optionImages: { orderBy: { position: "asc" }, take: 1 }
+    },
     orderBy: options?.featuredFirst
       ? [{ isFeatured: "desc" }, { createdAt: "desc" }]
       : { createdAt: "desc" }
@@ -48,7 +58,10 @@ export async function getRelatedProducts(product: { id: string; categoryId: stri
       id: { not: product.id },
       status: "PUBLISHED"
     },
-    include: { images: { orderBy: { position: "asc" }, take: 1 } },
+    include: {
+      images: { orderBy: { position: "asc" }, take: 1 },
+      optionImages: { orderBy: { position: "asc" }, take: 1 }
+    },
     orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
     take: 4
   });
