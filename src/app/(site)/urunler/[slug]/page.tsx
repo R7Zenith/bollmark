@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { getProductBySlug } from "@/lib/catalog";
+import { getProductReviewSummary } from "@/lib/reviews";
 import { ProductViewer } from "@/components/product-viewer";
+import { ProductReviews, type ReviewView } from "@/components/product-reviews";
 import { optionValue, colorValueId } from "@/lib/variant-attributes";
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -12,6 +14,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   for (const img of product.optionImages) {
     (colorGalleries[img.valueId] ??= []).push(img.url);
   }
+
+  const { avgRating, count, reviews } = await getProductReviewSummary(product.id);
+  const reviewViews: ReviewView[] = reviews.map((r) => ({
+    id: r.id,
+    customerName: r.customerName,
+    rating: r.rating,
+    comment: r.comment,
+    imageUrls: r.imageUrls ? r.imageUrls.split("\n").filter(Boolean) : [],
+    createdAtLabel: r.createdAt.toLocaleDateString("tr-TR")
+  }));
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
@@ -38,6 +50,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           priceCents: v.priceCents
         }))}
       />
+      <ProductReviews productId={product.id} avgRating={avgRating} count={count} reviews={reviewViews} />
     </div>
   );
 }

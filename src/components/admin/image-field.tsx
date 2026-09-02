@@ -11,13 +11,15 @@ export function ImageField({
   onChange,
   placeholder = "https://... (gorsel URL'i yapistirin)",
   altValue,
-  onAltChange
+  onAltChange,
+  uploadEndpoint = "/api/admin/upload"
 }: {
   value: string;
   onChange: (url: string) => void;
   placeholder?: string;
   altValue?: string;
   onAltChange?: (alt: string) => void;
+  uploadEndpoint?: string;
 }) {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,7 @@ export function ImageField({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/admin/upload", { method: "POST", body: formData });
+      const res = await fetch(uploadEndpoint, { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error || "Yükleme başarısız oldu.");

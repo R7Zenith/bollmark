@@ -17,7 +17,8 @@ import {
   BarChart3,
   RotateCcw,
   History,
-  FileText
+  FileText,
+  MessageSquare
 } from "lucide-react";
 import { isPathAllowedForRole } from "@/lib/roles";
 
@@ -30,6 +31,7 @@ const navItems = [
   { href: "/admin/siparisler", label: "Siparişler", icon: Package },
   { href: "/admin/iadeler", label: "İadeler", icon: RotateCcw },
   { href: "/admin/kargolar", label: "Kargolar", icon: Truck },
+  { href: "/admin/yorumlar", label: "Yorumlar", icon: MessageSquare },
   { href: "/admin/musteriler", label: "Müşteriler", icon: Users },
   { href: "/admin/personel", label: "Personel", icon: Users2 },
   { href: "/admin/raporlar", label: "Raporlar", icon: BarChart3 },

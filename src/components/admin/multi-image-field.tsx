@@ -11,11 +11,13 @@ export type ImageEntry = { url: string; alt?: string };
 export function MultiImageField({
   images,
   onChange,
-  addLabel = "Görsel Ekle"
+  addLabel = "Görsel Ekle",
+  uploadEndpoint
 }: {
   images: ImageEntry[];
   onChange: (next: ImageEntry[]) => void;
   addLabel?: string;
+  uploadEndpoint?: string;
 }) {
   function updateAt(index: number, url: string) {
     onChange(images.map((img, i) => (i === index ? { ...img, url } : img)));
@@ -50,6 +52,7 @@ export function MultiImageField({
             onChange={(url) => updateAt(i, url)}
             altValue={img.alt ?? ""}
             onAltChange={(alt) => updateAltAt(i, alt)}
+            uploadEndpoint={uploadEndpoint}
           />
           <div className="flex shrink-0 flex-col gap-0.5">
             <button

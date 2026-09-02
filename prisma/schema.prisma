@@ -73,8 +73,30 @@ model Product {
   optionImages ProductOptionImage[]
   orderItems  OrderItem[]
   wishlistItems WishlistItem[]
+  reviews       ProductReview[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+}
+
+// Urun yorumu + opsiyonel fotograf. Misafir yorumu (customerId null) da
+// calisir, C.1 sonrasi giris yapmis musteriye baglanabilir (opsiyonel).
+// Gonderilen yorum hemen yayinlanmaz (BEKLIYOR), admin onayindan sonra
+// site tarafinda gorunur.
+model ProductReview {
+  id            String    @id @default(cuid())
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  customerId    String?
+  customer      Customer? @relation(fields: [customerId], references: [id])
+  customerName  String
+  customerEmail String
+  rating        Int // 1-5
+  comment       String
+  imageUrls     String? // "\n" ayrik URL listesi - Product.images ile ayni format
+  status        String    @default("BEKLIYOR") // "BEKLIYOR" | "ONAYLANDI" | "REDDEDILDI"
+  createdAt     DateTime  @default(now())
+
+  @@index([productId, status])
 }
 
 // Favoriler - guest kullanicida localStorage'da (bkz. lib/wishlist.tsx),
@@ -228,6 +250,7 @@ model Customer {
   orders        Order[]
   loyaltyLedger LoyaltyTransaction[]
   wishlistItems WishlistItem[]
+  reviews       ProductReview[]
 }
 
 model CustomerAddress {

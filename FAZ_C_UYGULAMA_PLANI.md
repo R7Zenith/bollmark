@@ -96,8 +96,32 @@
   `/hesap/giris`'e yönlendirdi ve giriş yapmışsa ürünü doğru gösterdi,
   ürün sayfasında kalp ikonu ve guest notu render edildi. Test verisi
   (geçici müşteri hesabı, cascade ile wishlist kaydı) temizlendi. Commit:
-  bir sonraki adımda atılacak.
-- Sıradaki: **C.4 (Ürün Yorumu + Fotoğraf).**
+  f9f0ff3.
+- **C.4 (Ürün Yorumu + Fotoğraf) tamamlandı.** `ProductReview` modeli
+  (misafir yorumu da çalışır — `customerId` opsiyonel, C.1 sonrası giriş
+  yapmış müşteriye otomatik bağlanır). `src/lib/reviews.ts`
+  (`getProductReviewSummary` — ortalama+sayı sadece `ONAYLANDI`, fotoğraflı
+  yorumlar öne alınır) sabitlerden (`review-constants.ts`) ayrı tutuldu
+  (aynı prisma/client-bundle gerekçesi). Fotoğraf yükleme için admin-only
+  `/api/admin/upload`'ı kullanamadığımız için (misafir kullanıcı admin
+  oturumuna sahip olamaz) ayrı, oturumsuz `/api/yorumlar/foto-yukle`
+  eklendi — `image-field.tsx`/`multi-image-field.tsx`'e `uploadEndpoint`
+  prop'u eklenerek (varsayılan admin endpoint'i) gerçek component reuse
+  sağlandı, kopyalanmadı. Site: ürün sayfasına yorumlar bölümü
+  (`ProductReviews` — ortalama+yıldız, onaylı yorum listesi, yorum ekleme
+  formu; gönderilen yorum "onaylandıktan sonra yayınlanacak" mesajıyla
+  hemen yayınlanmaz). Admin: `/admin/yorumlar` (`returns-table.tsx`
+  deseniyle satır-içi durum değiştirme), sidebar linki. Ürün kartı/liste
+  sayfasına yıldız gösterimi plana uygun şekilde v1 kapsamı dışında
+  bırakıldı (N+1 riski). `npx tsc --noEmit` + `npm run build` temiz.
+  Gerçek Neon DB'ye karşı test: misafir yorumu gönderilip `BEKLIYOR`
+  durumdayken ürün sayfasında görünmediği, admin onayından sonra
+  göründüğü ve ortalamaya dahil olduğu, reddedilen yorumun hiç görünmediği,
+  fotoğraflı yorumun (gerçek Vercel Blob'a public upload endpoint'i ile
+  yüklenip) fotoğrafsız yorumdan önce sıralandığı doğrulandı. Test verisi
+  (yorumlar, geçici admin hesabı, yüklenen test görseli Blob'dan silinerek)
+  temizlendi. Commit: bir sonraki adımda atılacak.
+- Sıradaki: **C.7 (İlgili Ürün).**
 
 **Kapsam dışı bırakılan (kullanıcı isteğiyle):** Pazaryeri entegrasyonu
 (Trendyol/Hepsiburada/N11) ve e-Fatura/e-Arşiv entegrasyonu — bu ikisi
