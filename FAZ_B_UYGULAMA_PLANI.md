@@ -15,8 +15,17 @@
     rol bazlı erişim kısıtlaması (`isPathAllowedForRole`) planın önerdiği
     gibi layout/requireAdmin() yerine (veya onunla birlikte) buraya
     eklenecek çünkü asıl route koruması burada.
-  - **Sıradaki adım: B.4 (Otomatik E-posta Bildirimleri).** Henüz
-    başlanmadı, onay bekliyor.
+- **B.4 (Otomatik E-posta Bildirimleri) TAMAMLANDI** (commit `8118906`) —
+  yeni sipariş → admin maili `api/orders/route.ts`'e, durum değişikliği →
+  müşteri maili üç çağrı noktasına (`admin/siparisler/[id]/page.tsx`'teki
+  `setOrderStatus`, `api/admin/siparisler/bulk/route.ts`'teki toplu durum
+  değişikliği, `src/lib/shipment.ts`'teki `applyShipmentUpdate` kargoya
+  verildi durumu) fire-and-forget eklendi, `.env.example`'a
+  `ADMIN_NOTIFY_EMAIL` eklendi. `npx tsc --noEmit` ve `npm run build`
+  temiz geçti (bu makinede Node.js hiç kurulu değildi, winget ile
+  kurulup `prisma generate` çalıştırıldıktan sonra doğrulandı).
+  - **Sıradaki adım: B.2 (Personel Hesapları + Rol Yetkilendirme).**
+    Henüz başlanmadı, onay bekliyor.
 - Faz A (kampanya/kupon, terk edilmiş sepet hatırlatma, stok bildirimi)
   tamamlanıp canlıda doğrulandı — bkz. `FAZ_A_UYGULAMA_PLANI.md`.
 - **B.3 (kargo firması API entegrasyonu) kullanıcıdan bilgi bekliyor** —
