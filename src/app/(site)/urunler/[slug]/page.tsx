@@ -11,9 +11,22 @@ import { optionValue, colorValueId } from "@/lib/variant-attributes";
 const BASE_URL = "https://bollmark.com";
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1200";
 
+// Bu Next.js sürümünde dinamik rota segmentleri (params.slug), tarayıcının
+// gönderdiği %XX kaçış dizileriyle olduğu gibi geliyor - standart Next.js'in
+// aksine otomatik çözülmüyor. Türkçe karakterli slug'lar (ı, ğ, ü, ş, ö, ç)
+// bu yüzden veritabanında bulunamıyordu (notFound()'a düşüyordu) - burada
+// elle çözüyoruz.
+function decodeSlug(raw: string): string {
+  try {
+    return decodeURIComponent(raw);
+  } catch {
+    return raw;
+  }
+}
+
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const { slug: rawSlug } = await params;
+  const product = await getProductBySlug(decodeSlug(rawSlug));
   if (!product || product.status !== "PUBLISHED") return {};
 
   const image = product.images[0]?.url ?? FALLBACK_IMAGE;
@@ -31,8 +44,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params;
-  const product = await getProductBySlug(slug);
+  const { slug: rawSlug } = await params;
+  const product = await getProductBySlug(decodeSlug(rawSlug));
   if (!product || product.status !== "PUBLISHED") notFound();
 
   const colorGalleries: Record<string, string[]> = {};

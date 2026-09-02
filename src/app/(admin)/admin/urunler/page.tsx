@@ -67,7 +67,11 @@ export default async function AdminProductsPage({
         ...(durum ? { status: durum } : {}),
         ...(kategori ? { categoryId: kategori } : {})
       },
-      include: { images: { take: 1, orderBy: { position: "asc" } }, variants: true },
+      include: {
+        images: { take: 1, orderBy: { position: "asc" } },
+        optionImages: { take: 1, orderBy: { position: "asc" } },
+        variants: true
+      },
       orderBy:
         sortKey === "name"
           ? { name: sortDir }
@@ -87,7 +91,7 @@ export default async function AdminProductsPage({
     priceCents: p.priceCents,
     stock: p.variants.reduce((sum, v) => sum + v.stock, 0),
     createdAt: p.createdAt.toISOString(),
-    imageUrl: p.images[0]?.url ?? null
+    imageUrl: p.images[0]?.url ?? p.optionImages[0]?.url ?? null
   }));
 
   if (sortKey === "stock") {
