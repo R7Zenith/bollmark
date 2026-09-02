@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/require-admin";
 import { Card } from "@/components/admin/card";
 import { CouponRow, type CouponData } from "@/components/admin/coupon-row";
 import { CouponFeedback } from "@/components/admin/coupon-feedback";
@@ -82,6 +83,7 @@ export default async function AdminCouponsPage({
 }: {
   searchParams: Promise<{ basarili?: string; hata?: string }>;
 }) {
+  await requireAdmin();
   const { basarili, hata } = await searchParams;
   const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: "desc" } });
 

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/require-admin";
 import { Card } from "@/components/admin/card";
 import { SaveBar } from "@/components/admin/save-bar";
 import { ProductFeedback } from "@/components/admin/product-feedback";
@@ -192,6 +193,7 @@ export default async function NewProductPage({
 }: {
   searchParams: Promise<{ hata?: string }>;
 }) {
+  await requireAdmin();
   const { hata } = await searchParams;
   const [categories, attributes, brands, tags] = await Promise.all([
     prisma.category.findMany({ orderBy: { name: "asc" } }),

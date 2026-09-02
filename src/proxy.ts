@@ -1,16 +1,25 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { PREVIEW_COOKIE_MAX_AGE, PREVIEW_COOKIE_NAME, PREVIEW_GATE_PATH } from "@/lib/preview-gate";
+import { isPathAllowedForRole } from "@/lib/roles";
 
-// /admin altındaki tüm sayfaları giriş yapmış yönetici ile sınırlar.
-// /admin/login sayfası proxy() içinde ayrıca ele alınır, buraya girmez.
+// /admin altındaki tüm sayfaları giriş yapmış yönetici ile sınırlar, ayrıca
+// PERSONEL rolünün sadece kendisine izinli yollara erişebilmesini sağlar -
+// asıl route koruması burada (sayfa içindeki requireAdmin() ikinci katman).
 async function guardAdmin(request: NextRequest) {
   const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
-  if (token) return NextResponse.next();
+  if (!token) {
+    const signInUrl = new URL("/admin/login", request.url);
+    signInUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
+    return NextResponse.redirect(signInUrl);
+  }
 
-  const signInUrl = new URL("/admin/login", request.url);
-  signInUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
-  return NextResponse.redirect(signInUrl);
+  const role = typeof token.role === "string" ? token.role : "ADMIN";
+  if (!isPathAllowedForRole(role, request.nextUrl.pathname)) {
+    return NextResponse.redirect(new URL("/admin", request.url));
+  }
+
+  return NextResponse.next();
 }
 
 // Mağaza için şifreli önizleme kapısı.

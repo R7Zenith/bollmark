@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Plus, Package } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/require-admin";
 import { Button } from "@/components/admin/button";
 import { EmptyState } from "@/components/admin/empty-state";
 import { ProductsFilters } from "@/components/admin/products-filters";
@@ -22,6 +23,7 @@ export default async function AdminProductsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  await requireAdmin();
   const { q, durum, kategori, sort, dir } = await searchParams;
 
   const totalCount = await prisma.product.count();

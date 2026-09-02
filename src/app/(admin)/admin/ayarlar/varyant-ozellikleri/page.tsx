@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ArrowUp, ArrowDown, Trash2, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/require-admin";
 import { Card } from "@/components/admin/card";
 import { VariantAttributesFeedback } from "@/components/admin/variant-attributes-feedback";
 import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
@@ -136,6 +137,7 @@ export default async function VariantAttributesPage({
 }: {
   searchParams: Promise<{ basarili?: string; hata?: string }>;
 }) {
+  await requireAdmin();
   const { basarili, hata } = await searchParams;
 
   const attributes = await prisma.variantAttribute.findMany({

@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/require-admin";
 import { Card } from "@/components/admin/card";
 import { SaveBar } from "@/components/admin/save-bar";
 import { ProductFeedback } from "@/components/admin/product-feedback";
@@ -260,6 +261,7 @@ export default async function EditProductPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ basarili?: string; hata?: string }>;
 }) {
+  await requireAdmin();
   const { id } = await params;
   const { basarili, hata } = await searchParams;
   const [product, categories, attributes, brands, tags] = await Promise.all([

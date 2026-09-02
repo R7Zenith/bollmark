@@ -12,5 +12,9 @@ export const personelAllowedPaths = ["/admin", "/admin/siparisler", "/admin/karg
 
 export function isPathAllowedForRole(role: string, pathname: string): boolean {
   if (role === "ADMIN") return true;
-  return personelAllowedPaths.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+  // "/admin" (panel ana sayfasi) sadece tam eslesince izinli - aksi halde
+  // startsWith("/admin/") her /admin/* yolunu yanlislikla izinli sayardi.
+  return personelAllowedPaths.some((p) =>
+    p === "/admin" ? pathname === p : pathname === p || pathname.startsWith(`${p}/`)
+  );
 }

@@ -17,7 +17,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     <AdminSessionProvider>
       <ToastProvider>
         <div className="flex min-h-screen bg-admin-bg">
-          <Sidebar />
+          <Sidebar role={session.user?.role} />
           <div className="flex flex-1 flex-col">
             <Topbar />
             <main className="flex-1 px-8 py-8">{children}</main>

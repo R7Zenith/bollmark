@@ -1,5 +1,6 @@
 import { Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/require-admin";
 import { EmptyState } from "@/components/admin/empty-state";
 import { CustomersFilters } from "@/components/admin/customers-filters";
 import { CustomersTable, type CustomerRow } from "@/components/admin/customers-table";
@@ -17,6 +18,7 @@ export default async function AdminCustomersPage({
 }: {
   searchParams: Promise<{ q?: string }>;
 }) {
+  await requireAdmin();
   const { q } = await searchParams;
 
   const orders = await prisma.order.findMany({

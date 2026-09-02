@@ -11,9 +11,11 @@ import {
   Package,
   Truck,
   Users,
+  Users2,
   Settings,
   SlidersHorizontal
 } from "lucide-react";
+import { isPathAllowedForRole } from "@/lib/roles";
 
 const navItems = [
   { href: "/admin", label: "Panel", icon: LayoutDashboard, exact: true },
@@ -24,12 +26,14 @@ const navItems = [
   { href: "/admin/siparisler", label: "Siparişler", icon: Package },
   { href: "/admin/kargolar", label: "Kargolar", icon: Truck },
   { href: "/admin/musteriler", label: "Müşteriler", icon: Users },
+  { href: "/admin/personel", label: "Personel", icon: Users2 },
   { href: "/admin/ayarlar/varyant-ozellikleri", label: "Varyant Özellikleri", icon: SlidersHorizontal },
   { href: "/admin/ayarlar", label: "Ayarlar", icon: Settings, exact: true }
 ];
 
-export function Sidebar() {
+export function Sidebar({ role }: { role?: string }) {
   const pathname = usePathname();
+  const visibleItems = navItems.filter((item) => isPathAllowedForRole(role ?? "ADMIN", item.href));
 
   return (
     <aside className="w-60 flex-shrink-0 border-r border-admin-border bg-admin-surface px-4 py-6">
@@ -38,7 +42,7 @@ export function Sidebar() {
         <p className="mt-0.5 text-xs text-admin-text-muted">Yonetim Paneli</p>
       </div>
       <nav className="mt-8 space-y-0.5">
-        {navItems.map((item) => {
+        {visibleItems.map((item) => {
           const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
           const Icon = item.icon;
           return (

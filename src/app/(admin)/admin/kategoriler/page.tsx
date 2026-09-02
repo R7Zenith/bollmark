@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/require-admin";
 import { Card } from "@/components/admin/card";
 import { CategoryRow } from "@/components/admin/category-row";
 import { CategoryFeedback } from "@/components/admin/category-feedback";
@@ -57,6 +58,7 @@ export default async function AdminCategoriesPage({
 }: {
   searchParams: Promise<{ basarili?: string; hata?: string }>;
 }) {
+  await requireAdmin();
   const { basarili, hata } = await searchParams;
   const categories = await prisma.category.findMany({
     include: { _count: { select: { products: true } } },

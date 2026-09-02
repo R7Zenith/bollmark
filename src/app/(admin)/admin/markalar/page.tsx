@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { requireAdmin } from "@/lib/require-admin";
 import { Card } from "@/components/admin/card";
 import { BrandRow } from "@/components/admin/brand-row";
 import { BrandFeedback } from "@/components/admin/brand-feedback";
@@ -44,6 +45,7 @@ export default async function AdminBrandsPage({
 }: {
   searchParams: Promise<{ basarili?: string; hata?: string }>;
 }) {
+  await requireAdmin();
   const { basarili, hata } = await searchParams;
   const brands = await prisma.brand.findMany({
     include: { _count: { select: { products: true } } },

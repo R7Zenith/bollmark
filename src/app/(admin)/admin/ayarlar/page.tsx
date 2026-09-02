@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
 import { Info } from "lucide-react";
 import { authOptions } from "@/lib/auth";
+import { requireAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { Card } from "@/components/admin/card";
 import { SettingsFeedback } from "@/components/admin/settings-feedback";
@@ -52,6 +53,7 @@ export default async function AdminSettingsPage({
 }: {
   searchParams: Promise<{ basarili?: string; hata?: string }>;
 }) {
+  await requireAdmin();
   const { basarili, hata } = await searchParams;
   const session = await getServerSession(authOptions);
 
