@@ -5,6 +5,7 @@ import { generateOrderNumber } from "@/lib/format";
 import { effectivePrice } from "@/lib/variant";
 import { validateCoupon, CouponInvalidError } from "@/lib/coupons";
 import { calculateShippingCents } from "@/lib/shipping";
+import { notifyAdminNewOrder } from "@/lib/order-notifications";
 
 const lineSchema = z.object({
   productId: z.string(),
@@ -126,6 +127,8 @@ export async function POST(req: NextRequest) {
     await prisma.abandonedCart
       .updateMany({ where: { email: data.customerEmail, recoveredAt: null }, data: { recoveredAt: new Date() } })
       .catch((error) => console.error("Terk edilmiş sepet kurtarma işaretlemesi başarısız (yoksayıldı):", error));
+
+    notifyAdminNewOrder(order).catch((error) => console.error("Yeni sipariş maili başarısız:", error));
 
     return NextResponse.json({ orderNumber: order.orderNumber }, { status: 201 });
   } catch (error) {

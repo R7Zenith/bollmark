@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { orderStatuses } from "@/lib/status";
+import { orderStatuses, type OrderStatus } from "@/lib/status";
+import { notifyCustomerStatusChange } from "@/lib/order-notifications";
 
 const allowedStatuses = new Set<string>(orderStatuses);
 
@@ -21,7 +22,15 @@ export async function POST(request: NextRequest) {
   }
 
   if (body.action === "SET_STATUS" && allowedStatuses.has(body.status)) {
-    await prisma.order.updateMany({ where: { id: { in: ids } }, data: { status: body.status } });
+    const status = body.status as OrderStatus;
+    const orders = await prisma.$transaction(
+      ids.map((id) => prisma.order.update({ where: { id }, data: { status } }))
+    );
+    for (const order of orders) {
+      notifyCustomerStatusChange(order, status).catch((error) =>
+        console.error("Sipariş durum bildirimi maili başarısız:", error)
+      );
+    }
     return NextResponse.json({ ok: true });
   }
 

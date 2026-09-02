@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { applyShipmentUpdate } from "@/lib/shipment";
+import { notifyCustomerStatusChange } from "@/lib/order-notifications";
 import {
   orderStatusLabel,
   orderStatusTone,
@@ -22,7 +23,10 @@ const labelClass = "text-xs font-medium uppercase tracking-wide text-admin-text-
 async function setOrderStatus(id: string, status: OrderStatus) {
   "use server";
   try {
-    await prisma.order.update({ where: { id }, data: { status } });
+    const order = await prisma.order.update({ where: { id }, data: { status } });
+    notifyCustomerStatusChange(order, status).catch((error) =>
+      console.error("Sipariş durum bildirimi maili başarısız:", error)
+    );
   } catch {
     redirect(`/admin/siparisler/${id}?hata=guncellenemedi`);
   }
