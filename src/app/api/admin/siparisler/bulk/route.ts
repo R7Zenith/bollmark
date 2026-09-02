@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { orderStatuses, type OrderStatus } from "@/lib/status";
 import { notifyCustomerStatusChange } from "@/lib/order-notifications";
+import { logAudit } from "@/lib/audit-log";
 
 const allowedStatuses = new Set<string>(orderStatuses);
 
@@ -30,6 +31,14 @@ export async function POST(request: NextRequest) {
       notifyCustomerStatusChange(order, status).catch((error) =>
         console.error("Sipariş durum bildirimi maili başarısız:", error)
       );
+      logAudit({
+        actorEmail: session.user?.email ?? "bilinmiyor",
+        actorRole: session.user?.role ?? "ADMIN",
+        action: "ORDER_STATUS_CHANGED",
+        targetType: "Order",
+        targetId: order.id,
+        detail: `-> ${status} (toplu işlem)`
+      });
     }
     return NextResponse.json({ ok: true });
   }

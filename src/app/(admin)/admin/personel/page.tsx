@@ -1,7 +1,10 @@
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
+import { logAudit } from "@/lib/audit-log";
 import { adminRoleLabel, adminRoles, type AdminRole } from "@/lib/roles";
 import { Card } from "@/components/admin/card";
 import { PersonelRow } from "@/components/admin/personel-row";
@@ -27,7 +30,16 @@ async function createPersonel(formData: FormData) {
   if (existing) redirect(`${PATH}?hata=eposta-kullanimda`);
 
   const passwordHash = await bcrypt.hash(password, 10);
-  await prisma.adminUser.create({ data: { name, email, role, passwordHash } });
+  const created = await prisma.adminUser.create({ data: { name, email, role, passwordHash } });
+  const session = await getServerSession(authOptions);
+  logAudit({
+    actorEmail: session?.user?.email ?? "bilinmiyor",
+    actorRole: session?.user?.role ?? "ADMIN",
+    action: "PERSONEL_CREATED",
+    targetType: "AdminUser",
+    targetId: created.id,
+    detail: `${created.email} (${role})`
+  });
   redirect(`${PATH}?basarili=eklendi`);
 }
 
@@ -43,6 +55,15 @@ async function updatePersonel(id: string, selfEmail: string | undefined, formDat
   const role: AdminRole = (adminRoles as readonly string[]).includes(roleRaw) ? (roleRaw as AdminRole) : target.role as AdminRole;
 
   await prisma.adminUser.update({ where: { id }, data: { name, role } });
+  const session = await getServerSession(authOptions);
+  logAudit({
+    actorEmail: session?.user?.email ?? "bilinmiyor",
+    actorRole: session?.user?.role ?? "ADMIN",
+    action: "PERSONEL_UPDATED",
+    targetType: "AdminUser",
+    targetId: id,
+    detail: `ad: ${name}, rol: ${target.role} -> ${role}`
+  });
   redirect(`${PATH}?basarili=guncellendi`);
 }
 
@@ -54,6 +75,15 @@ async function toggleActivePersonel(id: string, selfEmail: string | undefined, f
 
   const isActive = formData.get("isActive") === "true";
   await prisma.adminUser.update({ where: { id }, data: { isActive } });
+  const session = await getServerSession(authOptions);
+  logAudit({
+    actorEmail: session?.user?.email ?? "bilinmiyor",
+    actorRole: session?.user?.role ?? "ADMIN",
+    action: "PERSONEL_UPDATED",
+    targetType: "AdminUser",
+    targetId: id,
+    detail: isActive ? "Pasif -> Aktif" : "Aktif -> Pasif"
+  });
   redirect(`${PATH}?basarili=durum-guncellendi`);
 }
 

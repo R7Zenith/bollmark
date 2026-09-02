@@ -1,8 +1,11 @@
 import { RotateCcw } from "lucide-react";
 import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { notifyReturnStatusChange } from "@/lib/order-notifications";
+import { logAudit } from "@/lib/audit-log";
 import { returnStatuses, type ReturnStatus } from "@/lib/status";
 import { EmptyState } from "@/components/admin/empty-state";
 import { IadelerFilters } from "@/components/admin/iadeler-filters";
@@ -37,6 +40,7 @@ async function updateReturnAction(formData: FormData) {
   const adminNote = String(formData.get("adminNote") || "").trim() || null;
 
   try {
+    const before = await prisma.returnRequest.findUnique({ where: { id: returnId }, select: { status: true } });
     const updated = await prisma.returnRequest.update({
       where: { id: returnId },
       data: { status, adminNote },
@@ -45,6 +49,15 @@ async function updateReturnAction(formData: FormData) {
     notifyReturnStatusChange(updated.order, status).catch((error) =>
       console.error("İade durum bildirimi maili başarısız:", error)
     );
+    const session = await getServerSession(authOptions);
+    logAudit({
+      actorEmail: session?.user?.email ?? "bilinmiyor",
+      actorRole: session?.user?.role ?? "ADMIN",
+      action: "RETURN_STATUS_CHANGED",
+      targetType: "ReturnRequest",
+      targetId: updated.id,
+      detail: `${before?.status ?? "?"} -> ${status}`
+    });
   } catch {
     redirect("/admin/iadeler?hata=guncellenemedi");
   }

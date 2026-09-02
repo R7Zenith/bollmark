@@ -268,6 +268,23 @@ model StoreSettings {
   updatedAt            DateTime @updatedAt
 }
 
+// Kritik islemlerin (siparis/iade durum degisikligi, personel yonetimi,
+// sadakat puani duzeltmesi) denetim kaydi - v1'de sadece gurultu
+// yaratmayacak kritik islemler loglanir (bkz. lib/audit-log.ts).
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorEmail String
+  actorRole  String
+  action     String // "ORDER_STATUS_CHANGED", "RETURN_STATUS_CHANGED", "PERSONEL_CREATED", "PERSONEL_UPDATED", "LOYALTY_ADJUSTED" ...
+  targetType String // "Order" | "ReturnRequest" | "AdminUser" | "Customer" ...
+  targetId   String
+  detail     String? // kisa metin, orn. "PENDING_PAYMENT -> PAID"
+  createdAt  DateTime @default(now())
+
+  @@index([targetType, targetId])
+  @@index([createdAt])
+}
+
 model Shipment {
   id           String         @id @default(cuid())
   orderId      String         @unique
