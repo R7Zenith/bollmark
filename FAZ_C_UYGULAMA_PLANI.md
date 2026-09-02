@@ -130,8 +130,41 @@
   DB'ye karşı test: aynı kategoriye geçici bir "kardeş" ürün eklenip ürün
   sayfasında göründüğü ve ürünün kendisinin listede çıkmadığı, kategorisiz
   bir üründe bölümün hiç görünmediği doğrulandı. Test ürünleri silindi.
-  Commit: bir sonraki adımda atılacak.
-- Sıradaki: **C.2 (Bundle/Ön Sipariş).**
+  Commit: c817ad6.
+- **C.2 kapsam değişikliği (kullanıcı kararı):** Uygulamaya başlamadan önce
+  planın "Riskler" bölümünde belirtildiği gibi `orders/route.ts`'te gerçek
+  bir stok kontrolü olup olmadığı kontrol edildi — **doğrulandı: hiç yok**
+  (`variant.stock` hiçbir yerde `quantity` ile karşılaştırılmıyor, sipariş
+  sonrası stok hiç düşülmüyor; tek stok-ilişkili kod `stock-alerts.ts`'teki
+  "stok gelince haber ver" özelliği, tamamen farklı bir amaç). Bu bulgu
+  kullanıcıya soruldu; kullanıcı **ön sipariş özelliğini tamamen ertelemeyi
+  seçti** (stok yönetimi netleşene kadar ayrı bir kararla ele alınacak),
+  C.2 sadece **Bundle/Set İndirimi** olarak daraltıldı.
+- **C.2 (Bundle/Set İndirimi) tamamlandı.** `Bundle` modeli (`Product` ile
+  implicit many-to-many) + `Order.bundleDiscountCents`. `src/lib/bundles.ts`
+  — `resolveBundleDiscount` (bir bundle'ın TÜM ürünlerinden en az 1'er adet
+  sepette olmalı, kısmi eşleşme tetiklemez; birden fazla bundle eşleşirse
+  en yüksek indirimli tek biri uygulanır) ve `getBundleForProduct` (ürün
+  sayfası rozeti için). `orders/route.ts`'teki üç indirim kalemi artık
+  **sıralı ve deterministik**: önce bundle (orijinal subtotal üzerinden),
+  sonra kupon (bundle sonrası kalan üzerinden), sonra puan (ikisi sonrası
+  kalan üzerinden) — kupon/puan önizleme bileşenlerinin `subtotalCents`
+  prop'ları da aynı sırayı yansıtacak şekilde güncellendi. Sepet/checkout'a
+  otomatik "Bundle İndirimi" satırı (`useBundleDiscount` hook'u,
+  `/api/bundle-onizleme` ile önizleme — kupon önizlemesiyle aynı
+  "bağlayıcı değil" gerekçesi). Ürün sayfasına bilgilendirici rozet. Admin:
+  `/admin/bundle-kampanyalari` (`searchable-multi-select.tsx` ile ürün
+  seçimi + indirim yüzdesi + aktif/pasif, `tags-field.tsx`'teki gizli-input
+  JSON deseniyle), sidebar linki. `npx tsc --noEmit` + `npm run build`
+  temiz. Gerçek Neon DB'ye karşı test: tam eşleşmede doğru indirim (%20 →
+  1500 TL'nin 300 TL'si), kısmi eşleşmede indirim uygulanmaması, miktar
+  arttıkça indirimin doğru büyümesi, bundle+kupon'un doğru sırayla
+  toplanması (%20 bundle sonrası kalan üzerinden %10 kupon — sonuç
+  deterministik ve pozitif), admin panelden bundle oluşturmanın çoka-çok
+  ilişkiyi doğru kurması, ürün sayfası rozetinin doğru göründüğü
+  doğrulandı. Test verisi (ürünler, bundle'lar, kupon, sipariş, geçici
+  admin) temizlendi. Commit: bir sonraki adımda atılacak.
+- Sıradaki: **C.8 (SEO Altyapısı) — son madde.**
 
 **Kapsam dışı bırakılan (kullanıcı isteğiyle):** Pazaryeri entegrasyonu
 (Trendyol/Hepsiburada/N11) ve e-Fatura/e-Arşiv entegrasyonu — bu ikisi

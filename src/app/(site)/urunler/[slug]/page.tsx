@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelatedProducts } from "@/lib/catalog";
 import { getProductReviewSummary } from "@/lib/reviews";
+import { getBundleForProduct } from "@/lib/bundles";
 import { ProductViewer } from "@/components/product-viewer";
 import { ProductReviews, type ReviewView } from "@/components/product-reviews";
 import { ProductCard } from "@/components/product-card";
@@ -17,6 +18,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   }
 
   const relatedProducts = await getRelatedProducts(product);
+  const bundleInfo = await getBundleForProduct(product.id);
   const { avgRating, count, reviews } = await getProductReviewSummary(product.id);
   const reviewViews: ReviewView[] = reviews.map((r) => ({
     id: r.id,
@@ -51,6 +53,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
           stock: v.stock,
           priceCents: v.priceCents
         }))}
+        bundleInfo={bundleInfo}
       />
       <ProductReviews productId={product.id} avgRating={avgRating} count={count} reviews={reviewViews} />
 

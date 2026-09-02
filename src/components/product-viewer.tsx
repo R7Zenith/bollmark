@@ -91,7 +91,8 @@ export function ProductViewer({
   compareAtCents,
   fallbackImages,
   colorGalleries,
-  variants
+  variants,
+  bundleInfo
 }: {
   productId: string;
   productName: string;
@@ -107,6 +108,7 @@ export function ProductViewer({
   fallbackImages: { url: string; alt: string }[];
   colorGalleries: Record<string, string[]>;
   variants: Variant[];
+  bundleInfo?: { discountPercent: number; otherProductNames: string[] } | null;
 }) {
   const { addLine } = useCart();
   const { ids: wishlistIds, isAuthenticated, toggle: toggleWishlist } = useWishlist();
@@ -187,6 +189,12 @@ export function ProductViewer({
             <span className="text-ink/40 line-through">{formatPrice(compareAtCents)}</span>
           )}
         </div>
+        {bundleInfo && bundleInfo.otherProductNames.length > 0 && (
+          <p className="mt-3 border border-accent/40 bg-accent/5 px-4 py-2.5 text-sm text-ink/80">
+            Bu ürünü <span className="font-medium">{bundleInfo.otherProductNames.join(", ")}</span> ile birlikte al, %
+            {bundleInfo.discountPercent} indirim kazan.
+          </p>
+        )}
         <p className="mt-6 leading-relaxed text-ink/70">{description}</p>
 
         {(material || origin || careInstructions) && (

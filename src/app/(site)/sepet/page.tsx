@@ -6,11 +6,13 @@ import Link from "next/link";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { CouponField, type CouponResult } from "@/components/coupon-field";
+import { useBundleDiscount } from "@/lib/use-bundle-discount";
 
 export default function CartPage() {
   const { lines, removeLine, updateQuantity, totalCents } = useCart();
   const [coupon, setCoupon] = useState<CouponResult>(null);
   const discountCents = coupon?.discountCents ?? 0;
+  const bundleDiscountCents = useBundleDiscount(lines);
 
   if (lines.length === 0) {
     return (
@@ -72,6 +74,12 @@ export default function CartPage() {
           <span>Ara Toplam</span>
           <span>{formatPrice(totalCents)}</span>
         </div>
+        {bundleDiscountCents > 0 && (
+          <div className="flex items-center justify-between text-sm text-accent">
+            <span>Bundle İndirimi</span>
+            <span>-{formatPrice(bundleDiscountCents)}</span>
+          </div>
+        )}
         {discountCents > 0 && (
           <div className="flex items-center justify-between text-sm text-accent">
             <span>İndirim</span>
@@ -80,7 +88,7 @@ export default function CartPage() {
         )}
         <div className="flex items-center justify-between pt-2">
           <span className="text-lg">Toplam</span>
-          <span className="text-lg font-medium">{formatPrice(totalCents - discountCents)}</span>
+          <span className="text-lg font-medium">{formatPrice(totalCents - bundleDiscountCents - discountCents)}</span>
         </div>
       </div>
 

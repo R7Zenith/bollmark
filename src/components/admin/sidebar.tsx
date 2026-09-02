@@ -28,6 +28,7 @@ const navItems = [
   { href: "/admin/kategoriler", label: "Kategoriler", icon: Tag },
   { href: "/admin/markalar", label: "Markalar", icon: Award },
   { href: "/admin/kampanyalar", label: "Kampanyalar", icon: Percent },
+  { href: "/admin/bundle-kampanyalari", label: "Bundle Kampanyaları", icon: Percent },
   { href: "/admin/siparisler", label: "Siparişler", icon: Package },
   { href: "/admin/iadeler", label: "İadeler", icon: RotateCcw },
   { href: "/admin/kargolar", label: "Kargolar", icon: Truck },

@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/format";
 import { effectivePrice } from "@/lib/variant";
 import { validateCoupon, CouponInvalidError } from "@/lib/coupons";
+import { resolveBundleDiscount } from "@/lib/bundles";
 import { resolveLoyaltyRedemption, LoyaltyInvalidError } from "@/lib/loyalty";
 import { calculateShippingCents } from "@/lib/shipping";
 import { notifyAdminNewOrder } from "@/lib/order-notifications";
@@ -81,6 +82,12 @@ export async function POST(req: NextRequest) {
 
   try {
     const order = await prisma.$transaction(async (tx) => {
+      // Uc indirim kalemi de HER ZAMAN sunucuda, sirayla hesaplanir - bundle
+      // once (urun secimine bagli, otomatik), sonra kupon (kod), sonra puan
+      // (bakiye) - boylece uc kalem birlikte kullanildiginda toplam her
+      // zaman deterministik ve negatif olmaz.
+      const { discountCents: bundleDiscountCents } = await resolveBundleDiscount(tx, resolvedLines);
+
       // Indirim de fiyat gibi hicbir zaman istemciden gelen deger uzerinden
       // hesaplanmaz - istemci sadece kupon KODUNU gonderir, tutar burada
       // (validateCoupon icinde) sunucuda yeniden hesaplanir. usedCount artisi
@@ -90,7 +97,7 @@ export async function POST(req: NextRequest) {
       let couponId: string | null = null;
       let freeShipping = false;
       if (data.couponCode) {
-        const result = await validateCoupon(tx, data.couponCode, subtotalCents);
+        const result = await validateCoupon(tx, data.couponCode, subtotalCents - bundleDiscountCents);
         if (!result.valid) {
           throw new CouponInvalidError(result.message);
         }
@@ -109,11 +116,12 @@ export async function POST(req: NextRequest) {
         tx,
         customerId,
         data.pointsToRedeem ?? 0,
-        subtotalCents - discountCents
+        subtotalCents - bundleDiscountCents - discountCents
       );
 
-      const shippingCents = calculateShippingCents(subtotalCents - discountCents - loyaltyDiscountCents, freeShipping);
-      const totalCents = subtotalCents - discountCents - loyaltyDiscountCents + shippingCents;
+      const totalDiscountCents = bundleDiscountCents + discountCents + loyaltyDiscountCents;
+      const shippingCents = calculateShippingCents(subtotalCents - totalDiscountCents, freeShipping);
+      const totalCents = subtotalCents - totalDiscountCents + shippingCents;
 
       const createdOrder = await tx.order.create({
         data: {
@@ -130,6 +138,7 @@ export async function POST(req: NextRequest) {
           subtotalCents,
           discountCents,
           couponId,
+          bundleDiscountCents,
           pointsRedeemed,
           loyaltyDiscountCents,
           shippingCents,

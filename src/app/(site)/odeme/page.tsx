@@ -7,6 +7,7 @@ import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { CouponField, type CouponResult } from "@/components/coupon-field";
 import { LoyaltyField, type LoyaltyResult } from "@/components/loyalty-field";
+import { useBundleDiscount } from "@/lib/use-bundle-discount";
 import { calculateShippingCents } from "@/lib/shipping";
 
 export default function CheckoutPage() {
@@ -17,13 +18,14 @@ export default function CheckoutPage() {
   const [coupon, setCoupon] = useState<CouponResult>(null);
   const [loyalty, setLoyalty] = useState<LoyaltyResult>(null);
 
+  // Sunucudaki (orders/route.ts) ile ayni sirali hesaplama: once bundle,
+  // sonra kupon, sonra puan - boylece onizleme nihai tutarla tutarli kalir.
+  const bundleDiscountCents = useBundleDiscount(lines);
   const discountCents = coupon?.discountCents ?? 0;
   const loyaltyDiscountCents = loyalty?.discountCents ?? 0;
-  const shippingCents = calculateShippingCents(
-    totalCents - discountCents - loyaltyDiscountCents,
-    coupon?.freeShipping ?? false
-  );
-  const grandTotalCents = totalCents - discountCents - loyaltyDiscountCents + shippingCents;
+  const totalDiscountCents = bundleDiscountCents + discountCents + loyaltyDiscountCents;
+  const shippingCents = calculateShippingCents(totalCents - totalDiscountCents, coupon?.freeShipping ?? false);
+  const grandTotalCents = totalCents - totalDiscountCents + shippingCents;
 
   // Kullanici e-posta alanina yazip baska bir alana gectiginde (odeme
   // tamamlanmadan once) sepeti arka planda kaydeder - terk edilmis sepet
@@ -177,8 +179,8 @@ export default function CheckoutPage() {
         </div>
 
         <div className="mt-4 space-y-4 border-t border-line pt-4">
-          <CouponField subtotalCents={totalCents} onDiscountChange={setCoupon} />
-          <LoyaltyField subtotalCents={totalCents - discountCents} onRedeemChange={setLoyalty} />
+          <CouponField subtotalCents={totalCents - bundleDiscountCents} onDiscountChange={setCoupon} />
+          <LoyaltyField subtotalCents={totalCents - bundleDiscountCents - discountCents} onRedeemChange={setLoyalty} />
         </div>
 
         <div className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
@@ -186,6 +188,12 @@ export default function CheckoutPage() {
             <span>Ara Toplam</span>
             <span>{formatPrice(totalCents)}</span>
           </div>
+          {bundleDiscountCents > 0 && (
+            <div className="flex justify-between text-accent">
+              <span>Bundle İndirimi</span>
+              <span>-{formatPrice(bundleDiscountCents)}</span>
+            </div>
+          )}
           {discountCents > 0 && (
             <div className="flex justify-between text-accent">
               <span>İndirim</span>

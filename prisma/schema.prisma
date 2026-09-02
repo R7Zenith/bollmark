@@ -74,8 +74,21 @@ model Product {
   orderItems  OrderItem[]
   wishlistItems WishlistItem[]
   reviews       ProductReview[]
+  bundles       Bundle[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+}
+
+// Bundle/set indirimi - sepette bir bundle'a dahil TUM urunlerden en az
+// 1'er adet varsa (kismi eslesme tetiklemez), bu urunlerin satir toplamina
+// discountPercent uygulanir (bkz. lib/bundles.ts).
+model Bundle {
+  id              String    @id @default(cuid())
+  name            String
+  discountPercent Int // sepette bundle'a dahil TUM urunler varsa uygulanan indirim
+  isActive        Boolean   @default(true)
+  products        Product[]
+  createdAt       DateTime  @default(now())
 }
 
 // Urun yorumu + opsiyonel fotograf. Misafir yorumu (customerId null) da
@@ -222,6 +235,8 @@ model Order {
   discountCents Int         @default(0)
   couponId      String?
   coupon        Coupon?     @relation(fields: [couponId], references: [id])
+  // Bundle indirimi - kupon/puan ile ayni sirada, ayri bir kalem (bkz. lib/bundles.ts)
+  bundleDiscountCents Int   @default(0)
   // Sadakat puani kazanc/kullanim alanlari - bkz. lib/loyalty.ts
   pointsEarned         Int  @default(0)
   pointsRedeemed       Int  @default(0)
