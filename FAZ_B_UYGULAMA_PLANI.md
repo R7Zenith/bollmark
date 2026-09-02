@@ -24,8 +24,22 @@
   `ADMIN_NOTIFY_EMAIL` eklendi. `npx tsc --noEmit` ve `npm run build`
   temiz geçti (bu makinede Node.js hiç kurulu değildi, winget ile
   kurulup `prisma generate` çalıştırıldıktan sonra doğrulandı).
-  - **Sıradaki adım: B.2 (Personel Hesapları + Rol Yetkilendirme).**
-    Henüz başlanmadı, onay bekliyor.
+- **B.2 (Personel Hesapları + Rol Yetkilendirme) TAMAMLANDI**
+  (commit `e4380d8`) — `/admin/personel` sayfası, `src/lib/require-admin.ts`,
+  `proxy.ts`'teki `guardAdmin` artık `isPathAllowedForRole` ile PERSONEL'i
+  kısıtlıyor, sidebar role göre filtreleniyor, `urunler/bulk` API'sine rol
+  kontrolü eklendi. Gerçek Neon DB'ye karşı NextAuth credentials akışı
+  `curl` ile simüle edilerek test edildi (test PERSONEL hesabı oluşturulup
+  silindi) — bu sırada `isPathAllowedForRole`'deki `"/admin"` girdisinin
+  `startsWith` kontrolüyle her `/admin/*` yolunu yanlışlıkla izinli
+  saydığı gerçek bir hata bulunup düzeltildi (proxy seviyesindeki asıl
+  koruma devre dışı kalıyordu, sayfa seviyesindeki `requireAdmin()` şans
+  eseri örtüyordu). Düzeltme sonrası PERSONEL için proxy 307 ile doğru
+  engelliyor, sidebar sadece Panel/Siparişler/Kargolar gösteriyor, pasif
+  hesapla giriş `401 CredentialsSignin` ile reddediliyor; ADMIN için
+  regresyon yok. `npx tsc --noEmit` ve `npm run build` temiz geçti.
+  - **Sıradaki adım: B.5 (Gelişmiş Raporlama).** Henüz başlanmadı, onay
+    bekliyor.
 - Faz A (kampanya/kupon, terk edilmiş sepet hatırlatma, stok bildirimi)
   tamamlanıp canlıda doğrulandı — bkz. `FAZ_A_UYGULAMA_PLANI.md`.
 - **B.3 (kargo firması API entegrasyonu) kullanıcıdan bilgi bekliyor** —
