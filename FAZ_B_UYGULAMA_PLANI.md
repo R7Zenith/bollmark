@@ -55,7 +55,36 @@
   şekilde hariç tutuldu, `PREPARING`+`SHIPPED` doğru toplandı, geçici
   `costCents` ile marj yüzdesi doğru hesaplanıp test verisi temizlendi).
   `npx tsc --noEmit` ve `npm run build` temiz geçti.
-  - **Sıradaki adım: B.1 (İade/Değişim - RMA).** Henüz başlanmadı.
+- **B.1 (İade/Değişim - RMA) TAMAMLANDI** — `ReturnRequest` modeli (Order
+  ile ilişki), `src/lib/status.ts`'e `returnStatuses`/`returnTypes`/
+  `returnReasons`, `order-notifications.ts`'e `notifyReturnStatusChange`
+  eklendi. Müşteri tarafı: `/siparis-durumu` (client component, checkout
+  sayfasıyla aynı üslup) — sipariş no + e-posta ile sorgular
+  (`POST /api/siparis-sorgula`), sipariş özeti + iade geçmişini gösterir,
+  `DELIVERED` durumundaki siparişlerde ürün seçip talep oluşturur
+  (`POST /api/iade-talebi`). İkisi de orderNumber+email eşleşmesini
+  sunucuda yeniden doğruluyor (istemciden gelen orderId'ye güvenilmiyor),
+  yanlış eşleşmede "bulunamadı" dönüp bilgi sızdırmıyor, aynı ürün için
+  açık talep varken ikinci talebi reddediyor. Admin tarafı: `/admin/iadeler`
+  (`ShipmentsTable` ile aynı satır-içi düzenleme deseni — durum + admin
+  notu), footer'daki statik "İade & Değişim" metni gerçek sayfaya
+  bağlandı, sidebar'a "İadeler" eklendi (`personelAllowedPaths` dışında
+  olduğu için PERSONEL'e kapalı). Gerçek Neon DB'ye karşı test edildi:
+  bir siparişi geçici `DELIVERED` yapıp dev server'a (zaten çalışan,
+  port 3000) `curl`/Node `fetch` ile tüm uç noktalar denendi — doğru
+  eşleşmeyle talep oluşturma, yanlış e-postada 404, teslim edilmemiş
+  siparişte red, aynı ürün için tekrar talepte red, hepsi beklenen
+  sonucu verdi; Türkçe karakterli alanların (`reason`, `customerNote`)
+  UTF-8 olarak doğru saklandığı Node `fetch` ile doğrulandı (curl'daki
+  ilk denemede Windows Git Bash'in argüman kodlamasından kaynaklanan bir
+  bozulma görülmüştü, uygulama kodunda sorun değildi). Test verileri
+  silinip sipariş durumu eski haline (`SHIPPED`) döndürüldü. `npx tsc
+  --noEmit` ve `npm run build` temiz geçti.
+  - Faz B'de B.3 dışında her madde tamamlandı. **B.3 (kargo firması API
+    entegrasyonu) tamamen erteledi** — kullanıcı henüz hiçbir kargo
+    firmasıyla anlaşmadı, "şimdi yapılabilecek" soyutlama katmanı dahil
+    bu iş çok sonraya bırakıldı; kargo firması netleşmeden bu maddeye
+    dönülmeyecek.
 - Faz A (kampanya/kupon, terk edilmiş sepet hatırlatma, stok bildirimi)
   tamamlanıp canlıda doğrulandı — bkz. `FAZ_A_UYGULAMA_PLANI.md`.
 - **B.3 (kargo firması API entegrasyonu) kullanıcıdan bilgi bekliyor** —

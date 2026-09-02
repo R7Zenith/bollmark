@@ -55,3 +55,36 @@ export const shipmentStatusTone: Record<ShipmentStatus, BadgeTone> = {
   TESLIM_EDILDI: "green",
   IADE: "red"
 };
+
+export const returnStatuses = ["TALEP_EDILDI", "ONAYLANDI", "REDDEDILDI", "KARGODA", "TAMAMLANDI"] as const;
+export type ReturnStatus = (typeof returnStatuses)[number];
+
+export const returnStatusLabel: Record<ReturnStatus, string> = {
+  TALEP_EDILDI: "Talep Edildi",
+  ONAYLANDI: "Onaylandı",
+  REDDEDILDI: "Reddedildi",
+  KARGODA: "Kargoda",
+  TAMAMLANDI: "Tamamlandı"
+};
+
+export const returnStatusTone: Record<ReturnStatus, BadgeTone> = {
+  TALEP_EDILDI: "yellow",
+  ONAYLANDI: "blue",
+  REDDEDILDI: "red",
+  KARGODA: "blue",
+  TAMAMLANDI: "green"
+};
+
+// Durum degisikliginde musteriye mail atilan gecisler - notifyReturnStatusChange
+// bunun disindaki durumlarda (TALEP_EDILDI, KARGODA) mail atmaz.
+export const returnStatusNotifiable: ReturnStatus[] = ["ONAYLANDI", "REDDEDILDI", "TAMAMLANDI"];
+
+export const returnTypes = ["IADE", "DEGISIM"] as const;
+export type ReturnType = (typeof returnTypes)[number];
+
+export const returnTypeLabel: Record<ReturnType, string> = {
+  IADE: "İade",
+  DEGISIM: "Değişim"
+};
+
+export const returnReasons = ["Beden uymadı", "Ürün hasarlı geldi", "Farklı ürün istiyorum", "Diğer"] as const;

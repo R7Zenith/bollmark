@@ -185,8 +185,27 @@ model Order {
   totalCents    Int
   items         OrderItem[]
   shipment      Shipment?
+  returnRequests ReturnRequest[]
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+}
+
+// Iade / degisim talebi. Bollmark'ta musteri hesabi olmadigi icin (siparis
+// no + e-posta ile takip) talep de ayni dogrulamayla acilir - bkz.
+// api/iade-talebi/route.ts. itemsJson, AbandonedCart.linesJson ile ayni
+// "anlik goruntu" deseni: [{orderItemId, quantity}].
+model ReturnRequest {
+  id           String   @id @default(cuid())
+  orderId      String
+  order        Order    @relation(fields: [orderId], references: [id])
+  type         String   // "IADE" | "DEGISIM"
+  reason       String
+  itemsJson    String
+  status       String   @default("TALEP_EDILDI")
+  customerNote String?
+  adminNote    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 // Indirim kodu / kampanya (v1: yuzde, sabit tutar, ucretsiz kargo). Kod hep

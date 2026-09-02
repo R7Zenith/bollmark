@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export function SiteFooter() {
   return (
     <footer className="mt-24 border-t border-line bg-white">
@@ -12,7 +14,11 @@ export function SiteFooter() {
           <p className="text-sm font-semibold uppercase tracking-wide">Kurumsal</p>
           <ul className="mt-3 space-y-2 text-sm text-ink/70">
             <li>Hakkımızda</li>
-            <li>İade &amp; Değişim</li>
+            <li>
+              <Link href="/siparis-durumu" className="hover:text-accent">
+                İade &amp; Değişim
+              </Link>
+            </li>
             <li>Kargo Bilgisi</li>
             <li>Gizlilik Politikası</li>
           </ul>

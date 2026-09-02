@@ -1,6 +1,6 @@
 import { sendMail } from "@/lib/mail";
 import { formatPrice } from "@/lib/format";
-import { orderStatusLabel, type OrderStatus } from "@/lib/status";
+import { orderStatusLabel, returnStatusLabel, returnStatusNotifiable, type OrderStatus, type ReturnStatus } from "@/lib/status";
 import type { Order } from "@/generated/prisma/client";
 
 // Sadece musterinin bilmesi gereken 3 kritik gecis icin mail atilir - her
@@ -25,5 +25,15 @@ export async function notifyCustomerStatusChange(order: Order, status: OrderStat
     subject: `Siparişiniz ${orderStatusLabel[status]} - ${order.orderNumber}`,
     html: `<p>Merhaba ${order.customerName}, ${order.orderNumber} numaralı siparişinizin durumu
            "${orderStatusLabel[status]}" olarak güncellendi.</p>`
+  });
+}
+
+export async function notifyReturnStatusChange(order: Order, status: ReturnStatus): Promise<void> {
+  if (!returnStatusNotifiable.includes(status)) return;
+  await sendMail({
+    to: order.customerEmail,
+    subject: `İade talebiniz ${returnStatusLabel[status]} - ${order.orderNumber}`,
+    html: `<p>Merhaba ${order.customerName}, ${order.orderNumber} numaralı siparişinize ait
+           iade/değişim talebinizin durumu "${returnStatusLabel[status]}" olarak güncellendi.</p>`
   });
 }
