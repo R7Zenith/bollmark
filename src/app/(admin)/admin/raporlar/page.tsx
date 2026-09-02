@@ -1,28 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { Card } from "@/components/admin/card";
-import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { RaporlarFilters } from "@/components/admin/raporlar-filters";
 import { TopProductsChart } from "@/components/admin/top-products-chart";
-import { formatPrice } from "@/lib/format";
+import { TopProductsTable, type TopProductRow } from "@/components/admin/top-products-table";
+import { BreakdownTable, type BreakdownRow } from "@/components/admin/breakdown-table";
 import { REVENUE_STATUSES } from "@/lib/orders";
 
 const ALLOWED_DAYS = [7, 30, 90];
-
-interface ProductRow {
-  productId: string;
-  name: string;
-  quantity: number;
-  revenueCents: number;
-  marginPercent: number | null;
-}
-
-interface BreakdownRow {
-  key: string;
-  name: string;
-  quantity: number;
-  revenueCents: number;
-}
 
 export default async function RaporlarPage({
   searchParams
@@ -54,7 +39,7 @@ export default async function RaporlarPage({
   });
   const productMap = new Map(products.map((p) => [p.id, p]));
 
-  const topProducts: ProductRow[] = [...grouped]
+  const topProducts: TopProductRow[] = [...grouped]
     .sort((a, b) => (b._sum.quantity ?? 0) - (a._sum.quantity ?? 0))
     .slice(0, 10)
     .map((g) => {
@@ -110,24 +95,6 @@ export default async function RaporlarPage({
   const categoryRows = [...categoryTotals.values()].sort((a, b) => b.revenueCents - a.revenueCents);
   const brandRows = [...brandTotals.values()].sort((a, b) => b.revenueCents - a.revenueCents);
 
-  const productColumns: DataTableColumn<ProductRow>[] = [
-    { key: "name", header: "Ürün", render: (r) => r.name },
-    { key: "quantity", header: "Satılan Adet", align: "right", render: (r) => r.quantity },
-    { key: "revenueCents", header: "Ciro", align: "right", render: (r) => formatPrice(r.revenueCents) },
-    {
-      key: "marginPercent",
-      header: "Kâr Marjı",
-      align: "right",
-      render: (r) => (r.marginPercent === null ? "-" : `%${r.marginPercent}`)
-    }
-  ];
-
-  const breakdownColumns: DataTableColumn<BreakdownRow>[] = [
-    { key: "name", header: "Ad", render: (r) => r.name },
-    { key: "quantity", header: "Satılan Adet", align: "right", render: (r) => r.quantity },
-    { key: "revenueCents", header: "Ciro", align: "right", render: (r) => formatPrice(r.revenueCents) }
-  ];
-
   return (
     <div>
       <div className="flex items-center justify-between">
@@ -137,12 +104,7 @@ export default async function RaporlarPage({
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="En Çok Satan Ürünler">
-          <DataTable
-            columns={productColumns}
-            data={topProducts}
-            getRowId={(r) => r.productId}
-            emptyTitle="Bu dönemde satış yok"
-          />
+          <TopProductsTable products={topProducts} />
           {missingCostCount > 0 && (
             <p className="mt-3 text-xs text-admin-text-muted">
               {missingCostCount} üründe maliyet girilmemiş, kâr marjı hesaplamasına dahil edilmedi.
@@ -161,21 +123,11 @@ export default async function RaporlarPage({
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Card title="Kategori Kırılımı">
-          <DataTable
-            columns={breakdownColumns}
-            data={categoryRows}
-            getRowId={(r) => r.key}
-            emptyTitle="Bu dönemde satış yok"
-          />
+          <BreakdownTable rows={categoryRows} />
         </Card>
 
         <Card title="Marka Kırılımı">
-          <DataTable
-            columns={breakdownColumns}
-            data={brandRows}
-            getRowId={(r) => r.key}
-            emptyTitle="Bu dönemde satış yok"
-          />
+          <BreakdownTable rows={brandRows} />
         </Card>
       </div>
     </div>
