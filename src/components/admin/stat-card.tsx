@@ -1,17 +1,23 @@
 import type { LucideIcon } from "lucide-react";
 import { ArrowDown, ArrowUp } from "lucide-react";
+import { StatSparkline } from "@/components/admin/stat-sparkline";
 
 export function StatCard({
   icon: Icon,
   label,
   value,
-  trend
+  trend,
+  sparkline
 }: {
   icon?: LucideIcon;
   label: string;
   value: string | number;
   trend?: { direction: "up" | "down"; label: string };
+  /** Dönem içindeki günlük değerler - en az 2 nokta varsa kartın altında küçük bir alan grafiği çizilir. */
+  sparkline?: number[];
 }) {
+  const strokeColor = trend?.direction === "down" ? "#dc2626" : "#4f46e5";
+
   return (
     <div className="rounded-lg border border-admin-border bg-admin-surface p-5">
       <div className="flex items-center justify-between">
@@ -32,6 +38,13 @@ export function StatCard({
           {trend.direction === "up" ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
           {trend.label}
         </p>
+      )}
+      {sparkline && sparkline.length > 1 && (
+        <StatSparkline
+          data={sparkline}
+          color={strokeColor}
+          gradientId={`sparkline-${label.replace(/[^a-zA-Z0-9]/g, "")}`}
+        />
       )}
     </div>
   );

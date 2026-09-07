@@ -64,6 +64,7 @@ export function OrdersTable({
       key: "orderNumber",
       header: "Sipariş No",
       sortable: true,
+      hideable: false,
       render: (row) => (
         <Link href={`/admin/siparisler/${row.id}`} className="font-mono font-medium text-admin-text hover:underline">
           {row.orderNumber}
@@ -74,11 +75,13 @@ export function OrdersTable({
       key: "customerName",
       header: "Müşteri",
       sortable: true,
+      hideable: true,
       render: (row) => row.customerName
     },
     {
       key: "status",
       header: "Ödeme Durumu",
+      hideable: true,
       render: (row) => (
         <Badge tone={orderStatusTone[row.status as keyof typeof orderStatusTone]}>
           {orderStatusLabel[row.status as keyof typeof orderStatusLabel] ?? row.status}
@@ -88,6 +91,7 @@ export function OrdersTable({
     {
       key: "shipmentStatus",
       header: "Kargo Durumu",
+      hideable: true,
       render: (row) =>
         row.shipmentStatus ? (
           <Badge tone={shipmentStatusTone[row.shipmentStatus as keyof typeof shipmentStatusTone]}>
@@ -102,18 +106,21 @@ export function OrdersTable({
       header: "Tutar",
       sortable: true,
       align: "right",
+      hideable: false,
       render: (row) => formatPrice(row.totalCents)
     },
     {
       key: "createdAt",
       header: "Tarih",
       sortable: true,
+      hideable: true,
       render: (row) => new Date(row.createdAt).toLocaleDateString("tr-TR")
     },
     {
       key: "actions",
       header: "",
       align: "right",
+      hideable: false,
       render: (row) => (
         <Link href={`/admin/siparisler/${row.id}`} className="text-admin-accent hover:underline">
           Detay
@@ -153,6 +160,7 @@ export function OrdersTable({
       initialSort={initialSort}
       emptyTitle="Sonuç bulunamadı"
       emptyDescription="Arama veya filtre kriterlerine uygun sipariş yok."
+      columnVisibilityStorageKey="admin-table-columns:siparisler"
     />
   );
 }
