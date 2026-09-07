@@ -17,6 +17,7 @@ export interface OrderRow {
   shipmentStatus: string | null;
   totalCents: number;
   createdAt: string;
+  viewedAt: string | null;
 }
 
 async function bulkRequest(body: Record<string, unknown>) {
@@ -66,9 +67,12 @@ export function OrdersTable({
       sortable: true,
       hideable: false,
       render: (row) => (
-        <Link href={`/admin/siparisler/${row.id}`} className="font-mono font-medium text-admin-text hover:underline">
-          {row.orderNumber}
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link href={`/admin/siparisler/${row.id}`} className="font-mono font-medium text-admin-text hover:underline">
+            {row.orderNumber}
+          </Link>
+          {row.viewedAt === null && <Badge tone="green">YENİ SİPARİŞ</Badge>}
+        </div>
       )
     },
     {

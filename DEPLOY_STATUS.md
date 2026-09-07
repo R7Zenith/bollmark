@@ -1826,3 +1826,35 @@ değerleri doğrulandı (Beden: 34:1…48:8, XS:9…3XL:15 doğru sırada). Ger�
 ürünün (`Regular Fit Klasik Yaka Pamuklu Kısa Kollu Gömlek`) varyant verisiyle
 test edilip `position` değerlerinin S<M<L<XL<XXL<3XL sırasına karşılık geldiği
 doğrulandı - `product-viewer.tsx` artık beden butonlarını bu sırayla gösterecek.
+
+## "Yeni Sipariş" rozeti (2026-09-08, yeni oturum)
+
+Admin panelinde henüz görüntülenmemiş siparişleri ayırt etmek için yeşil
+"YENİ SİPARİŞ" rozeti eklendi.
+
+1. `Order` modeline `viewedAt DateTime?` (nullable) alanı eklendi
+   (`prisma/schema.prisma`). **Önemli bulgu**: bu projede Prisma Migrate hiç
+   kullanılmamış - `prisma/migrations` klasörü hiç yok, `package.json`'da
+   sadece `db:push` scripti var. `npx prisma migrate dev` bu yüzden "drift
+   detected" diyip **veritabanının tamamen sıfırlanmasını (`migrate reset`,
+   tüm veri kaybı)** istedi - bu çalıştırılmadı, bunun yerine her zamanki
+   `npx prisma db push` ile aynı (ek, nullable) kolon veri kaybı olmadan
+   canlı Neon veritabanına uygulandı. Ardından `npx prisma generate` ile
+   client yeniden üretildi (üretilmeden önce `viewedAt` alanı Prisma
+   Client'ta tanınmıyordu, script hata verdi).
+2. Sipariş detay sayfası (`siparisler/[id]/page.tsx`) açıldığında `viewedAt`
+   null ise sayfa render edilmeden önce `new Date()` ile işaretleniyor
+   (sadece null ise, tekrar tekrar yazmıyor).
+3. Sipariş listesi sorgusu ve `OrderRow` tipi (`orders-table.tsx`)
+   `viewedAt` alanını taşıyor; "Sipariş No" kolonunun yanında
+   `viewedAt === null` olan satırlar için mevcut `Badge` (`tone="green"`)
+   ile "YENİ SİPARİŞ" rozeti gösteriliyor. Aynı rozet dashboard'daki
+   "Son Siparişler" kartında da (`admin/page.tsx`) gösteriliyor.
+4. Tek seferlik `scripts/test-siparis-olustur.ts` yazılıp çalıştırıldı -
+   `viewedAt: null` olan, gerçekçi verilerle (Ayşe Yılmaz, adres, telefon,
+   1 sipariş kalemi, `PENDING_PAYMENT`) bir test siparişi (`BLM260908-1362`)
+   canlı Neon veritabanına eklendi - rozetin görülebilmesi için kasıtlı
+   olarak silinmedi.
+
+**Test edildi**: `npm run build` hatasız tamamlandı (TypeScript temiz, 61
+route başarıyla oluşturuldu, `/` ve `/urunler` hâlâ statik).

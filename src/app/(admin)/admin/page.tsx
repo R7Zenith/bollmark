@@ -69,7 +69,7 @@ export default async function AdminDashboard() {
     prisma.order.findMany({
       orderBy: { createdAt: "desc" },
       take: 5,
-      select: { id: true, orderNumber: true, customerName: true, status: true, totalCents: true }
+      select: { id: true, orderNumber: true, customerName: true, status: true, totalCents: true, viewedAt: true }
     }),
     prisma.productVariant.findMany({
       where: { stock: { lt: 5 } },
@@ -145,7 +145,10 @@ export default async function AdminDashboard() {
                 <li key={order.id} className="py-3 first:pt-0 last:pb-0">
                   <Link href={`/admin/siparisler/${order.id}`} className="flex items-center justify-between gap-3 hover:opacity-80">
                     <div className="min-w-0">
-                      <p className="truncate font-mono text-sm font-medium text-admin-text">{order.orderNumber}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="truncate font-mono text-sm font-medium text-admin-text">{order.orderNumber}</p>
+                        {order.viewedAt === null && <Badge tone="green">YENİ SİPARİŞ</Badge>}
+                      </div>
                       <p className="truncate text-xs text-admin-text-muted">{order.customerName}</p>
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-1">

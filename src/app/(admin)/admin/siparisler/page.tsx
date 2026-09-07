@@ -92,7 +92,8 @@ export default async function AdminOrdersPage({
     status: o.status,
     shipmentStatus: o.shipment?.status ?? null,
     totalCents: o.totalCents,
-    createdAt: o.createdAt.toISOString()
+    createdAt: o.createdAt.toISOString(),
+    viewedAt: o.viewedAt ? o.viewedAt.toISOString() : null
   }));
 
   const sharedParams = new URLSearchParams();

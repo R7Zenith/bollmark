@@ -247,6 +247,7 @@ model Order {
   items         OrderItem[]
   shipment      Shipment?
   returnRequests ReturnRequest[]
+  viewedAt      DateTime?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 }

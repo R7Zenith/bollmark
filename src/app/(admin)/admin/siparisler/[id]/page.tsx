@@ -78,6 +78,10 @@ export default async function OrderDetailPage({
   });
   if (!order) notFound();
 
+  if (order.viewedAt === null) {
+    await prisma.order.update({ where: { id: order.id }, data: { viewedAt: new Date() } });
+  }
+
   const status = order.status as OrderStatus;
   const nextStatusAction =
     status === "PENDING_PAYMENT"
