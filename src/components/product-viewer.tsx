@@ -68,11 +68,28 @@ function StockAlertForm({ variantId }: { variantId: string }) {
 type Variant = {
   id: string;
   size: string;
+  sizePosition: number;
   color: string;
+  colorPosition: number;
   colorValueId: string | null;
   stock: number;
   priceCents: number | null;
 };
+
+// Bir varyant eksenindeki (Beden/Renk) benzersiz degerleri, admin panelinde
+// tanimlanan VariantAttributeValue.position sirasina gore (kucukten buyuge)
+// dondurur.
+function orderedOptionValues(variants: Variant[], value: (v: Variant) => string, position: (v: Variant) => number) {
+  const positionByValue = new Map<string, number>();
+  for (const v of variants) {
+    const val = value(v);
+    if (!val || positionByValue.has(val)) continue;
+    positionByValue.set(val, position(v));
+  }
+  return Array.from(positionByValue.entries())
+    .sort((a, b) => a[1] - b[1])
+    .map(([val]) => val);
+}
 
 // Renk secimine gore galeriyi ve sepete ekleme akisini ortak state altinda
 // birlestiren bilesen. Secili rengin ProductOptionImage seti varsa galeri
@@ -120,8 +137,8 @@ export function ProductViewer({
   const router = useRouter();
   const isWishlisted = wishlistIds.has(productId);
 
-  const sizes = Array.from(new Set(variants.map((v) => v.size)));
-  const colors = Array.from(new Set(variants.map((v) => v.color)));
+  const sizes = orderedOptionValues(variants, (v) => v.size, (v) => v.sizePosition);
+  const colors = orderedOptionValues(variants, (v) => v.color, (v) => v.colorPosition);
   const startColor = initialColor && colors.includes(initialColor) ? initialColor : (colors[0] ?? "");
   const [color, setColor] = useState(startColor);
   const [size, setSize] = useState(() => {

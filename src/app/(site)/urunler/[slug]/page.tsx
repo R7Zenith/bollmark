@@ -6,7 +6,7 @@ import { getBundleForProduct } from "@/lib/bundles";
 import { ProductViewer } from "@/components/product-viewer";
 import { ProductReviews, type ReviewView } from "@/components/product-reviews";
 import { ProductCard } from "@/components/product-card";
-import { optionValue, colorValueId } from "@/lib/variant-attributes";
+import { optionValue, optionPosition, colorValueId } from "@/lib/variant-attributes";
 
 const BASE_URL = "https://bollmark.com";
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1200";
@@ -116,7 +116,9 @@ export default async function ProductPage({
         variants={product.variants.map((v) => ({
           id: v.id,
           size: optionValue(v, "Beden"),
+          sizePosition: optionPosition(v, "Beden"),
           color: optionValue(v, "Renk"),
+          colorPosition: optionPosition(v, "Renk"),
           colorValueId: colorValueId(v),
           stock: v.stock,
           priceCents: v.priceCents

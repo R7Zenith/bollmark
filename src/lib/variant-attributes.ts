@@ -20,22 +20,38 @@ export async function resolveOptionValueIds(
       create: { name: attributeName },
       update: {}
     });
-    const attrValue = await tx.variantAttributeValue.upsert({
-      where: { attributeId_value: { attributeId: attribute.id, value: trimmed } },
-      create: { attributeId: attribute.id, value: trimmed },
-      update: {}
+    const existing = await tx.variantAttributeValue.findUnique({
+      where: { attributeId_value: { attributeId: attribute.id, value: trimmed } }
     });
+    const attrValue =
+      existing ??
+      (await (async () => {
+        const last = await tx.variantAttributeValue.findFirst({
+          where: { attributeId: attribute.id },
+          orderBy: { position: "desc" }
+        });
+        return tx.variantAttributeValue.create({
+          data: { attributeId: attribute.id, value: trimmed, position: (last?.position ?? -1) + 1 }
+        });
+      })());
     ids.push(attrValue.id);
   }
   return ids;
 }
 
 export type VariantOptionInclude = {
-  options: { value: { value: string; attribute: { name: string } } }[];
+  options: { value: { value: string; position: number; attribute: { name: string } } }[];
 };
 
 export function optionValue(variant: VariantOptionInclude, attributeName: string): string {
   return variant.options.find((o) => o.value.attribute.name === attributeName)?.value.value ?? "";
+}
+
+// sizes/colors listelerini kucukten buyuge (VariantAttributeValue.position)
+// siralamak icin - degerin kendisi string oldugundan dogal siralama yerine
+// admin panelinde tanimlanan sirayi kullanmamiz gerekiyor.
+export function optionPosition(variant: VariantOptionInclude, attributeName: string): number {
+  return variant.options.find((o) => o.value.attribute.name === attributeName)?.value.position ?? 0;
 }
 
 export type VariantColorOptionInclude = {

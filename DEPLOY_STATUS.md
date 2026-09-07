@@ -1779,3 +1779,50 @@ DEĞİL - siteye Türkçe karakterli slug'lı veya sadece renk-galerili (genel
 görseli boş) ilk ürünler bu importla eklendiği için daha önce hiç tetiklenmemiş,
 gizli kalmış genel site hatalarıydı. Yeni ürün eklenen her yerde tekrar
 karşılaşılabilir.
+
+## Varyant özellikleri (Beden/Renk) sıralama düzeltmesi (2026-09-07, yeni oturum)
+
+Admin panelinde varyant özellikleri sayfasındaki (`ayarlar/varyant-ozellikleri`)
+yukarı/aşağı ok düğmeleri bazı değerlerde hiçbir şey yapmıyor gibi görünüyordu,
+ayrıca ürün sayfasındaki beden butonları küçükten büyüğe değil rastgele/ekleniş
+sırasına göre geliyordu. Kök neden ve düzeltme üç parçalıydı:
+
+1. **Admin ok düğmeleri neden çalışmıyordu**: `src/lib/variant-attributes.ts`
+   içindeki `resolveOptionValueIds` - ürün oluşturma/düzenlemede serbest metin
+   (ör. Beden kutusu) alanından yeni bir değer geldiğinde bunu
+   `VariantAttributeValue.upsert()` ile veritabanına yazıyordu, ama `create`
+   bloğunda `position` hiç set edilmiyordu (varsayılan `0`'da kalıyordu).
+   Aynı `attributeId` altında birden çok değer `position: 0` ile girince,
+   admin sayfasındaki yer değiştirme (swap) mantığı görsel olarak "hiçbir şey
+   olmuyor" gibi görünüyordu. **Düzeltme**: admin sayfasındaki `createValue`
+   server action'ıyla aynı desen uygulandı - yeni değer oluşturulmadan önce o
+   `attributeId` için mevcut en yüksek `position` bulunup `+1` ile atanıyor.
+2. **Ön yüzde bedenler neden sıralı gelmiyordu**: `src/components/product-viewer.tsx`
+   içindeki `sizes`/`colors` listeleri `variants.map(v => v.size)` ile ham
+   (variant ekleniş) sırasıyla oluşturuluyordu, `VariantAttributeValue.position`
+   hiç kullanılmıyordu (sorgu zaten position'ı çekiyordu, sadece kullanılmıyordu).
+   **Düzeltme**: `src/lib/variant-attributes.ts`'e `optionPosition()` yardımcı
+   fonksiyonu eklendi, `urunler/[slug]/page.tsx` bunu `ProductViewer`'a
+   `sizePosition`/`colorPosition` olarak geçiriyor, `product-viewer.tsx`'teki
+   yeni `orderedOptionValues()` fonksiyonu benzersiz değerleri bu position'a
+   göre (küçükten büyüğe) sıralıyor - hem Beden hem Renk için aynı mantık.
+3. **Bozuk mevcut veri**: Veritabanında halihazırda birçok
+   `VariantAttributeValue` satırı `position: 0` ile duruyordu. Yeni bir
+   script yazıldı: `scripts/backfill-variant-value-positions.ts` - her
+   `attributeId` için değerleri doğal sıraya koyuyor (sayısal bedenler
+   küçükten büyüğe, harfli bedenler XXS→5XL bilinen bir sıra tablosuna göre
+   - "3XL" gibi rakam+XL yazımları da XXXL ile eşleniyor -, geri kalanlar
+   alfabetik/sona ekleniyor) ve her değere `1`'den başlayan sıralı yeni bir
+   `position` atıyor. Script `npx tsx scripts/backfill-variant-value-positions.ts`
+   ile canlı Neon veritabanına karşı çalıştırıldı: **2 özellik (Beden, Renk)
+   tarandı, 31 değer güncellendi**. (Script `dotenv/config` import ediyor -
+   `.env`'deki `DATABASE_URL`'i okuyabilmesi için gerekli, `prisma/seed.ts`'teki
+   aynı desenle.)
+
+**Test edildi**: `npm run build` hatasız tamamlandı (TypeScript temiz,
+`.next` klasörü bu oturumda bozuk/yarım bir `routes.d.ts` içerdiği için önce
+silinip yeniden build edildi). Backfill sonrası DB'den okunan `position`
+değerleri doğrulandı (Beden: 34:1…48:8, XS:9…3XL:15 doğru sırada). Gerçek bir
+ürünün (`Regular Fit Klasik Yaka Pamuklu Kısa Kollu Gömlek`) varyant verisiyle
+test edilip `position` değerlerinin S<M<L<XL<XXL<3XL sırasına karşılık geldiği
+doğrulandı - `product-viewer.tsx` artık beden butonlarını bu sırayla gösterecek.
