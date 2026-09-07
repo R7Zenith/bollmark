@@ -7,6 +7,7 @@ import { ProductViewer } from "@/components/product-viewer";
 import { ProductReviews, type ReviewView } from "@/components/product-reviews";
 import { ProductCard } from "@/components/product-card";
 import { optionValue, optionPosition, colorValueId } from "@/lib/variant-attributes";
+import { sanitizeDescriptionHtml, descriptionToPlainText } from "@/lib/description-html";
 
 const BASE_URL = "https://bollmark.com";
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1200";
@@ -30,13 +31,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!product || product.status !== "PUBLISHED") return {};
 
   const image = firstImageUrl(product) ?? FALLBACK_IMAGE;
+  const plainDescription = descriptionToPlainText(product.description);
   return {
     title: `${product.name} | Bollmark`,
-    description: product.description,
+    description: plainDescription,
     alternates: { canonical: `${BASE_URL}/urunler/${product.slug}` },
     openGraph: {
       title: product.name,
-      description: product.description,
+      description: plainDescription,
       url: `${BASE_URL}/urunler/${product.slug}`,
       images: [{ url: image }]
     }
@@ -78,7 +80,7 @@ export default async function ProductPage({
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    description: product.description,
+    description: descriptionToPlainText(product.description),
     image: firstImageUrl(product) ?? FALLBACK_IMAGE,
     offers: {
       "@type": "Offer",
@@ -103,7 +105,7 @@ export default async function ProductPage({
         productName={product.name}
         categoryName={product.category?.name ?? null}
         brandName={product.brand?.name ?? null}
-        description={product.description}
+        descriptionHtml={sanitizeDescriptionHtml(product.description)}
         material={product.material}
         origin={product.origin}
         careInstructions={product.careInstructions}

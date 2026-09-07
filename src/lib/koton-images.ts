@@ -8,6 +8,7 @@
 import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import type { KotonEnrichmentTarget } from "@/lib/excel-import";
+import { sanitizeDescriptionHtml } from "@/lib/description-html";
 
 const KOTON_BASE = "https://www.koton.com";
 const REQUEST_DELAY_MS = 900;
@@ -59,8 +60,9 @@ async function fetchKotonProductData(
   const baseCode = data?.product?.base_code;
   if (baseCode !== expectedProductCode) return null;
 
-  const description =
+  const rawDescription =
     typeof data?.product?.attributes?.urun_aciklama === "string" ? data.product.attributes.urun_aciklama : null;
+  const description = rawDescription ? sanitizeDescriptionHtml(rawDescription) : null;
 
   const colorImageUrls = new Map<string, string[]>();
   const variantGroups: unknown[] = Array.isArray(data?.variants) ? data.variants : [];

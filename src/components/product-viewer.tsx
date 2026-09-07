@@ -99,7 +99,7 @@ export function ProductViewer({
   productName,
   categoryName,
   brandName,
-  description,
+  descriptionHtml,
   material,
   origin,
   careInstructions,
@@ -116,7 +116,7 @@ export function ProductViewer({
   productName: string;
   categoryName: string | null;
   brandName: string | null;
-  description: string;
+  descriptionHtml: string;
   material: string | null;
   origin: string | null;
   careInstructions: string | null;
@@ -226,7 +226,15 @@ export function ProductViewer({
             {bundleInfo.discountPercent} indirim kazan.
           </p>
         )}
-        <p className="mt-6 leading-relaxed text-ink/70">{description}</p>
+        {descriptionHtml && (
+          // descriptionHtml sunucuda sanitizeDescriptionHtml() ile temizleniyor
+          // (bkz. urunler/[slug]/page.tsx) - burada tekrar sanitize etmeye gerek yok.
+          // eslint-disable-next-line react/no-danger
+          <div
+            className="prose-description mt-6 leading-relaxed text-ink/70 [&_p]:mb-3 [&_p:last-child]:mb-0 [&>strong]:mb-1 [&>strong]:mt-4 [&>strong]:block [&>strong:first-child]:mt-0"
+            dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+          />
+        )}
 
         {(material || origin || careInstructions) && (
           <div className="mt-6 space-y-1 border-t border-line pt-6 text-sm text-ink/70">
