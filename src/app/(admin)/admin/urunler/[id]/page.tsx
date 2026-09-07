@@ -111,6 +111,7 @@ async function updateProduct(id: string, formData: FormData) {
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, "-");
   const description = String(formData.get("description") || "");
+  const code = String(formData.get("code") || "").trim() || null;
   const priceCents = Math.round(Number(formData.get("price") || 0) * 100);
   const compareAtRaw = String(formData.get("compareAt") || "").trim();
   const compareAtCents = compareAtRaw ? Math.round(Number(compareAtRaw) * 100) : null;
@@ -167,6 +168,7 @@ async function updateProduct(id: string, formData: FormData) {
         data: {
           name,
           slug,
+          code,
           description,
           priceCents,
           compareAtCents,
@@ -328,6 +330,15 @@ export default async function EditProductPage({
             <div>
               <label className={labelClass}>URL Uzantısı (slug)</label>
               <input name="slug" defaultValue={product.slug} required className={`mt-1 ${inputClass}`} />
+            </div>
+            <div>
+              <label className={labelClass}>Ürün Kodu</label>
+              <input
+                name="code"
+                defaultValue={product.code ?? ""}
+                placeholder="örn. 6SAM60012HW"
+                className={`mt-1 ${inputClass}`}
+              />
             </div>
             <div>
               <label className={labelClass}>Açıklama</label>

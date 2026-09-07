@@ -68,7 +68,14 @@ export default async function AdminProductsPage({
   const [products, categories] = await Promise.all([
     prisma.product.findMany({
       where: {
-        ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
+        ...(q
+          ? {
+              OR: [
+                { name: { contains: q, mode: "insensitive" as const } },
+                { code: { contains: q, mode: "insensitive" as const } }
+              ]
+            }
+          : {}),
         ...(durum ? { status: durum } : {}),
         ...(kategori ? { categoryId: kategori } : {}),
         ...(fotograf === "yok" ? { images: { none: {} }, optionImages: { none: {} } } : {})
@@ -104,6 +111,7 @@ export default async function AdminProductsPage({
     return {
       id: p.id,
       name: p.name,
+      code: p.code,
       status: p.status,
       priceCents: p.priceCents,
       stock: p.variants.reduce((sum, v) => sum + v.stock, 0),

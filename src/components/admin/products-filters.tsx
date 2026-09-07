@@ -34,7 +34,7 @@ export function ProductsFilters({ categories }: { categories: { id: string; name
   return (
     <FilterBar>
       <SearchInput
-        placeholder="Ürün adına göre ara..."
+        placeholder="Ürün adı veya kodu ile ara..."
         value={q}
         onChange={(e) => setQ(e.target.value)}
         className="w-64"

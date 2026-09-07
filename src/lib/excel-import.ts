@@ -295,7 +295,7 @@ export async function importProductGroups(
         if (matchedExisting) {
           await tx.product.update({
             where: { id: matchedExisting.productId },
-            data: { priceCents: group.priceCents, costCents: group.costCents }
+            data: { priceCents: group.priceCents, costCents: group.costCents, code: group.productCode }
           });
           productId = matchedExisting.productId;
           summary.productsUpdated++;
@@ -304,6 +304,7 @@ export async function importProductGroups(
             data: {
               name: group.productName,
               slug: slugByProductCode.get(group.productCode)!,
+              code: group.productCode,
               description: `${group.productName}. Detaylı ürün açıklaması yakında eklenecek.`,
               priceCents: group.priceCents,
               costCents: group.costCents,

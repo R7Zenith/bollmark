@@ -12,6 +12,7 @@ import { formatPrice } from "@/lib/format";
 export interface ProductRow {
   id: string;
   name: string;
+  code: string | null;
   status: string;
   priceCents: number;
   stock: number;
@@ -106,6 +107,12 @@ export function ProductsTable({
           </span>
         </Link>
       )
+    },
+    {
+      key: "code",
+      header: "Ürün Kodu",
+      sortable: false,
+      render: (row) => <span className="text-sm text-admin-text-muted">{row.code || "—"}</span>
     },
     {
       key: "photo",

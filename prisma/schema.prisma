@@ -53,6 +53,7 @@ model Product {
   id          String        @id @default(cuid())
   name        String
   slug        String        @unique
+  code        String?       // Ürün kodu / stil kodu, örn. "6SAM60012HW" - opsiyonel, tekil olmak zorunda degil
   description String
   priceCents  Int
   compareAtCents Int?
