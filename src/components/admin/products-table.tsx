@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ImageOff } from "lucide-react";
+import { ImageOff, Check } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { Badge, type BadgeTone } from "@/components/admin/badge";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
@@ -84,17 +84,40 @@ export function ProductsTable({
       sortable: true,
       render: (row) => (
         <Link href={`/admin/urunler/${row.id}`} className="flex items-center gap-3 hover:underline">
-          <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border border-admin-border bg-admin-bg">
+          <span
+            className={`flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border ${
+              row.imageUrl ? "border-admin-border bg-admin-bg" : "border-red-300 bg-red-50"
+            }`}
+          >
             {row.imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={row.imageUrl} alt="" className="h-full w-full object-cover" />
             ) : (
-              <ImageOff size={14} className="text-admin-text-muted" />
+              <ImageOff size={14} className="text-red-400" />
             )}
           </span>
-          <span className="font-medium text-admin-text">{row.name}</span>
+          <span className="flex flex-col">
+            <span className="font-medium text-admin-text">{row.name}</span>
+            {!row.imageUrl && (
+              <span className="mt-0.5">
+                <Badge tone="red">Fotoğraf Yok</Badge>
+              </span>
+            )}
+          </span>
         </Link>
       )
+    },
+    {
+      key: "photo",
+      header: "Fotoğraf",
+      sortable: true,
+      align: "center",
+      render: (row) =>
+        row.imageUrl ? (
+          <Check size={16} className="mx-auto text-admin-text-muted" />
+        ) : (
+          <ImageOff size={16} className="mx-auto text-red-400" />
+        )
     },
     {
       key: "status",

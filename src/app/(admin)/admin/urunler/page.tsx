@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Package, FileSpreadsheet } from "lucide-react";
+import { Plus, Package, FileSpreadsheet, ImageOff } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { variantOptionsInclude } from "@/lib/variant-attributes";
@@ -8,13 +8,14 @@ import { EmptyState } from "@/components/admin/empty-state";
 import { ProductsFilters } from "@/components/admin/products-filters";
 import { ProductsTable, type ProductRow } from "@/components/admin/products-table";
 
-type SortKey = "name" | "price" | "stock" | "createdAt";
-const sortKeys: SortKey[] = ["name", "price", "stock", "createdAt"];
+type SortKey = "name" | "price" | "stock" | "createdAt" | "photo";
+const sortKeys: SortKey[] = ["name", "price", "stock", "createdAt", "photo"];
 
 interface SearchParams {
   q?: string;
   durum?: string;
   kategori?: string;
+  fotograf?: string;
   sort?: string;
   dir?: string;
 }
@@ -25,9 +26,12 @@ export default async function AdminProductsPage({
   searchParams: Promise<SearchParams>;
 }) {
   await requireAdmin();
-  const { q, durum, kategori, sort, dir } = await searchParams;
+  const { q, durum, kategori, fotograf, sort, dir } = await searchParams;
 
   const totalCount = await prisma.product.count();
+  const missingPhotoCount = await prisma.product.count({
+    where: { images: { none: {} }, optionImages: { none: {} } }
+  });
 
   if (totalCount === 0) {
     return (
@@ -66,7 +70,8 @@ export default async function AdminProductsPage({
       where: {
         ...(q ? { name: { contains: q, mode: "insensitive" as const } } : {}),
         ...(durum ? { status: durum } : {}),
-        ...(kategori ? { categoryId: kategori } : {})
+        ...(kategori ? { categoryId: kategori } : {}),
+        ...(fotograf === "yok" ? { images: { none: {} }, optionImages: { none: {} } } : {})
       },
       include: {
         images: { take: 1, orderBy: { position: "asc" } },
@@ -110,6 +115,12 @@ export default async function AdminProductsPage({
 
   if (sortKey === "stock") {
     rows = rows.sort((a, b) => (sortDir === "asc" ? a.stock - b.stock : b.stock - a.stock));
+  } else if (sortKey === "photo") {
+    rows = rows.sort((a, b) => {
+      const aMissing = a.imageUrl ? 0 : 1;
+      const bMissing = b.imageUrl ? 0 : 1;
+      return sortDir === "asc" ? bMissing - aMissing : aMissing - bMissing;
+    });
   }
 
   return (
@@ -129,6 +140,18 @@ export default async function AdminProductsPage({
           </Link>
         </div>
       </div>
+
+      {missingPhotoCount > 0 && (
+        <Link
+          href="/admin/urunler?fotograf=yok"
+          className="mt-4 flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 hover:bg-red-100"
+        >
+          <ImageOff size={16} className="flex-shrink-0" />
+          <span>
+            <strong>{missingPhotoCount}</strong> ürün fotoğrafsız, incele
+          </span>
+        </Link>
+      )}
 
       <div className="mt-6">
         <ProductsFilters categories={categories} />

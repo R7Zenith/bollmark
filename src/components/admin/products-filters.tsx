@@ -61,6 +61,14 @@ export function ProductsFilters({ categories }: { categories: { id: string; name
           </option>
         ))}
       </select>
+      <select
+        defaultValue={searchParams.get("fotograf") ?? ""}
+        onChange={(e) => updateParam("fotograf", e.target.value)}
+        className={selectClass}
+      >
+        <option value="">Tüm ürünler</option>
+        <option value="yok">Fotoğrafsız ürünler</option>
+      </select>
     </FilterBar>
   );
 }
