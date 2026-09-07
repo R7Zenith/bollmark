@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { Logo } from "@/components/admin/logo";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -33,9 +34,9 @@ export default function AdminLoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-ink px-6">
       <form onSubmit={handleSubmit} className="w-full max-w-sm space-y-5 bg-paper p-10">
-        <div className="text-center">
-          <p className="font-display text-2xl uppercase tracking-widest2">Bollmark</p>
-          <p className="mt-1 text-xs uppercase tracking-wide text-ink/50">Yönetim Paneli</p>
+        <div className="flex flex-col items-center text-center">
+          <Logo variant="dark" height={28} href={null} />
+          <p className="mt-2 text-xs uppercase tracking-wide text-ink/50">Yönetim Paneli</p>
         </div>
         <input
           name="email"

@@ -23,6 +23,7 @@ import {
   ChevronDown
 } from "lucide-react";
 import { isPathAllowedForRole } from "@/lib/roles";
+import { Logo } from "@/components/admin/logo";
 
 type NavItem = {
   href: string;
@@ -181,8 +182,8 @@ export function Sidebar({ role }: { role?: string }) {
   return (
     <aside className="w-60 flex-shrink-0 overflow-y-auto border-r border-admin-border bg-admin-surface px-4 py-6">
       <div className="px-2">
-        <p className="text-lg font-semibold tracking-tight text-admin-text">Bollmark</p>
-        <p className="mt-0.5 text-xs text-admin-text-muted">Yonetim Paneli</p>
+        <Logo height={22} />
+        <p className="mt-1 text-xs text-admin-text-muted">Yönetim Paneli</p>
       </div>
       <nav className="mt-8 space-y-4">
         {showTopItem && (
