@@ -17,6 +17,9 @@ export interface ProductRow {
   stock: number;
   createdAt: string;
   imageUrl: string | null;
+  // Urunun varyantlarinda gercekten var olan renkler (Renk ekseni,
+  // isColor:true) - bos ise renk varyasyonu yok.
+  colors: string[];
 }
 
 const statusLabel: Record<string, string> = { DRAFT: "Taslak", PUBLISHED: "Yayında", ARCHIVED: "Arşiv" };
@@ -97,6 +100,20 @@ export function ProductsTable({
       key: "status",
       header: "Durum",
       render: (row) => <Badge tone={statusTone[row.status]}>{statusLabel[row.status] ?? row.status}</Badge>
+    },
+    {
+      key: "colors",
+      header: "Renkler",
+      render: (row) =>
+        row.colors.length > 1 ? (
+          <span title={row.colors.join(", ")}>
+            <Badge tone="blue">{row.colors.length} Renk</Badge>
+          </span>
+        ) : row.colors.length === 1 ? (
+          <span className="text-sm text-admin-text-muted">{row.colors[0]}</span>
+        ) : (
+          <span className="text-admin-text-muted">—</span>
+        )
     },
     {
       key: "price",

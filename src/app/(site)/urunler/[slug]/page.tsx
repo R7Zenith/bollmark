@@ -43,8 +43,15 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-export default async function ProductPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ProductPage({
+  params,
+  searchParams
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ renk?: string }>;
+}) {
   const { slug: rawSlug } = await params;
+  const { renk } = await searchParams;
   const product = await getProductBySlug(decodeSlug(rawSlug));
   if (!product || product.status !== "PUBLISHED") notFound();
 
@@ -105,6 +112,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         compareAtCents={product.compareAtCents}
         fallbackImages={product.images.map((img) => ({ url: img.url, alt: img.alt || product.name }))}
         colorGalleries={colorGalleries}
+        initialColor={renk}
         variants={product.variants.map((v) => ({
           id: v.id,
           size: optionValue(v, "Beden"),

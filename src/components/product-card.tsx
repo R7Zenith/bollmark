@@ -13,14 +13,21 @@ export type ProductCardData = {
   priceCents: number;
   compareAtCents?: number | null;
   image: string;
+  // Dolu ise urunun birden fazla rengi vardir ve bu kart o renge ait bir
+  // katalog girisidir - urun sayfasina bu renk onceden secili acilir
+  // (bkz. lib/catalog.ts getCatalogEntries, product-viewer.tsx initialColor).
+  colorLabel?: string | null;
 };
 
 export function ProductCard({ product }: { product: ProductCardData }) {
   const { ids, toggle } = useWishlist();
   const isWishlisted = ids.has(product.productId);
+  const href = product.colorLabel
+    ? `/urunler/${product.slug}?renk=${encodeURIComponent(product.colorLabel)}`
+    : `/urunler/${product.slug}`;
 
   return (
-    <Link href={`/urunler/${product.slug}`} className="group block">
+    <Link href={href} className="group block">
       <div className="relative aspect-[3/4] overflow-hidden bg-line">
         <Image
           src={product.image}
@@ -44,6 +51,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
       <div className="mt-3 flex items-baseline justify-between">
         <h3 className="text-sm uppercase tracking-wide">{product.name}</h3>
       </div>
+      {product.colorLabel && <p className="mt-0.5 text-xs text-ink/50">{product.colorLabel}</p>}
       <div className="mt-1 flex items-center gap-2">
         <span className="text-sm font-medium">{formatPrice(product.priceCents)}</span>
         {product.compareAtCents && product.compareAtCents > product.priceCents && (

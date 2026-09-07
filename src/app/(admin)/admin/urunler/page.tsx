@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus, Package, FileSpreadsheet } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
+import { variantOptionsInclude } from "@/lib/variant-attributes";
 import { Button } from "@/components/admin/button";
 import { EmptyState } from "@/components/admin/empty-state";
 import { ProductsFilters } from "@/components/admin/products-filters";
@@ -70,7 +71,9 @@ export default async function AdminProductsPage({
       include: {
         images: { take: 1, orderBy: { position: "asc" } },
         optionImages: { take: 1, orderBy: { position: "asc" } },
-        variants: true
+        // Renk (isColor:true) varyant secenegini okuyabilmek icin secenek
+        // degerleriyle birlikte cekiliyor - listede "Renkler" kolonu icin.
+        variants: { include: variantOptionsInclude }
       },
       orderBy:
         sortKey === "name"
@@ -84,15 +87,26 @@ export default async function AdminProductsPage({
     prisma.category.findMany({ orderBy: { name: "asc" } })
   ]);
 
-  let rows: ProductRow[] = products.map((p) => ({
-    id: p.id,
-    name: p.name,
-    status: p.status,
-    priceCents: p.priceCents,
-    stock: p.variants.reduce((sum, v) => sum + v.stock, 0),
-    createdAt: p.createdAt.toISOString(),
-    imageUrl: p.images[0]?.url ?? p.optionImages[0]?.url ?? null
-  }));
+  let rows: ProductRow[] = products.map((p) => {
+    // Bu urunun varyantlarinda gercekten var olan renkler (Renk ekseni,
+    // isColor:true) - birden fazlaysa listede "Renkler" kolonunda gosterilir.
+    const colorSet = new Set<string>();
+    for (const v of p.variants) {
+      for (const o of v.options) {
+        if (o.value.attribute.isColor) colorSet.add(o.value.value);
+      }
+    }
+    return {
+      id: p.id,
+      name: p.name,
+      status: p.status,
+      priceCents: p.priceCents,
+      stock: p.variants.reduce((sum, v) => sum + v.stock, 0),
+      createdAt: p.createdAt.toISOString(),
+      imageUrl: p.images[0]?.url ?? p.optionImages[0]?.url ?? null,
+      colors: Array.from(colorSet)
+    };
+  });
 
   if (sortKey === "stock") {
     rows = rows.sort((a, b) => (sortDir === "asc" ? a.stock - b.stock : b.stock - a.stock));

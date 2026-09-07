@@ -44,6 +44,80 @@ export const getProductBySlug = cache(async (slug: string) => {
   });
 });
 
+// Katalog gorunumu icin tek bir "giris" - birden fazla rengi olan bir urun
+// burada rengi kadar ayri giris olarak doner (her biri kendi renk galerisinin
+// ilk fotografiyla), tek rengi/varyantsiz urunler tek giris olarak kalir.
+// Hepsi ayni urun sayfasina baglanir - renkli olanlar ?renk=<etiket> ile,
+// sayfa acilinca ProductViewer o rengi onceden secili gosterir (bkz.
+// urunler/[slug]/page.tsx + product-viewer.tsx).
+export type CatalogEntry = {
+  productId: string;
+  slug: string;
+  name: string;
+  priceCents: number;
+  compareAtCents: number | null;
+  image: string | null;
+  colorLabel: string | null; // yalnizca birden fazla rengi olan urunlerde dolu
+};
+
+export async function getCatalogEntries(
+  categorySlug?: string,
+  options?: { featuredFirst?: boolean }
+): Promise<CatalogEntry[]> {
+  const products = await prisma.product.findMany({
+    where: {
+      status: "PUBLISHED",
+      category: categorySlug ? { slug: categorySlug } : undefined
+    },
+    include: {
+      images: { orderBy: { position: "asc" }, take: 1 },
+      optionImages: { orderBy: { position: "asc" } },
+      variants: { include: variantOptionsInclude }
+    },
+    orderBy: options?.featuredFirst
+      ? [{ isFeatured: "desc" }, { createdAt: "desc" }]
+      : { createdAt: "desc" }
+  });
+
+  const entries: CatalogEntry[] = [];
+  for (const p of products) {
+    // Urunun varyantlarinda gercekten var olan renkler (Renk ekseni, isColor:true).
+    const colorLabelByValueId = new Map<string, string>();
+    for (const v of p.variants) {
+      for (const o of v.options) {
+        if (o.value.attribute.isColor) colorLabelByValueId.set(o.valueId, o.value.value);
+      }
+    }
+
+    if (colorLabelByValueId.size <= 1) {
+      entries.push({
+        productId: p.id,
+        slug: p.slug,
+        name: p.name,
+        priceCents: p.priceCents,
+        compareAtCents: p.compareAtCents,
+        image: p.images[0]?.url ?? p.optionImages[0]?.url ?? null,
+        colorLabel: null
+      });
+      continue;
+    }
+
+    for (const [valueId, label] of colorLabelByValueId) {
+      const colorImage = p.optionImages.find((img) => img.valueId === valueId)?.url;
+      entries.push({
+        productId: p.id,
+        slug: p.slug,
+        name: p.name,
+        priceCents: p.priceCents,
+        compareAtCents: p.compareAtCents,
+        image: colorImage ?? p.images[0]?.url ?? null,
+        colorLabel: label
+      });
+    }
+  }
+  return entries;
+}
+
 export async function getCategories() {
   return prisma.category.findMany({ orderBy: { name: "asc" } });
 }

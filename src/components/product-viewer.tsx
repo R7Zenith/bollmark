@@ -92,7 +92,8 @@ export function ProductViewer({
   fallbackImages,
   colorGalleries,
   variants,
-  bundleInfo
+  bundleInfo,
+  initialColor
 }: {
   productId: string;
   productName: string;
@@ -109,6 +110,10 @@ export function ProductViewer({
   colorGalleries: Record<string, string[]>;
   variants: Variant[];
   bundleInfo?: { discountPercent: number; otherProductNames: string[] } | null;
+  // Katalogdan "?renk=..." ile gelindiginde o rengin onceden secili acilmasi
+  // icin (bkz. urunler/[slug]/page.tsx, lib/catalog.ts getCatalogEntries).
+  // Gecersiz/eslesmeyen bir deger gelirse sessizce ilk renge dusulur.
+  initialColor?: string;
 }) {
   const { addLine } = useCart();
   const { ids: wishlistIds, isAuthenticated, toggle: toggleWishlist } = useWishlist();
@@ -117,8 +122,17 @@ export function ProductViewer({
 
   const sizes = Array.from(new Set(variants.map((v) => v.size)));
   const colors = Array.from(new Set(variants.map((v) => v.color)));
-  const [size, setSize] = useState(sizes[0] ?? "");
-  const [color, setColor] = useState(colors[0] ?? "");
+  const startColor = initialColor && colors.includes(initialColor) ? initialColor : (colors[0] ?? "");
+  const [color, setColor] = useState(startColor);
+  const [size, setSize] = useState(() => {
+    // Baslangic rengi icin stokta olan bir beden varsa onu sec, yoksa o renge
+    // ait ilk bedeni - sizes[0] her zaman bu renkte olmayabilir (ozellikle
+    // katalogdan bir renge tiklanip gelindiginde).
+    const inStockForColor = variants.find((v) => v.color === startColor && v.stock > 0);
+    if (inStockForColor) return inStockForColor.size;
+    const anyForColor = variants.find((v) => v.color === startColor);
+    return anyForColor?.size ?? sizes[0] ?? "";
+  });
   const [added, setAdded] = useState(false);
 
   const selected = variants.find((v) => v.size === size && v.color === color);
