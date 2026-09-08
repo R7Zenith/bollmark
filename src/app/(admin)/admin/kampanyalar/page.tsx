@@ -1,9 +1,15 @@
 import { redirect } from "next/navigation";
+import { Ticket, MousePointerClick, PiggyBank } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { Card } from "@/components/admin/card";
-import { CouponRow, type CouponData } from "@/components/admin/coupon-row";
+import { StatCard } from "@/components/admin/stat-card";
+import { KampanyalarFilters } from "@/components/admin/kampanyalar-filters";
+import { CouponRow, type CouponData, type CategoryOption, type BrandOption } from "@/components/admin/coupon-row";
 import { CouponFeedback } from "@/components/admin/coupon-feedback";
+import { buildCategoryOptions } from "@/lib/category-tree";
+import { computeCouponStatus, couponStatuses, type CouponStatus } from "@/lib/status";
+import { formatPrice } from "@/lib/format";
 
 const inputClass =
   "w-full rounded-md border border-admin-border px-3 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
@@ -22,6 +28,8 @@ function readCouponFields(formData: FormData) {
   const startsAtRaw = String(formData.get("startsAt") || "").trim();
   const expiresAtRaw = String(formData.get("expiresAt") || "").trim();
   const isActive = formData.get("isActive") === "on";
+  const categoryIdRaw = String(formData.get("categoryId") || "").trim();
+  const brandIdRaw = String(formData.get("brandId") || "").trim();
 
   return {
     code,
@@ -31,7 +39,9 @@ function readCouponFields(formData: FormData) {
     usageLimit,
     startsAt: startsAtRaw ? new Date(startsAtRaw) : null,
     expiresAt: expiresAtRaw ? new Date(expiresAtRaw) : null,
-    isActive
+    isActive,
+    categoryId: categoryIdRaw || null,
+    brandId: brandIdRaw || null
   };
 }
 
@@ -81,13 +91,43 @@ function toDateInputValue(date: Date | null): string | null {
 export default async function AdminCouponsPage({
   searchParams
 }: {
-  searchParams: Promise<{ basarili?: string; hata?: string }>;
+  searchParams: Promise<{ basarili?: string; hata?: string; q?: string; durum?: string }>;
 }) {
   await requireAdmin();
-  const { basarili, hata } = await searchParams;
-  const coupons = await prisma.coupon.findMany({ orderBy: { createdAt: "desc" } });
+  const { basarili, hata, q, durum } = await searchParams;
 
-  const rows: CouponData[] = coupons.map((c) => ({
+  const [coupons, categoriesRaw, brands, usageAgg] = await Promise.all([
+    prisma.coupon.findMany({ orderBy: { createdAt: "desc" } }),
+    prisma.category.findMany({ orderBy: { sortOrder: "asc" } }),
+    prisma.brand.findMany({ orderBy: { name: "asc" } }),
+    prisma.order.aggregate({ where: { couponId: { not: null } }, _sum: { discountCents: true } })
+  ]);
+
+  const categoryOptions: CategoryOption[] = buildCategoryOptions(categoriesRaw).map((o) => ({
+    id: o.id,
+    label: o.label
+  }));
+  const categoryLabelById = new Map(categoryOptions.map((c) => [c.id, c.label]));
+  const brandOptions: BrandOption[] = brands.map((b) => ({ id: b.id, name: b.name }));
+  const brandNameById = new Map(brandOptions.map((b) => [b.id, b.name]));
+
+  const couponIds = coupons.map((c) => c.id);
+  const usageOrders = couponIds.length
+    ? await prisma.order.findMany({
+        where: { couponId: { in: couponIds } },
+        orderBy: { createdAt: "desc" },
+        select: { couponId: true, orderNumber: true, createdAt: true, discountCents: true }
+      })
+    : [];
+  const usageByCoupon = new Map<string, typeof usageOrders>();
+  for (const o of usageOrders) {
+    if (!o.couponId) continue;
+    const list = usageByCoupon.get(o.couponId) ?? [];
+    list.push(o);
+    usageByCoupon.set(o.couponId, list);
+  }
+
+  let rows: CouponData[] = coupons.map((c) => ({
     id: c.id,
     code: c.code,
     type: c.type,
@@ -97,14 +137,42 @@ export default async function AdminCouponsPage({
     usedCount: c.usedCount,
     startsAt: toDateInputValue(c.startsAt),
     expiresAt: toDateInputValue(c.expiresAt),
-    isActive: c.isActive
+    isActive: c.isActive,
+    categoryId: c.categoryId,
+    categoryLabel: c.categoryId ? categoryLabelById.get(c.categoryId) ?? null : null,
+    brandId: c.brandId,
+    brandName: c.brandId ? brandNameById.get(c.brandId) ?? null : null,
+    status: computeCouponStatus(c),
+    usageOrders: (usageByCoupon.get(c.id) ?? []).slice(0, 5).map((o) => ({
+      orderNumber: o.orderNumber,
+      createdAtLabel: o.createdAt.toLocaleDateString("tr-TR"),
+      discountCents: o.discountCents
+    }))
   }));
 
+  if (q) {
+    const needle = q.trim().toLowerCase();
+    rows = rows.filter((r) => r.code.toLowerCase().includes(needle));
+  }
+  if (durum && couponStatuses.includes(durum as CouponStatus)) {
+    rows = rows.filter((r) => r.status === durum);
+  }
+
+  const activeCount = coupons.filter((c) => computeCouponStatus(c) === "AKTIF").length;
+  const totalUsage = coupons.reduce((sum, c) => sum + c.usedCount, 0);
+  const totalDiscountCents = usageAgg._sum.discountCents ?? 0;
+
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-3xl">
       <h1 className="text-2xl font-semibold text-admin-text">Kampanyalar</h1>
 
       <CouponFeedback basarili={basarili} hata={hata} />
+
+      <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard icon={Ticket} label="Aktif Kampanya" value={activeCount} />
+        <StatCard icon={MousePointerClick} label="Toplam Kullanım" value={totalUsage} />
+        <StatCard icon={PiggyBank} label="Sağlanan Toplam İndirim" value={formatPrice(totalDiscountCents)} />
+      </div>
 
       <Card title="Yeni Kupon" className="mt-6">
         <form action={createCoupon} className="space-y-3">
@@ -135,6 +203,30 @@ export default async function AdminCouponsPage({
             <div>
               <label className={labelClass}>Min. Sepet Tutarı (TL)</label>
               <input name="minOrderCents" type="number" step="0.01" min={0} className={`mt-1 ${inputClass}`} />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Kategori</label>
+              <select name="categoryId" defaultValue="" className={`mt-1 ${inputClass}`}>
+                <option value="">Tüm kategoriler</option>
+                {categoryOptions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Marka</label>
+              <select name="brandId" defaultValue="" className={`mt-1 ${inputClass}`}>
+                <option value="">Tüm markalar</option>
+                {brandOptions.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-3">
@@ -168,11 +260,17 @@ export default async function AdminCouponsPage({
         </form>
       </Card>
 
-      <ul className="mt-6 divide-y divide-admin-border rounded-lg border border-admin-border bg-admin-surface">
+      <div className="mt-6">
+        <KampanyalarFilters />
+      </div>
+
+      <ul className="mt-4 divide-y divide-admin-border rounded-lg border border-admin-border bg-admin-surface">
         {rows.map((c) => (
           <CouponRow
             key={c.id}
             coupon={c}
+            categories={categoryOptions}
+            brands={brandOptions}
             updateAction={updateCoupon.bind(null, c.id)}
             deleteAction={deleteCoupon.bind(null, c.id)}
           />

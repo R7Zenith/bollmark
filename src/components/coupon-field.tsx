@@ -10,27 +10,24 @@ export type CouponResult = { discountCents: number; freeShipping: boolean } | nu
 // gosterilir. Bu ONIZLEME amaclidir, baglayici degildir - nihai/gecerli
 // hesaplama siparis olusturulurken orders/route.ts icinde sunucuda tekrar
 // yapilir (bkz. lib/coupons.ts).
-export function CouponField({
-  subtotalCents,
-  onDiscountChange
-}: {
-  subtotalCents: number;
-  onDiscountChange: (result: CouponResult) => void;
-}) {
-  const { couponCode, setCouponCode } = useCart();
+export function CouponField({ onDiscountChange }: { onDiscountChange: (result: CouponResult) => void }) {
+  const { lines, couponCode, setCouponCode } = useCart();
   const [input, setInput] = useState(couponCode ?? "");
   const [status, setStatus] = useState<"idle" | "loading" | "applied" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
 
   const applyCode = async (code: string) => {
-    if (!code.trim()) return;
+    if (!code.trim() || lines.length === 0) return;
     setStatus("loading");
     setMessage(null);
     try {
       const res = await fetch("/api/kuponlar/dogrula", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code, subtotalCents })
+        body: JSON.stringify({
+          code,
+          lines: lines.map((l) => ({ productId: l.productId, variantId: l.variantId, quantity: l.quantity }))
+        })
       });
       const data = await res.json();
       if (!data.valid) {
@@ -52,13 +49,13 @@ export function CouponField({
 
   // Sepette daha once uygulanmis bir kupon tasindiysa (cart context) sayfa
   // acildiginda veya sepet icerigi degistiginde otomatik yeniden dogrulanir
-  // - subtotal degismis olabilir, gecerlilik/tutar guncel kalsin.
+  // - sepet degismis olabilir, gecerlilik/tutar guncel kalsin.
   useEffect(() => {
-    if (couponCode && subtotalCents > 0) {
+    if (couponCode && lines.length > 0) {
       applyCode(couponCode);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [subtotalCents]);
+  }, [lines]);
 
   const handleRemove = () => {
     setCouponCode(null);

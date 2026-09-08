@@ -1,9 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash2, X, Check } from "lucide-react";
+import Link from "next/link";
+import { Pencil, Trash2, X, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/admin/badge";
 import { formatPrice } from "@/lib/format";
+import { couponStatusLabel, couponStatusTone, type CouponStatus } from "@/lib/status";
+
+export type CategoryOption = { id: string; label: string };
+export type BrandOption = { id: string; name: string };
+
+export type CouponUsageOrder = {
+  orderNumber: string;
+  createdAtLabel: string;
+  discountCents: number;
+};
 
 export type CouponData = {
   id: string;
@@ -16,6 +27,12 @@ export type CouponData = {
   startsAt: string | null; // yyyy-mm-dd (input[type=date] icin)
   expiresAt: string | null;
   isActive: boolean;
+  categoryId: string | null;
+  categoryLabel: string | null;
+  brandId: string | null;
+  brandName: string | null;
+  status: CouponStatus;
+  usageOrders: CouponUsageOrder[];
 };
 
 const typeLabels: Record<string, string> = {
@@ -35,14 +52,19 @@ const inputClass =
 
 export function CouponRow({
   coupon,
+  categories,
+  brands,
   updateAction,
   deleteAction
 }: {
   coupon: CouponData;
+  categories: CategoryOption[];
+  brands: BrandOption[];
   updateAction: (formData: FormData) => void;
   deleteAction: (formData: FormData) => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const [showUsage, setShowUsage] = useState(false);
 
   if (editing) {
     return (
@@ -84,6 +106,30 @@ export function CouponRow({
                 defaultValue={(coupon.minOrderCents / 100).toFixed(2)}
                 className={inputClass}
               />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-xs text-admin-text-muted">Kategori</label>
+              <select name="categoryId" defaultValue={coupon.categoryId ?? ""} className={inputClass}>
+                <option value="">Tüm kategoriler</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-admin-text-muted">Marka</label>
+              <select name="brandId" defaultValue={coupon.brandId ?? ""} className={inputClass}>
+                <option value="">Tüm markalar</option>
+                {brands.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="grid grid-cols-3 gap-2">
@@ -137,46 +183,79 @@ export function CouponRow({
   }
 
   return (
-    <li className="flex items-center justify-between gap-4 px-4 py-3 text-sm text-admin-text">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-mono font-medium">{coupon.code}</span>
-        <Badge tone="blue">{typeLabels[coupon.type] ?? coupon.type}</Badge>
-        <Badge tone="gray">{valueLabel(coupon)}</Badge>
-        {coupon.minOrderCents > 0 && (
-          <Badge tone="gray-muted">Min. {formatPrice(coupon.minOrderCents)}</Badge>
-        )}
-        <Badge tone="gray-muted">
-          {coupon.usedCount}
-          {coupon.usageLimit != null ? ` / ${coupon.usageLimit}` : ""} kullanım
-        </Badge>
-        {!coupon.isActive && <Badge tone="red">Pasif</Badge>}
-      </div>
-      <div className="flex flex-shrink-0 items-center gap-1">
-        <button
-          type="button"
-          onClick={() => setEditing(true)}
-          className="rounded-md p-1.5 text-admin-text-muted hover:bg-admin-bg"
-          title="Düzenle"
-        >
-          <Pencil size={15} />
-        </button>
-        <form
-          action={deleteAction}
-          onSubmit={(e) => {
-            if (!window.confirm(`"${coupon.code}" kuponunu silmek istediğinize emin misiniz?`)) {
-              e.preventDefault();
-            }
-          }}
-        >
+    <li className="px-4 py-3 text-sm text-admin-text">
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono font-medium">{coupon.code}</span>
+          <Badge tone="blue">{typeLabels[coupon.type] ?? coupon.type}</Badge>
+          <Badge tone="gray">{valueLabel(coupon)}</Badge>
+          {coupon.minOrderCents > 0 && (
+            <Badge tone="gray-muted">Min. {formatPrice(coupon.minOrderCents)}</Badge>
+          )}
+          {coupon.categoryLabel && <Badge tone="gray-muted">Kategori: {coupon.categoryLabel}</Badge>}
+          {coupon.brandName && <Badge tone="gray-muted">Marka: {coupon.brandName}</Badge>}
+          <Badge tone="gray-muted">
+            {coupon.usedCount}
+            {coupon.usageLimit != null ? ` / ${coupon.usageLimit}` : ""} kullanım
+          </Badge>
+          <Badge tone={couponStatusTone[coupon.status]}>{couponStatusLabel[coupon.status]}</Badge>
+        </div>
+        <div className="flex flex-shrink-0 items-center gap-1">
           <button
-            type="submit"
-            className="rounded-md p-1.5 text-admin-text-muted hover:bg-red-50 hover:text-red-600"
-            title="Sil"
+            type="button"
+            onClick={() => setEditing(true)}
+            className="rounded-md p-1.5 text-admin-text-muted hover:bg-admin-bg"
+            title="Düzenle"
           >
-            <Trash2 size={15} />
+            <Pencil size={15} />
           </button>
-        </form>
+          <form
+            action={deleteAction}
+            onSubmit={(e) => {
+              if (!window.confirm(`"${coupon.code}" kuponunu silmek istediğinize emin misiniz?`)) {
+                e.preventDefault();
+              }
+            }}
+          >
+            <button
+              type="submit"
+              className="rounded-md p-1.5 text-admin-text-muted hover:bg-red-50 hover:text-red-600"
+              title="Sil"
+            >
+              <Trash2 size={15} />
+            </button>
+          </form>
+        </div>
       </div>
+
+      {coupon.usedCount > 0 && (
+        <div className="mt-2">
+          <button
+            type="button"
+            onClick={() => setShowUsage((v) => !v)}
+            className="flex items-center gap-1 text-xs text-admin-accent hover:underline"
+          >
+            Kullanımlar ({coupon.usedCount})
+            {showUsage ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+          {showUsage && (
+            <ul className="mt-2 space-y-1 rounded-md border border-admin-border bg-admin-bg p-2 text-xs">
+              {coupon.usageOrders.map((o) => (
+                <li key={o.orderNumber} className="flex items-center justify-between gap-3">
+                  <Link
+                    href={`/admin/siparisler?q=${o.orderNumber}`}
+                    className="font-mono text-admin-accent hover:underline"
+                  >
+                    {o.orderNumber}
+                  </Link>
+                  <span className="text-admin-text-muted">{o.createdAtLabel}</span>
+                  <span>-{formatPrice(o.discountCents)}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
     </li>
   );
 }

@@ -4,6 +4,14 @@ type Tx = PrismaClient | Prisma.TransactionClient;
 
 export class CouponInvalidError extends Error {}
 
+export interface CouponLine {
+  productId: string;
+  priceCents: number;
+  quantity: number;
+  categoryId: string | null;
+  brandId: string | null;
+}
+
 export type CouponValidation =
   | { valid: true; couponId: string; discountCents: number; freeShipping: boolean }
   | { valid: false; message: string };
@@ -16,7 +24,13 @@ export type CouponValidation =
 // gecirilir ki usedCount artisiyla ayni transaction icinde atomik calissin
 // ve yaris durumunda (iki musterinin son kullanim hakkini ayni anda
 // tuketmesi) limit asilmasin.
-export async function validateCoupon(tx: Tx, rawCode: string, subtotalCents: number): Promise<CouponValidation> {
+//
+// Kupon bir kategori/marka ile kisitlanmissa (categoryId/brandId doluysa),
+// min. sepet tutari kontrolu yine sepetin TAM ara toplami uzerinden yapilir,
+// ama indirim tutari sadece kisitlamaya uyan satirlarin toplami uzerinden
+// hesaplanir (bkz. resolveBundleDiscount, lib/bundles.ts - benzer satir
+// bazli pattern).
+export async function validateCoupon(tx: Tx, rawCode: string, lines: CouponLine[]): Promise<CouponValidation> {
   const code = rawCode.trim().toUpperCase();
   if (!code) return { valid: false, message: "Kod girilmedi." };
 
@@ -30,6 +44,8 @@ export async function validateCoupon(tx: Tx, rawCode: string, subtotalCents: num
   if (coupon.usageLimit != null && coupon.usedCount >= coupon.usageLimit) {
     return { valid: false, message: "Bu kuponun kullanım limiti doldu." };
   }
+
+  const subtotalCents = lines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
   if (subtotalCents < coupon.minOrderCents) {
     return {
       valid: false,
@@ -37,12 +53,31 @@ export async function validateCoupon(tx: Tx, rawCode: string, subtotalCents: num
     };
   }
 
-  const discountCents =
-    coupon.type === "PERCENT"
-      ? Math.round((subtotalCents * coupon.value) / 100)
-      : coupon.type === "FIXED"
-        ? Math.min(coupon.value, subtotalCents)
-        : 0;
+  const hasRestriction = coupon.categoryId != null || coupon.brandId != null;
+  const matchingLines = hasRestriction
+    ? lines.filter(
+        (l) =>
+          (coupon.categoryId == null || l.categoryId === coupon.categoryId) &&
+          (coupon.brandId == null || l.brandId === coupon.brandId)
+      )
+    : lines;
 
-  return { valid: true, couponId: coupon.id, discountCents, freeShipping: coupon.type === "FREE_SHIPPING" };
+  if (hasRestriction && matchingLines.length === 0) {
+    return { valid: false, message: "Bu kupon sepetinizdeki ürünler için geçerli değil." };
+  }
+
+  if (coupon.type === "FREE_SHIPPING") {
+    return {
+      valid: true,
+      couponId: coupon.id,
+      discountCents: 0,
+      freeShipping: !hasRestriction || matchingLines.length === lines.length
+    };
+  }
+
+  const matchingCents = matchingLines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
+  const discountCents =
+    coupon.type === "PERCENT" ? Math.round((matchingCents * coupon.value) / 100) : Math.min(coupon.value, matchingCents);
+
+  return { valid: true, couponId: coupon.id, discountCents, freeShipping: false };
 }

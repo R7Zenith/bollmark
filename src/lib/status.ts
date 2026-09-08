@@ -105,3 +105,39 @@ export const abandonedCartStatusTone: Record<AbandonedCartStatus, BadgeTone> = {
   HATIRLATILDI: "blue",
   KURTARILDI: "green"
 };
+
+// Kupon durumu - DB'de ayri bir "status" alani yok, isActive/startsAt/
+// expiresAt/usageLimit/usedCount alanlarindan turetilir (bkz. admin/kampanyalar).
+export const couponStatuses = ["AKTIF", "PASIF", "SURESI_DOLDU", "HENUZ_BASLAMADI", "LIMIT_DOLDU"] as const;
+export type CouponStatus = (typeof couponStatuses)[number];
+
+export const couponStatusLabel: Record<CouponStatus, string> = {
+  AKTIF: "Aktif",
+  PASIF: "Pasif",
+  SURESI_DOLDU: "Süresi Doldu",
+  HENUZ_BASLAMADI: "Henüz Başlamadı",
+  LIMIT_DOLDU: "Limit Doldu"
+};
+
+export const couponStatusTone: Record<CouponStatus, BadgeTone> = {
+  AKTIF: "green",
+  PASIF: "gray",
+  SURESI_DOLDU: "red",
+  HENUZ_BASLAMADI: "yellow",
+  LIMIT_DOLDU: "red"
+};
+
+export function computeCouponStatus(coupon: {
+  isActive: boolean;
+  startsAt: Date | null;
+  expiresAt: Date | null;
+  usageLimit: number | null;
+  usedCount: number;
+}): CouponStatus {
+  if (!coupon.isActive) return "PASIF";
+  const now = new Date();
+  if (coupon.expiresAt && coupon.expiresAt < now) return "SURESI_DOLDU";
+  if (coupon.startsAt && coupon.startsAt > now) return "HENUZ_BASLAMADI";
+  if (coupon.usageLimit != null && coupon.usedCount >= coupon.usageLimit) return "LIMIT_DOLDU";
+  return "AKTIF";
+}

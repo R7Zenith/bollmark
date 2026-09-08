@@ -63,7 +63,14 @@ export async function POST(req: NextRequest) {
   });
   const productById = new Map(products.map((p) => [p.id, p]));
 
-  const resolvedLines: { productId: string; variantId: string; quantity: number; priceCents: number }[] = [];
+  const resolvedLines: {
+    productId: string;
+    variantId: string;
+    quantity: number;
+    priceCents: number;
+    categoryId: string | null;
+    brandId: string | null;
+  }[] = [];
   for (const line of data.lines) {
     const product = productById.get(line.productId);
     const variant = product?.variants.find((v) => v.id === line.variantId);
@@ -74,7 +81,9 @@ export async function POST(req: NextRequest) {
       productId: line.productId,
       variantId: line.variantId,
       quantity: line.quantity,
-      priceCents: effectivePrice(product, variant)
+      priceCents: effectivePrice(product, variant),
+      categoryId: product.categoryId,
+      brandId: product.brandId
     });
   }
 
@@ -97,7 +106,7 @@ export async function POST(req: NextRequest) {
       let couponId: string | null = null;
       let freeShipping = false;
       if (data.couponCode) {
-        const result = await validateCoupon(tx, data.couponCode, subtotalCents - bundleDiscountCents);
+        const result = await validateCoupon(tx, data.couponCode, resolvedLines);
         if (!result.valid) {
           throw new CouponInvalidError(result.message);
         }
@@ -116,10 +125,12 @@ export async function POST(req: NextRequest) {
         tx,
         customerId,
         data.pointsToRedeem ?? 0,
-        subtotalCents - bundleDiscountCents - discountCents
+        Math.max(0, subtotalCents - bundleDiscountCents - discountCents)
       );
 
-      const totalDiscountCents = bundleDiscountCents + discountCents + loyaltyDiscountCents;
+      // Agresif bir bundle + kisitli kupon kombinasyonu teorik olarak
+      // sepet ara toplamini asabilir - toplam indirim asla subtotal'i gecemez.
+      const totalDiscountCents = Math.min(subtotalCents, bundleDiscountCents + discountCents + loyaltyDiscountCents);
       const shippingCents = calculateShippingCents(subtotalCents - totalDiscountCents, freeShipping);
       const totalCents = subtotalCents - totalDiscountCents + shippingCents;
 

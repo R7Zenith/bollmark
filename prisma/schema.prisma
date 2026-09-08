@@ -37,6 +37,7 @@ model Category {
   sortOrder       Int        @default(0)
   products        Product[]
   kodMappings     CategoryKodMapping[]
+  coupons         Coupon[]
   createdAt       DateTime   @default(now())
 }
 
@@ -60,6 +61,7 @@ model Brand {
   slug      String    @unique
   logoUrl   String?
   products  Product[]
+  coupons   Coupon[]
   createdAt DateTime  @default(now())
 }
 
@@ -351,6 +353,13 @@ model Coupon {
   startsAt      DateTime?
   expiresAt     DateTime?
   isActive      Boolean   @default(true)
+  // Kisitlama - biri veya ikisi doluysa indirim sadece bu kategori/markaya
+  // uyan sepet satirlarina uygulanir (bkz. lib/coupons.ts). Ikisi de null
+  // ise eski davranis (tum sepet) devam eder.
+  categoryId    String?
+  category      Category? @relation(fields: [categoryId], references: [id])
+  brandId       String?
+  brand         Brand?    @relation(fields: [brandId], references: [id])
   orders        Order[]
   createdAt     DateTime  @default(now())
 }

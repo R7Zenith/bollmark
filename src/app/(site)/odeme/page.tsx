@@ -179,7 +179,7 @@ export default function CheckoutPage() {
         </div>
 
         <div className="mt-4 space-y-4 border-t border-line pt-4">
-          <CouponField subtotalCents={totalCents - bundleDiscountCents} onDiscountChange={setCoupon} />
+          <CouponField onDiscountChange={setCoupon} />
           <LoyaltyField subtotalCents={totalCents - bundleDiscountCents - discountCents} onRedeemChange={setLoyalty} />
         </div>
 

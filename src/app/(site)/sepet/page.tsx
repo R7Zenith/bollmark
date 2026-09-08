@@ -66,7 +66,7 @@ export default function CartPage() {
       </div>
 
       <div className="mt-10 border-t border-line pt-6">
-        <CouponField subtotalCents={totalCents} onDiscountChange={setCoupon} />
+        <CouponField onDiscountChange={setCoupon} />
       </div>
 
       <div className="mt-6 space-y-2 border-t border-line pt-6">
