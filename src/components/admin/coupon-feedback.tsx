@@ -12,6 +12,7 @@ const successMessages: Record<string, string> = {
 
 const errorMessages: Record<string, string> = {
   "kod-gerekli": "Kupon kodu girilmelidir.",
+  "ad-gerekli": "Kod girilmediyse görünen ad zorunludur.",
   "kod-tekrar": "Bu kupon kodu zaten kullanılıyor.",
   "kullanilmis": "Bu kupon en az bir siparişte kullanıldığı için silinemedi.",
   bulunamadi: "Kampanya bulunamadı."

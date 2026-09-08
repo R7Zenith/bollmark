@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getCatalogEntries } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/product-card";
+import { getActiveAutomaticPercentCampaigns, matchAutomaticDiscount } from "@/lib/coupons";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800";
 
@@ -37,7 +38,10 @@ export default async function ProductsPage({
   // Birden fazla rengi olan urunler burada renk basina ayri bir giris olarak
   // gelir (bkz. lib/catalog.ts getCatalogEntries) - musteri kataloga bakarken
   // her rengi urune tiklamadan ayri bir urunmus gibi gorur.
-  const entries = await getCatalogEntries(searchParams.kategori);
+  const [entries, automaticCampaigns] = await Promise.all([
+    getCatalogEntries(searchParams.kategori),
+    getActiveAutomaticPercentCampaigns(prisma)
+  ]);
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
@@ -58,7 +62,8 @@ export default async function ProductsPage({
                 priceCents: entry.priceCents,
                 compareAtCents: entry.compareAtCents,
                 image: entry.image ?? FALLBACK_IMAGE,
-                colorLabel: entry.colorLabel
+                colorLabel: entry.colorLabel,
+                automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, entry)?.percent ?? null
               }}
             />
           ))}

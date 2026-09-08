@@ -110,6 +110,7 @@ export function ProductViewer({
   colorGalleries,
   variants,
   bundleInfo,
+  automaticDiscount,
   initialColor
 }: {
   productId: string;
@@ -127,6 +128,11 @@ export function ProductViewer({
   colorGalleries: Record<string, string[]>;
   variants: Variant[];
   bundleInfo?: { discountPercent: number; otherProductNames: string[] } | null;
+  // Urunun kategori/markasina uyan aktif bir otomatik kampanya varsa - bkz.
+  // lib/coupons.ts getApplicableAutomaticDiscountForProduct. Yalnizca
+  // bilgilendirici bir rozet/gorunur fiyat icindir; sepetteki gercek indirim
+  // yine de siparis olusturulurken resolveBestDiscount ile hesaplanir.
+  automaticDiscount?: { percent: number; name: string | null } | null;
   // Katalogdan "?renk=..." ile gelindiginde o rengin onceden secili acilmasi
   // icin (bkz. urunler/[slug]/page.tsx, lib/catalog.ts getCatalogEntries).
   // Gecersiz/eslesmeyen bir deger gelirse sessizce ilk renge dusulur.
@@ -215,9 +221,23 @@ export function ProductViewer({
           </p>
         )}
         <div className="mt-4 flex items-center gap-3">
-          <span className="text-xl">{formatPrice(selectedPriceCents)}</span>
-          {compareAtCents && compareAtCents > selectedPriceCents && (
-            <span className="text-ink/40 line-through">{formatPrice(compareAtCents)}</span>
+          {automaticDiscount ? (
+            <>
+              <span className="text-xl">
+                {formatPrice(Math.round((selectedPriceCents * (100 - automaticDiscount.percent)) / 100))}
+              </span>
+              <span className="text-ink/40 line-through">{formatPrice(selectedPriceCents)}</span>
+              <span className="bg-accent px-2 py-1 text-xs font-medium uppercase tracking-wide text-paper">
+                %{automaticDiscount.percent} İndirim
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="text-xl">{formatPrice(selectedPriceCents)}</span>
+              {compareAtCents && compareAtCents > selectedPriceCents && (
+                <span className="text-ink/40 line-through">{formatPrice(compareAtCents)}</span>
+              )}
+            </>
           )}
         </div>
         {bundleInfo && bundleInfo.otherProductNames.length > 0 && (

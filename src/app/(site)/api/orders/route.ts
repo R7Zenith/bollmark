@@ -4,7 +4,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/format";
 import { effectivePrice } from "@/lib/variant";
-import { validateCoupon, CouponInvalidError } from "@/lib/coupons";
+import { resolveBestDiscount, CouponInvalidError } from "@/lib/coupons";
 import { resolveBundleDiscount } from "@/lib/bundles";
 import { resolveLoyaltyRedemption, LoyaltyInvalidError } from "@/lib/loyalty";
 import { calculateShippingCents } from "@/lib/shipping";
@@ -98,21 +98,20 @@ export async function POST(req: NextRequest) {
       const { discountCents: bundleDiscountCents } = await resolveBundleDiscount(tx, resolvedLines);
 
       // Indirim de fiyat gibi hicbir zaman istemciden gelen deger uzerinden
-      // hesaplanmaz - istemci sadece kupon KODUNU gonderir, tutar burada
-      // (validateCoupon icinde) sunucuda yeniden hesaplanir. usedCount artisi
-      // ayni transaction icinde yapilir ki yaris durumunda (iki musterinin
-      // ayni kuponun son kullanim hakkini es zamanli tuketmesi) limit asilmasin.
-      let discountCents = 0;
-      let couponId: string | null = null;
-      let freeShipping = false;
-      if (data.couponCode) {
-        const result = await validateCoupon(tx, data.couponCode, resolvedLines);
-        if (!result.valid) {
-          throw new CouponInvalidError(result.message);
-        }
-        discountCents = result.discountCents;
-        freeShipping = result.freeShipping;
-        couponId = result.couponId;
+      // hesaplanmaz - istemci sadece kupon KODUNU (varsa) gonderir, tutar
+      // burada (resolveBestDiscount icinde) sunucuda yeniden hesaplanir. Kod
+      // girilmemis olsa bile sepete uyan aktif bir otomatik kampanya varsa
+      // yine burada uygulanir. usedCount artisi ayni transaction icinde
+      // yapilir ki yaris durumunda (iki musterinin ayni kampanyanin son
+      // kullanim hakkini es zamanli tuketmesi) limit asilmasin.
+      const result = await resolveBestDiscount(tx, data.couponCode ?? null, resolvedLines);
+      if (data.couponCode && result.codeMessage && result.couponId == null) {
+        throw new CouponInvalidError(result.codeMessage);
+      }
+      const discountCents = result.discountCents;
+      const freeShipping = result.freeShipping;
+      const couponId = result.couponId;
+      if (couponId) {
         await tx.coupon.update({ where: { id: couponId }, data: { usedCount: { increment: 1 } } });
       }
 

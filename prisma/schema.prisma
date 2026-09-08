@@ -344,7 +344,14 @@ model ReturnRequest {
 // hesaplanir.
 model Coupon {
   id            String    @id @default(cuid())
-  code          String    @unique
+  // Kod girilen kampanyalarda tekil kod, kodsuz (otomatik) kampanyalarda null
+  // - Postgres nullable unique alanda birden fazla NULL'a izin verir, cakisma
+  // olmaz. Kodsuz kampanyalar musteri hicbir sey yazmadan sepete/urune
+  // otomatik uygulanir (bkz. lib/coupons.ts resolveBestDiscount).
+  code          String?   @unique
+  // Kodsuz kampanyalarda listede ve site tarafinda gosterilecek gorunen ad
+  // (orn. "Ayakkabilarda %20 Indirim"). Kod girilen kampanyalarda opsiyonel.
+  name          String?
   type          String              // "PERCENT" | "FIXED" | "FREE_SHIPPING"
   value         Int       @default(0) // PERCENT: 1-100, FIXED: kurus, FREE_SHIPPING: kullanilmaz (0)
   minOrderCents Int       @default(0)

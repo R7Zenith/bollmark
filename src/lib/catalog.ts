@@ -58,6 +58,8 @@ export type CatalogEntry = {
   compareAtCents: number | null;
   image: string | null;
   colorLabel: string | null; // yalnizca birden fazla rengi olan urunlerde dolu
+  categoryId: string | null;
+  brandId: string | null;
 };
 
 export async function getCatalogEntries(
@@ -97,7 +99,9 @@ export async function getCatalogEntries(
         priceCents: p.priceCents,
         compareAtCents: p.compareAtCents,
         image: p.images[0]?.url ?? p.optionImages[0]?.url ?? null,
-        colorLabel: null
+        colorLabel: null,
+        categoryId: p.categoryId,
+        brandId: p.brandId
       });
       continue;
     }
@@ -111,7 +115,9 @@ export async function getCatalogEntries(
         priceCents: p.priceCents,
         compareAtCents: p.compareAtCents,
         image: colorImage ?? p.images[0]?.url ?? null,
-        colorLabel: label
+        colorLabel: label,
+        categoryId: p.categoryId,
+        brandId: p.brandId
       });
     }
   }

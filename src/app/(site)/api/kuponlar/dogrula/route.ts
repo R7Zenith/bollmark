@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { validateCoupon, type CouponLine } from "@/lib/coupons";
+import { resolveBestDiscount, type CouponLine } from "@/lib/coupons";
 import { effectivePrice } from "@/lib/variant";
 
 const lineSchema = z.object({
@@ -11,7 +11,9 @@ const lineSchema = z.object({
 });
 
 const schema = z.object({
-  code: z.string().min(1),
+  // Bos string kabul edilir - kod girilmemis olsa bile sepette gecerli bir
+  // otomatik kampanya olup olmadigi (ve varsa tutari) bu sekilde sorgulanir.
+  code: z.string(),
   lines: z.array(lineSchema).min(1)
 });
 
@@ -20,6 +22,10 @@ const schema = z.object({
 // siparis olusturulurken orders/route.ts icinde tekrar yapilir. Fiyat ve
 // kategori/marka bilgisi orders/route.ts ile ayni prensiple istemciden gelen
 // degere guvenilmeden burada sunucuda urun/varyant kaydindan okunur.
+//
+// resolveBestDiscount hem otomatik (kodsuz) kampanyalari hem de girilen kodu
+// birlikte degerlendirip hangisinin daha avantajli oldugunu dondurur - kod
+// bos gonderilirse sadece otomatik kampanyalar degerlendirilir.
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const parsed = schema.safeParse(body);
@@ -50,14 +56,34 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  const result = await validateCoupon(prisma, parsed.data.code, lines);
-  if (!result.valid) {
-    return NextResponse.json({ valid: false, message: result.message });
+  const result = await resolveBestDiscount(prisma, parsed.data.code || null, lines);
+
+  const hasEnteredCode = parsed.data.code.trim().length > 0;
+  if (hasEnteredCode && result.codeMessage && result.couponId == null) {
+    return NextResponse.json({ valid: false, message: result.codeMessage });
   }
+  if (hasEnteredCode && result.codeMessage) {
+    // Otomatik kampanya kazandi ama girilen kod da gecerliydi, sadece daha dusuktu.
+    return NextResponse.json({
+      valid: true,
+      discountCents: result.discountCents,
+      freeShipping: result.freeShipping,
+      appliedName: result.appliedName,
+      message: result.codeMessage
+    });
+  }
+
   return NextResponse.json({
-    valid: true,
+    valid: result.couponId != null || result.discountCents > 0 || result.freeShipping,
     discountCents: result.discountCents,
     freeShipping: result.freeShipping,
-    message: "Kupon uygulandı."
+    appliedName: result.appliedName,
+    message: result.couponId
+      ? result.appliedName === parsed.data.code.trim().toUpperCase()
+        ? "Kupon uygulandı."
+        : `"${result.appliedName}" kampanyası uygulandı.`
+      : hasEnteredCode
+        ? "Kupon uygulandı."
+        : null
   });
 }

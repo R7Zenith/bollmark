@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { getProductBySlug, getRelatedProducts, firstImageUrl } from "@/lib/catalog";
 import { getProductReviewSummary } from "@/lib/reviews";
 import { getBundleForProduct } from "@/lib/bundles";
+import { prisma } from "@/lib/prisma";
+import { getActiveAutomaticPercentCampaigns, matchAutomaticDiscount } from "@/lib/coupons";
 import { ProductViewer } from "@/components/product-viewer";
 import { ProductReviews, type ReviewView } from "@/components/product-reviews";
 import { ProductCard } from "@/components/product-card";
@@ -64,6 +66,8 @@ export default async function ProductPage({
 
   const relatedProducts = await getRelatedProducts(product);
   const bundleInfo = await getBundleForProduct(product.id);
+  const automaticCampaigns = await getActiveAutomaticPercentCampaigns(prisma);
+  const automaticDiscount = matchAutomaticDiscount(automaticCampaigns, product);
   const { avgRating, count, reviews } = await getProductReviewSummary(product.id);
   const reviewViews: ReviewView[] = reviews.map((r) => ({
     id: r.id,
@@ -126,6 +130,7 @@ export default async function ProductPage({
           priceCents: v.priceCents
         }))}
         bundleInfo={bundleInfo}
+        automaticDiscount={automaticDiscount}
       />
       <ProductReviews productId={product.id} avgRating={avgRating} count={count} reviews={reviewViews} />
 
@@ -142,7 +147,8 @@ export default async function ProductPage({
                   name: p.name,
                   priceCents: p.priceCents,
                   compareAtCents: p.compareAtCents,
-                  image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800"
+                  image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800",
+                  automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, p)?.percent ?? null
                 }}
               />
             ))}

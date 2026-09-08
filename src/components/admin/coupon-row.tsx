@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Pencil, Trash2, X, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/admin/badge";
+import { CouponValueField } from "@/components/admin/coupon-value-field";
 import { formatPrice } from "@/lib/format";
 import { couponStatusLabel, couponStatusTone, type CouponStatus } from "@/lib/status";
 
@@ -18,7 +19,8 @@ export type CouponUsageOrder = {
 
 export type CouponData = {
   id: string;
-  code: string;
+  code: string | null;
+  name: string | null;
   type: string;
   value: number;
   minOrderCents: number;
@@ -72,41 +74,36 @@ export function CouponRow({
         <form action={updateAction} className="space-y-2">
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="text-xs text-admin-text-muted">Kod</label>
-              <input name="code" defaultValue={coupon.code} required autoFocus className={inputClass} />
+              <label className="text-xs text-admin-text-muted">Kod (boşsa otomatik uygulanır)</label>
+              <input
+                name="code"
+                defaultValue={coupon.code ?? ""}
+                autoFocus
+                placeholder="Kod yok = otomatik"
+                className={`${inputClass} font-mono uppercase`}
+              />
             </div>
             <div>
-              <label className="text-xs text-admin-text-muted">Tip</label>
-              <select name="type" defaultValue={coupon.type} className={inputClass}>
-                <option value="PERCENT">Yüzde İndirim</option>
-                <option value="FIXED">Sabit Tutar (TL)</option>
-                <option value="FREE_SHIPPING">Ücretsiz Kargo</option>
-              </select>
+              <label className="text-xs text-admin-text-muted">Görünen Ad {coupon.code ? "(opsiyonel)" : ""}</label>
+              <input name="name" defaultValue={coupon.name ?? ""} className={inputClass} />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-xs text-admin-text-muted">Değer (% veya TL)</label>
-              <input
-                name="value"
-                type="number"
-                step="0.01"
-                min={0}
-                defaultValue={coupon.type === "FIXED" ? (coupon.value / 100).toFixed(2) : coupon.value}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="text-xs text-admin-text-muted">Min. Sepet (TL)</label>
-              <input
-                name="minOrderCents"
-                type="number"
-                step="0.01"
-                min={0}
-                defaultValue={(coupon.minOrderCents / 100).toFixed(2)}
-                className={inputClass}
-              />
-            </div>
+          <CouponValueField
+            defaultType={coupon.type}
+            defaultValue={coupon.type === "FIXED" ? Number((coupon.value / 100).toFixed(2)) : coupon.value}
+            inputClassName={inputClass}
+            labelClassName="text-xs text-admin-text-muted"
+          />
+          <div>
+            <label className="text-xs text-admin-text-muted">Min. Sepet (TL)</label>
+            <input
+              name="minOrderCents"
+              type="number"
+              step="0.01"
+              min={0}
+              defaultValue={(coupon.minOrderCents / 100).toFixed(2)}
+              className={inputClass}
+            />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -186,7 +183,14 @@ export function CouponRow({
     <li className="px-4 py-3 text-sm text-admin-text">
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="font-mono font-medium">{coupon.code}</span>
+          {coupon.code ? (
+            <span className="font-mono font-medium">{coupon.code}</span>
+          ) : (
+            <>
+              <span className="font-medium">{coupon.name ?? "(adsız)"}</span>
+              <Badge tone="green">Otomatik</Badge>
+            </>
+          )}
           <Badge tone="blue">{typeLabels[coupon.type] ?? coupon.type}</Badge>
           <Badge tone="gray">{valueLabel(coupon)}</Badge>
           {coupon.minOrderCents > 0 && (
@@ -212,7 +216,7 @@ export function CouponRow({
           <form
             action={deleteAction}
             onSubmit={(e) => {
-              if (!window.confirm(`"${coupon.code}" kuponunu silmek istediğinize emin misiniz?`)) {
+              if (!window.confirm(`"${coupon.code ?? coupon.name}" kuponunu silmek istediğinize emin misiniz?`)) {
                 e.preventDefault();
               }
             }}

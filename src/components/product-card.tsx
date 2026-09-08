@@ -17,6 +17,10 @@ export type ProductCardData = {
   // katalog girisidir - urun sayfasina bu renk onceden secili acilir
   // (bkz. lib/catalog.ts getCatalogEntries, product-viewer.tsx initialColor).
   colorLabel?: string | null;
+  // Urunun kategori/markasina uyan aktif bir otomatik kampanya varsa yuzdesi
+  // (bkz. lib/coupons.ts matchAutomaticDiscount) - doluysa fiyatin yaninda
+  // indirimli fiyat + rozet gosterilir.
+  automaticDiscountPercent?: number | null;
 };
 
 export function ProductCard({ product }: { product: ProductCardData }) {
@@ -25,6 +29,10 @@ export function ProductCard({ product }: { product: ProductCardData }) {
   const href = product.colorLabel
     ? `/urunler/${product.slug}?renk=${encodeURIComponent(product.colorLabel)}`
     : `/urunler/${product.slug}`;
+  const discountPercent = product.automaticDiscountPercent;
+  const discountedPriceCents = discountPercent
+    ? Math.round((product.priceCents * (100 - discountPercent)) / 100)
+    : null;
 
   return (
     <Link href={href} className="group block">
@@ -47,17 +55,29 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         >
           <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />
         </button>
+        {discountPercent && (
+          <span className="absolute left-3 top-3 bg-accent px-2 py-1 text-xs font-medium uppercase tracking-wide text-paper">
+            %{discountPercent} İndirim
+          </span>
+        )}
       </div>
       <div className="mt-3 flex items-baseline justify-between">
         <h3 className="text-sm uppercase tracking-wide">{product.name}</h3>
       </div>
       {product.colorLabel && <p className="mt-0.5 text-xs text-ink/50">{product.colorLabel}</p>}
       <div className="mt-1 flex items-center gap-2">
-        <span className="text-sm font-medium">{formatPrice(product.priceCents)}</span>
-        {product.compareAtCents && product.compareAtCents > product.priceCents && (
-          <span className="text-xs text-ink/40 line-through">
-            {formatPrice(product.compareAtCents)}
-          </span>
+        <span className="text-sm font-medium">
+          {formatPrice(discountedPriceCents ?? product.priceCents)}
+        </span>
+        {discountedPriceCents != null ? (
+          <span className="text-xs text-ink/40 line-through">{formatPrice(product.priceCents)}</span>
+        ) : (
+          product.compareAtCents &&
+          product.compareAtCents > product.priceCents && (
+            <span className="text-xs text-ink/40 line-through">
+              {formatPrice(product.compareAtCents)}
+            </span>
+          )
         )}
       </div>
     </Link>

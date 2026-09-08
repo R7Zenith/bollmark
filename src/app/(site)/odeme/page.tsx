@@ -196,7 +196,7 @@ export default function CheckoutPage() {
           )}
           {discountCents > 0 && (
             <div className="flex justify-between text-accent">
-              <span>İndirim</span>
+              <span>{coupon?.appliedName ? `İndirim (${coupon.appliedName})` : "İndirim"}</span>
               <span>-{formatPrice(discountCents)}</span>
             </div>
           )}

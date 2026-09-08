@@ -7,6 +7,11 @@ import { StatCard } from "@/components/admin/stat-card";
 import { KampanyalarFilters } from "@/components/admin/kampanyalar-filters";
 import { CouponRow, type CouponData, type CategoryOption, type BrandOption } from "@/components/admin/coupon-row";
 import { CouponFeedback } from "@/components/admin/coupon-feedback";
+import { CouponIdentityField } from "@/components/admin/coupon-identity-field";
+import { CouponValueField } from "@/components/admin/coupon-value-field";
+import { logAudit } from "@/lib/audit-log";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { buildCategoryOptions } from "@/lib/category-tree";
 import { computeCouponStatus, couponStatuses, type CouponStatus } from "@/lib/status";
 import { formatPrice } from "@/lib/format";
@@ -16,9 +21,15 @@ const inputClass =
 const labelClass = "text-xs font-medium uppercase tracking-wide text-admin-text-muted";
 
 function readCouponFields(formData: FormData) {
-  const code = String(formData.get("code") || "")
+  const codeRaw = String(formData.get("code") || "")
     .trim()
     .toUpperCase();
+  const nameRaw = String(formData.get("name") || "").trim();
+  // Kod bosken (Otomatik kampanya) code null olarak saklanir - Postgres
+  // nullable unique alanda birden fazla NULL'a izin verdigi icin cakisma
+  // olmaz. Kod bossa gorunen ad (name) zorunludur.
+  const code = codeRaw || null;
+  const name = nameRaw || null;
   const type = String(formData.get("type") || "PERCENT");
   const valueRaw = Number(formData.get("value") || 0);
   const value = type === "FIXED" ? Math.round(valueRaw * 100) : Math.max(0, Math.round(valueRaw));
@@ -33,6 +44,7 @@ function readCouponFields(formData: FormData) {
 
   return {
     code,
+    name,
     type,
     value,
     minOrderCents,
@@ -48,12 +60,25 @@ function readCouponFields(formData: FormData) {
 async function createCoupon(formData: FormData) {
   "use server";
   const fields = readCouponFields(formData);
-  if (!fields.code) redirect("/admin/kampanyalar?hata=kod-gerekli");
+  if (!fields.code && !fields.name) redirect("/admin/kampanyalar?hata=ad-gerekli");
 
+  let created;
   try {
-    await prisma.coupon.create({ data: fields });
+    created = await prisma.coupon.create({ data: fields });
   } catch {
     redirect("/admin/kampanyalar?hata=kod-tekrar");
+  }
+
+  if (!fields.code) {
+    const session = await getServerSession(authOptions);
+    logAudit({
+      actorEmail: session?.user?.email ?? "bilinmiyor",
+      actorRole: session?.user?.role ?? "ADMIN",
+      action: "KAMPANYA_OTOMATIK_OLUSTURULDU",
+      targetType: "Coupon",
+      targetId: created.id,
+      detail: fields.name ?? undefined
+    });
   }
   redirect("/admin/kampanyalar?basarili=eklendi");
 }
@@ -61,7 +86,7 @@ async function createCoupon(formData: FormData) {
 async function updateCoupon(id: string, formData: FormData) {
   "use server";
   const fields = readCouponFields(formData);
-  if (!fields.code) redirect("/admin/kampanyalar?hata=kod-gerekli");
+  if (!fields.code && !fields.name) redirect("/admin/kampanyalar?hata=ad-gerekli");
 
   try {
     await prisma.coupon.update({ where: { id }, data: fields });
@@ -130,6 +155,7 @@ export default async function AdminCouponsPage({
   let rows: CouponData[] = coupons.map((c) => ({
     id: c.id,
     code: c.code,
+    name: c.name,
     type: c.type,
     value: c.value,
     minOrderCents: c.minOrderCents,
@@ -152,7 +178,9 @@ export default async function AdminCouponsPage({
 
   if (q) {
     const needle = q.trim().toLowerCase();
-    rows = rows.filter((r) => r.code.toLowerCase().includes(needle));
+    rows = rows.filter(
+      (r) => (r.code ?? "").toLowerCase().includes(needle) || (r.name ?? "").toLowerCase().includes(needle)
+    );
   }
   if (durum && couponStatuses.includes(durum as CouponStatus)) {
     rows = rows.filter((r) => r.status === durum);
@@ -176,34 +204,11 @@ export default async function AdminCouponsPage({
 
       <Card title="Yeni Kupon" className="mt-6">
         <form action={createCoupon} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>Kod</label>
-              <input
-                name="code"
-                required
-                placeholder="HOSGELDIN10"
-                className={`mt-1 ${inputClass} font-mono uppercase`}
-              />
-            </div>
-            <div>
-              <label className={labelClass}>Tip</label>
-              <select name="type" defaultValue="PERCENT" className={`mt-1 ${inputClass}`}>
-                <option value="PERCENT">Yüzde İndirim</option>
-                <option value="FIXED">Sabit Tutar (TL)</option>
-                <option value="FREE_SHIPPING">Ücretsiz Kargo</option>
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass}>Değer (% veya TL)</label>
-              <input name="value" type="number" step="0.01" min={0} defaultValue={10} className={`mt-1 ${inputClass}`} />
-            </div>
-            <div>
-              <label className={labelClass}>Min. Sepet Tutarı (TL)</label>
-              <input name="minOrderCents" type="number" step="0.01" min={0} className={`mt-1 ${inputClass}`} />
-            </div>
+          <CouponIdentityField />
+          <CouponValueField />
+          <div>
+            <label className={labelClass}>Min. Sepet Tutarı (TL)</label>
+            <input name="minOrderCents" type="number" step="0.01" min={0} className={`mt-1 ${inputClass}`} />
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>

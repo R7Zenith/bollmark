@@ -3,6 +3,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { getPublishedProducts, firstImageUrl } from "@/lib/catalog";
 import { ProductCard } from "@/components/product-card";
+import { prisma } from "@/lib/prisma";
+import { getActiveAutomaticPercentCampaigns, matchAutomaticDiscount } from "@/lib/coupons";
 
 export const metadata: Metadata = {
   title: "Bollmark | Modern Giyim",
@@ -12,7 +14,10 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const products = await getPublishedProducts(undefined, { featuredFirst: true });
+  const [products, automaticCampaigns] = await Promise.all([
+    getPublishedProducts(undefined, { featuredFirst: true }),
+    getActiveAutomaticPercentCampaigns(prisma)
+  ]);
 
   return (
     <div>
@@ -60,7 +65,8 @@ export default async function HomePage() {
                   name: p.name,
                   priceCents: p.priceCents,
                   compareAtCents: p.compareAtCents,
-                  image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800"
+                  image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800",
+                  automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, p)?.percent ?? null
                 }}
               />
             ))}

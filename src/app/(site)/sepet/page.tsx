@@ -82,7 +82,7 @@ export default function CartPage() {
         )}
         {discountCents > 0 && (
           <div className="flex items-center justify-between text-sm text-accent">
-            <span>İndirim</span>
+            <span>{coupon?.appliedName ? `İndirim (${coupon.appliedName})` : "İndirim"}</span>
             <span>-{formatPrice(discountCents)}</span>
           </div>
         )}

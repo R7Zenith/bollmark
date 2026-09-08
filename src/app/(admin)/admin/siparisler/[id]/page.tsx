@@ -74,7 +74,7 @@ export default async function OrderDetailPage({
   const { basarili, hata } = await searchParams;
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { items: { include: { product: true } }, shipment: true, coupon: { select: { code: true } } }
+    include: { items: { include: { product: true } }, shipment: true, coupon: { select: { code: true, name: true } } }
   });
   if (!order) notFound();
 
@@ -161,7 +161,7 @@ export default async function OrderDetailPage({
                 </div>
                 {order.discountCents > 0 && (
                   <div className="flex justify-between text-admin-text-muted">
-                    <span>İndirim{order.coupon ? ` (${order.coupon.code})` : ""}</span>
+                    <span>İndirim{order.coupon ? ` (${order.coupon.code ?? order.coupon.name ?? "Otomatik"})` : ""}</span>
                     <span>-{formatPrice(order.discountCents)}</span>
                   </div>
                 )}
