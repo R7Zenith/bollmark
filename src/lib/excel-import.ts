@@ -15,6 +15,7 @@ export interface ExcelImportRow {
   productName: string; // ÜRÜN ADI
   barcode: string; // BARKOD
   genderRaw: string; // KOD4
+  categoryRaw: string; // KOD3
   color: string; // RENK
   size: string; // BEDEN
   costCents: number | null; // AFIYATI
@@ -48,6 +49,20 @@ const GENDER_MAP: Record<string, string> = {
 
 export function mapGender(genderRaw: string): string | null {
   return GENDER_MAP[genderRaw.trim().toUpperCase()] ?? null;
+}
+
+// Koton checklist'lerindeki KOD3 (urun grubu) degerlerinin Bollmark kategori
+// adina karsiligi. Haritada olmayan bir deger gelirse mapCategoryName null
+// doner, ithalat onizlemede "eslesmedi" olarak gosterilir - yoneticinin
+// secili fallback kategoriye duser. Yeni bir urun tipi geldikce buraya
+// eklenir.
+const CATEGORY_MAP: Record<string, string> = {
+  "SHIRTS SS": "Gömlek",
+  "SHIRTS LS BSC": "Gömlek"
+};
+
+export function mapCategoryName(categoryRaw: string): string | null {
+  return CATEGORY_MAP[categoryRaw.trim().toUpperCase()] ?? null;
 }
 
 // Marka/kategori sayfalarında kullanılan Türkçe slug üretimiyle aynı kural.
@@ -86,6 +101,7 @@ export function parseExcelFile(buffer: ArrayBuffer | Buffer): ExcelParseResult {
     const color = String(raw["RENK"] ?? "").trim();
     const size = String(raw["BEDEN"] ?? "").trim();
     const genderRaw = String(raw["KOD4"] ?? "").trim();
+    const categoryRaw = String(raw["KOD3"] ?? "").trim();
     const brandName = String(raw["FIRMAADI"] ?? "").trim() || "Koton";
 
     if (!productCode) {
@@ -130,6 +146,7 @@ export function parseExcelFile(buffer: ArrayBuffer | Buffer): ExcelParseResult {
       productName,
       barcode,
       genderRaw,
+      categoryRaw,
       color,
       size,
       costCents,
@@ -154,6 +171,7 @@ export interface ProductGroup {
   productCode: string;
   productName: string;
   genderRaw: string;
+  categoryRaw: string;
   brandName: string;
   priceCents: number;
   costCents: number | null;
@@ -172,6 +190,7 @@ export function groupExcelRows(rows: ExcelImportRow[]): ProductGroup[] {
         productCode: row.productCode,
         productName: row.productName,
         genderRaw: row.genderRaw,
+        categoryRaw: row.categoryRaw,
         brandName: row.brandName,
         priceCents: row.priceCents,
         costCents: row.costCents,
@@ -199,6 +218,11 @@ async function resolveBrandId(tx: Tx, brandName: string): Promise<string | null>
   if (existing) return existing.id;
   const created = await tx.brand.create({ data: { name: trimmed, slug: slugifyTr(trimmed) } });
   return created.id;
+}
+
+async function resolveCategoryIdByName(tx: Tx, categoryName: string): Promise<string | null> {
+  const existing = await tx.category.findFirst({ where: { name: { equals: categoryName, mode: "insensitive" } } });
+  return existing?.id ?? null;
 }
 
 async function generateUniqueSlug(tx: Tx, name: string): Promise<string> {
@@ -232,7 +256,7 @@ export interface ImportSummary {
 
 export async function importProductGroups(
   groups: ProductGroup[],
-  categoryId: string | null
+  fallbackCategoryId: string | null
 ): Promise<ImportSummary> {
   const allBarcodes = groups.flatMap((g) => g.variants.map((v) => v.barcode));
   const existingVariants = allBarcodes.length
@@ -268,10 +292,22 @@ export async function importProductGroups(
 
   const brandIdByProductCode = new Map<string, string | null>();
   const slugByProductCode = new Map<string, string>();
+  const categoryIdByProductCode = new Map<string, string | null>();
+  const resolvedCategoryNameCache = new Map<string, string | null>();
   for (const group of groups) {
     if (!groupIsNew.get(group.productCode)) continue;
     brandIdByProductCode.set(group.productCode, await resolveBrandId(prisma, group.brandName));
     slugByProductCode.set(group.productCode, await generateUniqueSlug(prisma, group.productName));
+
+    const detectedCategoryName = mapCategoryName(group.categoryRaw);
+    let resolvedCategoryId: string | null = null;
+    if (detectedCategoryName) {
+      if (!resolvedCategoryNameCache.has(detectedCategoryName)) {
+        resolvedCategoryNameCache.set(detectedCategoryName, await resolveCategoryIdByName(prisma, detectedCategoryName));
+      }
+      resolvedCategoryId = resolvedCategoryNameCache.get(detectedCategoryName) ?? null;
+    }
+    categoryIdByProductCode.set(group.productCode, resolvedCategoryId ?? fallbackCategoryId);
   }
 
   const summary: ImportSummary = {
@@ -309,7 +345,7 @@ export async function importProductGroups(
               priceCents: group.priceCents,
               costCents: group.costCents,
               status: "DRAFT",
-              categoryId: categoryId || null,
+              categoryId: categoryIdByProductCode.get(group.productCode) ?? null,
               brandId: brandIdByProductCode.get(group.productCode) ?? null,
               gender: mapGender(group.genderRaw)
             }

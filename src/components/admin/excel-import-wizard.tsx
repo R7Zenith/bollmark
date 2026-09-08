@@ -16,6 +16,7 @@ type ExcelImportRow = {
   productName: string;
   barcode: string;
   genderRaw: string;
+  categoryRaw: string;
   color: string;
   size: string;
   costCents: number | null;
@@ -30,6 +31,8 @@ type PreviewGroup = {
   productCode: string;
   productName: string;
   gender: string | null;
+  categoryRaw: string | null;
+  detectedCategory: string | null;
   brandName: string;
   priceCents: number;
   costCents: number | null;
@@ -192,8 +195,11 @@ export function ExcelImportWizard({ categories }: { categories: CategoryOption[]
 
             <div>
               <label className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">
-                Kategori (tüm ürünlere uygulanır, opsiyonel)
+                Eşleşmeyenler için kategori (opsiyonel)
               </label>
+              <p className="mt-1 text-xs text-admin-text-muted">
+                Yukarıda kategorisi otomatik tespit edilemeyen ürünler için kullanılır.
+              </p>
               <select
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
@@ -215,6 +221,7 @@ export function ExcelImportWizard({ categories }: { categories: CategoryOption[]
                     <th className="px-4 py-3">Ürün Kodu</th>
                     <th className="px-4 py-3">Ürün Adı</th>
                     <th className="px-4 py-3">Cinsiyet</th>
+                    <th className="px-4 py-3">Kategori</th>
                     <th className="px-4 py-3">Renkler</th>
                     <th className="px-4 py-3 text-right">Varyant</th>
                     <th className="px-4 py-3 text-right">Stok</th>
@@ -227,6 +234,15 @@ export function ExcelImportWizard({ categories }: { categories: CategoryOption[]
                       <td className="px-4 py-3 font-mono text-xs text-admin-text">{g.productCode}</td>
                       <td className="px-4 py-3 text-admin-text">{g.productName}</td>
                       <td className="px-4 py-3 text-admin-text-muted">{g.gender ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        {g.detectedCategory ? (
+                          <span className="inline-flex items-center gap-1 text-green-600">
+                            <CheckCircle2 size={13} /> {g.detectedCategory}
+                          </span>
+                        ) : (
+                          <span className="text-admin-text-muted">—</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3 text-admin-text-muted">{g.colors.join(", ")}</td>
                       <td className="px-4 py-3 text-right text-admin-text">{g.variantCount}</td>
                       <td className="px-4 py-3 text-right text-admin-text">{g.totalStock}</td>

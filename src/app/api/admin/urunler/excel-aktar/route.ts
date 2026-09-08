@@ -14,6 +14,7 @@ function isValidRow(v: unknown): v is ExcelImportRow {
     typeof r.productName === "string" &&
     typeof r.barcode === "string" &&
     typeof r.genderRaw === "string" &&
+    typeof r.categoryRaw === "string" &&
     typeof r.color === "string" &&
     typeof r.size === "string" &&
     (r.costCents === null || typeof r.costCents === "number") &&
@@ -42,17 +43,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Aktarılacak satır bulunamadı." }, { status: 400 });
   }
 
-  let categoryId: string | null = typeof body?.categoryId === "string" && body.categoryId ? body.categoryId : null;
-  if (categoryId) {
-    const category = await prisma.category.findUnique({ where: { id: categoryId } });
-    if (!category) categoryId = null;
+  let fallbackCategoryId: string | null =
+    typeof body?.categoryId === "string" && body.categoryId ? body.categoryId : null;
+  if (fallbackCategoryId) {
+    const category = await prisma.category.findUnique({ where: { id: fallbackCategoryId } });
+    if (!category) fallbackCategoryId = null;
   }
 
   const groups = groupExcelRows(rows);
 
   let summary;
   try {
-    summary = await importProductGroups(groups, categoryId);
+    summary = await importProductGroups(groups, fallbackCategoryId);
   } catch (error) {
     console.error("Excel içe aktarımı başarısız:", error);
     return NextResponse.json({ error: "İçe aktarım sırasında bir hata oluştu, hiçbir değişiklik kaydedilmedi." }, { status: 500 });

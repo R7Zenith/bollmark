@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { parseExcelFile, groupExcelRows, mapGender } from "@/lib/excel-import";
+import { parseExcelFile, groupExcelRows, mapGender, mapCategoryName } from "@/lib/excel-import";
 
 // Excel dosyasını ayrıştırıp önizleme döner - hiçbir veritabanı yazma işlemi yapmaz.
 // Gerçek aktarım /api/admin/urunler/excel-aktar'da, burada dönen `rows` listesi
@@ -42,6 +42,8 @@ export async function POST(request: NextRequest) {
     productCode: g.productCode,
     productName: g.productName,
     gender: mapGender(g.genderRaw),
+    categoryRaw: g.categoryRaw,
+    detectedCategory: mapCategoryName(g.categoryRaw),
     brandName: g.brandName,
     priceCents: g.priceCents,
     costCents: g.costCents,
