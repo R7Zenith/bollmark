@@ -1,14 +1,18 @@
 # Bollmark – Excel Aktarımında Otomatik Kategori Eşleme Planı
 
-## Güncelleme notu (2. tur)
+## Güncelleme notu (3. tur)
 
 Bu belgenin 1. turu (aşağıdaki "Bağlam" ve devamı) tamamlandı: `KOD3` sabit
 `CATEGORY_MAP` üzerinden otomatik kategoriye eşleniyor, eşleşmezse global
-fallback dropdown'a düşüyordu. Bu tur o akışı genişletiyor: haritada karşılığı
-olmayan `KOD3` değerleri için bir **AI önerisi** katmanı ve yöneticinin
-**satır satır elle düzeltebileceği** bir kategori kutucuğu eklendi. Aşağıdaki
-"2) Tasarım kararları" ve "3) Teknik değişiklikler" bölümleri bu ikinci turun
-**güncel** hâlini yansıtıyor; 1. turdaki karar metni tarihsel bağlam için
+fallback dropdown'a düşüyordu. 2. tur o akışı genişletti: haritada karşılığı
+olmayan `KOD3` değerleri için bir **AI önerisi** katmanı, yöneticinin **satır
+satır elle düzeltebileceği** bir kategori kutucuğu ve **öğrenilmiş eşlemeler**
+(`CategoryKodMapping`) eklendi. 3. tur ise gerçek kullanımda ortaya çıkan bir
+sürtünmeyi giderdi: yönetici onayladığı bir kategori adı DB'de henüz yoksa
+(ör. "Gömlek" hiç oluşturulmamışsa) artık **400 ile durup yöneticiyi Kategoriler
+sayfasına yönlendirmiyor, kategoriyi kendisi otomatik oluşturuyor**. Aşağıdaki
+"2) Tasarım kararları" ve "3) Teknik değişiklikler" bölümleri bu üçüncü turun
+**güncel** hâlini yansıtıyor; önceki tur kararları tarihsel bağlam için
 korunuyor ama uygulanan son davranış budur.
 
 ## Bağlam (yeni bir Claude Code oturumu için)
@@ -65,13 +69,20 @@ gibi bir "ürün tipi kodu" — kategoriye eşlenebilir.
   tanımlı değilse bu katman sessizce devre dışı kalır, davranış 1. turdaki
   gibi kalır ("—" / eşleşmedi).
 - **Eşleşen isimde kategori DB'de yoksa otomatik oluşturulsun mu?**
-  **Hayır**, bu 1. turdaki kararla aynı — ne `CATEGORY_MAP`/AI önerisi ne de
-  yöneticinin elle girdiği isim otomatik kategori **oluşturmaz**. Elle girilen
-  isim `excel-aktar` route'unda DB'deki kategorilerle (case-insensitive) tek
-  tek karşılaştırılır; eşleşmeyen bir isim varsa **içe aktarım hiç
-  başlamadan** (herhangi bir yazma işleminden önce) 400 döner ve hangi ürün
-  kodu/kategori adının eşleşmediği listelenir — yönetici ya adı düzeltir ya
-  da kategoriyi önce Kategoriler sayfasından oluşturur.
+  **Evet (3. tur değişikliği).** 1. ve 2. turda bilinçli olarak "hayır"
+  kararı verilmişti (yeşil eşleşme yoksa 400 ile durdurup yöneticiye kategori
+  adını düzeltmesini/önceden oluşturmasını isteme) — ama pratikte gereksiz
+  bir sürtünme çıkardı: yönetici zaten önizlemede o ismi (kesin eşleşme, AI
+  önerisi ya da kendi yazdığı) görüp onaylıyor, bu son bir onay adımıyken
+  aktarımda ayrıca "önce git kategoriyi oluştur" diye durdurmanın ek bir
+  güvenlik değeri yoktu. Kullanıcı isteğiyle davranış değişti: `excel-aktar`
+  route'u artık DB'de bulamadığı bir kategori adını **otomatik olarak
+  oluşturuyor** (`getOrCreateCategoryId`, `src/lib/excel-import.ts` —
+  marka için zaten var olan `resolveBrandId`'yle birebir aynı pattern: ad +
+  otomatik üretilen benzersiz slug, üst kategorisiz/tepe seviye). Hâlâ
+  geçerli olan güvenlik: bu sadece yöneticinin önizlemede **görüp onayladığı**
+  metin için çalışır — AI'nin çıktısı hiçbir zaman kullanıcı onayı olmadan
+  buraya ulaşmaz (bkz. yukarıdaki AI önerisi maddesi).
 - **Harita nerede tutulur:** `GENDER_MAP` ile birebir aynı desende, kod
   içinde sabit bir `CATEGORY_MAP: Record<string, string>` — yeni bir ürün
   tipi (T-shirt, pantolon, elbise...) geldikçe elle genişletilecek. Haritada
@@ -159,22 +170,19 @@ gibi bir "ürün tipi kodu" — kategoriye eşlenebilir.
   fallback" (bkz. bölüm 2, öncelik sırası).
 - `handleImport`, `rows`/`categoryId` yanında artık `categoryOverrides:
   categoryByCode` (tüm satırların o anki kutucuk değerleri) gönderiyor.
-  `excel-aktar` 400 + `unresolvedCategories` döndürürse (elle girilen isim
-  DB'de yoksa), toast'ta hangi kategori adlarının bulunamadığı gösteriliyor
-  ve yönetici önizleme ekranından ayrılmadan düzeltebiliyor.
 
 ### `src/app/api/admin/urunler/excel-aktar/route.ts`
 
 - `body?.categoryOverrides` (`Record<productCode, string>`, önizlemedeki
   satır kutucuklarının o anki değerleri) okunuyor.
 - Tüm gruplardaki **benzersiz**, boş olmayan override isimleri toplanıp
-  `resolveCategoryIdByName` ile tek tek DB'de aranıyor (`categoryIdByName`
-  cache'i — aynı isim birden fazla satırda geçse de tek sorgu).
-- Herhangi bir override ismi DB'de bulunamazsa (`unresolved.length > 0`),
-  **hiçbir yazma işlemi başlamadan** 400 dönülüyor:
-  `{ error, unresolvedCategories: [{ productCode, categoryName }, ...] }`.
-- Bulunamayan yoksa, her grup için öncelik sırası uygulanıyor: override
-  varsa `categoryIdByName.get(override)`, yoksa `fallbackCategoryId` — sonuç
+  `getOrCreateCategoryId` ile tek tek DB'de aranıyor; bulunamayan isim
+  **otomatik olarak yeni bir kategori olarak oluşturuluyor** (3. tur, bkz.
+  bölüm 2) — `categoryIdByName` cache'i sayesinde aynı isim birden fazla
+  satırda geçse de tek sorgu/tek oluşturma yapılıyor, artık hiçbir 400
+  dönmüyor (o kısım tamamen kaldırıldı).
+- Her grup için öncelik sırası uygulanıyor: override varsa
+  `categoryIdByName.get(override)`, yoksa `fallbackCategoryId` — sonuç
   `categoryIdByProductCode: Map<string, string | null>` olarak
   `importProductGroups(groups, categoryIdByProductCode)`'a geçiriliyor.
 
@@ -192,11 +200,12 @@ gibi bir "ürün tipi kodu" — kategoriye eşlenebilir.
 - [ ] Önizleme tablosundaki özet banner'daki üç sayı (kesin/AI önerisi/
       eşleşmedi) `preview.groups` ile tutarlı mı?
 - [ ] Bir satırın kutucuğuna DB'de **olmayan** bir isim yazıp içe
-      aktarmayı denediğinde, hiçbir ürün/varyant yazılmadan 400 + hangi
-      satırın hangi isimle eşleşmediğini gösteren bir toast görünüyor mu?
-- [ ] Aynı satırı DB'de **var olan** bir isimle (örn. farklı harf
-      büyüklüğüyle) düzeltip tekrar denediğinde içe aktarım başarıyla
-      tamamlanıyor mu?
+      aktardığında (3. tur), hata almadan tamamlanıyor mu ve Kategoriler
+      sayfasında o isimle yeni bir kategori (tepe seviye, benzersiz slug)
+      otomatik oluşmuş mu?
+- [ ] Aynı ismi ikinci bir dosyada tekrar kullandığında (ya da aynı dosyada
+      iki farklı satırda) **ikinci bir kategori oluşturmadan**, var olanla
+      eşleşiyor mu (case-insensitive)?
 - [ ] Kutucuk boş bırakılan bir satır, global "eşleşmeyenler için kategori"
       fallback dropdown'ındaki (ya da hiç seçilmediyse kategorisiz)
       kategoriye düşüyor mu?
@@ -209,11 +218,10 @@ gibi bir "ürün tipi kodu" — kategoriye eşlenebilir.
 
 ## 5) Kapsam dışı (bu tur)
 
-Eşleşen isimde kategori yoksa otomatik oluşturma (bilinçli olarak kapsam
-dışı — hem `CATEGORY_MAP`/AI önerisi hem yöneticinin elle girdiği isim için
-geçerli), bir üründen birden fazla kategoriye atama, AI önerisinin
-kullanıcı onayı olmadan doğrudan DB'ye yazılması (asla yapılmıyor — bkz.
-bölüm 2).
+Bir üründen birden fazla kategoriye atama, AI önerisinin kullanıcı onayı
+olmadan doğrudan DB'ye yazılması (asla yapılmıyor — bkz. bölüm 2). ("Eşleşen
+isimde kategori yoksa otomatik oluşturma" 1-2. turda kapsam dışıydı, 3. turda
+kullanıcı isteğiyle uygulandı — bkz. bölüm 2.)
 
 ## 6) Öğrenilmiş eşlemeler (uygulandı)
 

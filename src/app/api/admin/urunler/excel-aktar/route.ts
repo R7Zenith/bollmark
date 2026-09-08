@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import {
   groupExcelRows,
   importProductGroups,
-  resolveCategoryIdByName,
+  getOrCreateCategoryId,
   normalizeKod3,
   type ExcelImportRow
 } from "@/lib/excel-import";
@@ -66,6 +66,10 @@ export async function POST(request: NextRequest) {
 
   const groups = groupExcelRows(rows);
 
+  // Yoneticinin onizlemede onayladigi/elle yazdigi kategori adi DB'de yoksa artik
+  // hata ile durdurmuyoruz - otomatik olusturuluyor (bkz. getOrCreateCategoryId,
+  // marka icin resolveBrandId ile ayni pattern). Ayni isim birden fazla satirda
+  // gecebilecegi icin benzersizlestirilip tek seferde cozuluyor/olusturuluyor.
   const distinctOverrideNames = new Set(
     groups
       .map((g) => (typeof categoryOverrides[g.productCode] === "string" ? categoryOverrides[g.productCode].trim() : ""))
@@ -73,24 +77,7 @@ export async function POST(request: NextRequest) {
   );
   const categoryIdByName = new Map<string, string | null>();
   for (const name of distinctOverrideNames) {
-    categoryIdByName.set(name, await resolveCategoryIdByName(prisma, name));
-  }
-
-  const unresolved = groups
-    .map((g) => ({
-      productCode: g.productCode,
-      categoryName: typeof categoryOverrides[g.productCode] === "string" ? categoryOverrides[g.productCode].trim() : ""
-    }))
-    .filter((r) => r.categoryName.length > 0 && categoryIdByName.get(r.categoryName) == null);
-
-  if (unresolved.length > 0) {
-    return NextResponse.json(
-      {
-        error: "Bazı satırlardaki kategori adları veritabanında bulunamadı. Önce bu kategorileri oluşturun ya da satırdaki adı düzeltin.",
-        unresolvedCategories: unresolved
-      },
-      { status: 400 }
-    );
+    categoryIdByName.set(name, await getOrCreateCategoryId(prisma, name));
   }
 
   const categoryIdByProductCode = new Map<string, string | null>();

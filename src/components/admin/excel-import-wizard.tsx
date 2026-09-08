@@ -128,14 +128,7 @@ export function ExcelImportWizard({
       });
       const data = await res.json();
       if (!res.ok) {
-        type UnresolvedCategory = { productCode: string; categoryName: string };
-        const unresolved: UnresolvedCategory[] = Array.isArray(data.unresolvedCategories) ? data.unresolvedCategories : [];
-        if (unresolved.length > 0) {
-          const names = Array.from(new Set(unresolved.map((u) => u.categoryName))).slice(0, 5).join(", ");
-          showToast(`${data.error ?? "Kategori adı bulunamadı."} (${names}${unresolved.length > 5 ? ", ..." : ""})`, "error");
-        } else {
-          showToast(data.error ?? "İçe aktarım başarısız oldu.", "error");
-        }
+        showToast(data.error ?? "İçe aktarım başarısız oldu.", "error");
         return;
       }
       setResult(data as ImportResponse);

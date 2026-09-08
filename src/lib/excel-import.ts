@@ -250,6 +250,34 @@ export async function resolveCategoryIdByName(tx: Tx, categoryName: string): Pro
   return existing?.id ?? null;
 }
 
+async function generateUniqueCategorySlug(tx: Tx, name: string): Promise<string> {
+  const base = slugifyTr(name) || "kategori";
+  let candidate = base;
+  let suffix = 2;
+  while (await tx.category.findUnique({ where: { slug: candidate } })) {
+    candidate = `${base}-${suffix}`;
+    suffix++;
+  }
+  return candidate;
+}
+
+// Onizlemede yoneticinin onayladigi/elle yazdigi kategori adi DB'de yoksa, artik
+// hata ile ice aktarimi durdurmuyoruz - resolveBrandId'deki (marka) davranisla ayni
+// sekilde otomatik olusturuluyor (ust kategorisiz, tepe seviye). Yonetici zaten
+// onizlemede o ismi kendi onayladigi/yazdigi icin (rastgele bir AI ciktisi
+// otomatik yazilmiyor, bkz. category-suggest.ts) surpriz bir "cop kategori"
+// riski tasimiyor.
+export async function getOrCreateCategoryId(tx: Tx, categoryName: string): Promise<string | null> {
+  const trimmed = categoryName.trim();
+  if (!trimmed) return null;
+  const existingId = await resolveCategoryIdByName(tx, trimmed);
+  if (existingId) return existingId;
+  const created = await tx.category.create({
+    data: { name: trimmed, slug: await generateUniqueCategorySlug(tx, trimmed) }
+  });
+  return created.id;
+}
+
 async function generateUniqueSlug(tx: Tx, name: string): Promise<string> {
   const base = slugifyTr(name) || "urun";
   let candidate = base;
