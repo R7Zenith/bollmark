@@ -36,7 +36,22 @@ model Category {
   isActive        Boolean    @default(true)
   sortOrder       Int        @default(0)
   products        Product[]
+  kodMappings     CategoryKodMapping[]
   createdAt       DateTime   @default(now())
+}
+
+// Excel ice aktariminda KOD3 (urun tipi kodu) icin ogrenilmis kategori eslemesi -
+// yonetici onizlemede bir AI onerisini onayladiginda ya da elle yeni bir eslesme
+// girip ice aktardiginda buraya upsert edilir (bkz. EXCEL_KATEGORI_ESLEME_PLANI.md
+// bolum 6). Lookup sirasi: once bu tablo, sonra kod icindeki sabit CATEGORY_MAP,
+// sonra AI onerisi - kod deploy etmeden yeni bir KOD3 degeri ogretilebilsin diye.
+model CategoryKodMapping {
+  id         String   @id @default(cuid())
+  kod3       String   @unique
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 model Brand {

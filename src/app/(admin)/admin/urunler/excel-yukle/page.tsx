@@ -9,6 +9,7 @@ export default async function ExcelImportPage() {
   await requireAdmin();
   const categories = await prisma.category.findMany({ orderBy: { name: "asc" } });
   const categoryOptions = buildCategoryOptions(categories).map((c) => ({ id: c.id, label: c.label }));
+  const categoryNames = categories.map((c) => c.name);
 
   return (
     <div className="max-w-5xl">
@@ -22,7 +23,7 @@ export default async function ExcelImportPage() {
       </p>
 
       <div className="mt-6">
-        <ExcelImportWizard categories={categoryOptions} />
+        <ExcelImportWizard categories={categoryOptions} categoryNames={categoryNames} />
       </div>
     </div>
   );

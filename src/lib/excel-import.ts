@@ -65,6 +65,31 @@ export function mapCategoryName(categoryRaw: string): string | null {
   return CATEGORY_MAP[categoryRaw.trim().toUpperCase()] ?? null;
 }
 
+// KOD3 -> kategori icin normalize edilmis anahtar (CategoryKodMapping.kod3 bu formatta
+// tutulur, CATEGORY_MAP anahtarlariyla ayni normalize kurali).
+export function normalizeKod3(categoryRaw: string): string {
+  return categoryRaw.trim().toUpperCase();
+}
+
+// Yoneticinin onizlemede onayladigi/elle girdigi bir KOD3->kategori eslemesi, ayni
+// kod bir dahaki dosyada tekrar sorulmasin diye buradan ogrenilir (bkz.
+// EXCEL_KATEGORI_ESLEME_PLANI.md bolum 6). Sabit CATEGORY_MAP'ten ONCE kontrol
+// edilir, boylece yonetici CATEGORY_MAP'teki bir hatayi da kod deploy etmeden
+// duzeltebilir.
+export async function resolveLearnedCategoryName(tx: Tx, categoryRaw: string): Promise<string | null> {
+  const kod3 = normalizeKod3(categoryRaw);
+  if (!kod3) return null;
+  const mapping = await tx.categoryKodMapping.findUnique({ where: { kod3 }, include: { category: true } });
+  return mapping?.category.name ?? null;
+}
+
+// Kesin eslesme icin tam lookup sirasi: once ogrenilmis DB eslemesi, sonra sabit
+// CATEGORY_MAP. Ikisi de yoksa null doner - cagiran taraf (onizleme route'u) bu
+// durumda AI onerisine basvurur.
+export async function detectCategoryName(tx: Tx, categoryRaw: string): Promise<string | null> {
+  return (await resolveLearnedCategoryName(tx, categoryRaw)) ?? mapCategoryName(categoryRaw);
+}
+
 // Marka/kategori sayfalarında kullanılan Türkçe slug üretimiyle aynı kural.
 export function slugifyTr(name: string): string {
   return name
@@ -220,7 +245,7 @@ async function resolveBrandId(tx: Tx, brandName: string): Promise<string | null>
   return created.id;
 }
 
-async function resolveCategoryIdByName(tx: Tx, categoryName: string): Promise<string | null> {
+export async function resolveCategoryIdByName(tx: Tx, categoryName: string): Promise<string | null> {
   const existing = await tx.category.findFirst({ where: { name: { equals: categoryName, mode: "insensitive" } } });
   return existing?.id ?? null;
 }
@@ -254,9 +279,13 @@ export interface ImportSummary {
   newProductTargets: KotonEnrichmentTarget[];
 }
 
+// categoryIdByProductCode: her grup icin ONCEDEN cozulmus, kesin kategori id'si
+// (ya da null - kategorisiz). Onizlemede yoneticinin onayladigi/duzelttigi deger,
+// eslesmeyenler icin fallback kategori, o da yoksa null - oncelik sirasi cagiran
+// route'ta (excel-aktar) belirlenir, bu fonksiyon sadece uygular.
 export async function importProductGroups(
   groups: ProductGroup[],
-  fallbackCategoryId: string | null
+  categoryIdByProductCode: Map<string, string | null>
 ): Promise<ImportSummary> {
   const allBarcodes = groups.flatMap((g) => g.variants.map((v) => v.barcode));
   const existingVariants = allBarcodes.length
@@ -292,22 +321,10 @@ export async function importProductGroups(
 
   const brandIdByProductCode = new Map<string, string | null>();
   const slugByProductCode = new Map<string, string>();
-  const categoryIdByProductCode = new Map<string, string | null>();
-  const resolvedCategoryNameCache = new Map<string, string | null>();
   for (const group of groups) {
     if (!groupIsNew.get(group.productCode)) continue;
     brandIdByProductCode.set(group.productCode, await resolveBrandId(prisma, group.brandName));
     slugByProductCode.set(group.productCode, await generateUniqueSlug(prisma, group.productName));
-
-    const detectedCategoryName = mapCategoryName(group.categoryRaw);
-    let resolvedCategoryId: string | null = null;
-    if (detectedCategoryName) {
-      if (!resolvedCategoryNameCache.has(detectedCategoryName)) {
-        resolvedCategoryNameCache.set(detectedCategoryName, await resolveCategoryIdByName(prisma, detectedCategoryName));
-      }
-      resolvedCategoryId = resolvedCategoryNameCache.get(detectedCategoryName) ?? null;
-    }
-    categoryIdByProductCode.set(group.productCode, resolvedCategoryId ?? fallbackCategoryId);
   }
 
   const summary: ImportSummary = {

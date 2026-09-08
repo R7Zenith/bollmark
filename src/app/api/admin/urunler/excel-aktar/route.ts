@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { groupExcelRows, importProductGroups, type ExcelImportRow } from "@/lib/excel-import";
+import {
+  groupExcelRows,
+  importProductGroups,
+  resolveCategoryIdByName,
+  normalizeKod3,
+  type ExcelImportRow
+} from "@/lib/excel-import";
 import { enrichProductsFromKoton } from "@/lib/koton-images";
 
 function isValidRow(v: unknown): v is ExcelImportRow {
@@ -50,15 +56,79 @@ export async function POST(request: NextRequest) {
     if (!category) fallbackCategoryId = null;
   }
 
+  // Onizlemede her satir icin gosterilen kutucuktan gelen degerler (kesin eslesme,
+  // AI onerisi ya da yoneticinin elle yazdigi isim - hepsi ayni sekilde davranir):
+  // productCode -> serbest metin kategori adi. Bos birakilan/gonderilmeyen satirlar
+  // fallbackCategoryId'ye duser (bkz. EXCEL_KATEGORI_ESLEME_PLANI.md bolum 3).
+  const rawOverrides = body?.categoryOverrides;
+  const categoryOverrides: Record<string, string> =
+    rawOverrides && typeof rawOverrides === "object" && !Array.isArray(rawOverrides) ? rawOverrides : {};
+
   const groups = groupExcelRows(rows);
+
+  const distinctOverrideNames = new Set(
+    groups
+      .map((g) => (typeof categoryOverrides[g.productCode] === "string" ? categoryOverrides[g.productCode].trim() : ""))
+      .filter((name) => name.length > 0)
+  );
+  const categoryIdByName = new Map<string, string | null>();
+  for (const name of distinctOverrideNames) {
+    categoryIdByName.set(name, await resolveCategoryIdByName(prisma, name));
+  }
+
+  const unresolved = groups
+    .map((g) => ({
+      productCode: g.productCode,
+      categoryName: typeof categoryOverrides[g.productCode] === "string" ? categoryOverrides[g.productCode].trim() : ""
+    }))
+    .filter((r) => r.categoryName.length > 0 && categoryIdByName.get(r.categoryName) == null);
+
+  if (unresolved.length > 0) {
+    return NextResponse.json(
+      {
+        error: "Bazı satırlardaki kategori adları veritabanında bulunamadı. Önce bu kategorileri oluşturun ya da satırdaki adı düzeltin.",
+        unresolvedCategories: unresolved
+      },
+      { status: 400 }
+    );
+  }
+
+  const categoryIdByProductCode = new Map<string, string | null>();
+  for (const group of groups) {
+    const override = typeof categoryOverrides[group.productCode] === "string" ? categoryOverrides[group.productCode].trim() : "";
+    categoryIdByProductCode.set(group.productCode, override ? categoryIdByName.get(override) ?? null : fallbackCategoryId);
+  }
 
   let summary;
   try {
-    summary = await importProductGroups(groups, fallbackCategoryId);
+    summary = await importProductGroups(groups, categoryIdByProductCode);
   } catch (error) {
     console.error("Excel içe aktarımı başarısız:", error);
     return NextResponse.json({ error: "İçe aktarım sırasında bir hata oluştu, hiçbir değişiklik kaydedilmedi." }, { status: 500 });
   }
+
+  // Yoneticinin bu ice aktarimda onayladigi/elle girdigi kategori eslemelerini kalici
+  // hale getir - bir dahaki dosyada ayni KOD3 tekrar sorulmasin/bos gelmesin (bkz.
+  // EXCEL_KATEGORI_ESLEME_PLANI.md bolum 6). Sadece yoneticinin GERCEKTEN bir isim
+  // girdigi satirlar ogrenilir - bos birakilip fallback kategoriye dusen satirlar
+  // ogrenilmez, aksi halde rastgele bir KOD3 degeri fallback'e kalici olarak baglanir.
+  // Ogrenme basarisiz olursa (DB hatasi vb.) asil ice aktarim sonucunu ASLA etkilemez.
+  const learnedByKod3 = new Map<string, string>();
+  for (const group of groups) {
+    const override = typeof categoryOverrides[group.productCode] === "string" ? categoryOverrides[group.productCode].trim() : "";
+    const kod3 = normalizeKod3(group.categoryRaw);
+    if (!override || !kod3) continue;
+    const categoryId = categoryIdByName.get(override);
+    if (!categoryId) continue;
+    learnedByKod3.set(kod3, categoryId);
+  }
+  await Promise.all(
+    Array.from(learnedByKod3.entries()).map(([kod3, categoryId]) =>
+      prisma.categoryKodMapping
+        .upsert({ where: { kod3 }, create: { kod3, categoryId }, update: { categoryId } })
+        .catch((error) => console.error("Kategori eşlemesi öğrenilemedi (yoksayıldı):", error))
+    )
+  );
 
   const kotonResults = await enrichProductsFromKoton(summary.newProductTargets);
 

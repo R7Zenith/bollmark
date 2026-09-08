@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { parseExcelFile, groupExcelRows, mapGender, mapCategoryName } from "@/lib/excel-import";
+import { prisma } from "@/lib/prisma";
+import { parseExcelFile, groupExcelRows, mapGender, detectCategoryName, normalizeKod3 } from "@/lib/excel-import";
+import { suggestCategory, type CategorySuggestion } from "@/lib/category-suggest";
 
 // Excel dosyasını ayrıştırıp önizleme döner - hiçbir veritabanı yazma işlemi yapmaz.
 // Gerçek aktarım /api/admin/urunler/excel-aktar'da, burada dönen `rows` listesi
@@ -38,19 +40,48 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Excel dosyası ayrıştırılamadı, dosya bozuk olabilir." }, { status: 400 });
   }
 
-  const groups = groupExcelRows(parsed.rows).map((g) => ({
-    productCode: g.productCode,
-    productName: g.productName,
-    gender: mapGender(g.genderRaw),
-    categoryRaw: g.categoryRaw,
-    detectedCategory: mapCategoryName(g.categoryRaw),
-    brandName: g.brandName,
-    priceCents: g.priceCents,
-    costCents: g.costCents,
-    colors: g.colors,
-    variantCount: g.variants.length,
-    totalStock: g.variants.reduce((sum, v) => sum + v.stock, 0)
-  }));
+  const rawGroups = groupExcelRows(parsed.rows);
+
+  // Kesin eslesme icin once ogrenilmis DB eslemesi, sonra sabit CATEGORY_MAP kontrol
+  // edilir (detectCategoryName, bkz. excel-import.ts). Ikisi de yoksa her benzersiz
+  // KOD3 degeri icin bir kez AI onerisi istenir (ayni deger birden fazla grupta
+  // gecebilir, tekrar sorulmaz) - bu KESIN bir eslesme degil, sadece onizlemede
+  // yoneticinin onaylamasi/duzeltmesi icin bir oneri (bkz. EXCEL_KATEGORI_ESLEME_PLANI.md
+  // bolum 2 ve 6).
+  const existingCategoryNames = (await prisma.category.findMany({ select: { name: true } })).map((c) => c.name);
+  const detectedCache = new Map<string, string | null>();
+  for (const g of rawGroups) {
+    const key = normalizeKod3(g.categoryRaw);
+    if (!key || detectedCache.has(key)) continue;
+    detectedCache.set(key, await detectCategoryName(prisma, g.categoryRaw));
+  }
+  const suggestionCache = new Map<string, CategorySuggestion | null>();
+  for (const g of rawGroups) {
+    const key = normalizeKod3(g.categoryRaw);
+    if (!key || detectedCache.get(key)) continue;
+    if (suggestionCache.has(key)) continue;
+    suggestionCache.set(key, await suggestCategory(g.categoryRaw, existingCategoryNames));
+  }
+
+  const groups = rawGroups.map((g) => {
+    const key = normalizeKod3(g.categoryRaw);
+    const detectedCategory = detectedCache.get(key) ?? null;
+    const suggestedCategory = detectedCategory ? null : suggestionCache.get(key) ?? null;
+    return {
+      productCode: g.productCode,
+      productName: g.productName,
+      gender: mapGender(g.genderRaw),
+      categoryRaw: g.categoryRaw,
+      detectedCategory,
+      suggestedCategory,
+      brandName: g.brandName,
+      priceCents: g.priceCents,
+      costCents: g.costCents,
+      colors: g.colors,
+      variantCount: g.variants.length,
+      totalStock: g.variants.reduce((sum, v) => sum + v.stock, 0)
+    };
+  });
 
   return NextResponse.json({
     rows: parsed.rows,

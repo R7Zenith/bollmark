@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Upload, ArrowLeft, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
+import { Upload, ArrowLeft, CheckCircle2, AlertTriangle, HelpCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/admin/button";
 import { Card } from "@/components/admin/card";
 import { formatPrice } from "@/lib/format";
@@ -27,12 +27,15 @@ type ExcelImportRow = {
 
 type ParseError = { row: number; message: string };
 
+type CategorySuggestion = { categoryName: string; confidence: "high" | "medium" | "low"; reason: string };
+
 type PreviewGroup = {
   productCode: string;
   productName: string;
   gender: string | null;
   categoryRaw: string | null;
   detectedCategory: string | null;
+  suggestedCategory: CategorySuggestion | null;
   brandName: string;
   priceCents: number;
   costCents: number | null;
@@ -67,12 +70,19 @@ type ImportResponse = {
 
 type Step = "upload" | "preview" | "result";
 
-export function ExcelImportWizard({ categories }: { categories: CategoryOption[] }) {
+export function ExcelImportWizard({
+  categories,
+  categoryNames
+}: {
+  categories: CategoryOption[];
+  categoryNames: string[];
+}) {
   const { showToast } = useToast();
   const [step, setStep] = useState<Step>("upload");
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [categoryId, setCategoryId] = useState("");
+  const [categoryByCode, setCategoryByCode] = useState<Record<string, string>>({});
   const [result, setResult] = useState<ImportResponse | null>(null);
   const [productNameByCode, setProductNameByCode] = useState<Record<string, string>>({});
 
@@ -94,6 +104,11 @@ export function ExcelImportWizard({ categories }: { categories: CategoryOption[]
       const preview = data as PreviewResponse;
       setPreview(preview);
       setProductNameByCode(Object.fromEntries(preview.groups.map((g) => [g.productCode, g.productName])));
+      setCategoryByCode(
+        Object.fromEntries(
+          preview.groups.map((g) => [g.productCode, g.detectedCategory ?? g.suggestedCategory?.categoryName ?? ""])
+        )
+      );
       setStep("preview");
     } catch {
       showToast("Dosya yüklenirken bir hata oluştu.", "error");
@@ -109,11 +124,18 @@ export function ExcelImportWizard({ categories }: { categories: CategoryOption[]
       const res = await fetch("/api/admin/urunler/excel-aktar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: preview.rows, categoryId: categoryId || null })
+        body: JSON.stringify({ rows: preview.rows, categoryId: categoryId || null, categoryOverrides: categoryByCode })
       });
       const data = await res.json();
       if (!res.ok) {
-        showToast(data.error ?? "İçe aktarım başarısız oldu.", "error");
+        type UnresolvedCategory = { productCode: string; categoryName: string };
+        const unresolved: UnresolvedCategory[] = Array.isArray(data.unresolvedCategories) ? data.unresolvedCategories : [];
+        if (unresolved.length > 0) {
+          const names = Array.from(new Set(unresolved.map((u) => u.categoryName))).slice(0, 5).join(", ");
+          showToast(`${data.error ?? "Kategori adı bulunamadı."} (${names}${unresolved.length > 5 ? ", ..." : ""})`, "error");
+        } else {
+          showToast(data.error ?? "İçe aktarım başarısız oldu.", "error");
+        }
         return;
       }
       setResult(data as ImportResponse);
@@ -130,6 +152,7 @@ export function ExcelImportWizard({ categories }: { categories: CategoryOption[]
     setPreview(null);
     setResult(null);
     setCategoryId("");
+    setCategoryByCode({});
   }
 
   if (step === "upload") {
@@ -193,6 +216,31 @@ export function ExcelImportWizard({ categories }: { categories: CategoryOption[]
               </div>
             )}
 
+            {(() => {
+              const exactCount = preview.groups.filter((g) => g.detectedCategory).length;
+              const suggestedCount = preview.groups.filter((g) => !g.detectedCategory && g.suggestedCategory).length;
+              const noneCount = preview.groups.length - exactCount - suggestedCount;
+              return (
+                <div className="flex flex-wrap gap-4 rounded-md border border-admin-border bg-gray-50 p-3 text-xs">
+                  <span className="inline-flex items-center gap-1.5 text-green-700">
+                    <CheckCircle2 size={14} /> {exactCount} kesin eşleşti
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-amber-700">
+                    <HelpCircle size={14} /> {suggestedCount} AI önerisi (kontrol bekliyor)
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-red-700">
+                    <AlertTriangle size={14} /> {noneCount} eşleşmedi, elle girilmeli
+                  </span>
+                </div>
+              );
+            })()}
+
+            <datalist id="excel-import-category-options">
+              {categoryNames.map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+
             <div>
               <label className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">
                 Eşleşmeyenler için kategori (opsiyonel)
@@ -235,13 +283,34 @@ export function ExcelImportWizard({ categories }: { categories: CategoryOption[]
                       <td className="px-4 py-3 text-admin-text">{g.productName}</td>
                       <td className="px-4 py-3 text-admin-text-muted">{g.gender ?? "—"}</td>
                       <td className="px-4 py-3">
-                        {g.detectedCategory ? (
-                          <span className="inline-flex items-center gap-1 text-green-600">
-                            <CheckCircle2 size={13} /> {g.detectedCategory}
-                          </span>
-                        ) : (
-                          <span className="text-admin-text-muted">—</span>
-                        )}
+                        <div className="flex min-w-[11rem] flex-col gap-1">
+                          {g.detectedCategory ? (
+                            <span className="inline-flex w-fit items-center gap-1 rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">
+                              <CheckCircle2 size={12} /> Eşleşti
+                            </span>
+                          ) : g.suggestedCategory ? (
+                            <span
+                              className="inline-flex w-fit items-center gap-1 rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700"
+                              title={g.suggestedCategory.reason}
+                            >
+                              <HelpCircle size={12} /> Öneri, kontrol et ({g.suggestedCategory.confidence})
+                            </span>
+                          ) : (
+                            <span className="inline-flex w-fit items-center gap-1 rounded bg-red-50 px-1.5 py-0.5 text-xs text-red-700">
+                              <AlertTriangle size={12} /> Eşleşmedi
+                            </span>
+                          )}
+                          <input
+                            type="text"
+                            list="excel-import-category-options"
+                            value={categoryByCode[g.productCode] ?? ""}
+                            onChange={(e) =>
+                              setCategoryByCode((prev) => ({ ...prev, [g.productCode]: e.target.value }))
+                            }
+                            placeholder="Kategori seç/yaz..."
+                            className="w-full rounded-md border border-admin-border px-2 py-1.5 text-xs focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+                          />
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-admin-text-muted">{g.colors.join(", ")}</td>
                       <td className="px-4 py-3 text-right text-admin-text">{g.variantCount}</td>
