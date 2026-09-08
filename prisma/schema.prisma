@@ -393,6 +393,11 @@ model StoreSettings {
   contactEmail         String   @default("")
   contactPhone         String   @default("")
   defaultShippingCents Int      @default(0)
+  // Terk edilmis sepet hatirlatma ayarlari - cron gunde 1 kez calisir (bkz.
+  // vercel.json, saat 08:00), bu yuzden "saat" bir gecikme esigi, kesin
+  // gonderim zamani degil (bkz. api/cron/sepet-hatirlatma/route.ts).
+  abandonedCartReminderEnabled Boolean @default(true)
+  abandonedCartReminderHours   Int     @default(1)
   updatedAt            DateTime @updatedAt
 }
 

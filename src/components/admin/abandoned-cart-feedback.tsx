@@ -5,29 +5,25 @@ import { useRouter } from "next/navigation";
 import { useToast } from "@/components/admin/toast";
 
 const errorMessages: Record<string, string> = {
-  "kullanici-bulunamadi": "Kullanıcı bulunamadı.",
-  "mevcut-sifre-yanlis": "Mevcut şifre yanlış.",
-  "sifre-kisa": "Yeni şifre en az 8 karakter olmalı.",
-  "sifre-eslesmiyor": "Yeni şifreler eşleşmiyor."
+  bulunamadi: "Sepet bulunamadı.",
+  kurtarilmis: "Bu sepet zaten tamamlanmış bir siparişe dönüşmüş, hatırlatma gönderilmedi."
 };
 
 const successMessages: Record<string, string> = {
-  hesap: "Şifre başarıyla güncellendi.",
-  magaza: "Mağaza bilgileri kaydedildi.",
-  "sepet-hatirlatma": "Sepet hatırlatma ayarları kaydedildi."
+  "hatirlatma-gonderildi": "Hatırlatma e-postası gönderildi."
 };
 
-export function SettingsFeedback({ basarili, hata }: { basarili?: string; hata?: string }) {
+export function AbandonedCartFeedback({ basarili, hata }: { basarili?: string; hata?: string }) {
   const { showToast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
     if (basarili && successMessages[basarili]) {
       showToast(successMessages[basarili], "success");
-      router.replace("/admin/ayarlar");
+      router.replace("/admin/terk-edilmis-sepetler");
     } else if (hata) {
       showToast(errorMessages[hata] ?? "Bir hata oluştu.", "error");
-      router.replace("/admin/ayarlar");
+      router.replace("/admin/terk-edilmis-sepetler");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [basarili, hata]);

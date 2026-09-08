@@ -88,3 +88,20 @@ export const returnTypeLabel: Record<ReturnType, string> = {
 };
 
 export const returnReasons = ["Beden uymadı", "Ürün hasarlı geldi", "Farklı ürün istiyorum", "Diğer"] as const;
+
+// Terk edilmis sepet - DB'de ayri bir "status" alani yok, recoveredAt/remindedAt
+// (nullable tarih) alanlarindan turetilir (bkz. lib/abandoned-carts.ts).
+export const abandonedCartStatuses = ["BEKLIYOR", "HATIRLATILDI", "KURTARILDI"] as const;
+export type AbandonedCartStatus = (typeof abandonedCartStatuses)[number];
+
+export const abandonedCartStatusLabel: Record<AbandonedCartStatus, string> = {
+  BEKLIYOR: "Bekliyor",
+  HATIRLATILDI: "Hatırlatma Gönderildi",
+  KURTARILDI: "Kurtarıldı"
+};
+
+export const abandonedCartStatusTone: Record<AbandonedCartStatus, BadgeTone> = {
+  BEKLIYOR: "yellow",
+  HATIRLATILDI: "blue",
+  KURTARILDI: "green"
+};

@@ -6,7 +6,8 @@ export const auditActions = [
   "RETURN_STATUS_CHANGED",
   "PERSONEL_CREATED",
   "PERSONEL_UPDATED",
-  "LOYALTY_ADJUSTED"
+  "LOYALTY_ADJUSTED",
+  "ABANDONED_CART_REMINDER_SENT"
 ] as const;
 
 export const auditActionLabel: Record<string, string> = {
@@ -14,5 +15,6 @@ export const auditActionLabel: Record<string, string> = {
   RETURN_STATUS_CHANGED: "İade Durumu Değişti",
   PERSONEL_CREATED: "Personel Oluşturuldu",
   PERSONEL_UPDATED: "Personel Güncellendi",
-  LOYALTY_ADJUSTED: "Sadakat Puanı Düzeltildi"
+  LOYALTY_ADJUSTED: "Sadakat Puanı Düzeltildi",
+  ABANDONED_CART_REMINDER_SENT: "Sepet Hatırlatması Elle Gönderildi"
 };

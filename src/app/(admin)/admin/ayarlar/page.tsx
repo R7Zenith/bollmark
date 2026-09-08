@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getServerSession } from "next-auth";
 import bcrypt from "bcryptjs";
+import Link from "next/link";
 import { Info } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { requireAdmin } from "@/lib/require-admin";
@@ -46,6 +47,22 @@ async function updateStoreSettings(formData: FormData) {
 
   revalidatePath("/admin/ayarlar");
   redirect("/admin/ayarlar?basarili=magaza");
+}
+
+async function updateAbandonedCartSettings(formData: FormData) {
+  "use server";
+  const abandonedCartReminderEnabled = formData.get("abandonedCartReminderEnabled") === "on";
+  const hoursRaw = Number(formData.get("abandonedCartReminderHours") || 1);
+  const abandonedCartReminderHours = Math.min(72, Math.max(1, Math.round(hoursRaw) || 1));
+
+  await prisma.storeSettings.upsert({
+    where: { id: "singleton" },
+    create: { id: "singleton", abandonedCartReminderEnabled, abandonedCartReminderHours },
+    update: { abandonedCartReminderEnabled, abandonedCartReminderHours }
+  });
+
+  revalidatePath("/admin/ayarlar");
+  redirect("/admin/ayarlar?basarili=sepet-hatirlatma");
 }
 
 export default async function AdminSettingsPage({
@@ -170,6 +187,48 @@ export default async function AdminSettingsPage({
             Mağaza Bilgilerini Kaydet
           </button>
         </form>
+      </Card>
+
+      <Card title="Terk Edilmiş Sepet Hatırlatması">
+        <form action={updateAbandonedCartSettings} className="space-y-4">
+          <label className="flex items-center gap-2 text-sm text-admin-text">
+            <input
+              type="checkbox"
+              name="abandonedCartReminderEnabled"
+              defaultChecked={storeSettings.abandonedCartReminderEnabled}
+              className="h-4 w-4 rounded border-admin-border text-admin-accent focus:ring-admin-accent"
+            />
+            Otomatik hatırlatma e-postası aktif
+          </label>
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">
+              Sepet en az kaç saat boş kalınca hatırlatma gönderilsin
+            </label>
+            <input
+              name="abandonedCartReminderHours"
+              type="number"
+              min={1}
+              max={72}
+              defaultValue={storeSettings.abandonedCartReminderHours}
+              className="mt-1 w-full max-w-[160px] rounded-md border border-admin-border px-4 py-2.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+            />
+          </div>
+          <button className="rounded-md bg-admin-accent px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
+            Hatırlatma Ayarlarını Kaydet
+          </button>
+        </form>
+        <div className="mt-4 flex gap-3 rounded-md bg-admin-bg p-4 text-sm text-admin-text-muted">
+          <Info size={18} className="mt-0.5 flex-shrink-0 text-admin-accent" />
+          <p>
+            Bu kontrol günde 1 kez (saat 08:00&apos;de) otomatik çalışır, yani &quot;saat&quot; kesin bir gönderim
+            zamanı değil, bir eşiktir. Terk edilmiş sepetleri tek tek görmek, istatistiklerini incelemek ve
+            beklemeden elle hatırlatma göndermek için{" "}
+            <Link href="/admin/terk-edilmis-sepetler" className="font-medium text-admin-accent hover:underline">
+              Terk Edilmiş Sepetler
+            </Link>{" "}
+            sayfasına gidin.
+          </p>
+        </div>
       </Card>
 
       <Card title="Önizleme Şifresi">

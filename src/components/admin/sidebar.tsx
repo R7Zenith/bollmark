@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   ShoppingBag,
+  ShoppingCart,
   Tag,
   Award,
   Percent,
@@ -57,7 +58,8 @@ const navGroups: NavGroup[] = [
     label: "Pazarlama",
     items: [
       { href: "/admin/kampanyalar", label: "Kampanyalar", icon: Percent },
-      { href: "/admin/bundle-kampanyalari", label: "Bundle Kampanyaları", icon: Percent }
+      { href: "/admin/bundle-kampanyalari", label: "Bundle Kampanyaları", icon: Percent },
+      { href: "/admin/terk-edilmis-sepetler", label: "Terk Edilmiş Sepetler", icon: ShoppingCart }
     ]
   },
   {
