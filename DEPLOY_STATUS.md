@@ -1858,3 +1858,91 @@ Admin panelinde henüz görüntülenmemiş siparişleri ayırt etmek için yeşi
 
 **Test edildi**: `npm run build` hatasız tamamlandı (TypeScript temiz, 61
 route başarıyla oluşturuldu, `/` ve `/urunler` hâlâ statik).
+
+## Kodsuz otomatik kampanya + Değer alanı (%/TL) netleştirmesi (2026-09-09, geçmiş oturumda kodu yazılmış, bu oturumda loglandı)
+
+Bu bölüm, `KAMPANYA_OTOMATIK_PLANI.md` planına göre önceki oturumda (commit
+`ae1fb1a` + `f27efe6`) zaten kodlanmış ama bu dosyaya hiç işlenmemiş işi
+belgeler.
+
+1. **Veri modeli** (`prisma/schema.prisma`): `Coupon.code` zorunlu
+   `String @unique`'ten nullable `String? @unique`'e çevrildi (Postgres
+   nullable unique alanda birden fazla `NULL`'a izin verir, çakışma
+   olmaz), `name String?` alanı eklendi. Kod girilen kampanyalarda `name`
+   opsiyonel kalıyor; kodsuz (otomatik) kampanyalarda listede ve site
+   tarafında gösterilecek görünen ad olarak zorunlu. Amaç: admin'in kod
+   girmeden, sadece kategori/marka bazlı, sepete/ürüne otomatik uygulanan
+   bir kampanya oluşturabilmesi (örn. "Ayakkabılarda %20 İndirim" - müşteri
+   hiçbir şey yazmıyor).
+2. **İndirim motoru** (`src/lib/coupons.ts`):
+   - Ortak `checkCouponEligibility` (aktiflik/tarih/kullanım limiti/min.
+     sepet tutarı) ve `computeCouponDiscount` (kategori/marka kısıtına
+     uyan satırlar üzerinden indirim hesabı) yardımcıları çıkarılıp hem
+     `validateCoupon` (tek kod) hem yeni `resolveBestDiscount` (tüm
+     otomatik kampanyalar) tarafından paylaşılıyor - kod tekrarı önlendi.
+   - `resolveBestDiscount(tx, enteredCode, lines)`: `code: null` olan tüm
+     uygun otomatik kampanyaları çekip **satır bazlı** değerlendiriyor -
+     her sepet satırına (ürüne) en yüksek indirimi veren TEK otomatik
+     kampanya atanıyor (`bestPerLine` map'i), böylece aynı ürüne iki
+     otomatik kampanya üst üste binmiyor. Satır bazlı sonuçlar toplanıp
+     rozet/isim için en çok toplam indirim sağlayan kampanya seçiliyor.
+     Girilen kod varsa `validateCoupon` ile onun toplamı hesaplanıp
+     otomatik toplamla karşılaştırılıyor - **hangisi daha yüksekse o
+     kazanıyor, eşitlikte kod kazanıyor** (müşteri bilerek kod girmiş).
+     İkisi asla karışık uygulanmıyor, tek sonuç dönüyor
+     (`{ couponId, discountCents, freeShipping, appliedName, codeMessage }`).
+   - `getApplicableAutomaticDiscountForProduct` / `matchAutomaticDiscount`:
+     ürün kartları için ayrı sorgu atmadan, aktif kodsuz `PERCENT`
+     kampanyaları tek seferde çekip (`getActiveAutomaticPercentCampaigns`)
+     bellekte ürünün kategori/marka'sıyla eşleştiriyor (yalnızca `PERCENT`
+     - `FIXED`/`FREE_SHIPPING` ürün bazında rozet için uygun değil).
+3. **Admin formu**:
+   - `src/components/admin/coupon-identity-field.tsx` (yeni): "Kampanya
+     Türü" için "Kupon Kodlu" / "Otomatik (kod gerekmez)" segmented
+     control - Otomatik seçilince kod input'u `disabled` olup yerine
+     `name` zorunlu hale geliyor, kategori/marka ikisi de boşsa "tüm
+     sitede geçerli olur" uyarısı gösteriliyor.
+   - `src/components/admin/coupon-value-field.tsx` (yeni): Tip
+     (`PERCENT`/`FIXED`/`FREE_SHIPPING`) `<select>`'i `useState` ile
+     izleniyor, Değer input'unun sağında canlı `%`/`₺` badge'i
+     gösteriliyor; `FREE_SHIPPING` seçiliyken input `disabled` +
+     `opacity-50`, placeholder `—`. Statik "(% veya TL)" etiketi
+     kaldırılıp sade "Değer" yapıldı. `kampanyalar/page.tsx`'teki "Yeni
+     Kupon" formu server component olduğu için bu iki alan ayrı client
+     bileşenlere çıkarıldı; input `name` attribute'ları (`code`/`name`/
+     `type`/`value`) değişmediği için server action'ın `FormData` okuması
+     etkilenmedi. `coupon-row.tsx` (düzenleme formu) aynı mantığı zaten
+     `"use client"` olduğu için doğrudan içeriyor.
+4. **Entegrasyon noktaları**:
+   - `src/app/(site)/api/kuponlar/dogrula/route.ts`: artık boş kod da
+     kabul ediyor (`code: z.string()`, boş string geçerli) ve her zaman
+     `resolveBestDiscount` çağırıyor - kod girilmese bile sepete uyan
+     otomatik kampanya varsa sonuçta görünüyor.
+   - `src/components/coupon-field.tsx`: `applyCode` yerine
+     `checkDiscount(code, isExplicitApply)` - sepet her değiştiğinde
+     (kod girilmemiş olsa bile) boş kodla sorgu atılıp otomatik kampanya
+     yakalanıyor; kullanıcı ayrıca kod girip "Uygula" derse iki sonuç
+     karşılaştırılıp otomatik kampanya kazanırsa "Zaten `<ad>` indirimi
+     uygulanıyor, bu kod daha düşük bir indirim sağlıyor" mesajı
+     gösteriliyor.
+   - `src/app/(site)/api/orders/route.ts`: `validateCoupon` yerine
+     `resolveBestDiscount(tx, data.couponCode ?? null, resolvedLines)`
+     kullanılıyor (kod girilmiş olsun olmasın) - kazanan kampanyanın
+     `usedCount`'u aynı `$transaction` içinde artırılıyor (yarış
+     durumunda son kullanım hakkının iki müşteri tarafından eş zamanlı
+     tüketilip limitin aşılmasını önlemek için, kupon sistemindeki
+     mevcut pattern'le aynı).
+   - `src/lib/audit-actions.ts`: `KAMPANYA_OTOMATIK_OLUSTURULDU` action'ı
+     eklendi ("Otomatik Kampanya Oluşturuldu" etiketiyle), işlem geçmişi
+     sayfası mevcut pattern sayesinde otomatik yakalıyor.
+   - `src/components/product-card.tsx`, `src/app/(site)/page.tsx`,
+     `src/app/(site)/urunler/page.tsx`, `src/app/(site)/urunler/[slug]/page.tsx`,
+     `src/components/product-viewer.tsx`: ana sayfa/ürünler listesi/ürün
+     detayındaki `ProductCard`'lara (ve ürün detay görüntüleyicisine)
+     `getApplicableAutomaticDiscountForProduct`/`matchAutomaticDiscount`
+     ile hesaplanan otomatik indirim yüzdesi bağlandı - ürün kategori/
+     marka kısıtına giren aktif bir otomatik `PERCENT` kampanyası varsa
+     rozet + indirimli fiyat gösteriliyor.
+
+**Test edildi**: `npm run build` bu oturumda tekrar çalıştırılıp hatasız
+tamamlandığı doğrulandı (TypeScript temiz).
