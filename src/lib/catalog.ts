@@ -16,7 +16,7 @@ export async function getPublishedProducts(
   return prisma.product.findMany({
     where: {
       status: "PUBLISHED",
-      category: categorySlug ? { slug: categorySlug } : undefined
+      category: categorySlug ? { slug: categorySlug, isActive: true } : undefined
     },
     include: {
       images: { orderBy: { position: "asc" } },
@@ -67,7 +67,7 @@ export async function getCatalogEntries(
   const products = await prisma.product.findMany({
     where: {
       status: "PUBLISHED",
-      category: categorySlug ? { slug: categorySlug } : undefined
+      category: categorySlug ? { slug: categorySlug, isActive: true } : undefined
     },
     include: {
       images: { orderBy: { position: "asc" }, take: 1 },
@@ -119,7 +119,7 @@ export async function getCatalogEntries(
 }
 
 export async function getCategories() {
-  return prisma.category.findMany({ orderBy: { name: "asc" } });
+  return prisma.category.findMany({ where: { isActive: true }, orderBy: { name: "asc" } });
 }
 
 // Urun sayfasindaki "Benzer Urunler" bolumu icin - v1'de otomatik kategori

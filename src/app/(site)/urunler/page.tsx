@@ -12,7 +12,10 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { kategori } = await searchParams;
   if (kategori) {
-    const category = await prisma.category.findUnique({ where: { slug: kategori }, select: { name: true } });
+    const category = await prisma.category.findUnique({
+      where: { slug: kategori, isActive: true },
+      select: { name: true }
+    });
     if (category) {
       return {
         title: `${category.name} | Bollmark`,

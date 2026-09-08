@@ -20,17 +20,25 @@ const errorMessages: Record<string, string> = {
   bulunamadi: "Kategori bulunamadı."
 };
 
-export function CategoryFeedback({ basarili, hata }: { basarili?: string; hata?: string }) {
+export function CategoryFeedback({
+  basarili,
+  hata,
+  redirectTo = "/admin/kategoriler"
+}: {
+  basarili?: string;
+  hata?: string;
+  redirectTo?: string;
+}) {
   const { showToast } = useToast();
   const router = useRouter();
 
   useEffect(() => {
     if (basarili && successMessages[basarili]) {
       showToast(successMessages[basarili], "success");
-      router.replace("/admin/kategoriler");
+      router.replace(redirectTo);
     } else if (hata) {
       showToast(errorMessages[hata] ?? "Bir hata oluştu.", "error");
-      router.replace("/admin/kategoriler");
+      router.replace(redirectTo);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [basarili, hata]);
