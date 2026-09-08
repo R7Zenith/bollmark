@@ -22,15 +22,21 @@ model AdminUser {
 }
 
 model Category {
-  id        String     @id @default(cuid())
-  name      String
-  slug      String     @unique
-  parentId  String?
-  parent    Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
-  children  Category[] @relation("CategoryHierarchy")
-  sizeGuide String?
-  products  Product[]
-  createdAt DateTime   @default(now())
+  id              String     @id @default(cuid())
+  name            String
+  slug            String     @unique
+  parentId        String?
+  parent          Category?  @relation("CategoryHierarchy", fields: [parentId], references: [id])
+  children        Category[] @relation("CategoryHierarchy")
+  sizeGuide       String?
+  imageUrl        String?
+  description     String?
+  metaTitle       String?
+  metaDescription String?
+  isActive        Boolean    @default(true)
+  sortOrder       Int        @default(0)
+  products        Product[]
+  createdAt       DateTime   @default(now())
 }
 
 model Brand {

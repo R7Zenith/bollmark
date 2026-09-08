@@ -7,7 +7,8 @@ import { useToast } from "@/components/admin/toast";
 const successMessages: Record<string, string> = {
   eklendi: "Kategori eklendi.",
   guncellendi: "Kategori güncellendi.",
-  silindi: "Kategori silindi."
+  silindi: "Kategori silindi.",
+  "tasindi-ve-silindi": "Ürünler taşındı, kategori silindi."
 };
 
 const errorMessages: Record<string, string> = {

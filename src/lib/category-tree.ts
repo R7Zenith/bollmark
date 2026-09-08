@@ -1,4 +1,4 @@
-export type CategoryTreeNode = { id: string; name: string; parentId: string | null };
+export type CategoryTreeNode = { id: string; name: string; parentId: string | null; sortOrder: number };
 
 // Kategori listesini ust-alt hiyerarsisine gore duzler, her satira derinligine
 // gore girinti (em dash) ekler. Kategori dropdown'larinda ve kategori
@@ -13,7 +13,7 @@ export function buildCategoryOptions<T extends CategoryTreeNode>(
     byParent.get(key)!.push(c);
   }
   for (const list of byParent.values()) {
-    list.sort((a, b) => a.name.localeCompare(b.name, "tr"));
+    list.sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "tr"));
   }
 
   const result: { id: string; label: string; depth: number; category: T }[] = [];
