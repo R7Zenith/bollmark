@@ -46,3 +46,6 @@ next-env.d.ts
 bollmark.zip
 
 .env*
+
+# script yedekleri (musteri verisi icerebilir)
+/backups/
