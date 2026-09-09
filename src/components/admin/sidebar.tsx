@@ -98,11 +98,20 @@ function isItemActive(item: NavItem, pathname: string) {
   return item.exact ? pathname === item.href : pathname.startsWith(item.href);
 }
 
-function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
+function NavLink({
+  item,
+  isActive,
+  onNavigate
+}: {
+  item: NavItem;
+  isActive: boolean;
+  onNavigate?: () => void;
+}) {
   const Icon = item.icon;
   return (
     <Link
       href={item.href}
+      onClick={onNavigate}
       className={`flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors ${
         isActive
           ? "bg-indigo-50 text-admin-accent"
@@ -115,7 +124,15 @@ function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
   );
 }
 
-export function Sidebar({ role }: { role?: string }) {
+export function Sidebar({
+  role,
+  isMobileOpen = false,
+  onClose
+}: {
+  role?: string;
+  isMobileOpen?: boolean;
+  onClose?: () => void;
+}) {
   const pathname = usePathname();
   const effectiveRole = role ?? "ADMIN";
 
@@ -167,6 +184,12 @@ export function Sidebar({ role }: { role?: string }) {
     }
   }, [openGroups, hydrated]);
 
+  // Route degistiginde mobil menu otomatik kapansin.
+  useEffect(() => {
+    onClose?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
   function toggleGroup(id: string) {
     setOpenGroups((prev) => {
       const next = new Set(prev);
@@ -182,48 +205,66 @@ export function Sidebar({ role }: { role?: string }) {
   const showTopItem = isPathAllowedForRole(effectiveRole, topItem.href);
 
   return (
-    <aside className="w-60 flex-shrink-0 overflow-y-auto border-r border-admin-border bg-admin-surface px-4 py-6">
-      <div className="px-2">
-        <Logo height={22} />
-        <p className="mt-1 text-xs text-admin-text-muted">Yönetim Paneli</p>
-      </div>
-      <nav className="mt-8 space-y-4">
-        {showTopItem && (
-          <div className="space-y-0.5">
-            <NavLink item={topItem} isActive={isItemActive(topItem, pathname)} />
-          </div>
-        )}
-
-        {visibleGroups.map((group) => {
-          const isOpen = openGroups.has(group.id);
-          const groupHasActive = group.items.some((item) => isItemActive(item, pathname));
-          return (
-            <div key={group.id}>
-              <button
-                type="button"
-                onClick={() => toggleGroup(group.id)}
-                aria-expanded={isOpen}
-                className={`flex w-full items-center justify-between rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors ${
-                  groupHasActive ? "text-admin-accent" : "text-admin-text-muted hover:text-admin-text"
-                }`}
-              >
-                {group.label}
-                <ChevronDown
-                  size={14}
-                  className={`transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}
-                />
-              </button>
-              {isOpen && (
-                <div className="mt-1 space-y-0.5">
-                  {group.items.map((item) => (
-                    <NavLink key={item.href} item={item} isActive={isItemActive(item, pathname)} />
-                  ))}
-                </div>
-              )}
+    <>
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/40 md:hidden"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+      <aside
+        className={`fixed inset-y-0 left-0 z-40 w-60 flex-shrink-0 overflow-y-auto border-r border-admin-border bg-admin-surface px-4 py-6 transition-transform duration-200 ease-in-out md:static md:z-auto md:translate-x-0 ${
+          isMobileOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+      >
+        <div className="px-2">
+          <Logo height={22} />
+          <p className="mt-1 text-xs text-admin-text-muted">Yönetim Paneli</p>
+        </div>
+        <nav className="mt-8 space-y-4">
+          {showTopItem && (
+            <div className="space-y-0.5">
+              <NavLink item={topItem} isActive={isItemActive(topItem, pathname)} onNavigate={onClose} />
             </div>
-          );
-        })}
-      </nav>
-    </aside>
+          )}
+
+          {visibleGroups.map((group) => {
+            const isOpen = openGroups.has(group.id);
+            const groupHasActive = group.items.some((item) => isItemActive(item, pathname));
+            return (
+              <div key={group.id}>
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.id)}
+                  aria-expanded={isOpen}
+                  className={`flex w-full items-center justify-between rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-wide transition-colors ${
+                    groupHasActive ? "text-admin-accent" : "text-admin-text-muted hover:text-admin-text"
+                  }`}
+                >
+                  {group.label}
+                  <ChevronDown
+                    size={14}
+                    className={`transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}
+                  />
+                </button>
+                {isOpen && (
+                  <div className="mt-1 space-y-0.5">
+                    {group.items.map((item) => (
+                      <NavLink
+                        key={item.href}
+                        item={item}
+                        isActive={isItemActive(item, pathname)}
+                        onNavigate={onClose}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </nav>
+      </aside>
+    </>
   );
 }

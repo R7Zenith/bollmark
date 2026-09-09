@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
-import { Search, ChevronDown, Package, ShoppingBag } from "lucide-react";
+import { Search, ChevronDown, Package, ShoppingBag, Menu } from "lucide-react";
 import { SignOutButton } from "@/components/admin/sign-out-button";
 
 interface SearchResults {
@@ -11,7 +11,7 @@ interface SearchResults {
   orders: { id: string; orderNumber: string; customerName: string }[];
 }
 
-export function Topbar() {
+export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
   const { data: session } = useSession();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);
@@ -57,7 +57,15 @@ export function Topbar() {
   const hasResults = results && (results.products.length > 0 || results.orders.length > 0);
 
   return (
-    <header className="flex h-16 items-center justify-between border-b border-admin-border bg-admin-surface px-6">
+    <header className="flex h-16 items-center justify-between gap-3 border-b border-admin-border bg-admin-surface px-4 md:px-6">
+      <button
+        type="button"
+        onClick={onMenuClick}
+        aria-label="Menüyü aç/kapat"
+        className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-md text-admin-text hover:bg-admin-bg md:hidden"
+      >
+        <Menu size={20} />
+      </button>
       <div ref={containerRef} className="relative w-full max-w-sm">
         <Search
           size={16}
