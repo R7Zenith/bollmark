@@ -1946,3 +1946,70 @@ belgeler.
 
 **Test edildi**: `npm run build` bu oturumda tekrar çalıştırılıp hatasız
 tamamlandığı doğrulandı (TypeScript temiz).
+
+## Admin paneli mobil görünüm düzeltmesi (2026-09-09, yeni oturum)
+
+Kullanıcı admin panelinin telefonda ekrana oturmadığını (yatay taşma) ve
+sidebar'ın ekranı kapladığını bildirdi. Kök neden analizi ve kapsam
+`MOBIL_GORUNUM_PLANI.md` dosyasında çıkarıldı (bu commit ile repoya
+eklendi): admin panelindeki hiçbir bileşen Tailwind responsive
+breakpoint'i (`sm:`/`md:`/`lg:`) kullanmıyordu, panel tamamen tek bir
+masaüstü genişliği varsayımıyla yazılmıştı. Plan 4 faza bölünüp sırayla
+uygulandı, her faz ayrı commit'lendi:
+
+1. **Faz 1 - İskelet (`7a7a711`)**: `layout.tsx` server component olduğu
+   için mobil menü state'ini tutamıyordu; yeni bir client wrapper
+   (`src/components/admin/admin-shell.tsx`) eklenip Sidebar + Topbar bunun
+   içine alındı, `isMobileNavOpen` state'i burada tutulup ikisine prop
+   olarak geçiriliyor. `sidebar.tsx` mobilde (`< md`, 768px altı) varsayılan
+   ekran dışında (`fixed` + `-translate-x-full`), `md:` üzerinde eskisi gibi
+   `static`/görünür; açıkken arkada `bg-black/40` backdrop var, tıklanınca
+   veya route değişince (`usePathname`) otomatik kapanıyor. `topbar.tsx`'e
+   sadece mobilde görünen (`md:hidden`) hamburger butonu eklendi; `main`
+   içerik boşluğu `px-4 py-4 md:px-8 md:py-8` yapıldı.
+2. **Faz 2 - Topbar (`c6a8501`)**: Arama kutusu mobilde `hidden md:block`,
+   yerine tıklanınca tam genişlikte açılan bir arama overlay'i (aynı arama
+   mantığı, farklı mobil görünüm) eklendi. Kullanıcı menüsü butonunun
+   dokunma alanı min 40px'e çıkarıldı.
+3. **Faz 3 - Tablolar (`1b4d35f`)**: `data-table.tsx`'teki `DataTableColumn`
+   tipine `hideOnMobile?: boolean` eklendi, bu `true` olan kolonlar mobilde
+   `hidden md:table-cell` ile gizleniyor ("Sütunlar" panelinden yine
+   açılabiliyor). 8 tablo dosyasında (orders/products/customers/returns/
+   shipments/reviews/audit-log/top-products) ikincil kolonlara (tarih,
+   kargo durumu, e-posta, ürün kodu, takip kodu, puan, hedef, kâr marjı)
+   bu bayrak verildi. Tablo wrapper'ına mobilde yatay kaydırılabilir
+   olduğunu belli eden hafif bir kenar gölgesi eklendi.
+4. **Faz 4 - Filtreler ve formlar (`4c4d494`)**: Siparişler filtre
+   panelindeki sabit `w-72` açılır panel `w-[calc(100vw-2rem)] max-w-72
+   md:w-72` ile ekran genişliğine sığacak hale getirildi (plandaki diğer 7
+   filtre dosyası incelendiğinde kod tabanının daha önceki bir oturumda
+   sadeleştirildiği, artık bu `absolute`/`w-72` panel kalıbını taşımadıkları
+   görüldü - `FilterBar` zaten `flex-wrap` kullandığı için ek değişikliğe
+   gerek kalmadı). `grid-cols-2`/`grid-cols-3` kullanan tüm form alanları
+   (ürün yeni/düzenle, ayarlar, personel, kampanyalar, kupon ve bundle
+   formları, excel import önizlemesi - 12 dosya) `grid-cols-1
+   md:`/`sm:grid-cols-N` olacak şekilde mobilde tek kolona düşürüldü.
+   `variant-editor.tsx`/`product-images-field.tsx`/`tags-field.tsx`
+   incelendi, zaten esnek/tablo tabanlı oldukları için değişiklik
+   gerekmedi.
+5. **Ek düzeltme (`726da67`)**: Gerçek tarayıcı testinde (bkz. aşağı)
+   siparişler sayfasındaki durum sekmeleri satırının (Tümü/Ödenmedi/Açık/
+   Kapatıldı) 375px'te sarmadığı için body seviyesinde yatay taşmaya yol
+   açtığı bulundu; `orders-tabs.tsx`'e `overflow-x-auto` +
+   `flex-shrink-0` eklenerek mobilde yatay kaydırılabilir hale getirildi.
+
+**Test edildi**: Her fazdan sonra `npx tsc --noEmit` ile tip kontrolü
+yapıldı, Faz 4 sonunda ayrıca tam bir `npm run build` çalıştırılıp
+hatasız tamamlandığı doğrulandı. Ardından proje kök `package.json`'ına
+dokunmadan geçici bir scratchpad dizininde Playwright kurulup, yerel dev
+sunucusu gerçek admin oturumuyla (`.env`'deki `ADMIN_EMAIL`/
+`ADMIN_PASSWORD`) headless Chrome ile sürüldü: Panel, Siparişler,
+Ürünler, Ürün Ekle, Kampanyalar, Personel, Ayarlar sayfaları 375px ve
+768px genişliklerde kontrol edildi - 375px'te hiçbir sayfada body
+seviyesinde yatay scrollbar yok (`document.documentElement.scrollWidth
+<= clientWidth`), hamburger menü backdrop'lu açılıp kapanıyor, mobil
+arama overlay'i ve filtre paneli ekrana sığıyor; 768px'te hamburger
+görünmüyor ve sidebar her zaman açık - masaüstü görünüm değişmedi. Bu
+testte bulunan siparişler sekme taşması yukarıdaki 5. maddeyle
+düzeltildi ve tekrar doğrulandı. Değişiklikler henüz **push edilmedi**
+(main branch'te 5 commit yerelde bekliyor).
