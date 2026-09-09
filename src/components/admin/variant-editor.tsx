@@ -7,6 +7,7 @@ import { Button } from "@/components/admin/button";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
 import { MultiImageField, type ImageEntry } from "@/components/admin/multi-image-field";
 import { SearchableMultiSelect } from "@/components/admin/searchable-multi-select";
+import { useDirtySignal } from "@/components/admin/use-dirty-signal";
 
 export type AttributeOption = {
   id: string;
@@ -335,6 +336,18 @@ export function VariantEditor({
     }
   ];
 
+  const variantsValue = JSON.stringify(serializeVariantRows(rows));
+  const colorImagesValue = JSON.stringify(
+    activeColorValueIds.map((valueId) => ({
+      valueId,
+      images: (colorImages[valueId] ?? [])
+        .map((i) => ({ url: i.url.trim(), alt: (i.alt ?? "").trim() }))
+        .filter((i) => i.url)
+    }))
+  );
+  const variantsDirtyRef = useDirtySignal(variantsValue);
+  const colorImagesDirtyRef = useDirtySignal(colorImagesValue);
+
   return (
     <div className="space-y-4">
       <div className="space-y-4 rounded-lg border border-admin-border bg-admin-bg/40 p-4">
@@ -414,19 +427,8 @@ export function VariantEditor({
         )}
       </div>
 
-      <input type="hidden" name={fieldName} value={JSON.stringify(serializeVariantRows(rows))} />
-      <input
-        type="hidden"
-        name={colorImagesFieldName}
-        value={JSON.stringify(
-          activeColorValueIds.map((valueId) => ({
-            valueId,
-            images: (colorImages[valueId] ?? [])
-              .map((i) => ({ url: i.url.trim(), alt: (i.alt ?? "").trim() }))
-              .filter((i) => i.url)
-          }))
-        )}
-      />
+      <input ref={variantsDirtyRef} type="hidden" name={fieldName} value={variantsValue} />
+      <input ref={colorImagesDirtyRef} type="hidden" name={colorImagesFieldName} value={colorImagesValue} />
     </div>
   );
 }

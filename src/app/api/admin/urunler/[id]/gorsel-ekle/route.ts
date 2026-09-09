@@ -2,18 +2,16 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { reuploadImageToBlob } from "@/lib/koton-images";
+import { enrichFromUrl } from "@/lib/koton-images";
 
 export const maxDuration = 30;
 
-const MAX_URLS = 10;
-
-// Ürünler sayfasındaki "Görsel linkiyle ekle" butonu için: Koton'da otomatik arama
-// (autocomplete/list) hiçbir sonuç vermeyen ürünlerde (bkz. DEPLOY_STATUS.md - arama
-// indeksinden tamamen düşmüş ürünler) admin, tarayıcıda "görseli kopyala" ile aldığı
-// doğrudan görsel URL'lerini elle yapıştırabiliyor. Görseller Koton'un CDN'ine
-// hotlink yapılmadan kendi Vercel Blob depomuza indirilip yeniden yükleniyor, sonra
-// ürünün genel `images` listesine (renkten bağımsız) ekleniyor.
+// Ürünler sayfasındaki "Koton linkiyle ekle" butonu için: otomatik arama (autocomplete/
+// list) hiçbir sonuç vermeyen ürünlerde (bkz. DEPLOY_STATUS.md - arama indeksinden
+// tamamen düşmüş ürünler) admin, koton.com'da elle bulduğu ürün sayfasının linkini
+// yapıştırabiliyor. Arama adımı tamamen atlanıp doğrudan bu URL'den ürün verisi
+// (renk bazlı görseller + açıklama) çekiliyor - `gorsel-yenile` route'undaki
+// `enrichOne` ile aynı `enrichFromUrl` mantığını kullanır, sadece kaynak farklı.
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Yetkisiz istek." }, { status: 401 });
@@ -21,44 +19,44 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   const { id } = await context.params;
   const body = await request.json().catch(() => null);
-  const rawUrls: unknown = body?.urls;
-  if (!Array.isArray(rawUrls) || rawUrls.length === 0) {
-    return NextResponse.json({ error: "En az bir görsel URL'i girin." }, { status: 400 });
-  }
-
-  const urls = [...new Set(rawUrls.filter((u): u is string => typeof u === "string" && u.trim().length > 0).map((u) => u.trim()))].slice(
-    0,
-    MAX_URLS
-  );
-  const invalidUrl = urls.find((u) => !/^https?:\/\//i.test(u));
-  if (invalidUrl) {
-    return NextResponse.json({ error: `Geçersiz URL: ${invalidUrl}` }, { status: 400 });
-  }
-  if (urls.length === 0) {
-    return NextResponse.json({ error: "En az bir görsel URL'i girin." }, { status: 400 });
+  const url = typeof body?.url === "string" ? body.url.trim() : "";
+  if (!url) return NextResponse.json({ error: "Bir Koton ürün sayfası linki girin." }, { status: 400 });
+  if (!/^https:\/\/(www\.)?koton\.com\//i.test(url)) {
+    return NextResponse.json({ error: "Bu bir koton.com ürün linki gibi görünmüyor." }, { status: 400 });
   }
 
   const product = await prisma.product.findUnique({
     where: { id },
-    include: { images: { select: { position: true } } }
+    include: { variants: { include: { options: { include: { value: { include: { attribute: true } } } } } } }
   });
   if (!product) return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
-
-  let nextPosition = product.images.reduce((max, img) => Math.max(max, img.position), -1) + 1;
-
-  const uploaded: string[] = [];
-  const failed: string[] = [];
-  for (const url of urls) {
-    const blobUrl = await reuploadImageToBlob(url, `${product.code ?? product.id}-manuel-${uploaded.length}`, "manuel-gorsel");
-    if (blobUrl) uploaded.push(blobUrl);
-    else failed.push(url);
+  if (!product.code) {
+    return NextResponse.json({ error: "Bu ürünün ürün kodu kayıtlı değil." }, { status: 400 });
   }
 
-  if (uploaded.length > 0) {
-    await prisma.productImage.createMany({
-      data: uploaded.map((url) => ({ productId: product.id, url, alt: product.name, position: nextPosition++ }))
-    });
+  const colorValueIdByLabel: Record<string, string> = {};
+  for (const variant of product.variants) {
+    for (const opt of variant.options) {
+      if (opt.value.attribute.name === "Renk") {
+        colorValueIdByLabel[opt.value.value] = opt.value.id;
+      }
+    }
+  }
+  if (Object.keys(colorValueIdByLabel).length === 0) {
+    return NextResponse.json({ error: "Bu ürünün renk varyantı yok, otomatik eşleştirme yapılamıyor." }, { status: 400 });
   }
 
-  return NextResponse.json({ added: uploaded.length, failed: failed.length, failedUrls: failed });
+  const result = await enrichFromUrl(
+    {
+      productId: product.id,
+      productCode: product.code,
+      productName: product.name,
+      firstBarcode: product.variants.find((v) => v.barcode)?.barcode ?? "",
+      colorValueIdByLabel
+    },
+    url,
+    { overwriteDescription: false }
+  );
+
+  return NextResponse.json(result);
 }

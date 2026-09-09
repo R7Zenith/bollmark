@@ -183,22 +183,22 @@ export interface KotonEnrichmentResult {
   descriptionUpdated: boolean;
 }
 
-export async function enrichOne(
+// `findKotonProductData` (arama ile) veya dogrudan verilen bir URL (`enrichFromUrl`)
+// uzerinden elde edilen `KotonProductData`'yi hedef urune uygular: aciklamayi (istenirse)
+// gunceller, renk bazinda gorselleri indirip Blob'a yukler ve `ProductOptionImage`
+// kayitlarini olusturur. Her iki giris yolu da (arama/manuel URL) ayni mantigi kullanir.
+async function applyKotonProductData(
   target: KotonEnrichmentTarget,
-  options?: { overwriteDescription?: boolean }
+  data: KotonProductData,
+  overwriteDescription: boolean
 ): Promise<KotonEnrichmentResult> {
-  const overwriteDescription = options?.overwriteDescription ?? true;
   const result: KotonEnrichmentResult = {
     productId: target.productId,
     productCode: target.productCode,
-    found: false,
+    found: true,
     imagesAdded: 0,
     descriptionUpdated: false
   };
-
-  const data = await findKotonProductData(target.firstBarcode, target.productCode);
-  if (!data) return result;
-  result.found = true;
 
   if (data.description && overwriteDescription) {
     await prisma.product.update({ where: { id: target.productId }, data: { description: data.description } });
@@ -245,6 +245,49 @@ export async function enrichOne(
   }
 
   return result;
+}
+
+export async function enrichOne(
+  target: KotonEnrichmentTarget,
+  options?: { overwriteDescription?: boolean }
+): Promise<KotonEnrichmentResult> {
+  const data = await findKotonProductData(target.firstBarcode, target.productCode);
+  if (!data) {
+    return {
+      productId: target.productId,
+      productCode: target.productCode,
+      found: false,
+      imagesAdded: 0,
+      descriptionUpdated: false
+    };
+  }
+  return applyKotonProductData(target, data, options?.overwriteDescription ?? true);
+}
+
+// Otomatik arama (autocomplete/list) hicbir sonuc vermedigi urunler icin: admin'in
+// koton.com'da elle bulup verdigi dogrudan urun sayfasi URL'inden gorselleri/aciklamayi
+// ceker. Arama adimini tamamen atlar, sadece verilen URL'i `?format=json` ile okur.
+export async function enrichFromUrl(
+  target: KotonEnrichmentTarget,
+  productUrl: string,
+  options?: { overwriteDescription?: boolean }
+): Promise<KotonEnrichmentResult> {
+  const emptyResult: KotonEnrichmentResult = {
+    productId: target.productId,
+    productCode: target.productCode,
+    found: false,
+    imagesAdded: 0,
+    descriptionUpdated: false
+  };
+  let data: KotonProductData | null;
+  try {
+    data = await fetchKotonProductData(productUrl, target.productCode);
+  } catch (error) {
+    console.error(`Koton URL'inden ürün verisi alınamadı (${productUrl}):`, error);
+    return emptyResult;
+  }
+  if (!data) return emptyResult;
+  return applyKotonProductData(target, data, options?.overwriteDescription ?? false);
 }
 
 // Verilen (yeni oluşturulan) ürünler için sırayla Koton'da arama yapar - aralarda kısa

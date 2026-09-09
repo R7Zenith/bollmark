@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { MultiImageField, type ImageEntry } from "@/components/admin/multi-image-field";
+import { useDirtySignal } from "@/components/admin/use-dirty-signal";
 
 export type InitialProductImage = { url: string; alt: string };
 
@@ -23,11 +24,12 @@ export function ProductImagesField({
       .map((i) => ({ url: i.url.trim(), alt: (i.alt ?? "").trim() }))
       .filter((i) => i.url)
   );
+  const dirtyRef = useDirtySignal(value);
 
   return (
     <div>
       <MultiImageField images={images} onChange={setImages} addLabel="Görsel Ekle" />
-      <input type="hidden" name={name} value={value} />
+      <input ref={dirtyRef} type="hidden" name={name} value={value} />
     </div>
   );
 }

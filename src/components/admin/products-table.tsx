@@ -52,36 +52,30 @@ export function ProductsTable({
   const [addingImageIds, setAddingImageIds] = useState<Set<string>>(new Set());
 
   async function handleGorselEkle(id: string) {
-    const raw = window.prompt(
-      "Görsel URL'lerini yapıştırın (Koton sayfasında görsele sağ tıklayıp \"Görsel adresini kopyala\" ile alabilirsiniz). Birden fazlaysa her satıra bir tane yazın:"
+    const url = window.prompt(
+      "Koton ürün sayfasının linkini yapıştırın (koton.com'da ürünü bulup adres çubuğundaki linki kopyalayın). Görseller otomatik olarak eklenecek:"
     );
-    if (!raw) return;
-    const urls = raw
-      .split(/[\n,]+/)
-      .map((u) => u.trim())
-      .filter(Boolean);
-    if (urls.length === 0) return;
+    if (!url || !url.trim()) return;
 
     setAddingImageIds((prev) => new Set(prev).add(id));
     try {
       const res = await fetch(`/api/admin/urunler/${id}/gorsel-ekle`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ urls })
+        body: JSON.stringify({ url: url.trim() })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         showToast(data.error ?? "Görsel eklenemedi.", "error");
         return;
       }
-      if (data.added > 0) {
-        showToast(
-          data.failed > 0 ? `${data.added} görsel eklendi, ${data.failed} tanesi indirilemedi.` : `${data.added} görsel eklendi.`,
-          "success"
-        );
+      if (data.found && data.imagesAdded > 0) {
+        showToast(`${data.imagesAdded} görsel eklendi.`, "success");
         router.refresh();
+      } else if (data.found) {
+        showToast("Sayfa bulundu ama bu renkler için görsel bulunamadı.", "error");
       } else {
-        showToast("Hiçbir görsel indirilemedi.", "error");
+        showToast("Bu linkten ürün verisi alınamadı (kod eşleşmedi ya da sayfa açılamadı).", "error");
       }
     } catch {
       showToast("Görsel eklenirken bir hata oluştu.", "error");
@@ -264,7 +258,7 @@ export function ProductsTable({
               className="inline-flex items-center gap-1 text-xs text-admin-accent hover:underline disabled:opacity-50"
             >
               {addingImageIds.has(row.id) ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
-              {addingImageIds.has(row.id) ? "Ekleniyor..." : "Görsel linkiyle ekle"}
+              {addingImageIds.has(row.id) ? "Ekleniyor..." : "Koton linkiyle ekle"}
             </button>
           )}
           <Link href={`/admin/urunler/${row.id}`} className="text-admin-accent hover:underline">

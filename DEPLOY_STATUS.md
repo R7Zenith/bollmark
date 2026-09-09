@@ -2389,3 +2389,82 @@ canli Neon DB'sinde artik fotografli - gecici test scriptleriyle uctan
 uca dogrulanip scriptler commit'lenmeden silindi. Degisiklik commit'lendi
 (`d15bfdb` + bu ikinci duzeltme icin ek bir commit), henuz push
 edilmedi (kullanici onayi bekleniyor).
+
+## Kullanici geri bildirimi - "Görsel linkiyle ekle" yanlis tasarlanmis + urun duzenleme sayfasinda gorsel silme SaveBar'i tetiklemiyor (2026-09-10, ayni oturum)
+
+Bir onceki bolumde eklenen "Görsel linkiyle ekle" butonu push edildikten
+sonra kullanici iki sorun bildirdi:
+
+1. **Buton yanlis anlasilmis tasarlanmisti**: kullanici aslinda bir Koton
+   **urun sayfasi** linki verip gorsellerin otomatik cekilmesini
+   istiyordu ("ben ürünün linkini verecektim o kendisi görselleri
+   otomatik ekleyecekti"), ama buton dogrudan **gorsel** URL'i istiyordu
+   (bir onceki oturumda kullanicinin kendi ifadesiyle "görsel linki"
+   tasarlanmisti - geriye donuk bakildiginda bu talebin yanlis
+   yorumlandigi ortaya cikti).
+   - **Duzeltme**: `src/lib/koton-images.ts` yeniden duzenlendi - `enrichOne`
+     icindeki (arama sonrasi) renk eslestirme + gorsel indirme/yukleme
+     mantigi ortak bir `applyKotonProductData()` yardimcisina cikarildi.
+     Yeni `enrichFromUrl(target, productUrl, options)` eklendi - arama
+     adimini (`findKotonProductData`) tamamen atlayip dogrudan verilen
+     URL'i `fetchKotonProductData` ile okuyor, ayni renk eslestirme/
+     yukleme mantigini kullaniyor.
+   - `src/app/api/admin/urunler/[id]/gorsel-ekle/route.ts` yeniden
+     yazildi: artik `{ url: string }` (tek bir Koton urun sayfasi linki)
+     aliyor, `koton.com` domain kontrolu yapiyor, urunun renk
+     varyantlarini (`gorsel-yenile` route'uyla ayni sekilde) DB'den
+     cikarip `enrichFromUrl` cagiriyor. Eski "birden fazla ham gorsel
+     URL'i" tasarimi (`urls: string[]`, `prisma.productImage.createMany`)
+     tamamen kaldirildi.
+   - `products-table.tsx`: buton etiketi "Koton linkiyle ekle" oldu,
+     `window.prompt` metni artik urun sayfasi linki istiyor, sonuc
+     mesajlari `gorsel-yenile` butonuyla ayni ("Sayfa bulundu ama..." /
+     "Bu linkten ürün verisi alınamadı...").
+   - **Dogrulama**: canli veriyi kirletmemek icin gecici, tek kullanimlik
+     bir test urunu olusturulup (gercek "Lacivert Çizgili" renk degerine
+     referans vererek) `enrichFromUrl` gercek bir Koton URL'iyle
+     calistirildi - `found: true, imagesAdded: 3` dogru sonucu verdi,
+     test urunu sonra silindi (cascade ile option image'lari da gitti).
+2. **Urun duzenleme sayfasinda gorsel silme, "Kaydedilmemiş
+   değişiklikler var" cubugunu tetiklemiyordu**: kullanici bir gorseli
+   cop kutusu ikonuyla siliyor, gorsel ekrandan kayboluyor, ama
+   `SaveBar` gorunmedigi icin "Kaydet"e basmadan sayfa yenilenirse
+   silme islemi hic gerceklesmemis gibi geri geliyordu.
+   - **Kok neden**: `SaveBar` (`src/components/admin/save-bar.tsx`)
+     formun native `"input"`/`"change"` DOM olaylarini dinliyor. Metin
+     kutusuna yazmak (SKU, fiyat, gorsel URL/alt input'lari) bu
+     olaylari gercekten tetikliyor, ama "Görseli sil" / "Görsel Ekle" /
+     "Yukarı-Aşağı taşı" gibi butonlar sadece React state'ini
+     guncelliyor - React, kontrollu bir input'un `value`'sunu
+     programatik olarak degistirdiginde native bir DOM olayi
+     **tetiklemiyor**. Bu yuzden butonla yapilan HER degisiklik
+     (varyant satiri silme/ekleme, renk gorseli silme/ekleme/siralama,
+     genel urun gorseli silme/ekleme/siralama, toplu %indirim/stok
+     islemleri) SaveBar tarafindan fark edilmiyordu - sadece bu
+     oturumda rastlanti eseri bulunan "gorsel silme" degil, ayni
+     kok nedene sahip daha genis bir sorun.
+   - **Duzeltme**: yeni `src/components/admin/use-dirty-signal.ts` hook'u
+     eklendi - `useDirtySignal(value)` bir ref donduruyor, bu ref bir
+     gizli `<input>`'a baglaniyor; `value` degistiginde (ilk render haric)
+     o input uzerinde `dispatchEvent(new Event("input", { bubbles: true }))`
+     ile bubbling bir native olay tetikliyor, bu da `SaveBar`'in form
+     dinleyicisine ulasiyor. Bu hook `product-images-field.tsx`'teki
+     (genel urun gorselleri) ve `variant-editor.tsx`'teki **iki** gizli
+     input'a (varyantlar JSON'u + renk gorselleri JSON'u) baglandi -
+     boylece butonla yapilan TUM degisiklikler artik SaveBar'i
+     tetikliyor.
+   - **Dogrulama**: tarayicida elle/Playwright ile test edilemedi -
+     yerel `.env`'deki `ADMIN_PASSWORD` hala eski placeholder
+     (`guclu-bir-sifre-belirleyin`, bkz. 2026-08-28 notu), gercek admin
+     sifresi bu makinede yok, bu yuzden admin oturumu acilamadi. Sadece
+     `npx tsc --noEmit` ve `npm run build` ile dogrulandi (ikisi de
+     hatasiz). Mekanizma (kontrollu input + programatik degisiklikte
+     manuel event dispatch) standart, dusuk riskli bir React deseni -
+     ama **kullanicinin bir sonraki oturumda gercek tarayicida
+     dogrulamasi onerilir** (bir gorsel/varyant silip SaveBar'in
+     gorunup gorunmedigine bakarak).
+
+**Test edildi**: `npx tsc --noEmit` ve `npm run build` hatasiz. Koton
+linki degisikligi gercek (gecici) veriyle dogrulandi (yukarida). SaveBar
+degisikligi sadece derleme seviyesinde dogrulandi, tarayici testi
+yapilamadi (admin sifresi bu makinede yok).
