@@ -2171,3 +2171,17 @@ ile doğrulandı: Kadın/Erkek tıklaması doğru sayfaya gidip doğru ürün
 sayısını gösteriyor, Aksesuar tıklaması artık 1 ürün (Çanta'ya atanan
 ürün) gösteriyor, hover davranışı bozulmadı. `npx tsc --noEmit` ve
 `npm run build` hatasız. Commit (`869a5d0`) GitHub'a push edildi.
+
+**Kullanıcı geri bildirimi 3** (aynı oturum): mobil menüde Kadın/Erkek/
+Aksesuar başlıklarına tıklanınca da bir yere gitmiyordu (sadece
+akordeonu açıp kapatıyordu, üst sekmelerdeki gibi bir link değildi).
+`MobileAccordionSection` yeniden düzenlendi: başlık metni artık ayrı bir
+`Link` (tıklayınca Kadın/Erkek için `/urunler?cinsiyet=...`'e, Aksesuar
+için `/urunler?kategori=aksesuar`'a gidiyor, bir önceki maddedeki
+üst/alt kategori genellemesi sayesinde Aksesuar burada da 0 sonuç
+dönmüyor), ok ikonu ise ayrı bir `<button>` olarak sadece alt kategori
+listesini aç/kapa yapıyor. Playwright ile 375px'te doğrulandı: başlığa
+tıklama doğru URL'e gidiyor, ok ikonuna tıklama akordeonu açıp alt
+kategori linkleri (`?kategori=...&cinsiyet=...`) doğru çalışıyor, görsel
+düzen bozulmadı (ekran görüntüsüyle kontrol edildi). `npx tsc --noEmit`
+ve `npm run build` hatasız. Commit (`399f77f`) GitHub'a push edildi.
