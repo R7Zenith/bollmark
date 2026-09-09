@@ -2585,15 +2585,32 @@ goruntuleriyle kontrol edildi).
   Search API'ye ozel, taze/yeni etkinlestirilen projelerde bazen saatler
   surebilen bilinen bir arka uc gecikme sorunu gibi gorunuyor (bizim
   kurulumumuzda bir hata bulunamadi).
-- **Karar**: Kullanici daha fazla vakit kaybetmek istemedi, Google
-  tarafi **su an icin birakildi**. Kod commit'lenip push edildi (env
+- **Karar (ilk hali)**: Kullanici daha fazla vakit kaybetmek istemedi,
+  Google tarafi su an icin birakildi. Kod commit'lenip push edildi (env
   degiskenleri tanimsiz oldugu icin Vercel'de bu adim sessizce devre
-  disi - mevcut davranisi bozmuyor). `GOOGLE_CSE_API_KEY`/`GOOGLE_CSE_CX`
-  **Vercel'e eklenmedi** (API zaten calismadigi icin eklemenin bir
-  faydasi yok). **Sonraki adim**: kullanici Google Cloud Console'da
-  API'nin calismaya basladigini fark ederse (birkac saat/gun icinde
-  kendiliginden duzelebilir), bu iki degeri Vercel > Settings >
-  Environment Variables'a eklemesi yeterli - kod tarafinda baska hicbir
-  sey yapmaya gerek yok, otomatik devreye girecek. O ana kadar
-  **`Koton linkiyle ekle` butonu** (elle link yapistirma) bu tur
-  urunler icin asil calisan yol olmaya devam ediyor.
+  disi - mevcut davranisi bozmuyor).
+
+### Kesin neden bulundu: Google bu API'yi yeni musterilere kapatmis (artik denemeye gerek yok)
+
+Kullanici, Google'in kendi destek forumunda ayni hatayi yasayan baska
+birine verilen resmi cevabi buldu: **Custom Search JSON API artik yeni
+musterilere kapali** ("closed to new customers", dokumantasyonda acikca
+yaziyor). Mevcut/eski musterilerin 1 Ocak 2027'ye kadar alternatif bir
+cozume (Google'in onerdigi **Vertex AI Search** - cok daha karmasik,
+kurumsal, muhtemelen ucretli bir urun) gecmesi bekleniyor; yeni
+hesaplar/organizasyonlar (bizimki gibi) bu API'ye **hicbir zaman**
+erisemiyor.
+
+- Bu, oncesinde varsayilan "propagation gecikmesi" teorisini **yanlisliyor** -
+  sorun gecici degil, kalici bir kisitlama. Kontrol listesindeki (enable,
+  billing, key kisitlamasi, cx) her adimin dogru olmasinin hicbir onemi
+  yoktu - hesap turu yuzunden API zaten erisilemezdi.
+- **Kesin karar**: Google Custom Search yolu **tamamen terk edildi**.
+  Vertex AI Search'e gecmek bu kucuk ozellik icin orantisiz karmasik/
+  maliyetli bulundu, denenmedi. Koddaki `fetchGoogleCseUrl` fonksiyonu
+  (bkz. `src/lib/koton-images.ts`) env degiskenleri hic tanimlanmayacagi
+  icin kalici olarak devre disi kalacak (zararsiz, silinmesi gerekmiyor -
+  ama ileride bu urune tekrar bakilirsa bu notun okunmasi onerilir, aksi
+  halde ayni cikmaza tekrar zaman harcanabilir).
+  **`Koton linkiyle ekle` butonu (elle link yapistirma), otomatik aramanin
+  bulamadigi urunler icin kalici/tek cozum olarak kaldi.**
