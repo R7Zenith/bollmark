@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { Upload, ArrowLeft, CheckCircle2, AlertTriangle, HelpCircle, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/admin/button";
@@ -112,6 +112,7 @@ export function ExcelImportWizard({
   const [result, setResult] = useState<ImportResponse | null>(null);
   const [productNameByCode, setProductNameByCode] = useState<Record<string, string>>({});
   const [progress, setProgress] = useState<ImportProgress | null>(null);
+  const skipImagesRef = useRef(false);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -161,6 +162,7 @@ export function ExcelImportWizard({
     const totals = { productsCreated: 0, productsUpdated: 0, variantsCreated: 0, variantsUpdated: 0 };
     const allTargets: KotonEnrichmentTarget[] = [];
     let doneGroups = 0;
+    skipImagesRef.current = false;
 
     try {
       for (const chunk of chunks) {
@@ -192,14 +194,35 @@ export function ExcelImportWizard({
       setProgress({ phase: "gorseller", doneGroups: totalGroups, totalGroups, doneProducts: 0, totalProducts: allTargets.length });
       const kotonResults: KotonResult[] = [];
       for (let i = 0; i < allTargets.length; i++) {
+        if (skipImagesRef.current) {
+          for (let j = i; j < allTargets.length; j++) {
+            const skippedTarget = allTargets[j];
+            kotonResults.push({
+              productId: skippedTarget.productId,
+              productCode: skippedTarget.productCode,
+              found: false,
+              imagesAdded: 0,
+              descriptionUpdated: false
+            });
+          }
+          break;
+        }
         if (i > 0) await sleep(900);
         const target = allTargets[i];
         try {
-          const res = await fetch("/api/admin/urunler/excel-aktar/gorsel-getir", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ target })
-          });
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 12000);
+          let res: Response;
+          try {
+            res = await fetch("/api/admin/urunler/excel-aktar/gorsel-getir", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ target }),
+              signal: controller.signal
+            });
+          } finally {
+            clearTimeout(timeoutId);
+          }
           const data = await res.json();
           kotonResults.push(
             res.ok
@@ -427,6 +450,11 @@ export function ExcelImportWizard({
                     }}
                   />
                 </div>
+                {progress.phase === "gorseller" && (
+                  <Button variant="secondary" size="sm" onClick={() => (skipImagesRef.current = true)}>
+                    Görselleri atla ve bitir
+                  </Button>
+                )}
               </div>
             )}
 
@@ -469,9 +497,16 @@ export function ExcelImportWizard({
 
           {result.kotonResults.length > 0 && (
             <div>
-              <p className="mb-2 text-xs font-medium uppercase tracking-wide text-admin-text-muted">
-                Koton görsel eşleştirme (yeni ürünler)
-              </p>
+              <div className="mb-2 flex items-center justify-between">
+                <p className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">
+                  Koton görsel eşleştirme (yeni ürünler)
+                </p>
+                {result.kotonResults.some((r) => !r.found) && (
+                  <Link href="/admin/urunler?fotograf=yok" className="text-xs text-admin-accent hover:underline">
+                    Fotoğrafsız ürünleri gör
+                  </Link>
+                )}
+              </div>
               <ul className="space-y-1.5 text-sm">
                 {result.kotonResults.map((r) => (
                   <li key={r.productId} className="flex items-center gap-2">

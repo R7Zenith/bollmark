@@ -1,8 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ImageOff, Check } from "lucide-react";
+import { ImageOff, Check, RefreshCw, Loader2 } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { Badge, type BadgeTone } from "@/components/admin/badge";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
@@ -47,6 +48,35 @@ export function ProductsTable({
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { showToast } = useToast();
+  const [refreshingIds, setRefreshingIds] = useState<Set<string>>(new Set());
+
+  async function handleGorselYenile(id: string) {
+    setRefreshingIds((prev) => new Set(prev).add(id));
+    try {
+      const res = await fetch(`/api/admin/urunler/${id}/gorsel-yenile`, { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(data.error ?? "Görsel arama başarısız oldu.", "error");
+        return;
+      }
+      if (data.found && data.imagesAdded > 0) {
+        showToast(`${data.imagesAdded} görsel eklendi.`, "success");
+        router.refresh();
+      } else if (data.found) {
+        showToast("Ürün Koton'da bulundu ama bu renkler için görsel bulunamadı.", "error");
+      } else {
+        showToast("Koton'da bulunamadı.", "error");
+      }
+    } catch {
+      showToast("Görsel arama sırasında bir hata oluştu.", "error");
+    } finally {
+      setRefreshingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }
 
   function handleSortChange(key: string, direction: "asc" | "desc") {
     const params = new URLSearchParams(searchParams.toString());
@@ -172,9 +202,21 @@ export function ProductsTable({
       header: "",
       align: "right",
       render: (row) => (
-        <Link href={`/admin/urunler/${row.id}`} className="text-admin-accent hover:underline">
-          Düzenle
-        </Link>
+        <div className="flex items-center justify-end gap-3">
+          {!row.imageUrl && (
+            <button
+              onClick={() => handleGorselYenile(row.id)}
+              disabled={refreshingIds.has(row.id)}
+              className="inline-flex items-center gap-1 text-xs text-admin-accent hover:underline disabled:opacity-50"
+            >
+              {refreshingIds.has(row.id) ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+              {refreshingIds.has(row.id) ? "Aranıyor..." : "Fotoğrafları yeniden ara"}
+            </button>
+          )}
+          <Link href={`/admin/urunler/${row.id}`} className="text-admin-accent hover:underline">
+            Düzenle
+          </Link>
+        </div>
       )
     }
   ];

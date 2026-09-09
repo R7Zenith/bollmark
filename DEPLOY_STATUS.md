@@ -2185,3 +2185,60 @@ tıklama doğru URL'e gidiyor, ok ikonuna tıklama akordeonu açıp alt
 kategori linkleri (`?kategori=...&cinsiyet=...`) doğru çalışıyor, görsel
 düzen bozulmadı (ekran görüntüsüyle kontrol edildi). `npx tsc --noEmit`
 ve `npm run build` hatasız. Commit (`399f77f`) GitHub'a push edildi.
+
+## Excel aktarimi - Koton gorsel arama takilmasi + urun bazinda "yeniden ara" (2026-09-09, ayni oturum)
+
+Plan `EXCEL_KOTON_GORSEL_ARAMA_TAKILIYOR_PLANI.md` dosyasinda cikarildi ve
+uygulandi. Kullanici, `KOTON11052026CHECKLIST.xls` (68 urun) ile Excel
+aktariminin Faz 2'sinde (Koton gorsel arama) "3. Sonuc" ekranina hic
+ulasmadigini, aktarimdan sonra takili kaldigini bildirdi.
+
+1. **Kok neden**: `src/lib/koton-images.ts`'teki uc dis `fetch` cagrisinda
+   (`fetchAutocompleteUrl`, `fetchKotonProductData`, `reuploadImageToBlob`)
+   hic zaman asimi yoktu - koton.com yanit vermezse (engelleme, sezon
+   bitmis urun, ag sorunu) her istek Vercel'in `gorsel-getir` route'undaki
+   30sn'lik `maxDuration`'a kadar askida kalabiliyordu; 68 urunle bu
+   toplamda onlarca dakikaya cikip "donmus" gibi gorunuyordu.
+2. **Zaman asimi eklendi**: `koton-images.ts`'e `fetchWithTimeout` yardimci
+   fonksiyonu (8sn, `AbortController`) eklendi, uc `fetch` cagrisi da buna
+   cevrildi. `excel-import-wizard.tsx`'teki `/gorsel-getir` cagrisina da
+   ayrica 12sn'lik istemci tarafli zaman asimi eklendi.
+3. **Teshis icin loglama eklendi**: autocomplete HTTP hatasi ve
+   `base_code` uyusmazligi durumlarinda `console.error` (Vercel fonksiyon
+   loglarina duser, bir sonraki denemede gercek nedeni - engelleme mi,
+   sezon bitmis urun mu - netlestirmek icin).
+4. **"Gorselleri atla ve bitir" butonu** eklendi (Faz 2 ilerleme
+   cubugunun altinda, sadece `progress.phase === "gorseller"` iken
+   gorunur) - admin isterse gorsel aramayi yarida kesip direkt sonuc
+   ekranina gecebiliyor (kalan urunler `found:false` ile isaretleniyor).
+5. **Sonuc ekranina link eklendi**: Koton'da bulunamayan urun varsa,
+   daha once eklenmis `/admin/urunler?fotograf=yok` filtresine giden bir
+   link gosteriliyor.
+6. **Urun bazinda "Fotograflari yeniden ara" butonu** (yeni ozellik):
+   yeni route `src/app/api/admin/urunler/[id]/gorsel-yenile/route.ts`
+   (POST, admin oturum kontrollu) urunun DB'deki kod/barkod/renk
+   verilerinden bir `KotonEnrichmentTarget` kurup mevcut `enrichOne`'i tek
+   urun icin cagiriyor - yeni bir arama mantigi yazilmadi, Excel
+   aktarimindaki mekanizma yeniden kullanildi.
+   `src/components/admin/products-table.tsx`'in "actions" kolonuna,
+   fotografi olmayan satirlarda "Duzenle" linkinin yanina bu butonu
+   ekleyen `RefreshCw`/`Loader2` ikonlu, satir bazli yukleme durumu
+   (`Set<string>`) tutan bir buton eklendi.
+   - **Karar**: `enrichOne`'a opsiyonel `overwriteDescription` parametresi
+     eklendi (varsayilan `true`, Excel aktarimindaki mevcut davranis
+     korundu). Urun bazli "yeniden ara" butonu bunu `false` geciriyor -
+     bu buton muhtemelen zaten gozden gecirilmis, elle duzenlenmis bir
+     urune karsi calistirilacagi icin Koton'dan gelen aciklamanin uzerine
+     otomatik yazilmamasi daha guvenli bir varsayilan olarak secildi.
+
+**Test edildi**: `npx tsc --noEmit` ve `npm run build` hatasiz (yeni
+route derleme ciktisinda gorunuyor). `npm run lint` bu ortamda
+(Windows, ESLint 9 flat-config) projeden bagimsiz, onceden var olan bir
+hata veriyor (`Invalid project directory provided` / `next lint`
+komutunda; dogrudan `npx eslint` de "Converting circular structure to
+JSON" hatasi veriyor - React eklentisi flat-config'te dairesel referans
+olusturuyor) - bu oturumdaki degisikliklerle ilgisi yok, calistirilamadi.
+**Gercek Koton davranisi (engelleme/sezon bitmis/baska) bir sonraki
+canli Excel denemesinde Vercel loglarina bakilarak dogrulanmali** -
+bu oturumda gercek bir Excel dosyasiyla canliya karsi test yapilmadi,
+sadece kod incelemesi + tip/derleme kontrolu yapildi.

@@ -14,9 +14,20 @@ const KOTON_BASE = "https://www.koton.com";
 const REQUEST_DELAY_MS = 900;
 const MAX_IMAGES_PER_COLOR = 6;
 const USER_AGENT = "Mozilla/5.0 (compatible; BollmarkImportBot/1.0; +https://www.bollmark.com)";
+const FETCH_TIMEOUT_MS = 8000;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 interface KotonProductData {
@@ -25,10 +36,13 @@ interface KotonProductData {
 }
 
 async function fetchAutocompleteUrl(barcode: string): Promise<string | null> {
-  const res = await fetch(`${KOTON_BASE}/autocomplete/?search_text=${encodeURIComponent(barcode)}`, {
+  const res = await fetchWithTimeout(`${KOTON_BASE}/autocomplete/?search_text=${encodeURIComponent(barcode)}`, {
     headers: { "User-Agent": USER_AGENT }
   });
-  if (!res.ok) return null;
+  if (!res.ok) {
+    console.error(`Koton autocomplete başarısız (barkod: ${barcode}): HTTP ${res.status}`);
+    return null;
+  }
   const data = await res.json();
   const groups: unknown[] = Array.isArray(data?.groups) ? data.groups : [];
   for (const group of groups) {
@@ -51,14 +65,17 @@ async function fetchKotonProductData(
 ): Promise<KotonProductData | null> {
   const absoluteUrl = productUrl.startsWith("http") ? productUrl : `${KOTON_BASE}${productUrl}`;
   const separator = absoluteUrl.includes("?") ? "&" : "?";
-  const res = await fetch(`${absoluteUrl}${separator}format=json`, {
+  const res = await fetchWithTimeout(`${absoluteUrl}${separator}format=json`, {
     headers: { "User-Agent": USER_AGENT }
   });
   if (!res.ok) return null;
   const data = await res.json();
 
   const baseCode = data?.product?.base_code;
-  if (baseCode !== expectedProductCode) return null;
+  if (baseCode !== expectedProductCode) {
+    console.error(`Koton base_code eşleşmedi: beklenen ${expectedProductCode}, gelen ${baseCode}`);
+    return null;
+  }
 
   const rawDescription =
     typeof data?.product?.attributes?.urun_aciklama === "string" ? data.product.attributes.urun_aciklama : null;
@@ -96,7 +113,7 @@ async function findKotonProductData(barcode: string, productCode: string): Promi
 
 async function reuploadImageToBlob(sourceUrl: string, pathHint: string): Promise<string | null> {
   try {
-    const res = await fetch(sourceUrl, { headers: { "User-Agent": USER_AGENT } });
+    const res = await fetchWithTimeout(sourceUrl, { headers: { "User-Agent": USER_AGENT } });
     if (!res.ok) return null;
     const contentType = res.headers.get("content-type") || "image/jpeg";
     const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
@@ -121,7 +138,11 @@ export interface KotonEnrichmentResult {
   descriptionUpdated: boolean;
 }
 
-export async function enrichOne(target: KotonEnrichmentTarget): Promise<KotonEnrichmentResult> {
+export async function enrichOne(
+  target: KotonEnrichmentTarget,
+  options?: { overwriteDescription?: boolean }
+): Promise<KotonEnrichmentResult> {
+  const overwriteDescription = options?.overwriteDescription ?? true;
   const result: KotonEnrichmentResult = {
     productId: target.productId,
     productCode: target.productCode,
@@ -134,7 +155,7 @@ export async function enrichOne(target: KotonEnrichmentTarget): Promise<KotonEnr
   if (!data) return result;
   result.found = true;
 
-  if (data.description) {
+  if (data.description && overwriteDescription) {
     await prisma.product.update({ where: { id: target.productId }, data: { description: data.description } });
     result.descriptionUpdated = true;
   }
