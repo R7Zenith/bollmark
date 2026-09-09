@@ -2,7 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { parseExcelFile, groupExcelRows, mapGender, detectCategoryName, normalizeKod3 } from "@/lib/excel-import";
+import {
+  parseExcelFile,
+  groupExcelRows,
+  mapGender,
+  detectCategoryName,
+  normalizeKod3,
+  guessCategoryFromProductName
+} from "@/lib/excel-import";
 import { suggestCategory, type CategorySuggestion } from "@/lib/category-suggest";
 
 // Excel dosyasını ayrıştırıp önizleme döner - hiçbir veritabanı yazma işlemi yapmaz.
@@ -55,10 +62,22 @@ export async function POST(request: NextRequest) {
     if (!key || detectedCache.has(key)) continue;
     detectedCache.set(key, await detectCategoryName(prisma, g.categoryRaw));
   }
+  // KOD3 kesin eşleşmezse, AI'ya gitmeden önce ürün adında geçen anahtar kelimeye
+  // bakarak ücretsiz/deterministik bir tahmin denenir (bkz. excel-import.ts,
+  // guessCategoryFromProductName). Bu, KOD3'e değil ÜRÜN KODU'na göre - çünkü aynı
+  // KOD3 altında farklı ürün adları olabilir.
+  const nameGuessCache = new Map<string, string | null>();
+  for (const g of rawGroups) {
+    const key = normalizeKod3(g.categoryRaw);
+    if (key && detectedCache.get(key)) continue;
+    nameGuessCache.set(g.productCode, guessCategoryFromProductName(g.productName));
+  }
+
   const suggestionCache = new Map<string, CategorySuggestion | null>();
   for (const g of rawGroups) {
     const key = normalizeKod3(g.categoryRaw);
     if (!key || detectedCache.get(key)) continue;
+    if (nameGuessCache.get(g.productCode)) continue; // isimden tahmin başarılıysa AI'ya gitme
     if (suggestionCache.has(key)) continue;
     suggestionCache.set(key, await suggestCategory(g.categoryRaw, existingCategoryNames));
   }
@@ -66,13 +85,15 @@ export async function POST(request: NextRequest) {
   const groups = rawGroups.map((g) => {
     const key = normalizeKod3(g.categoryRaw);
     const detectedCategory = detectedCache.get(key) ?? null;
-    const suggestedCategory = detectedCategory ? null : suggestionCache.get(key) ?? null;
+    const nameGuessedCategory = detectedCategory ? null : nameGuessCache.get(g.productCode) ?? null;
+    const suggestedCategory = detectedCategory || nameGuessedCategory ? null : suggestionCache.get(key) ?? null;
     return {
       productCode: g.productCode,
       productName: g.productName,
       gender: mapGender(g.genderRaw),
       categoryRaw: g.categoryRaw,
       detectedCategory,
+      nameGuessedCategory,
       suggestedCategory,
       brandName: g.brandName,
       priceCents: g.priceCents,

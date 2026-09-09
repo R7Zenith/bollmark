@@ -35,12 +35,15 @@ export interface ExcelParseResult {
 }
 
 // Koton checklist'lerinde gördüğümüz KOD4 (cinsiyet) değerlerinin Türkçe karşılığı -
-// eşleşmeyen değerler boş bırakılır (bkz. plan bölüm 3).
+// eşleşmeyen değerler boş bırakılır (bkz. plan bölüm 3). TEENAGE (genç) için sitede
+// ayrı bir gender/kategori dalı yok (Kadın/Erkek/Aksesuar), pratikte kadın kataloğuna
+// giriyor - dolayısıyla Kadın'a eşleniyor.
 const GENDER_MAP: Record<string, string> = {
   MEN: "Erkek",
   ERKEK: "Erkek",
   WOMEN: "Kadın",
   KADIN: "Kadın",
+  TEENAGE: "Kadın",
   KIDS: "Çocuk",
   COCUK: "Çocuk",
   ÇOCUK: "Çocuk",
@@ -58,11 +61,56 @@ export function mapGender(genderRaw: string): string | null {
 // eklenir.
 const CATEGORY_MAP: Record<string, string> = {
   "SHIRTS SS": "Gömlek",
-  "SHIRTS LS BSC": "Gömlek"
+  "SHIRTS LS BSC": "Gömlek",
+  SHORTS: "Şort",
+  TROUSERS: "Pantolon",
+  "BIKINI BOTTOMS": "Mayo & Bikini"
 };
 
 export function mapCategoryName(categoryRaw: string): string | null {
   return CATEGORY_MAP[categoryRaw.trim().toUpperCase()] ?? null;
+}
+
+// KOD3 (öğrenilmiş eşleme + CATEGORY_MAP) karşılığı yoksa, AI önerisine gitmeden
+// önce ürün adında geçen anahtar kelimeye bakarak ücretsiz/deterministik bir tahmin
+// denenir. Bu bir KESİN eşleşme değildir - önizlemede "öneri" olarak gösterilir,
+// yönetici onaylar/değiştirir (AI önerisiyle aynı güvenlik prensibi). Liste sitenin
+// gerçek kategori ağacındaki isimlere göre güncel tutulmalı. Sıra önemli - daha
+// spesifik türler (Kot Pantolon, Şort) genel olanlardan (Pantolon) önce kontrol
+// edilmeli ki "kot pantolon" ifadesi yanlışlıkla sade "Pantolon"a düşmesin.
+const PRODUCT_NAME_CATEGORY_KEYWORDS: Array<{ category: string; keywords: string[] }> = [
+  { category: "Şort", keywords: ["şort"] },
+  { category: "Etek", keywords: ["etek"] },
+  { category: "Kot Pantolon", keywords: ["jean", "kot pantolon", "denim pantolon"] },
+  { category: "Pantolon", keywords: ["pantolon", "paça"] },
+  { category: "Elbise", keywords: ["elbise"] },
+  { category: "Bluz", keywords: ["bluz"] },
+  { category: "Gömlek", keywords: ["gömlek"] },
+  { category: "Tişört", keywords: ["tişört", "t-shirt", "tshirt"] },
+  { category: "Sweatshirt", keywords: ["sweatshirt"] },
+  { category: "Hırka", keywords: ["hırka"] },
+  { category: "Kazak & Süveter", keywords: ["kazak", "süveter", "triko"] },
+  { category: "Trençkot", keywords: ["trençkot", "trenchcoat"] },
+  { category: "Mont & Kaban", keywords: ["mont", "kaban", "parka"] },
+  { category: "Ceket", keywords: ["ceket"] },
+  { category: "Yelek", keywords: ["yelek"] },
+  { category: "Tulum", keywords: ["tulum"] },
+  { category: "Tayt", keywords: ["tayt", "legging"] },
+  { category: "Mayo & Bikini", keywords: ["mayo", "bikini"] },
+  { category: "İç Giyim", keywords: ["sütyen", "külot"] },
+  { category: "Pijama & Gecelik", keywords: ["pijama", "gecelik"] },
+  { category: "Eşofman", keywords: ["eşofman", "jogger"] },
+  { category: "Polo Yaka", keywords: ["polo yaka", "polo"] },
+  { category: "Atlet", keywords: ["atlet"] },
+  { category: "Boxer", keywords: ["boxer"] }
+];
+
+export function guessCategoryFromProductName(productName: string): string | null {
+  const lower = productName.toLocaleLowerCase("tr-TR");
+  for (const entry of PRODUCT_NAME_CATEGORY_KEYWORDS) {
+    if (entry.keywords.some((k) => lower.includes(k))) return entry.category;
+  }
+  return null;
 }
 
 // KOD3 -> kategori icin normalize edilmis anahtar (CategoryKodMapping.kod3 bu formatta
@@ -105,6 +153,20 @@ function parseCents(raw: unknown): number | null {
   return Math.round(num * 100);
 }
 
+// RENK hücresi bazen "AÇIK İNDİGO/LGT" gibi isim+stok kodu birlikte gelir (kod kısmı
+// gözlemlenen örneklerde hep kısa, örn. 3 karakter: LGT, MID, BLK, 303, 052...). Sadece
+// isim kısmını al - Renk attribute değeri, SKU ve Koton görsel eşleştirmesi (bkz.
+// EXCEL_URUN_AKTARIM_PLANI.md bölüm 4, orada Koton etiketleriyle birebir aynı yazım
+// eşleşmesi bekleniyor) hep bu temiz isimle çalışmalı.
+export function parseColorName(raw: string): string {
+  const trimmed = raw.trim();
+  const slashIndex = trimmed.lastIndexOf("/");
+  if (slashIndex <= 0) return trimmed;
+  const suffix = trimmed.slice(slashIndex + 1).trim();
+  if (!suffix || suffix.length > 6) return trimmed; // gerçek bir kod gibi görünmüyorsa dokunma
+  return trimmed.slice(0, slashIndex).trim();
+}
+
 export function parseExcelFile(buffer: ArrayBuffer | Buffer): ExcelParseResult {
   const workbook = XLSX.read(buffer, { type: "buffer" });
   const sheetName = workbook.SheetNames[0];
@@ -123,7 +185,8 @@ export function parseExcelFile(buffer: ArrayBuffer | Buffer): ExcelParseResult {
     const productCode = String(raw["ÜRÜN KODU"] ?? "").trim();
     const productName = String(raw["ÜRÜN ADI"] ?? "").trim();
     const barcode = String(raw["BARKOD"] ?? "").trim();
-    const color = String(raw["RENK"] ?? "").trim();
+    const colorRaw = String(raw["RENK"] ?? "").trim();
+    const color = parseColorName(colorRaw);
     const size = String(raw["BEDEN"] ?? "").trim();
     const genderRaw = String(raw["KOD4"] ?? "").trim();
     const categoryRaw = String(raw["KOD3"] ?? "").trim();
@@ -145,7 +208,7 @@ export function parseExcelFile(buffer: ArrayBuffer | Buffer): ExcelParseResult {
       errors.push({ row: rowNumber, message: `BARKOD tekrar ediyor, satır atlandı: ${barcode}` });
       return;
     }
-    if (!color) {
+    if (!colorRaw) {
       errors.push({ row: rowNumber, message: "RENK boş olamaz." });
       return;
     }

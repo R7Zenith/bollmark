@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Upload, ArrowLeft, CheckCircle2, AlertTriangle, HelpCircle, Loader2 } from "lucide-react";
+import { Upload, ArrowLeft, CheckCircle2, AlertTriangle, HelpCircle, Loader2, Sparkles } from "lucide-react";
 import { Button } from "@/components/admin/button";
 import { Card } from "@/components/admin/card";
 import { formatPrice } from "@/lib/format";
@@ -35,6 +35,7 @@ type PreviewGroup = {
   gender: string | null;
   categoryRaw: string | null;
   detectedCategory: string | null;
+  nameGuessedCategory: string | null;
   suggestedCategory: CategorySuggestion | null;
   brandName: string;
   priceCents: number;
@@ -106,7 +107,10 @@ export function ExcelImportWizard({
       setProductNameByCode(Object.fromEntries(preview.groups.map((g) => [g.productCode, g.productName])));
       setCategoryByCode(
         Object.fromEntries(
-          preview.groups.map((g) => [g.productCode, g.detectedCategory ?? g.suggestedCategory?.categoryName ?? ""])
+          preview.groups.map((g) => [
+            g.productCode,
+            g.detectedCategory ?? g.nameGuessedCategory ?? g.suggestedCategory?.categoryName ?? ""
+          ])
         )
       );
       setStep("preview");
@@ -211,12 +215,20 @@ export function ExcelImportWizard({
 
             {(() => {
               const exactCount = preview.groups.filter((g) => g.detectedCategory).length;
-              const suggestedCount = preview.groups.filter((g) => !g.detectedCategory && g.suggestedCategory).length;
-              const noneCount = preview.groups.length - exactCount - suggestedCount;
+              const nameGuessCount = preview.groups.filter(
+                (g) => !g.detectedCategory && g.nameGuessedCategory
+              ).length;
+              const suggestedCount = preview.groups.filter(
+                (g) => !g.detectedCategory && !g.nameGuessedCategory && g.suggestedCategory
+              ).length;
+              const noneCount = preview.groups.length - exactCount - nameGuessCount - suggestedCount;
               return (
                 <div className="flex flex-wrap gap-4 rounded-md border border-admin-border bg-gray-50 p-3 text-xs">
                   <span className="inline-flex items-center gap-1.5 text-green-700">
                     <CheckCircle2 size={14} /> {exactCount} kesin eşleşti
+                  </span>
+                  <span className="inline-flex items-center gap-1.5 text-indigo-700">
+                    <Sparkles size={14} /> {nameGuessCount} isimden öneri (kontrol bekliyor)
                   </span>
                   <span className="inline-flex items-center gap-1.5 text-amber-700">
                     <HelpCircle size={14} /> {suggestedCount} AI önerisi (kontrol bekliyor)
@@ -280,6 +292,10 @@ export function ExcelImportWizard({
                           {g.detectedCategory ? (
                             <span className="inline-flex w-fit items-center gap-1 rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">
                               <CheckCircle2 size={12} /> Eşleşti
+                            </span>
+                          ) : g.nameGuessedCategory ? (
+                            <span className="inline-flex w-fit items-center gap-1 rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-700">
+                              <Sparkles size={12} /> Öneri (ürün adından), kontrol et
                             </span>
                           ) : g.suggestedCategory ? (
                             <span
