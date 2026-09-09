@@ -144,10 +144,10 @@ function DesktopNav({
   openMenu: TabKey | null;
   setOpenMenu: (key: TabKey | null) => void;
 }) {
-  const tabs: { key: TabKey; label: string }[] = [
-    { key: "kadin", label: "Kadın" },
-    { key: "erkek", label: "Erkek" },
-    { key: "aksesuar", label: "Aksesuar" }
+  const tabs: { key: TabKey; label: string; href: string }[] = [
+    { key: "kadin", label: "Kadın", href: "/urunler?cinsiyet=Kadın" },
+    { key: "erkek", label: "Erkek", href: "/urunler?cinsiyet=Erkek" },
+    { key: "aksesuar", label: "Aksesuar", href: "/urunler?kategori=aksesuar" }
   ];
 
   return (
@@ -156,16 +156,16 @@ function DesktopNav({
         Tüm Ürünler
       </Link>
       {tabs.map((tab) => (
-        <button
+        <Link
           key={tab.key}
-          type="button"
+          href={tab.href}
           className="uppercase hover:text-accent"
           aria-expanded={openMenu === tab.key}
           onMouseEnter={() => setOpenMenu(tab.key)}
-          onClick={() => setOpenMenu(openMenu === tab.key ? null : tab.key)}
+          onFocus={() => setOpenMenu(tab.key)}
         >
           {tab.label}
-        </button>
+        </Link>
       ))}
       <Link href="/#hikaye" className="uppercase hover:text-accent">
         Hikayemiz

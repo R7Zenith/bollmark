@@ -16,7 +16,13 @@ export async function getPublishedProducts(
   return prisma.product.findMany({
     where: {
       status: "PUBLISHED",
-      category: categorySlug ? { slug: categorySlug, isActive: true } : undefined,
+      // slug ile birebir eslesen kategori VEYA o kategoriyi parent olarak
+      // gosteren bir alt kategori (Aksesuar gibi ust seviye kategorilerin
+      // kendisine hic urun baglanmiyor, hepsi alt kategorilerde duruyor -
+      // aksi halde "Aksesuar" filtresi hep 0 sonuc donerdi).
+      category: categorySlug
+        ? { isActive: true, OR: [{ slug: categorySlug }, { parent: { slug: categorySlug } }] }
+        : undefined,
       gender: options?.genderLabel ? options.genderLabel : undefined
     },
     include: {
@@ -70,7 +76,13 @@ export async function getCatalogEntries(
   const products = await prisma.product.findMany({
     where: {
       status: "PUBLISHED",
-      category: categorySlug ? { slug: categorySlug, isActive: true } : undefined,
+      // slug ile birebir eslesen kategori VEYA o kategoriyi parent olarak
+      // gosteren bir alt kategori (Aksesuar gibi ust seviye kategorilerin
+      // kendisine hic urun baglanmiyor, hepsi alt kategorilerde duruyor -
+      // aksi halde "Aksesuar" filtresi hep 0 sonuc donerdi).
+      category: categorySlug
+        ? { isActive: true, OR: [{ slug: categorySlug }, { parent: { slug: categorySlug } }] }
+        : undefined,
       gender: options?.genderLabel ? options.genderLabel : undefined
     },
     include: {
