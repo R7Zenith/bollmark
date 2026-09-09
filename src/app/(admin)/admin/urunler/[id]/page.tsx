@@ -348,7 +348,7 @@ export default async function EditProductPage({
         </Card>
 
         <Card title="Fiyatlandırma">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className={labelClass}>Fiyat (TL)</label>
               <input
@@ -401,7 +401,7 @@ export default async function EditProductPage({
 
         <Card title="Ürün Detayları">
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className={labelClass}>Materyal</label>
                 <input
@@ -452,7 +452,7 @@ export default async function EditProductPage({
         </Card>
 
         <Card title="Kategori ve Durum">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className={labelClass}>Kategori</label>
               <select name="categoryId" defaultValue={product.categoryId ?? ""} className={`mt-1 ${inputClass}`}>

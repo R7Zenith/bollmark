@@ -210,7 +210,7 @@ export default async function AdminCouponsPage({
             <label className={labelClass}>Min. Sepet Tutarı (TL)</label>
             <input name="minOrderCents" type="number" step="0.01" min={0} className={`mt-1 ${inputClass}`} />
           </div>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <div>
               <label className={labelClass}>Kategori</label>
               <select name="categoryId" defaultValue="" className={`mt-1 ${inputClass}`}>
@@ -234,7 +234,7 @@ export default async function AdminCouponsPage({
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div>
               <label className={labelClass}>Kullanım Limiti</label>
               <input name="usageLimit" type="number" min={1} placeholder="Sınırsız" className={`mt-1 ${inputClass}`} />

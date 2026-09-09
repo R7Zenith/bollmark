@@ -239,7 +239,7 @@ export default async function NewProductPage({
         </Card>
 
         <Card title="Fiyatlandırma">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className={labelClass}>Fiyat (TL)</label>
               <input name="price" required type="number" step="0.01" className={`mt-1 ${inputClass}`} />
@@ -279,7 +279,7 @@ export default async function NewProductPage({
 
         <Card title="Ürün Detayları">
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div>
                 <label className={labelClass}>Materyal</label>
                 <input name="material" placeholder="örn. %95 Pamuk, %5 Elastan" className={`mt-1 ${inputClass}`} />
@@ -319,7 +319,7 @@ export default async function NewProductPage({
         </Card>
 
         <Card title="Kategori ve Durum">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className={labelClass}>Kategori</label>
               <select name="categoryId" defaultValue="" className={`mt-1 ${inputClass}`}>

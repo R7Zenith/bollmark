@@ -92,7 +92,7 @@ export function OrdersFilters() {
           )}
         </button>
         {panelOpen && (
-          <div className="absolute left-0 z-10 mt-1 w-72 space-y-3 rounded-md border border-admin-border bg-admin-surface p-4 shadow-lg">
+          <div className="absolute left-0 z-10 mt-1 w-[calc(100vw-2rem)] max-w-72 space-y-3 rounded-md border border-admin-border bg-admin-surface p-4 shadow-lg md:w-72">
             <div>
               <label className="mb-1 block text-xs font-medium text-admin-text-muted">Ödeme Durumu</label>
               <select

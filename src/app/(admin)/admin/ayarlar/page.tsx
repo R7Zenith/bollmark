@@ -112,7 +112,7 @@ export default async function AdminSettingsPage({
             placeholder="Mevcut şifre"
             className="w-full rounded-md border border-admin-border px-4 py-2.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
           />
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <input
               name="newPassword"
               type="password"
@@ -148,7 +148,7 @@ export default async function AdminSettingsPage({
               className="mt-1 w-full rounded-md border border-admin-border px-4 py-2.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">
                 İletişim E-postası

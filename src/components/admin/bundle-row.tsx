@@ -46,7 +46,7 @@ export function BundleRow({
     return (
       <li className="px-4 py-4">
         <form action={updateAction} className="space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             <div>
               <label className="text-xs text-admin-text-muted">Ad</label>
               <input name="name" defaultValue={bundle.name} required autoFocus className={inputClass} />

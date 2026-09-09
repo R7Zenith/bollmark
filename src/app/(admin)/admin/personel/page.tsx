@@ -115,7 +115,7 @@ export default async function AdminPersonelPage({
       <PersonelFeedback basarili={basarili} hata={hata} />
 
       <Card title="Yeni Personel" className="mt-6">
-        <form action={createPersonel} className="grid grid-cols-2 gap-3">
+        <form action={createPersonel} className="grid grid-cols-1 gap-3 md:grid-cols-2">
           <input
             name="name"
             required

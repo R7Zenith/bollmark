@@ -26,7 +26,7 @@ export function NewBundleForm({
 
   return (
     <form action={createAction} className="space-y-3" onSubmit={() => setSelectedIds(new Set())}>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <input name="name" required placeholder="Bundle Adı" className={inputClass} />
         <input
           name="discountPercent"

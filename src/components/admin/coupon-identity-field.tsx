@@ -23,7 +23,7 @@ export function CouponIdentityField({
     <div className="space-y-3">
       <div>
         <label className={labelClass}>Kampanya Türü</label>
-        <div className="mt-1 grid grid-cols-2 gap-2">
+        <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <button
             type="button"
             onClick={() => setMode("CODED")}
@@ -49,7 +49,7 @@ export function CouponIdentityField({
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className={isAutomatic ? "opacity-40" : ""}>
           <label className={labelClass}>Kod</label>
           <input

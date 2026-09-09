@@ -72,7 +72,7 @@ export function CouponRow({
     return (
       <li className="px-4 py-4">
         <form action={updateAction} className="space-y-2">
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             <div>
               <label className="text-xs text-admin-text-muted">Kod (boşsa otomatik uygulanır)</label>
               <input
@@ -105,7 +105,7 @@ export function CouponRow({
               className={inputClass}
             />
           </div>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             <div>
               <label className="text-xs text-admin-text-muted">Kategori</label>
               <select name="categoryId" defaultValue={coupon.categoryId ?? ""} className={inputClass}>
@@ -129,7 +129,7 @@ export function CouponRow({
               </select>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
             <div>
               <label className="text-xs text-admin-text-muted">Kullanım Limiti</label>
               <input
