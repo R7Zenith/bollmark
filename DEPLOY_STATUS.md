@@ -2086,3 +2086,65 @@ tıklanınca 8 alt kategorisi gizleniyor/gösteriliyor, sayfa yenilendiğinde
 kapalı durum korunuyor, arama sırasında (kapalı Aksesuar altındaki
 "Çanta" aranınca) ebeveyn zinciri collapse'a rağmen görünüyor. Üç commit
 de push edildi.
+
+## Storefront header'a mega-menu eklendi (2026-09-09, aynı oturum)
+
+Storefront üst menüsü sadece 3 sabit link'ten (Tüm Ürünler, kırık "Dış
+Giyim", Hikayemiz) Koton/LC Waikiki tarzı bir mega-menu'ye çevrildi.
+
+1. **Cinsiyet filtresi** (`src/lib/catalog.ts`): `getCatalogEntries` ve
+   `getPublishedProducts`'a opsiyonel `genderLabel` parametresi eklendi
+   (Prisma `where`'e `gender` koşulu). `src/app/(site)/urunler/page.tsx`
+   `cinsiyet` query param'ını okuyup buna geçiriyor, başlık/metadata
+   kategori+cinsiyet kombinasyonuna göre uyarlanıyor.
+2. **Mega-menu verisi** (`src/lib/site-nav.ts`, yeni dosya):
+   `getMegaMenuData()` (react.cache) - Kadın/Erkek için en az bir
+   PUBLISHED+o cinsiyette ürünü olan aktif kategorileri, Aksesuar için
+   `parentId`'si Aksesuar olan aktif alt kategorileri paralel (`Promise.all`)
+   çekiyor. `src/app/(site)/layout.tsx` bunu çağırıp `SiteHeader`'a prop
+   geçiyor.
+3. **`src/components/site-header.tsx` yeniden yazıldı**: masaüstünde
+   Kadın/Erkek/Aksesuar sekmeleri hover/click ile açılan mega-menu paneli
+   gösteriyor (aktif kategori/cinsiyet linkte vurgulu), mobilde hamburger
+   ikonuyla açılan, akordeonlu, body-scroll-kilitli tam ekran off-canvas
+   menüye geçildi. Kırık "Dış Giyim" linki tamamen kaldırıldı.
+4. **Bulunan ve düzeltilen 2 gerçek hata** (özellik testi sırasında,
+   kod öncesinden beri vardı):
+   - Next.js 16'da `page.tsx`'in `searchParams` prop'u artık bir
+     `Promise` - `urunler/page.tsx`'in sayfa bileşeni bunu (sadece
+     `generateMetadata` değil) await etmiyordu, bu da **önceden var olan
+     `kategori` filtresini de** sessizce çalışmaz hale getiriyordu.
+     Await edilecek şekilde düzeltildi.
+   - Header'daki `backdrop-blur` (`backdrop-filter`) CSS'te `position:
+     fixed` elemanlar için containing block oluşturuyor - mobil
+     off-canvas menü bu yüzden tam ekran değil header yüksekliğiyle
+     kırpılıyordu. `createPortal` ile `document.body`'ye taşınarak
+     düzeltildi.
+5. **Kullanıcı bulgusu - mega-menu paneli çok dar, yazı taşıyor + sekme
+   isimleri (Kadın/Erkek/Aksesuar) küçük harf kalıyor**: panel `absolute
+   ... w-full`, `w-full`'ü küçük sekme `<div>`'ine göre hesaplıyordu
+   (containing block hatası) - panel header'ın doğrudan altına, header
+   genişliğinde konumlandırılacak şekilde yeniden yapılandırıldı (açık
+   sekme state'i `SiteHeader`'a taşındı, `onMouseLeave` header'a bağlandı).
+   `<button>` elemanları tarayıcı varsayılanında `text-transform`'u miras
+   almadığı için `uppercase` class'ı doğrudan butonlara eklendi.
+6. **Veri düzeltmesi**: DB'de gender alanı dolu (4 Kadın + 4 Erkek)
+   PUBLISHED 8 ürünün `categoryId`'si `null`'dı, bu yüzden mega-menu
+   Kadın/Erkek panelleri boş geliyordu (kod doğruydu, veri eksikti).
+   Ürün adlarına bakılarak (script ile, kullanıcı onayıyla) kategoriler
+   atandı: 4 Gömlek ürünü -> Gömlek, Kadın Yelek -> Yelek, Kadın El
+   Çantası -> Çanta (Aksesuar altı), 2 Kadın Pantolon -> Pantolon.
+
+**Test edildi**: `npx tsc --noEmit` ve `npm run build` hatasız. Zaten
+çalışan bir `npm run dev` sunucusu (port 3000, önizleme şifresi
+`.env`'deki `PREVIEW_PASSWORD` ile `?preview=` cookie'si alınarak)
+kullanıldı, scratchpad'e kurulan Playwright ile 1280px ve 375px'te
+gerçek Neon veritabanına karşı doğrulandı: Kadın (`cinsiyet=Kadın` ->
+4 ürün) ve Erkek (7 katalog girişi) filtreleri doğru çalışıyor, Aksesuar
+paneli 8 kategoriyi tam genişlikte gösteriyor ve tıklanan kategori
+`?kategori=...&cinsiyet=...`'e gidip aktif linki vurguluyor, eski "Dış
+Giyim"/`outerwear` linki hiçbir yerde yok, mobilde hamburger + akordeon +
+body-scroll-kilidi + kapatma çalışıyor, yatay taşma yok
+(`scrollWidth <= clientWidth`), konsol/sayfa hatası yok. Commit
+(`79e1d0c`) GitHub'a push edildi - Vercel git bağlantısı sayesinde
+otomatik deploy tetiklendi.
