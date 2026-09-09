@@ -2520,3 +2520,34 @@ yapilamadi (admin sifresi bu makinede yok).
 DuckDuckGo yedegi (gecici test urunuyle, tamamen otomatik) hem SaveBar
 duzeltmesi (gercek admin oturumuyla Playwright, tarayicida) canli/gercek
 kosullarda dogrulandi.
+
+## Kullanici geri bildirimi - DuckDuckGo yedegi canlida calismiyor (2026-09-10, ayni oturum)
+
+Kullanici canlida `6SAK40062PW` icin "Fotoğrafları yeniden ara" butonunu
+tekrar denedi (deploy'un kesin bittigi bir zamanda), yine "Koton'da
+bulunamadı" hatasi aldi - oysa yukaridaki DuckDuckGo yedegi yerel
+makinede ayni urunle dogru calismisti.
+
+- Kullanicidan bir Vercel API token istendi (ilk paylasilan token
+  gecersizdi - "User not found" - ikinci token calisti), `vercel logs`
+  ile canli fonksiyon loglari kontrol edildi. Ilgili istek net gorundu:
+  `POST .../gorsel-yenile` -> `Koton eşleşmesi (6SAK40062PW): bulunamadı`
+  - hicbir ara hata (`autocomplete başarısız`, `DuckDuckGo araması
+  başarısız oldu`) loglanmamisti, yani her iki istek de HTTP 200 donmus
+  ama sonuc bulunamamisti.
+- **Kok neden (yuksek guvenle)**: DuckDuckGo'nun HTML arama uc noktasi,
+  Vercel'in sunucu (veri merkezi) IP'lerinden gelen istekleri otomatik/
+  bot trafigi olarak tespit edip normal sonuc sayfasi yerine bos/
+  engellenmis bir sayfa donduruyor gibi gorunuyor (hata firlatmiyor,
+  sadece organik sonuc yok) - bu, bulut saglayicilarindan arama motoru
+  scraping'inde çok yaygin bilinen bir sorun. Yerel gelistirme
+  makinesinden (normal/ev IP'si) calisirken sorunsuz calismasi bunu
+  gizlemisti.
+- **Karar**: DuckDuckGo denemesi koddan **cikarilmadi** (zararsiz - basarisiz
+  olursa sessizce bir sonraki adima/`bulunamadi` sonucuna dusuyor, bazi
+  durumlarda/IP'lerde hala ise yarayabilir), ama artik guvenilir bir
+  cozum olarak sunulmuyor. **`Koton linkiyle ekle` butonu (elle link
+  yapistirma) bu tur "otomatik aramanin bulamadigi" urunler icin asil
+  guvenilir yol olarak kaldi.**
+- Vercel token'i sadece bu tanilama icin kullanildi, hicbir yere
+  kaydedilmedi/commitlenmedi.
