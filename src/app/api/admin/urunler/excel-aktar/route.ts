@@ -9,7 +9,8 @@ import {
   normalizeKod3,
   type ExcelImportRow
 } from "@/lib/excel-import";
-import { enrichProductsFromKoton } from "@/lib/koton-images";
+
+export const maxDuration = 60;
 
 function isValidRow(v: unknown): v is ExcelImportRow {
   if (typeof v !== "object" || v === null) return false;
@@ -31,8 +32,9 @@ function isValidRow(v: unknown): v is ExcelImportRow {
 }
 
 // Önizleme adımında (/api/admin/urunler/excel-yukle) ayrıştırılan satırları alıp gerçek
-// ürün/varyant upsert'ini yapar, ardından yeni oluşturulan ürünler için sırayla Koton
-// görsel/açıklama eşleştirmesini çalıştırır.
+// ürün/varyant upsert'ini yapar. Koton görsel/açıklama eşleştirmesi burada YAPILMAZ -
+// istemci, yanıttaki newProductTargets üzerinde ürün başına ayrı bir istekle
+// /excel-aktar/gorsel-getir'i çağırır (bkz. EXCEL_BUYUK_LISTE_TIMEOUT_VE_ILERLEME_PLANI.md).
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
@@ -91,7 +93,11 @@ export async function POST(request: NextRequest) {
     summary = await importProductGroups(groups, categoryIdByProductCode);
   } catch (error) {
     console.error("Excel içe aktarımı başarısız:", error);
-    return NextResponse.json({ error: "İçe aktarım sırasında bir hata oluştu, hiçbir değişiklik kaydedilmedi." }, { status: 500 });
+    const detail = error instanceof Error ? error.message.slice(0, 300) : String(error).slice(0, 300);
+    return NextResponse.json(
+      { error: "İçe aktarım sırasında bir hata oluştu, hiçbir değişiklik kaydedilmedi.", detail },
+      { status: 500 }
+    );
   }
 
   // Yoneticinin bu ice aktarimda onayladigi/elle girdigi kategori eslemelerini kalici
@@ -117,19 +123,11 @@ export async function POST(request: NextRequest) {
     )
   );
 
-  const kotonResults = await enrichProductsFromKoton(summary.newProductTargets);
-
   return NextResponse.json({
     productsCreated: summary.productsCreated,
     productsUpdated: summary.productsUpdated,
     variantsCreated: summary.variantsCreated,
     variantsUpdated: summary.variantsUpdated,
-    kotonResults: kotonResults.map((r) => ({
-      productId: r.productId,
-      productCode: r.productCode,
-      found: r.found,
-      imagesAdded: r.imagesAdded,
-      descriptionUpdated: r.descriptionUpdated
-    }))
+    newProductTargets: summary.newProductTargets
   });
 }

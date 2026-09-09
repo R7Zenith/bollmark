@@ -121,7 +121,7 @@ export interface KotonEnrichmentResult {
   descriptionUpdated: boolean;
 }
 
-async function enrichOne(target: KotonEnrichmentTarget): Promise<KotonEnrichmentResult> {
+export async function enrichOne(target: KotonEnrichmentTarget): Promise<KotonEnrichmentResult> {
   const result: KotonEnrichmentResult = {
     productId: target.productId,
     productCode: target.productCode,

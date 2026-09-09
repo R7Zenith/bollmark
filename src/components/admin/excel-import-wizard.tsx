@@ -61,6 +61,14 @@ type KotonResult = {
   descriptionUpdated: boolean;
 };
 
+type KotonEnrichmentTarget = {
+  productId: string;
+  productCode: string;
+  productName: string;
+  firstBarcode: string;
+  colorValueIdByLabel: Record<string, string>;
+};
+
 type ImportResponse = {
   productsCreated: number;
   productsUpdated: number;
@@ -69,7 +77,24 @@ type ImportResponse = {
   kotonResults: KotonResult[];
 };
 
+type ImportProgress = {
+  phase: "aktarim" | "gorseller";
+  doneGroups: number;
+  totalGroups: number;
+  doneProducts: number;
+  totalProducts: number;
+};
+
 type Step = "upload" | "preview" | "result";
+
+// Sunucudaki 30sn'lik transaction limitinin altında kalmak için ürün gruplarını
+// bu boyutta parçalara bölüp sırayla /excel-aktar'a gönderiyoruz (bkz.
+// EXCEL_BUYUK_LISTE_TIMEOUT_VE_ILERLEME_PLANI.md).
+const BATCH_SIZE = 15;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 export function ExcelImportWizard({
   categories,
@@ -86,6 +111,7 @@ export function ExcelImportWizard({
   const [categoryByCode, setCategoryByCode] = useState<Record<string, string>>({});
   const [result, setResult] = useState<ImportResponse | null>(null);
   const [productNameByCode, setProductNameByCode] = useState<Record<string, string>>({});
+  const [progress, setProgress] = useState<ImportProgress | null>(null);
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -124,23 +150,75 @@ export function ExcelImportWizard({
   async function handleImport() {
     if (!preview) return;
     setLoading(true);
+
+    const chunks: PreviewGroup[][] = [];
+    for (let i = 0; i < preview.groups.length; i += BATCH_SIZE) {
+      chunks.push(preview.groups.slice(i, i + BATCH_SIZE));
+    }
+    const totalGroups = preview.groups.length;
+    setProgress({ phase: "aktarim", doneGroups: 0, totalGroups, doneProducts: 0, totalProducts: 0 });
+
+    const totals = { productsCreated: 0, productsUpdated: 0, variantsCreated: 0, variantsUpdated: 0 };
+    const allTargets: KotonEnrichmentTarget[] = [];
+    let doneGroups = 0;
+
     try {
-      const res = await fetch("/api/admin/urunler/excel-aktar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ rows: preview.rows, categoryId: categoryId || null, categoryOverrides: categoryByCode })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        showToast(data.error ?? "İçe aktarım başarısız oldu.", "error");
-        return;
+      for (const chunk of chunks) {
+        const codes = new Set(chunk.map((g) => g.productCode));
+        const rows = preview.rows.filter((r) => codes.has(r.productCode));
+        const overrides = Object.fromEntries(chunk.map((g) => [g.productCode, categoryByCode[g.productCode] ?? ""]));
+        const res = await fetch("/api/admin/urunler/excel-aktar", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ rows, categoryId: categoryId || null, categoryOverrides: overrides })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(
+            `${doneGroups}/${totalGroups} ürün grubu aktarıldıktan sonra hata oluştu: ${data.error ?? "İçe aktarım başarısız oldu."}`,
+            "error"
+          );
+          return;
+        }
+        totals.productsCreated += data.productsCreated;
+        totals.productsUpdated += data.productsUpdated;
+        totals.variantsCreated += data.variantsCreated;
+        totals.variantsUpdated += data.variantsUpdated;
+        allTargets.push(...(data.newProductTargets as KotonEnrichmentTarget[]));
+        doneGroups += chunk.length;
+        setProgress({ phase: "aktarim", doneGroups, totalGroups, doneProducts: 0, totalProducts: 0 });
       }
-      setResult(data as ImportResponse);
+
+      setProgress({ phase: "gorseller", doneGroups: totalGroups, totalGroups, doneProducts: 0, totalProducts: allTargets.length });
+      const kotonResults: KotonResult[] = [];
+      for (let i = 0; i < allTargets.length; i++) {
+        if (i > 0) await sleep(900);
+        const target = allTargets[i];
+        try {
+          const res = await fetch("/api/admin/urunler/excel-aktar/gorsel-getir", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ target })
+          });
+          const data = await res.json();
+          kotonResults.push(
+            res.ok
+              ? data
+              : { productId: target.productId, productCode: target.productCode, found: false, imagesAdded: 0, descriptionUpdated: false }
+          );
+        } catch {
+          kotonResults.push({ productId: target.productId, productCode: target.productCode, found: false, imagesAdded: 0, descriptionUpdated: false });
+        }
+        setProgress({ phase: "gorseller", doneGroups: totalGroups, totalGroups, doneProducts: i + 1, totalProducts: allTargets.length });
+      }
+
+      setResult({ ...totals, kotonResults });
       setStep("result");
     } catch {
       showToast("İçe aktarım sırasında bir hata oluştu.", "error");
     } finally {
       setLoading(false);
+      setProgress(null);
     }
   }
 
@@ -331,9 +409,34 @@ export function ExcelImportWizard({
               </table>
             </div>
 
+            {progress && (
+              <div className="space-y-1.5 rounded-md border border-admin-border bg-gray-50 p-3">
+                <p className="text-xs font-medium text-admin-text">
+                  {progress.phase === "aktarim"
+                    ? `Ürünler aktarılıyor: ${progress.doneGroups}/${progress.totalGroups}`
+                    : `Görseller aranıyor: ${progress.doneProducts}/${progress.totalProducts}`}
+                </p>
+                <div className="h-2 w-full overflow-hidden rounded-full bg-admin-border">
+                  <div
+                    className="h-full rounded-full bg-admin-accent transition-all"
+                    style={{
+                      width:
+                        progress.phase === "aktarim"
+                          ? `${progress.totalGroups ? (progress.doneGroups / progress.totalGroups) * 100 : 0}%`
+                          : `${progress.totalProducts ? (progress.doneProducts / progress.totalProducts) * 100 : 100}%`
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
             <Button onClick={handleImport} disabled={loading || preview.groups.length === 0}>
               {loading ? <Loader2 size={16} className="animate-spin" /> : null}
-              {loading ? "İçe aktarılıyor..." : "İçe Aktar"}
+              {loading
+                ? progress?.phase === "gorseller"
+                  ? "Görseller aranıyor..."
+                  : "İçe aktarılıyor..."
+                : "İçe Aktar"}
             </Button>
           </div>
         </Card>
