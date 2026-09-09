@@ -82,11 +82,11 @@ async function main() {
       canonicalCount = eCount;
     }
 
+    usedSlugs.delete(canonical.slug);
+    usedSlugs.delete(duplicate.slug);
     const baseSlug = slugify(canonical.name);
     const newSlug = uniqueSlug(baseSlug, canonical.slug, usedSlugs);
-    usedSlugs.delete(canonical.slug);
     usedSlugs.add(newSlug);
-    usedSlugs.delete(duplicate.slug);
 
     await prisma.$transaction(async (tx) => {
       const moved = await tx.product.updateMany({
