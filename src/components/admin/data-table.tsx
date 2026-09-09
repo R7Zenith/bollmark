@@ -12,6 +12,8 @@ export interface DataTableColumn<T> {
   align?: "left" | "right" | "center";
   /** Kolonun "Sütunlar" panelinden gizlenebilir olup olmadığı. Varsayılan true. */
   hideable?: boolean;
+  /** Mobilde (< md) bu kolon varsayılan olarak CSS ile gizlenir, "Sütunlar" panelinden yine açılabilir. */
+  hideOnMobile?: boolean;
   render: (row: T) => React.ReactNode;
 }
 
@@ -159,8 +161,9 @@ export function DataTable<T>({
           </div>
         </div>
       )}
-      <div className="overflow-x-auto rounded-lg border border-admin-border bg-admin-surface">
-        <table className="w-full min-w-max border-collapse text-sm">
+      <div className="relative rounded-lg border border-admin-border bg-admin-surface">
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-max border-collapse text-sm">
           <thead>
             <tr className="border-b border-admin-border text-left text-xs uppercase tracking-wide text-admin-text-muted">
               {selectable && (
@@ -176,7 +179,7 @@ export function DataTable<T>({
               {visibleColumns.map((col) => (
                 <th
                   key={col.key}
-                  className={`px-4 py-3 ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : "text-left"}`}
+                  className={`px-4 py-3 ${col.hideOnMobile ? "hidden md:table-cell" : ""} ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : "text-left"}`}
                 >
                   {col.sortable ? (
                     <button
@@ -219,7 +222,7 @@ export function DataTable<T>({
                   {visibleColumns.map((col) => (
                     <td
                       key={col.key}
-                      className={`px-4 py-3 text-admin-text ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : "text-left"}`}
+                      className={`px-4 py-3 text-admin-text ${col.hideOnMobile ? "hidden md:table-cell" : ""} ${col.align === "right" ? "text-right" : col.align === "center" ? "text-center" : "text-left"}`}
                     >
                       {col.render(row)}
                     </td>
@@ -228,7 +231,12 @@ export function DataTable<T>({
               );
             })}
           </tbody>
-        </table>
+          </table>
+        </div>
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 w-6 bg-gradient-to-l from-admin-surface to-transparent md:hidden"
+          aria-hidden="true"
+        />
       </div>
     </div>
   );

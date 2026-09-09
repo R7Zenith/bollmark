@@ -35,7 +35,7 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
         </div>
       )
     },
-    { key: "email", header: "E-posta", render: (row) => row.email },
+    { key: "email", header: "E-posta", hideOnMobile: true, render: (row) => row.email },
     { key: "orderCount", header: "Sipariş Sayısı", align: "right", render: (row) => row.orderCount },
     { key: "totalSpent", header: "Toplam Harcama", align: "right", render: (row) => formatPrice(row.totalSpentCents) },
     {
@@ -44,7 +44,12 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
       align: "right",
       render: (row) => (row.hasAccount ? row.loyaltyPoints : <span className="text-admin-text-muted">-</span>)
     },
-    { key: "lastOrderAt", header: "Son Sipariş", render: (row) => new Date(row.lastOrderAt).toLocaleDateString("tr-TR") },
+    {
+      key: "lastOrderAt",
+      header: "Son Sipariş",
+      hideOnMobile: true,
+      render: (row) => new Date(row.lastOrderAt).toLocaleDateString("tr-TR")
+    },
     {
       key: "actions",
       header: "",

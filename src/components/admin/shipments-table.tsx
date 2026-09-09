@@ -58,6 +58,7 @@ export function ShipmentsTable({
     {
       key: "trackingCode",
       header: "Takip Kodu",
+      hideOnMobile: true,
       render: (row) =>
         row.id === editingId ? (
           <input

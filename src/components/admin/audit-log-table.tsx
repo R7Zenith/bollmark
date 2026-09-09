@@ -33,6 +33,7 @@ export function AuditLogTable({ logs }: { logs: AuditLogRow[] }) {
     {
       key: "target",
       header: "Hedef",
+      hideOnMobile: true,
       render: (row) => (
         <span className="font-mono text-xs text-admin-text-muted">
           {row.targetType}#{row.targetId.slice(0, 8)}

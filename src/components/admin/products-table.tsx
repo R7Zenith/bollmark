@@ -112,6 +112,7 @@ export function ProductsTable({
       key: "code",
       header: "Ürün Kodu",
       sortable: false,
+      hideOnMobile: true,
       render: (row) => <span className="text-sm text-admin-text-muted">{row.code || "—"}</span>
     },
     {
@@ -163,6 +164,7 @@ export function ProductsTable({
       key: "createdAt",
       header: "Oluşturulma",
       sortable: true,
+      hideOnMobile: true,
       render: (row) => new Date(row.createdAt).toLocaleDateString("tr-TR")
     },
     {

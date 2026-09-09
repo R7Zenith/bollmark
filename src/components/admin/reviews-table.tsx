@@ -36,7 +36,7 @@ export function ReviewsTable({
         </div>
       )
     },
-    { key: "rating", header: "Puan", align: "center", render: (row) => `${row.rating} / 5` },
+    { key: "rating", header: "Puan", align: "center", hideOnMobile: true, render: (row) => `${row.rating} / 5` },
     {
       key: "comment",
       header: "Yorum",

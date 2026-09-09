@@ -58,6 +58,7 @@ export function ReturnsTable({
     {
       key: "items",
       header: "Ürünler",
+      hideOnMobile: true,
       render: (row) => <span className="text-admin-text-muted">{row.itemsSummary}</span>
     },
     {
@@ -100,6 +101,7 @@ export function ReturnsTable({
     {
       key: "createdAt",
       header: "Tarih",
+      hideOnMobile: true,
       render: (row) => <span className="text-admin-text-muted">{row.createdAtLabel}</span>
     },
     {

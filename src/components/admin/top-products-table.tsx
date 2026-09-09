@@ -20,6 +20,7 @@ export function TopProductsTable({ products }: { products: TopProductRow[] }) {
       key: "marginPercent",
       header: "Kâr Marjı",
       align: "right",
+      hideOnMobile: true,
       render: (r) => (r.marginPercent === null ? "-" : `%${r.marginPercent}`)
     }
   ];

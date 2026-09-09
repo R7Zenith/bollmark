@@ -96,6 +96,7 @@ export function OrdersTable({
       key: "shipmentStatus",
       header: "Kargo Durumu",
       hideable: true,
+      hideOnMobile: true,
       render: (row) =>
         row.shipmentStatus ? (
           <Badge tone={shipmentStatusTone[row.shipmentStatus as keyof typeof shipmentStatusTone]}>
@@ -118,6 +119,7 @@ export function OrdersTable({
       header: "Tarih",
       sortable: true,
       hideable: true,
+      hideOnMobile: true,
       render: (row) => new Date(row.createdAt).toLocaleDateString("tr-TR")
     },
     {
