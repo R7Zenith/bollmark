@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ImageOff, Check, RefreshCw, Loader2 } from "lucide-react";
+import { ImageOff, Check, RefreshCw, Loader2, Link2 } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { Badge, type BadgeTone } from "@/components/admin/badge";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
@@ -49,6 +49,50 @@ export function ProductsTable({
   const searchParams = useSearchParams();
   const { showToast } = useToast();
   const [refreshingIds, setRefreshingIds] = useState<Set<string>>(new Set());
+  const [addingImageIds, setAddingImageIds] = useState<Set<string>>(new Set());
+
+  async function handleGorselEkle(id: string) {
+    const raw = window.prompt(
+      "Görsel URL'lerini yapıştırın (Koton sayfasında görsele sağ tıklayıp \"Görsel adresini kopyala\" ile alabilirsiniz). Birden fazlaysa her satıra bir tane yazın:"
+    );
+    if (!raw) return;
+    const urls = raw
+      .split(/[\n,]+/)
+      .map((u) => u.trim())
+      .filter(Boolean);
+    if (urls.length === 0) return;
+
+    setAddingImageIds((prev) => new Set(prev).add(id));
+    try {
+      const res = await fetch(`/api/admin/urunler/${id}/gorsel-ekle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ urls })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(data.error ?? "Görsel eklenemedi.", "error");
+        return;
+      }
+      if (data.added > 0) {
+        showToast(
+          data.failed > 0 ? `${data.added} görsel eklendi, ${data.failed} tanesi indirilemedi.` : `${data.added} görsel eklendi.`,
+          "success"
+        );
+        router.refresh();
+      } else {
+        showToast("Hiçbir görsel indirilemedi.", "error");
+      }
+    } catch {
+      showToast("Görsel eklenirken bir hata oluştu.", "error");
+    } finally {
+      setAddingImageIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+    }
+  }
 
   async function handleGorselYenile(id: string) {
     setRefreshingIds((prev) => new Set(prev).add(id));
@@ -211,6 +255,16 @@ export function ProductsTable({
             >
               {refreshingIds.has(row.id) ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
               {refreshingIds.has(row.id) ? "Aranıyor..." : "Fotoğrafları yeniden ara"}
+            </button>
+          )}
+          {!row.imageUrl && (
+            <button
+              onClick={() => handleGorselEkle(row.id)}
+              disabled={addingImageIds.has(row.id)}
+              className="inline-flex items-center gap-1 text-xs text-admin-accent hover:underline disabled:opacity-50"
+            >
+              {addingImageIds.has(row.id) ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
+              {addingImageIds.has(row.id) ? "Ekleniyor..." : "Görsel linkiyle ekle"}
             </button>
           )}
           <Link href={`/admin/urunler/${row.id}`} className="text-admin-accent hover:underline">

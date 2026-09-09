@@ -2329,12 +2329,56 @@ bulundu** (`optionImages: none`'a gore sorgulandi):
      indeksinden tamamen dusmus urunler (bu urun gibi) otomatik/toplu
      Excel akisinda hala **bulunamaz** - cunku onlara giden URL'i hicbir
      arama uc noktasi vermiyor, sadece kullanicinin elle bulup verdigi
-     dogrudan linkle erisilebiliyor. Toplu akista boyle bir urunle
-     karsilasilirsa hala "bulunamadi" sonucu donecek; admin panelinde
-     "yeniden ara" akisina bir "Koton URL'ini elle yapistir" secenegi
-     eklenmesi bu senaryo icin dusunulebilir ama bu oturumda
-     **yapilmadi** (kapsam disi birakildi, istenirse ayri bir istek
-     olarak ele alinabilir).
+     dogrudan linkle erisilebiliyor. Bunun icin asagidaki "Gorsel
+     linkiyle ekle" butonu eklendi.
+
+## "Görsel linkiyle ekle" butonu (2026-09-10, aynı oturum)
+
+Yukarıdaki bilinen sınırı çözmek için: Koton'un arama indeksinden tamamen
+düşmüş ürünlerde otomatik arama (ne "yeniden ara" ne de yeni eklenen
+`/list/` benzeri hiçbir uç nokta) sonuç vermiyor, ama admin koton.com'da
+ürünü elle bulup görselin URL'ini (sağ tık -> "Görsel adresini kopyala")
+alabiliyor. Kullanıcı bunu bir Koton **sayfa** linki değil, doğrudan
+**görsel** linki olarak eklemek istedi (sayfa parse etmeye gerek yok,
+daha basit ve genel amaçlı: Koton dışı bir görsel kaynağı için de işe
+yarar).
+
+1. **`src/lib/koton-images.ts`**: daha önce modül içi (private) olan
+   `reuploadImageToBlob` fonksiyonu `export` edildi ve ikinci bir opsiyonel
+   `folder` parametresi eklendi (varsayılan `"koton-import"`, manuel
+   akış `"manuel-gorsel"` kullanıyor) - Koton içe aktarımıyla aynı
+   "kendi Blob'umuza indirip yeniden yükle" mantığı tekrar kullanıldı,
+   kod tekrarı yok.
+2. **Yeni route** `src/app/api/admin/urunler/[id]/gorsel-ekle/route.ts`
+   (POST, admin oturum kontrollü, `gorsel-yenile` route'uyla aynı desen):
+   body'de `urls: string[]` alıyor (max 10, tekilleştiriliyor, `http(s)://`
+   ile başlamayan URL varsa 400 döner), her birini `reuploadImageToBlob`
+   ile indirip yükler, başarılı olanları ürünün **genel** `images`
+   (renkten bağımsız `ProductImage` tablosu - `ProductOptionImage` değil,
+   çünkü admin panelindeki "Fotoğraf Yok" göstergesi zaten
+   `images[0] ?? optionImages[0]` sırasıyla kontrol ediyor ve genel
+   `images` her ürün için renk sayısından bağımsız çalışıyor) listesine,
+   mevcut `position`'lardan sonrasına ekliyor. Hiçbiri indirilemezse
+   `added: 0` ile hata toast'ı gösterilecek şekilde dönüyor.
+3. **`src/components/admin/products-table.tsx`**: "Fotoğrafları yeniden
+   ara" butonunun yanına (sadece fotoğrafı olmayan satırlarda görünür,
+   aynı kural) yeni bir "Görsel linkiyle ekle" butonu eklendi. Tıklanınca
+   `window.prompt` ile bir veya birden fazla (virgül/satır ile ayrılmış)
+   URL isteniyor, yeni route'a POST ediliyor, sonucu Toast ile gösterip
+   `router.refresh()` ile listeyi tazeliyor. Basit tutmak için ayrı bir
+   modal bileşeni yazılmadı - projede zaten `window.confirm` kullanan
+   `delete-product-form.tsx` ile aynı "hızlı ve düşük karmaşıklık" deseni
+   izlendi.
+
+**Test edildi**: `npx tsc --noEmit` ve `npm run build` hatasız (yeni route
+derleme çıktısında görünüyor). Uçtan uca, gerçek bir Koton görsel URL'i
+ile (`reuploadImageToBlob` + `prisma.productImage.create`) canlı Neon
+DB'sine karşı doğrulandı - indirme, Blob'a yeniden yükleme ve DB kaydı
+oluşturma başarıyla çalıştı; test kaydı doğrulama sonrası temizlendi
+(gerçek ürün verisine kalıcı bir değişiklik bırakılmadı). HTTP katmanı
+(oturum kontrolü, `window.prompt` akışı) tarayıcıda elle test edilmedi -
+kod aynı, zaten çalışan `gorsel-yenile` route'uyla birebir aynı oturum/
+yetki deseninden kopyalandı.
 
 **Test edildi**: `npx tsc --noEmit` ve `npm run build` hatasiz (ayrica
 bu oturumda, pull ile gelen `Order.deletedAt` sema degisikligi sonrasi

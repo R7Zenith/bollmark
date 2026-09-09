@@ -148,14 +148,22 @@ async function findKotonProductData(barcode: string, productCode: string): Promi
   }
 }
 
-async function reuploadImageToBlob(sourceUrl: string, pathHint: string): Promise<string | null> {
+// Bir kaynak URL'den görseli indirip kendi Vercel Blob depomuza yeniden yükler - Koton'un
+// kendi CDN'ine hotlink yapmamak (URL değişirse/engellenirse kırılmasın) için. Hem Koton
+// içe aktarımı hem admin panelindeki "Görsel linkiyle ekle" elle-ekleme akışı tarafından
+// kullanılıyor.
+export async function reuploadImageToBlob(
+  sourceUrl: string,
+  pathHint: string,
+  folder = "koton-import"
+): Promise<string | null> {
   try {
     const res = await fetchWithTimeout(sourceUrl, { headers: { "User-Agent": USER_AGENT } });
     if (!res.ok) return null;
     const contentType = res.headers.get("content-type") || "image/jpeg";
     const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
     const buffer = Buffer.from(await res.arrayBuffer());
-    const blob = await put(`koton-import/${pathHint}.${ext}`, buffer, {
+    const blob = await put(`${folder}/${pathHint}.${ext}`, buffer, {
       access: "public",
       contentType,
       addRandomSuffix: true
