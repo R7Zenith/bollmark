@@ -35,12 +35,12 @@ interface KotonProductData {
   colorImageUrls: Map<string, string[]>; // Koton renk etiketi (örn. "EKRU") -> tam görsel URL'leri
 }
 
-async function fetchAutocompleteUrl(barcode: string): Promise<string | null> {
-  const res = await fetchWithTimeout(`${KOTON_BASE}/autocomplete/?search_text=${encodeURIComponent(barcode)}`, {
+async function fetchAutocompleteUrl(searchText: string): Promise<string | null> {
+  const res = await fetchWithTimeout(`${KOTON_BASE}/autocomplete/?search_text=${encodeURIComponent(searchText)}`, {
     headers: { "User-Agent": USER_AGENT }
   });
   if (!res.ok) {
-    console.error(`Koton autocomplete başarısız (barkod: ${barcode}): HTTP ${res.status}`);
+    console.error(`Koton autocomplete başarısız (${searchText}): HTTP ${res.status}`);
     return null;
   }
   const data = await res.json();
@@ -102,11 +102,28 @@ async function fetchKotonProductData(
 
 async function findKotonProductData(barcode: string, productCode: string): Promise<KotonProductData | null> {
   try {
-    const url = await fetchAutocompleteUrl(barcode);
-    if (!url) return null;
-    return await fetchKotonProductData(url, productCode);
+    const barcodeUrl = await fetchAutocompleteUrl(barcode);
+    if (barcodeUrl) {
+      const data = await fetchKotonProductData(barcodeUrl, productCode);
+      if (data) {
+        console.log(`Koton eşleşmesi (${productCode}): barkod ile bulundu`);
+        return data;
+      }
+    }
+
+    const productCodeUrl = await fetchAutocompleteUrl(productCode);
+    if (productCodeUrl) {
+      const data = await fetchKotonProductData(productCodeUrl, productCode);
+      if (data) {
+        console.log(`Koton eşleşmesi (${productCode}): ürün kodu ile bulundu`);
+        return data;
+      }
+    }
+
+    console.log(`Koton eşleşmesi (${productCode}): bulunamadı`);
+    return null;
   } catch (error) {
-    console.error(`Koton'dan ürün verisi alınamadı (barkod: ${barcode}):`, error);
+    console.error(`Koton'dan ürün verisi alınamadı (barkod: ${barcode}, ürün kodu: ${productCode}):`, error);
     return null;
   }
 }
