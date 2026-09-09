@@ -18,14 +18,14 @@ export function OrdersTabs({ counts }: { counts: Record<OrderTabKey, number> }) 
   }
 
   return (
-    <div className="flex items-center gap-1 border-b border-admin-border">
+    <div className="flex items-center gap-1 overflow-x-auto border-b border-admin-border">
       {orderTabs.map((tab) => {
         const isActive = active === tab.value;
         return (
           <button
             key={tab.value}
             onClick={() => handleClick(tab.value)}
-            className={`flex items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
+            className={`flex flex-shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${
               isActive
                 ? "border-admin-accent text-admin-text"
                 : "border-transparent text-admin-text-muted hover:text-admin-text"
