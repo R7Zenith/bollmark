@@ -1,4 +1,7 @@
-import { Package, ShoppingCart, RotateCcw, Truck, Clock, Download } from "lucide-react";
+import Link from "next/link";
+import { Package, ShoppingCart, RotateCcw, Truck, Clock, Download, Trash2 } from "lucide-react";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { EmptyState } from "@/components/admin/empty-state";
 import { OrdersFilters } from "@/components/admin/orders-filters";
@@ -35,8 +38,10 @@ export default async function AdminOrdersPage({
   searchParams: Promise<SearchParams>;
 }) {
   const { q, durum, kargoDurum, baslangic, bitis, sort, dir, donem, sekme, sayfa } = await searchParams;
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === "ADMIN";
 
-  const totalCount = await prisma.order.count();
+  const totalCount = await prisma.order.count({ where: { deletedAt: null } });
 
   if (totalCount === 0) {
     return (
@@ -128,6 +133,15 @@ export default async function AdminOrdersPage({
             <Download size={16} />
             Dışa Aktar
           </a>
+          {isAdmin && (
+            <Link
+              href="/admin/silinen-siparisler"
+              className="flex items-center gap-2 rounded-md border border-admin-border bg-admin-surface px-3 py-2 text-sm font-medium text-admin-text hover:bg-admin-bg"
+            >
+              <Trash2 size={16} />
+              Silinen Siparişler
+            </Link>
+          )}
         </div>
       </div>
 
@@ -178,7 +192,7 @@ export default async function AdminOrdersPage({
       </div>
 
       <div className="mt-4">
-        <OrdersTable orders={rows} initialSort={{ key: sortKey, direction: sortDir }} />
+        <OrdersTable orders={rows} initialSort={{ key: sortKey, direction: sortDir }} canDelete={isAdmin} />
       </div>
 
       {totalPages > 1 && (

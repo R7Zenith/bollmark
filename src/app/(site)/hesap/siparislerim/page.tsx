@@ -28,7 +28,7 @@ export default async function HesapSiparislerimPage() {
   const customerId = session.user!.id!;
 
   const orders = await prisma.order.findMany({
-    where: { customerId },
+    where: { customerId, deletedAt: null },
     include: {
       items: { include: { product: { select: { name: true } } } },
       shipment: true,

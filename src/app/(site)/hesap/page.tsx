@@ -11,9 +11,9 @@ export default async function HesapPage() {
 
   const [customer, orderCount, addressCount, recentOrders] = await Promise.all([
     prisma.customer.findUnique({ where: { id: customerId }, select: { name: true, email: true, loyaltyPoints: true } }),
-    prisma.order.count({ where: { customerId } }),
+    prisma.order.count({ where: { customerId, deletedAt: null } }),
     prisma.customerAddress.count({ where: { customerId } }),
-    prisma.order.findMany({ where: { customerId }, orderBy: { createdAt: "desc" }, take: 5 })
+    prisma.order.findMany({ where: { customerId, deletedAt: null }, orderBy: { createdAt: "desc" }, take: 5 })
   ]);
 
   return (

@@ -19,6 +19,7 @@ import { Card } from "@/components/admin/card";
 import { Badge } from "@/components/admin/badge";
 import { Button } from "@/components/admin/button";
 import { OrderFeedback } from "@/components/admin/order-feedback";
+import { OrderDeleteButton, OrderRestoreButton } from "@/components/admin/order-delete-restore-actions";
 
 const inputClass =
   "w-full rounded-md border border-admin-border px-3 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
@@ -72,13 +73,16 @@ export default async function OrderDetailPage({
 }) {
   const { id } = await params;
   const { basarili, hata } = await searchParams;
+  const session = await getServerSession(authOptions);
+  const isAdmin = session?.user?.role === "ADMIN";
   const order = await prisma.order.findUnique({
     where: { id },
     include: { items: { include: { product: true } }, shipment: true, coupon: { select: { code: true, name: true } } }
   });
   if (!order) notFound();
+  const isDeleted = order.deletedAt !== null;
 
-  if (order.viewedAt === null) {
+  if (order.viewedAt === null && !isDeleted) {
     await prisma.order.update({ where: { id: order.id }, data: { viewedAt: new Date() } });
   }
 
@@ -110,6 +114,16 @@ export default async function OrderDetailPage({
         <p className="text-sm text-admin-text-muted">{order.createdAt.toLocaleDateString("tr-TR")}</p>
       </div>
 
+      {isDeleted && (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+          <p className="text-sm text-red-700">
+            Bu sipariş {order.deletedAt!.toLocaleDateString("tr-TR")} tarihinde
+            {order.deletedByEmail ? ` ${order.deletedByEmail} tarafından` : ""} silindi. Aşağıdaki bilgiler salt okunur.
+          </p>
+          {isAdmin && <OrderRestoreButton orderId={order.id} />}
+        </div>
+      )}
+
       <Card className="mt-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -123,22 +137,25 @@ export default async function OrderDetailPage({
             )}
             <span className="ml-2 text-lg font-semibold text-admin-text">{formatPrice(order.totalCents)}</span>
           </div>
-          <div className="flex items-center gap-2">
-            {nextStatusAction && (
-              <form action={setOrderStatus.bind(null, order.id, nextStatusAction.target)}>
-                <Button type="submit" variant="primary" size="sm">
-                  {nextStatusAction.label}
-                </Button>
-              </form>
-            )}
-            {canCancel && (
-              <form action={setOrderStatus.bind(null, order.id, "CANCELLED" as OrderStatus)}>
-                <Button type="submit" variant="danger" size="sm">
-                  İptal Et
-                </Button>
-              </form>
-            )}
-          </div>
+          {!isDeleted && (
+            <div className="flex items-center gap-2">
+              {nextStatusAction && (
+                <form action={setOrderStatus.bind(null, order.id, nextStatusAction.target)}>
+                  <Button type="submit" variant="primary" size="sm">
+                    {nextStatusAction.label}
+                  </Button>
+                </form>
+              )}
+              {canCancel && (
+                <form action={setOrderStatus.bind(null, order.id, "CANCELLED" as OrderStatus)}>
+                  <Button type="submit" variant="danger" size="sm">
+                    İptal Et
+                  </Button>
+                </form>
+              )}
+              {isAdmin && <OrderDeleteButton orderId={order.id} />}
+            </div>
+          )}
         </div>
       </Card>
 
@@ -218,7 +235,15 @@ export default async function OrderDetailPage({
           </Card>
 
           <Card title="Kargo" className="scroll-mt-6" id="kargo">
-            {order.shipment ? (
+            {isDeleted && order.shipment ? (
+              <div className="space-y-1 text-sm text-admin-text-muted">
+                <p>{order.shipment.carrier || "Kargo firması girilmemiş"}</p>
+                {order.shipment.trackingCode && <p>Takip: {order.shipment.trackingCode}</p>}
+                <p>
+                  Durum: {shipmentStatusLabel[order.shipment.status as keyof typeof shipmentStatusLabel] ?? order.shipment.status}
+                </p>
+              </div>
+            ) : order.shipment ? (
               <form action={updateShipmentAction.bind(null, order.id)} className="space-y-3">
                 <input type="hidden" name="shipmentId" value={order.shipment.id} />
                 <div>

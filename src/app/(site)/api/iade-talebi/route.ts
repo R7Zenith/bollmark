@@ -50,7 +50,8 @@ export async function POST(req: NextRequest) {
   const order = await prisma.order.findFirst({
     where: {
       orderNumber: data.orderNumber.trim(),
-      customerEmail: { equals: data.email.trim(), mode: "insensitive" }
+      customerEmail: { equals: data.email.trim(), mode: "insensitive" },
+      deletedAt: null
     },
     include: { items: true, returnRequests: true }
   });

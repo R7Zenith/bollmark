@@ -46,27 +46,28 @@ export default async function AdminDashboard() {
     lowStockVariants
   ] = await Promise.all([
     prisma.product.count(),
-    prisma.order.count(),
-    prisma.order.count({ where: { status: "PENDING_PAYMENT" } }),
+    prisma.order.count({ where: { deletedAt: null } }),
+    prisma.order.count({ where: { status: "PENDING_PAYMENT", deletedAt: null } }),
     prisma.order.aggregate({
       _sum: { totalCents: true },
-      where: { status: { in: REVENUE_STATUSES } }
+      where: { status: { in: REVENUE_STATUSES }, deletedAt: null }
     }),
-    prisma.order.count({ where: { createdAt: { gte: startOfMonth } } }),
+    prisma.order.count({ where: { createdAt: { gte: startOfMonth }, deletedAt: null } }),
     prisma.order.aggregate({
       _sum: { totalCents: true },
-      where: { createdAt: { gte: startOfMonth }, status: { in: REVENUE_STATUSES } }
+      where: { createdAt: { gte: startOfMonth }, status: { in: REVENUE_STATUSES }, deletedAt: null }
     }),
-    prisma.order.count({ where: { createdAt: { gte: startOfPrevPeriod, lte: endOfPrevPeriod } } }),
+    prisma.order.count({ where: { createdAt: { gte: startOfPrevPeriod, lte: endOfPrevPeriod }, deletedAt: null } }),
     prisma.order.aggregate({
       _sum: { totalCents: true },
-      where: { createdAt: { gte: startOfPrevPeriod, lte: endOfPrevPeriod }, status: { in: REVENUE_STATUSES } }
+      where: { createdAt: { gte: startOfPrevPeriod, lte: endOfPrevPeriod }, status: { in: REVENUE_STATUSES }, deletedAt: null }
     }),
     prisma.order.findMany({
-      where: { createdAt: { gte: thirtyDaysAgo } },
+      where: { createdAt: { gte: thirtyDaysAgo }, deletedAt: null },
       select: { createdAt: true, status: true, totalCents: true }
     }),
     prisma.order.findMany({
+      where: { deletedAt: null },
       orderBy: { createdAt: "desc" },
       take: 5,
       select: { id: true, orderNumber: true, customerName: true, status: true, totalCents: true, viewedAt: true }

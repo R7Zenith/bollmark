@@ -43,6 +43,7 @@ export function buildOrdersWhere({ q, durum, kargoDurum, dateRange, sekme }: Ord
   if (sekme && sekme !== "tumu") statusConditions.push({ status: { in: tabStatusMap[sekme] } });
 
   return {
+    deletedAt: null,
     ...(q
       ? {
           OR: [

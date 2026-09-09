@@ -132,49 +132,49 @@ export async function getOrdersSummaryStats(range: PeriodRange): Promise<OrdersS
     shipmentsPrev
   ] = await Promise.all([
     prisma.order.findMany({
-      where: { createdAt: { gte: current.start, lte: current.end } },
+      where: { createdAt: { gte: current.start, lte: current.end }, deletedAt: null },
       select: { createdAt: true }
     }),
     hasPrevious
-      ? prisma.order.count({ where: { createdAt: { gte: previous.start, lte: previous.end } } })
+      ? prisma.order.count({ where: { createdAt: { gte: previous.start, lte: previous.end }, deletedAt: null } })
       : Promise.resolve(0),
     prisma.orderItem.findMany({
-      where: { order: { createdAt: { gte: current.start, lte: current.end } } },
+      where: { order: { createdAt: { gte: current.start, lte: current.end }, deletedAt: null } },
       select: { quantity: true, order: { select: { createdAt: true } } }
     }),
     hasPrevious
       ? prisma.orderItem.aggregate({
           _sum: { quantity: true },
-          where: { order: { createdAt: { gte: previous.start, lte: previous.end } } }
+          where: { order: { createdAt: { gte: previous.start, lte: previous.end }, deletedAt: null } }
         })
       : Promise.resolve({ _sum: { quantity: 0 } }),
     prisma.orderItem.findMany({
-      where: { order: { shipment: { shippedAt: { gte: current.start, lte: current.end } } } },
+      where: { order: { shipment: { shippedAt: { gte: current.start, lte: current.end } }, deletedAt: null } },
       select: { quantity: true, order: { select: { shipment: { select: { shippedAt: true } } } } }
     }),
     hasPrevious
       ? prisma.orderItem.aggregate({
           _sum: { quantity: true },
-          where: { order: { shipment: { shippedAt: { gte: previous.start, lte: previous.end } } } }
+          where: { order: { shipment: { shippedAt: { gte: previous.start, lte: previous.end } }, deletedAt: null } }
         })
       : Promise.resolve({ _sum: { quantity: 0 } }),
     prisma.returnRequest.findMany({
-      where: { createdAt: { gte: current.start, lte: current.end } },
+      where: { createdAt: { gte: current.start, lte: current.end }, order: { deletedAt: null } },
       select: { itemsJson: true, createdAt: true }
     }),
     hasPrevious
       ? prisma.returnRequest.findMany({
-          where: { createdAt: { gte: previous.start, lte: previous.end } },
+          where: { createdAt: { gte: previous.start, lte: previous.end }, order: { deletedAt: null } },
           select: { itemsJson: true }
         })
       : Promise.resolve([]),
     prisma.shipment.findMany({
-      where: { shippedAt: { gte: current.start, lte: current.end } },
+      where: { shippedAt: { gte: current.start, lte: current.end }, order: { deletedAt: null } },
       select: { shippedAt: true, order: { select: { createdAt: true } } }
     }),
     hasPrevious
       ? prisma.shipment.findMany({
-          where: { shippedAt: { gte: previous.start, lte: previous.end } },
+          where: { shippedAt: { gte: previous.start, lte: previous.end }, order: { deletedAt: null } },
           select: { shippedAt: true, order: { select: { createdAt: true } } }
         })
       : Promise.resolve([])

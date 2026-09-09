@@ -47,5 +47,45 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  if (body.action === "DELETE" || body.action === "RESTORE") {
+    // Silme hassas bir islem - sadece ADMIN yapabilir, PERSONEL SET_STATUS
+    // kullanmaya devam edebilir.
+    if (session.user?.role !== "ADMIN") {
+      return NextResponse.json({ error: "Bu işlem için yetkiniz yok." }, { status: 403 });
+    }
+
+    const actorEmail = session.user?.email ?? "bilinmiyor";
+    const actorRole = session.user?.role ?? "ADMIN";
+
+    if (body.action === "DELETE") {
+      const targets = await prisma.order.findMany({
+        where: { id: { in: ids }, deletedAt: null },
+        select: { id: true }
+      });
+      if (targets.length === 0) return NextResponse.json({ ok: true });
+      await prisma.order.updateMany({
+        where: { id: { in: targets.map((o) => o.id) } },
+        data: { deletedAt: new Date(), deletedByEmail: actorEmail }
+      });
+      for (const order of targets) {
+        logAudit({ actorEmail, actorRole, action: "ORDER_DELETED", targetType: "Order", targetId: order.id, detail: "Sipariş silindi" });
+      }
+    } else {
+      const targets = await prisma.order.findMany({
+        where: { id: { in: ids }, deletedAt: { not: null } },
+        select: { id: true }
+      });
+      if (targets.length === 0) return NextResponse.json({ ok: true });
+      await prisma.order.updateMany({
+        where: { id: { in: targets.map((o) => o.id) } },
+        data: { deletedAt: null, deletedByEmail: null }
+      });
+      for (const order of targets) {
+        logAudit({ actorEmail, actorRole, action: "ORDER_RESTORED", targetType: "Order", targetId: order.id, detail: "Sipariş geri yüklendi" });
+      }
+    }
+    return NextResponse.json({ ok: true });
+  }
+
   return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
 }

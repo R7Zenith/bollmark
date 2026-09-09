@@ -273,6 +273,15 @@ model Order {
   viewedAt      DateTime?
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
+  // Soft delete - hard delete yapilmiyor cunku OrderItem/Shipment cascade
+  // silinir ve ReturnRequest/LoyaltyTransaction gibi ilişkili kayitlar
+  // bozulur (bkz. SIPARIS_SILME_VE_GECMISI_PLANI.md). deletedAt dolu
+  // siparişler normal liste/rapor sorgularindan (order-query.ts) hariç
+  // tutulur, "Silinen Siparişler" sayfasinda geri yuklenebilir sekilde durur.
+  deletedAt       DateTime?
+  deletedByEmail  String?
+
+  @@index([deletedAt])
 }
 
 // Musteri hesabi - opsiyonel katman, misafir siparis akisi bundan bagimsiz

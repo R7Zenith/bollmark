@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
     }),
     prisma.order.findMany({
       where: {
+        deletedAt: null,
         OR: [
           { orderNumber: { contains: q, mode: "insensitive" } },
           { customerName: { contains: q, mode: "insensitive" } }

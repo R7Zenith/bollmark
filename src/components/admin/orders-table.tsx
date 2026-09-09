@@ -32,10 +32,12 @@ async function bulkRequest(body: Record<string, unknown>) {
 
 export function OrdersTable({
   orders,
-  initialSort
+  initialSort,
+  canDelete = false
 }: {
   orders: OrderRow[];
   initialSort?: { key: string; direction: "asc" | "desc" } | null;
+  canDelete?: boolean;
 }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -53,6 +55,18 @@ export function OrdersTable({
     const { ok, error } = await bulkRequest({ ids, action: "SET_STATUS", status });
     if (ok) {
       showToast("Sipariş durumu güncellendi.", "success");
+      clearSelection();
+      router.refresh();
+    } else {
+      showToast(error ?? "Bir hata oluştu.", "error");
+    }
+  }
+
+  async function handleDelete(ids: string[], clearSelection: () => void) {
+    if (!window.confirm("Seçili siparişleri silmek istediğinize emin misiniz?")) return;
+    const { ok, error } = await bulkRequest({ ids, action: "DELETE" });
+    if (ok) {
+      showToast("Seçili siparişler silindi.", "success");
       clearSelection();
       router.refresh();
     } else {
@@ -151,7 +165,16 @@ export function OrdersTable({
         label: "İptal Et",
         variant: "danger",
         onClick: () => handleStatusChange(selectedIds, "CANCELLED", clearSelection)
-      }
+      },
+      ...(canDelete
+        ? [
+            {
+              label: "Sil",
+              variant: "danger" as const,
+              onClick: () => handleDelete(selectedIds, clearSelection)
+            }
+          ]
+        : [])
     ];
   }
 

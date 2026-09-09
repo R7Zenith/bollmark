@@ -22,7 +22,7 @@ export default async function RaporlarPage({
 
   const grouped = await prisma.orderItem.groupBy({
     by: ["productId"],
-    where: { order: { status: { in: REVENUE_STATUSES }, createdAt: { gte: since } } },
+    where: { order: { status: { in: REVENUE_STATUSES }, createdAt: { gte: since }, deletedAt: null } },
     _sum: { quantity: true, totalCents: true }
   });
 

@@ -31,6 +31,7 @@ export default async function AdminCustomersPage({
   // siparis vermemis yeni hesaplar da (orderCount: 0) listeye eklenir.
   const [orders, customers] = await Promise.all([
     prisma.order.findMany({
+      where: { deletedAt: null },
       select: { customerEmail: true, customerName: true, totalCents: true, createdAt: true }
     }),
     prisma.customer.findMany({
