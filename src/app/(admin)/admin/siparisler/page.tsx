@@ -46,7 +46,18 @@ export default async function AdminOrdersPage({
   if (totalCount === 0) {
     return (
       <div>
-        <h1 className="text-2xl font-semibold text-admin-text">Siparişler</h1>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-semibold text-admin-text">Siparişler</h1>
+          {isAdmin && (
+            <Link
+              href="/admin/silinen-siparisler"
+              className="flex items-center gap-2 rounded-md border border-admin-border bg-admin-surface px-3 py-2 text-sm font-medium text-admin-text hover:bg-admin-bg"
+            >
+              <Trash2 size={16} />
+              Silinen Siparişler
+            </Link>
+          )}
+        </div>
         <div className="mt-8 rounded-lg border border-admin-border bg-admin-surface">
           <EmptyState icon={Package} title="Henüz sipariş yok" description="Mağazandan ilk sipariş geldiğinde burada görünecek." />
         </div>
