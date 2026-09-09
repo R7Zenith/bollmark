@@ -2242,3 +2242,70 @@ olusturuyor) - bu oturumdaki degisikliklerle ilgisi yok, calistirilamadi.
 canli Excel denemesinde Vercel loglarina bakilarak dogrulanmali** -
 bu oturumda gercek bir Excel dosyasiyla canliya karsi test yapilmadi,
 sadece kod incelemesi + tip/derleme kontrolu yapildi.
+
+## Koton gorsel eslesmesi - renk etiketi buyuk/kucuk harf uyumsuzlugu (2026-09-10, yeni oturum)
+
+Kullanici, Koton'da stogu bitmis urunlerin fotograflarinin cekilemedigini
+bildirdi ve bir hipotez onerdi: `fetchAutocompleteUrl`'un stokta olmayan
+urunleri hic dondurmedigi, bunun yerine `koton.com/list/` arama sonuclari
+uc noktasinin denenmesi gerektigi. Bu hipotez `curl` ile canli Koton
+API'sine karsi dogrudan test edilerek **yanlislandi**:
+
+- Gercekten stogu 0 olan, coktan beri OOS kalmis urunler (orn. Koton
+  kodu `6WKB40009TW`, `5WKB40048TW`) autocomplete uc noktasinda sorunsuz
+  bulundu, urun sayfasi JSON'unda tum renk secenekleri (OOS olanlar dahil)
+  ve gorselleri eksiksiz geliyordu - **autocomplete stok durumuna gore
+  filtrelemiyor**.
+- `koton.com/list/?search_text=...&format=json` uc noktasi gercekten
+  var ve JSON donduruyor (hipotezin bu kismi dogru), ama bazi gercek
+  kodlarda (orn. `6SAK40004UK`) autocomplete'in buldugunu bulamadi -
+  yani **`/list/` autocomplete'ten daha az guvenilir**, ondan sonraki bir
+  fallback olarak eklemek gercek bir sorunu cozmezdi.
+- Bu yuzden PR'da onerilen `/list/` fallback'i **uygulanmadi** - mevcut
+  kanitlar boyle bir fallback'in gercek bir vakayi kurtaracagini
+  gostermedi ve gereksiz karmasiklik/ek istek yuku eklerdi.
+
+**Gercek kok neden, canli DB'deki fotografsiz 2 gercek urun uzerinden
+bulundu** (`optionImages: none`'a gore sorgulandi):
+
+1. **`6SAK30097AA` (Kadın Çizgili Ahşap Saplı Tote Çanta) - dogrulanan
+   gercek hata**: Koton'da urun autocomplete ile sorunsuz bulunuyor,
+   sayfa JSON'unda renk etiketi `"LACİVERT ÇİZGİLİ"` (tamamen buyuk
+   harf) olarak geliyor. Ama bizim DB'de (Excel'den gelen) renk etiketi
+   `"Lacivert Çizgili"` (Title Case) olarak kayitli. `findKotonProductData`
+   -> `colorImageUrls` Map'i tam string eslesmesi bekliyordu, bu yuzden
+   `enrichOne` sessizce `found: true, imagesAdded: 0` donduruyordu (kullanici
+   acisindan "bulunamadi" ile ayni sonuc: fotograf eklenmiyor).
+   - **Duzeltme** (`src/lib/koton-images.ts`): yeni `normalizeColorLabel()`
+     yardimcisi eklendi - `label.trim().toLocaleUpperCase("tr-TR")` (Turkce
+     "i"/"İ" karakterlerinin dogru buyutulmesi icin `tr-TR` locale'i
+     kullaniliyor). Hem `fetchKotonProductData`'nin Map'e yazarken hem
+     `enrichOne`'in Map'ten okurken kullandigi anahtar bu fonksiyondan
+     geciriliyor. Ayrica `imagesAdded === 0` oldugunda (sayfa bulundu ama
+     hicbir renk eslesmedi) beklenen/gelen renk listelerini karsilastiran
+     bir `console.error` teshis logu eklendi.
+   - **Canli DB'ye karsi gercek dogrulama yapildi**: `enrichOne` bu urun
+     icin dogrudan calistirildi (gecici bir script ile, commit'lenmedi),
+     duzeltmeden once `imagesAdded: 0` verirken duzeltmeden sonra
+     **`imagesAdded: 3`** donup Vercel Blob'a gercekten 3 gorsel yuklendigi
+     ve `ProductOptionImage` kayitlarinin olustugu dogrulandi. Bu urun artik
+     canli DB'de fotografli.
+2. **`6SAK40062PW` (Viskon Kumaş Bağlama Detaylı Cepli Pileli Geniş Paça
+   Palazzo Pantolon, renk "BEJ") - kullanicinin verdigi ornek kod,
+   coz ULEMEDI**: Bu kod hem autocomplete'te (barkod ve urun kodu ile),
+   hem `/list/` arama sonuclarinda, hem Google'da (`site:koton.com`) hicbir
+   sonuc vermiyor - Koton'un arama indeksinde hic yok gibi gorunuyor
+   (gecici stok tukenmesi degil, muhtemelen urun tamamen kaldirilmis/
+   kapatilmis). Kod seviyesinde bir arama/fallback iyilestirmesi bu
+   urun icin cozum getirmiyor - eger kullanici urune koton.com'da hala
+   dogrudan bir linkle ulasabiliyorsa, o tam URL'i verirse dogrudan
+   `fetchKotonProductData` ile denenebilir; aksi halde bu urun icin
+   fotograf Koton'dan otomatik cekilemez.
+
+**Test edildi**: `npx tsc --noEmit` ve `npm run build` hatasiz (ayrica
+bu oturumda, pull ile gelen `Order.deletedAt` sema degisikligi sonrasi
+`npx prisma generate` calistirilmadigi icin once alakasiz ~40 tip hatasi
+goruldu - `prisma generate` calistirilinca duzeldi, koddaki degisiklikle
+ilgisi yoktu). Yukarida anlatildigi gibi gercek canli Neon DB'ye karsi
+`enrichOne` calistirilarak uctan uca dogrulandi. Degisiklik commit'lenmeye
+hazir, henuz push edilmedi (kullanici onayi bekleniyor).

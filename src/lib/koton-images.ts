@@ -32,7 +32,15 @@ async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Respon
 
 interface KotonProductData {
   description: string | null;
-  colorImageUrls: Map<string, string[]>; // Koton renk etiketi (örn. "EKRU") -> tam görsel URL'leri
+  colorImageUrls: Map<string, string[]>; // normalizeColorLabel(renk) -> tam görsel URL'leri
+}
+
+// Koton'un ürün sayfasındaki renk etiketleri (örn. "LACİVERT ÇİZGİLİ") ile Excel'den
+// gelen renk adları (örn. "Lacivert Çizgili") sadece büyük/küçük harfte farklılaşabiliyor -
+// bu yüzden eşleştirme öncesi ikisi de aynı şekilde normalize ediliyor (Türkçe locale ile,
+// "i"/"İ" ve "ı"/"I" çiftlerinin doğru büyütülmesi için `toLocaleUpperCase("tr-TR")` kullanılıyor).
+function normalizeColorLabel(label: string): string {
+  return label.trim().toLocaleUpperCase("tr-TR");
 }
 
 async function fetchAutocompleteUrl(searchText: string): Promise<string | null> {
@@ -94,7 +102,7 @@ async function fetchKotonProductData(
     const images = imageSet
       .map((img) => (img as { image?: string })?.image)
       .filter((url): url is string => typeof url === "string" && url.length > 0);
-    if (label && images.length > 0) colorImageUrls.set(label, images);
+    if (label && images.length > 0) colorImageUrls.set(normalizeColorLabel(label), images);
   }
 
   return { description, colorImageUrls };
@@ -178,7 +186,7 @@ export async function enrichOne(
   }
 
   for (const [label, valueId] of Object.entries(target.colorValueIdByLabel)) {
-    const urls = data.colorImageUrls.get(label);
+    const urls = data.colorImageUrls.get(normalizeColorLabel(label));
     if (!urls || urls.length === 0) continue;
 
     const uploaded: string[] = [];
@@ -198,6 +206,14 @@ export async function enrichOne(
       });
       result.imagesAdded += uploaded.length;
     }
+  }
+
+  if (result.imagesAdded === 0) {
+    console.error(
+      `Koton eşleşmesi (${target.productCode}): sayfa bulundu ama hiç renk eşleşmedi - beklenen renkler: ` +
+        `${Object.keys(target.colorValueIdByLabel).join(", ")}, Koton'daki renkler: ` +
+        `${[...data.colorImageUrls.keys()].join(", ")}`
+    );
   }
 
   return result;
