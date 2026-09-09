@@ -2148,3 +2148,26 @@ body-scroll-kilidi + kapatma çalışıyor, yatay taşma yok
 (`scrollWidth <= clientWidth`), konsol/sayfa hatası yok. Commit
 (`79e1d0c`) GitHub'a push edildi - Vercel git bağlantısı sayesinde
 otomatik deploy tetiklendi.
+
+**Kullanıcı geri bildirimi 1** (aynı oturum): mega-menu paneli çok dar,
+yazı taşıyor + sekme isimleri küçük harf kalıyor. Yukarıdaki 5. maddede
+anlatılan düzeltmelerle giderildi, önceki commit'e `amend` edildi
+(`79e1d0c`).
+
+**Kullanıcı geri bildirimi 2** (aynı oturum): Kadın/Erkek/Aksesuar üst
+sekmeleri tıklanınca hiçbir yere gitmiyordu (sadece hover ile panel
+açılıyordu). `site-header.tsx`'te sekmeler `<button>`'dan `Link`'e
+çevrildi - hover hâlâ paneli açıyor, tıklama Kadın/Erkek için
+`/urunler?cinsiyet=...`'e, Aksesuar için `/urunler?kategori=aksesuar`'a
+yönlendiriyor. Bu sırada yeni bir hata bulundu: Aksesuar'ın kendisine
+hiç ürün bağlı değil (hepsi Çanta/Ayakkabı gibi alt kategorilerde),
+bu yüzden `/urunler?kategori=aksesuar` her zaman 0 sonuç dönüyordu -
+tıpkı eski "Dış Giyim" linki gibi ölü bir link olacaktı. `catalog.ts`'teki
+kategori filtresi genelleştirildi: artık slug'ı birebir eşleşen kategori
+VEYA o kategoriyi `parent` olarak gösteren bir alt kategori eşleşiyor
+(`OR: [{ slug }, { parent: { slug } }]`) - bu, gelecekte eklenecek başka
+üst/alt kategori çiftleri için de genel olarak doğru davranış. Playwright
+ile doğrulandı: Kadın/Erkek tıklaması doğru sayfaya gidip doğru ürün
+sayısını gösteriyor, Aksesuar tıklaması artık 1 ürün (Çanta'ya atanan
+ürün) gösteriyor, hover davranışı bozulmadı. `npx tsc --noEmit` ve
+`npm run build` hatasız. Commit (`869a5d0`) GitHub'a push edildi.
