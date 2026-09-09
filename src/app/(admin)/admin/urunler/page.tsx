@@ -43,14 +43,14 @@ export default async function AdminProductsPage({
             title="Henüz ürün yok"
             description="Mağazana ilk ürününü ekleyerek başla."
             action={
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 md:gap-3">
                 <Link href="/admin/urunler/excel-yukle">
-                  <Button variant="secondary">
+                  <Button variant="secondary" size="sm-md">
                     <FileSpreadsheet size={16} /> Excel'den Yükle
                   </Button>
                 </Link>
                 <Link href="/admin/urunler/yeni">
-                  <Button>
+                  <Button size="sm-md">
                     <Plus size={16} /> İlk Ürününü Ekle
                   </Button>
                 </Link>
@@ -135,14 +135,14 @@ export default async function AdminProductsPage({
     <div>
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-admin-text">Ürünler</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <Link href="/admin/urunler/excel-yukle">
-            <Button variant="secondary">
+            <Button variant="secondary" size="sm-md">
               <FileSpreadsheet size={16} /> Excel'den Yükle
             </Button>
           </Link>
           <Link href="/admin/urunler/yeni">
-            <Button>
+            <Button size="sm-md">
               <Plus size={16} /> Yeni Ürün
             </Button>
           </Link>

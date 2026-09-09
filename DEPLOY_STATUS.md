@@ -2011,5 +2011,29 @@ seviyesinde yatay scrollbar yok (`document.documentElement.scrollWidth
 arama overlay'i ve filtre paneli ekrana sığıyor; 768px'te hamburger
 görünmüyor ve sidebar her zaman açık - masaüstü görünüm değişmedi. Bu
 testte bulunan siparişler sekme taşması yukarıdaki 5. maddeyle
-düzeltildi ve tekrar doğrulandı. Değişiklikler henüz **push edilmedi**
-(main branch'te 5 commit yerelde bekliyor).
+düzeltildi ve tekrar doğrulandı. Değişiklikler push edildi.
+
+## Ürünler sayfası buton küçültme (2026-09-09, aynı oturum)
+
+Ürünler sayfasındaki (`/admin/urunler`) "Excel'den Yükle" ve "Yeni Ürün"
+(boş durumda "İlk Ürününü Ekle") butonları mobilde orantısız büyük
+görünüyordu.
+
+- `src/components/admin/button.tsx`'teki `ButtonSize` tipine yeni bir
+  responsive seçenek eklendi: `"sm-md"` - mobilde `sm` boyutunda
+  (`px-3 py-1.5 text-xs gap-1.5`), `md:` breakpoint'inde `md` boyutuna
+  büyüyor (`md:px-4 md:py-2 md:text-sm md:gap-2`). Mevcut `sm`/`md`
+  davranışı değişmedi; sadece bileşenin taban `className`'indeki sabit
+  `gap-2` kaldırılıp `sm`/`md` class'larına taşındı (yeni `sm-md`
+  seçeneğiyle çakışmaması için, görsel sonuç aynı kaldı).
+- `src/app/(admin)/admin/urunler/page.tsx`'teki hem üst header'daki hem
+  boş durumdaki iki `Button` çiftine `size="sm-md"` verildi, buton
+  satırının container `gap-3`'ü `gap-2 md:gap-3` yapıldı. Başka hiçbir
+  buton değiştirilmedi.
+- `npx tsc --noEmit` ve `npm run build` hatasız tamamlandı. Playwright
+  ile (geçici scratchpad kurulumu) 375px ve 800px genişliklerde
+  `/admin/urunler` kontrol edildi: 375px'te body seviyesinde yatay
+  taşma yok (`scrollWidth === clientWidth`), butonlar küçük ve orantılı;
+  800px'te (`md:` breakpoint aktif) butonlar eski normal boyutuna
+  dönüyor.
+- Değişiklikler commit'lenip push edildi.

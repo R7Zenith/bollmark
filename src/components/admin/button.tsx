@@ -2,7 +2,7 @@ import { forwardRef } from "react";
 import type { ButtonHTMLAttributes } from "react";
 
 type ButtonVariant = "primary" | "secondary" | "danger" | "ghost";
-type ButtonSize = "sm" | "md";
+type ButtonSize = "sm" | "md" | "sm-md";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -18,8 +18,9 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "px-3 py-1.5 text-xs",
-  md: "px-4 py-2 text-sm"
+  sm: "px-3 py-1.5 text-xs gap-2",
+  md: "px-4 py-2 text-sm gap-2",
+  "sm-md": "px-3 py-1.5 text-xs gap-1.5 md:px-4 md:py-2 md:text-sm md:gap-2"
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -27,7 +28,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
-        className={`inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
+        className={`inline-flex items-center justify-center rounded-md font-medium transition-colors disabled:cursor-not-allowed ${variantClasses[variant]} ${sizeClasses[size]} ${className}`}
         {...props}
       />
     );
