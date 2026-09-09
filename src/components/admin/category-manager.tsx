@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { DndContext, closestCenter, PointerSensor, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, verticalListSortingStrategy } from "@dnd-kit/sortable";
@@ -39,13 +39,62 @@ async function bulkRequest(body: Record<string, unknown>) {
 // Kategori listesini yonetir: arama (ata baglami korunarak filtreleme), ayni
 // ust kategori altindaki kardesler arasinda surukle-birak siralama ve coklu
 // secimle toplu aktif/pasif/sil islemleri.
+const COLLAPSE_STORAGE_PREFIX = "bollmark:admin:kategori-kapali:";
+
 export function CategoryManager({ items }: { items: CategoryRowData[] }) {
   const [rows, setRows] = useState(items);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const { showToast } = useToast();
   const router = useRouter();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  const hasChildren = useMemo(() => {
+    const ids = new Set<string>();
+    for (const r of rows) {
+      if (r.parentId) ids.add(r.parentId);
+    }
+    return ids;
+  }, [rows]);
+
+  // Sayfa acilinca her kategorinin en son kaydedilmis ac/kapa durumunu localStorage'dan geri yukle.
+  useEffect(() => {
+    try {
+      const restored = new Set<string>();
+      for (const id of hasChildren) {
+        if (window.localStorage.getItem(`${COLLAPSE_STORAGE_PREFIX}${id}`) === "1") {
+          restored.add(id);
+        }
+      }
+      setCollapsed(restored);
+    } catch {
+      // localStorage kullanilamiyorsa (gizli sekme vb.) varsayilan olarak hepsi acik kalir.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function toggleCollapse(id: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+        try {
+          window.localStorage.removeItem(`${COLLAPSE_STORAGE_PREFIX}${id}`);
+        } catch {
+          // yoksay
+        }
+      } else {
+        next.add(id);
+        try {
+          window.localStorage.setItem(`${COLLAPSE_STORAGE_PREFIX}${id}`, "1");
+        } catch {
+          // yoksay
+        }
+      }
+      return next;
+    });
+  }
 
   const visibleIds = useMemo(() => {
     const q = query.trim().toLocaleLowerCase("tr");
@@ -64,7 +113,26 @@ export function CategoryManager({ items }: { items: CategoryRowData[] }) {
   }, [rows, query]);
 
   const draggable = visibleIds === null;
-  const displayRows = visibleIds ? rows.filter((r) => visibleIds.has(r.id)) : rows;
+
+  // Arama aktifken collapse durumu gecici olarak yok sayilir (eslesen satirlarin
+  // ebeveyn zinciri her zaman gorunur). Arama yokken rows onceden-siralama (DFS)
+  // oldugu icin, kapali bir kategoriden derin olan satirlar tek gecisle gizlenir.
+  const displayRows = useMemo(() => {
+    if (visibleIds) return rows.filter((r) => visibleIds.has(r.id));
+    const result: CategoryRowData[] = [];
+    let hiddenFromDepth: number | null = null;
+    for (const row of rows) {
+      if (hiddenFromDepth !== null) {
+        if (row.depth > hiddenFromDepth) continue;
+        hiddenFromDepth = null;
+      }
+      result.push(row);
+      if (collapsed.has(row.id) && hasChildren.has(row.id)) {
+        hiddenFromDepth = row.depth;
+      }
+    }
+    return result;
+  }, [rows, visibleIds, collapsed, hasChildren]);
 
   function toggleSelect(id: string) {
     setSelected((prev) => {
@@ -164,6 +232,9 @@ export function CategoryManager({ items }: { items: CategoryRowData[] }) {
                 draggable={draggable}
                 selected={selected.has(row.id)}
                 onToggleSelect={toggleSelect}
+                hasChildren={hasChildren.has(row.id)}
+                collapsed={collapsed.has(row.id)}
+                onToggleCollapse={toggleCollapse}
               />
             ))}
             {displayRows.length === 0 && (

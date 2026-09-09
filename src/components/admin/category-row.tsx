@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Pencil, Trash2, GripVertical, Image as ImageIcon } from "lucide-react";
+import { Pencil, Trash2, GripVertical, Image as ImageIcon, ChevronRight, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/admin/badge";
 import { Button } from "@/components/admin/button";
 
@@ -26,7 +26,10 @@ export function CategoryRow({
   reassignAction,
   draggable,
   selected,
-  onToggleSelect
+  onToggleSelect,
+  hasChildren,
+  collapsed,
+  onToggleCollapse
 }: {
   id: string;
   name: string;
@@ -45,6 +48,9 @@ export function CategoryRow({
   draggable: boolean;
   selected: boolean;
   onToggleSelect: (id: string) => void;
+  hasChildren: boolean;
+  collapsed: boolean;
+  onToggleCollapse: (id: string) => void;
 }) {
   const [reassignOpen, setReassignOpen] = useState(false);
 
@@ -86,7 +92,21 @@ export function CategoryRow({
             <ImageIcon size={13} />
           </div>
         )}
-        <span style={{ paddingLeft: `${depth * 1.25}rem` }}>{name}</span>
+        <span className="flex items-center" style={{ paddingLeft: `${depth * 1.25}rem` }}>
+          {hasChildren ? (
+            <button
+              type="button"
+              onClick={() => onToggleCollapse(id)}
+              className="mr-1 rounded p-0.5 text-admin-text-muted hover:bg-admin-bg"
+              title={collapsed ? "Alt kategorileri göster" : "Alt kategorileri gizle"}
+            >
+              {collapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+            </button>
+          ) : (
+            <span className="mr-1 inline-block w-[18px]" />
+          )}
+          {name}
+        </span>
         {productCount > 0 ? (
           <Link href={`/admin/urunler?kategori=${id}`}>
             <Badge tone="gray">{productCount} ürün</Badge>
