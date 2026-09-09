@@ -2468,3 +2468,55 @@ sonra kullanici iki sorun bildirdi:
 linki degisikligi gercek (gecici) veriyle dogrulandi (yukarida). SaveBar
 degisikligi sadece derleme seviyesinde dogrulandi, tarayici testi
 yapilamadi (admin sifresi bu makinede yok).
+
+## Yerel .env'deki gercek admin sifresi + DuckDuckGo web arama yedegi (2026-09-10, ayni oturum)
+
+1. **Yerel `.env` guncellendi**: kullanici gercek admin sifresini verdi
+   (deger burada gizli tutuluyor, `.env` dosyasindan okunabilir).
+   `ADMIN_PASSWORD` bu degerle guncellendi. DB'ye
+   karsi kontrol edilince bu sifrenin `admin@bollmark.com` (eski
+   `.env`'deki placeholder-seeded hesap) ile degil, `ozilevent@gmail.com`
+   ile eslestigi dogrulandi (`bcrypt.compare` ile) - bu yuzden
+   `ADMIN_EMAIL` de `ozilevent@gmail.com` olarak guncellendi. Bu deger
+   `.env`'de oldugu icin GitHub'a gitmiyor (`.gitignore`'da) - sadece bu
+   makinede.
+   - Bu sifre sayesinde yukaridaki SaveBar duzeltmesi artik gercekten
+     **tarayicida** (Playwright, gecici scratchpad kurulumu) dogrulandi:
+     bir urun duzenleme sayfasinda "Görseli sil" ikonuna tiklandi,
+     SaveBar oncesi 0 -> sonrasi 1 olarak goruldu (dogru calisiyor).
+
+2. **Kullanici geri bildirimi**: "Koton linkiyle ekle" butonu hala elle
+   mudahale gerektiriyordu - kullanici, Claude'un konusma icinde Koton
+   urun sayfasini WebSearch ile kolayca bulabildigini fark edip "bu
+   linki kendisi arayip bulamaz mi, basit bir is" dedi. Google'in resmi
+   arama API'si ucretli/kotali oldugu icin dogrudan kullanilmadi, onun
+   yerine **DuckDuckGo'nun anahtar gerektirmeyen HTML arama uc noktasi**
+   (`https://html.duckduckgo.com/html/?q=...`) kullanildi - `curl` ile
+   `site:koton.com 6SAK40062PW` araninca **ilk sonuc** doğru urun
+   sayfasiydi (dogrulandi).
+   - **`src/lib/koton-images.ts`**: yeni `fetchWebSearchUrl(query)`
+     fonksiyonu eklendi - DuckDuckGo HTML sonuclarini `cheerio` ile
+     (proje zaten `description-html.ts`'te kullaniyor, yeni bagimlilik
+     eklenmedi) parse edip `a.result__a` linklerinin `uddg` parametresini
+     (DuckDuckGo'nun yonlendirme sarmalayicisi) cozup ilk `koton.com`
+     sonucunu donduruyor.
+   - `findKotonProductData` icine **ucuncu bir deneme** olarak eklendi:
+     barkod ve urun kodu ile autocomplete ikisi de basarisiz olursa,
+     `site:koton.com <urun kodu>` ile DuckDuckGo aranip bulunan URL
+     `fetchKotonProductData` ile deneniyor. Bu, hem `enrichOne` (Excel
+     ice aktarimi + "Fotoğrafları yeniden ara" butonu) hem de yeni
+     eklenen `enrichFromUrl` yolunu etkiliyor - yani **artik cogu
+     durumda "Koton linkiyle ekle" butonuna hic gerek kalmiyor**, buton
+     sadece DuckDuckGo'nun da bulamadigi nadir durumlar icin bir yedek
+     olarak duruyor.
+   - **Canli dogrulama**: gecici bir test urunuyle (`6SAK40062PW` -
+     otomatik aramanin (autocomplete) hicbir sekilde bulamadigi, sadece
+     manuel URL ile cozulebilen bilinen ornek) `enrichOne` **hicbir
+     manuel URL verilmeden** calistirildi - `found: true, imagesAdded: 6,
+     descriptionUpdated: true` sonucunu verdi, log'da "web araması ile
+     bulundu" goruldu. Test urunu sonra silindi.
+
+**Test edildi**: `npx tsc --noEmit` ve `npm run build` hatasiz. Hem
+DuckDuckGo yedegi (gecici test urunuyle, tamamen otomatik) hem SaveBar
+duzeltmesi (gercek admin oturumuyla Playwright, tarayicida) canli/gercek
+kosullarda dogrulandi.

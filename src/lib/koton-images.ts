@@ -6,6 +6,7 @@
 // arama başarısız olursa (bulunamadı/ağ hatası) hata yutulur, diğer ürünlerin aktarımı
 // durmaz.
 import { put } from "@vercel/blob";
+import * as cheerio from "cheerio";
 import { prisma } from "@/lib/prisma";
 import type { KotonEnrichmentTarget } from "@/lib/excel-import";
 import { sanitizeDescriptionHtml } from "@/lib/description-html";
@@ -72,6 +73,50 @@ async function fetchAutocompleteUrl(searchText: string): Promise<string | null> 
   return null;
 }
 
+const BROWSER_USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
+
+// Koton'un kendi arama uc noktalari (autocomplete/list) bazi urunler icin (ozellikle
+// arama indeksinden dusmus, tamamen stok disi kalmis urunler) hicbir sonuc vermiyor -
+// bkz. DEPLOY_STATUS.md, 6SAK40062PW ornegi. Bu urunler koton.com'da hala erisilebilir
+// (dogrudan URL calisiyor), sadece site ici aramaya girmiyor. Son bir deneme olarak
+// DuckDuckGo'nun anahtar gerektirmeyen HTML arama uc noktasinda `site:koton.com <kod>`
+// aranip ilk koton.com sonucu aliniyor - resmi bir arama API'si (Google dahil) anahtar/
+// ucret gerektirdigi icin tercih edilmedi, DuckDuckGo'nun bu HTML uc noktasi genel
+// kullanima acik ve anahtarsiz.
+async function fetchWebSearchUrl(query: string): Promise<string | null> {
+  try {
+    const res = await fetchWithTimeout(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
+      headers: { "User-Agent": BROWSER_USER_AGENT }
+    });
+    if (!res.ok) return null;
+    const html = await res.text();
+    const $ = cheerio.load(html);
+
+    for (const el of $("a.result__a").toArray()) {
+      const href = $(el).attr("href");
+      if (!href) continue;
+      // DuckDuckGo sonuc linkleri "//duckduckgo.com/l/?uddg=<encoded-hedef-url>&..." seklinde
+      // bir yonlendirme - gercek hedefi cikarmak icin uddg parametresi cozuluyor.
+      const absoluteHref = href.startsWith("http") ? href : `https:${href}`;
+      let target: string;
+      try {
+        const parsed = new URL(absoluteHref);
+        target = parsed.searchParams.get("uddg") ?? absoluteHref;
+      } catch {
+        continue;
+      }
+      if (/^https?:\/\/(www\.)?koton\.com\//i.test(target)) {
+        return target;
+      }
+    }
+    return null;
+  } catch (error) {
+    console.error(`DuckDuckGo araması başarısız oldu (${query}):`, error);
+    return null;
+  }
+}
+
 async function fetchKotonProductData(
   productUrl: string,
   expectedProductCode: string
@@ -136,6 +181,17 @@ async function findKotonProductData(barcode: string, productCode: string): Promi
       const data = await fetchKotonProductData(productCodeUrl, productCode);
       if (data) {
         console.log(`Koton eşleşmesi (${productCode}): ürün kodu ile bulundu`);
+        return data;
+      }
+    }
+
+    // Koton'un kendi aramasi (autocomplete) hicbir sonuc vermedi - son care olarak
+    // DuckDuckGo'da "site:koton.com <urun kodu>" aranip ilk koton.com sonucu deneniyor.
+    const webSearchUrl = await fetchWebSearchUrl(`site:koton.com ${productCode}`);
+    if (webSearchUrl) {
+      const data = await fetchKotonProductData(webSearchUrl, productCode);
+      if (data) {
+        console.log(`Koton eşleşmesi (${productCode}): web araması ile bulundu (${webSearchUrl})`);
         return data;
       }
     }
