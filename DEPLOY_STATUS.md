@@ -1,6 +1,6 @@
 # Bollmark - Kurulum ve Canliya Alma Durumu
 
-Son guncelleme: 2026-09-03 (bu oturum)
+Son guncelleme: 2026-09-09 (bu oturum)
 
 Bu dosya, projeyi Claude Code ile kurup canliya alma surecinde nereye kadar
 gelindigini kaydeder. Kaldigimiz yerden devam etmek icin bu dosyayi Claude'a
@@ -2037,3 +2037,52 @@ görünüyordu.
   800px'te (`md:` breakpoint aktif) butonlar eski normal boyutuna
   dönüyor.
 - Değişiklikler commit'lenip push edildi.
+
+## Kategori tekrarını kaldırma + kategori listesinde aç/kapa (2026-09-09, aynı oturum)
+
+İki bağımsız değişiklik yapıldı: Kadın/Erkek kategori ağacındaki isim
+tekrarlarının kaldırılması (veri) ve admin kategori listesine
+aç/kapa (collapse) desteği eklenmesi (UI).
+
+1. **Kadın/Erkek kategori birleştirme** (`scripts/merge-kadin-erkek-kategoriler.ts`,
+   commit `50e0547`): Kadın ve Erkek üst kategorileri altında aynı isimli
+   9 alt kategori çifti (Tişört, Gömlek, Pantolon, Kot Pantolon,
+   Sweatshirt, Hırka, Ceket, Mont & Kaban, Eşofman) tek kategoride
+   birleştirildi (daha çok ürünü olan/eşitse önce oluşturulan kanonik
+   kabul edildi; ürün/kod eşlemesi/kupon kayıtları taşındı, diğeri
+   silindi). Eşi olmayan 20 alt kategori üst seviyeye taşındı, slug'ları
+   sadeleştirildi. Boş kalan Kadın/Erkek üst kategorileri silindi.
+   Aksesuar grubuna dokunulmadı. Cinsiyet ayrımı artık `Product.gender`
+   alanıyla yapılıyor, kategori sadece ürün tipini temsil ediyor.
+   Kategori sayısı 54 -> 43.
+2. **Önceden var olan tekrarlı üst kategoriler** (`scripts/merge-tekrarli-ust-kategoriler.ts`,
+   commit `7cd6453`): DB'de (bu seed'den önce, 0 ürünlü) zaten var olan
+   tekil Tişört/Elbise/Gömlek/Bluz üst kategorileri, madde 1'den çıkan
+   aynı isimli kategorilerle çakışıyordu. Genel bir "üst seviyede aynı
+   isimli çiftleri birleştir" betiği yazılıp çalıştırıldı, kategori
+   sayısı 43 -> 39. **Bulunan hata**: ilk çalıştırmada kanonik
+   kategorinin yeni slug'ı hesaplanmadan önce kendi eski slug'ı ile
+   birleşecek kategorinin slug'ı "kullanılan slug" kümesinden
+   çıkarılmamıştı - bu yüzden "Tişört" ve "Gömlek" gereksiz "-2" son eki
+   almıştı (`tisort-2`, `gomlek-2`). Elle düzeltildi (doğru `tisort`/
+   `gomlek` slug'larına geri alındı), her iki betikte de sıralama
+   düzeltilip tekrar çalıştırılarak idempotent olduğu doğrulandı.
+3. **Kategori listesinde aç/kapa** (`category-manager.tsx`,
+   `category-row.tsx`, commit `133d532`): Alt kategorisi olan satırların
+   başına chevron ikonu eklendi, tıklanınca o kategorinin altındaki tüm
+   satırlar client-side gizlenip gösteriliyor (sunucuya istek atmadan).
+   Aç/kapa durumu `localStorage`'da kategori id'sine göre saklanıyor,
+   sayfa yenilendiğinde geri yükleniyor. Arama kutusuna yazıldığında
+   collapse durumu geçici olarak yok sayılıyor, eşleşen satırların
+   ebeveyn zinciri her zaman görünür kalıyor. Sürükle-bırak sıralama
+   sadece görünen (expand edilmiş) satırlar arasında çalışmaya devam
+   ediyor.
+
+**Test edildi**: `npx tsc --noEmit` temiz. Geçici scratchpad dizininde
+Playwright kurulup gerçek admin oturumuyla (`.env`'deki `ADMIN_EMAIL`/
+`ADMIN_PASSWORD`) `/admin/kategoriler` sayfası sürüldü: birleştirme
+sonrası liste tekrarsız (39 satır, her isim tek), Aksesuar'ın chevron'ına
+tıklanınca 8 alt kategorisi gizleniyor/gösteriliyor, sayfa yenilendiğinde
+kapalı durum korunuyor, arama sırasında (kapalı Aksesuar altındaki
+"Çanta" aranınca) ebeveyn zinciri collapse'a rağmen görünüyor. Üç commit
+de push edildi.
