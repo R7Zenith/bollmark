@@ -176,6 +176,7 @@ function DesktopNav({
 
 function MobileAccordionSection({
   label,
+  href,
   categories,
   buildHref,
   isOpen,
@@ -183,6 +184,7 @@ function MobileAccordionSection({
   onNavigate
 }: {
   label: string;
+  href: string;
   categories: MenuCategory[];
   buildHref: (category: MenuCategory) => string;
   isOpen: boolean;
@@ -191,15 +193,20 @@ function MobileAccordionSection({
 }) {
   return (
     <div className="border-b border-line">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center justify-between py-4 text-left text-sm uppercase tracking-wide"
-        aria-expanded={isOpen}
-      >
-        {label}
-        <ChevronIcon open={isOpen} />
-      </button>
+      <div className="flex items-center justify-between">
+        <Link href={href} onClick={onNavigate} className="flex-1 py-4 text-sm uppercase tracking-wide">
+          {label}
+        </Link>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={isOpen}
+          aria-label={`${label} alt kategorilerini ${isOpen ? "kapat" : "aç"}`}
+          className="p-4"
+        >
+          <ChevronIcon open={isOpen} />
+        </button>
+      </div>
       {isOpen && (
         <ul className="space-y-3 pb-4 pl-2">
           {categories.map((category) => (
@@ -271,6 +278,7 @@ function MobileMenu({
           </Link>
           <MobileAccordionSection
             label="Kadın"
+            href="/urunler?cinsiyet=Kadın"
             categories={menuData.kadin}
             buildHref={(c) => `/urunler?kategori=${c.slug}&cinsiyet=Kadın`}
             isOpen={openSection === "kadin"}
@@ -279,6 +287,7 @@ function MobileMenu({
           />
           <MobileAccordionSection
             label="Erkek"
+            href="/urunler?cinsiyet=Erkek"
             categories={menuData.erkek}
             buildHref={(c) => `/urunler?kategori=${c.slug}&cinsiyet=Erkek`}
             isOpen={openSection === "erkek"}
@@ -287,6 +296,7 @@ function MobileMenu({
           />
           <MobileAccordionSection
             label="Aksesuar"
+            href="/urunler?kategori=aksesuar"
             categories={menuData.aksesuar}
             buildHref={(c) => `/urunler?kategori=${c.slug}`}
             isOpen={openSection === "aksesuar"}
