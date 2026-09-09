@@ -2551,3 +2551,49 @@ makinede ayni urunle dogru calismisti.
   guvenilir yol olarak kaldi.**
 - Vercel token'i sadece bu tanilama icin kullanildi, hicbir yere
   kaydedilmedi/commitlenmedi.
+
+## DuckDuckGo -> Google Custom Search API'ye gecis (2026-09-10, ayni oturum, tamamlanmadi)
+
+Kullanici "bunu Google'da aratip bulamaz mi" dedi - once resmi bir arama
+API'sinin (anahtar/ucret gerektirdigi icin ilk basta tercih edilmemisti)
+DuckDuckGo'nun Vercel'i engelleme sorununu cozecegi dusunuldu. Kullanici
+kendi Google hesabinda **Google Custom Search API** kurulumunu yapti
+(Programmable Search Engine + Cloud Console API key + Custom Search API
+enable + billing baglandi - hepsi dogrulandi, adim adim ekran
+goruntuleriyle kontrol edildi).
+
+- **Kod tarafi tamamlandi**: `src/lib/koton-images.ts`'teki DuckDuckGo
+  scraping fonksiyonu (`fetchWebSearchUrl`, `cheerio` bagimliligi dahil)
+  tamamen **kaldirildi** - kanitlanmis sekilde Vercel'den calismadigi
+  icin tutmanin bir degeri yoktu. Yerine `fetchGoogleCseUrl(query)`
+  eklendi: `GOOGLE_CSE_API_KEY` + `GOOGLE_CSE_CX` ortam degiskenlerini
+  okuyup `googleapis.com/customsearch/v1` uzerinden sorgu atiyor, ilk
+  `koton.com` sonucunu donduruyor. Bu iki degisken tanimsizsa adim
+  sessizce atlaniyor (ozellik kapali kalir, hata vermez) - yerel `.env`
+  ve `.env.example`'a eklendi. `npx tsc --noEmit` ve `npm run build`
+  hatasiz.
+- **Canli test edilemedi**: Google API'si kullanicinin hesabinda saatler
+  gecmesine ragmen surekli `403 "This project does not have the access
+  to Custom Search JSON API"` hatasi verdi - kontrol listesindeki HER
+  adim dogrulandi (API Library'de "Enable" yapildi, key "Custom Search
+  API"ye kisitlandi - ayni projede oldugu "Select API restrictions"
+  dropdown'inin sadece o projede etkin API'leri listelemesiyle
+  dogrulandi -, billing hesabi projeye bagli oldugu Billing sayfasindan
+  dogrulandi, `cx` gecerli oldugu `cse.google.com/cse.js?cx=...`
+  widget'inin 200 donup calismasiyla dogrulandi). Bu kontrollerin hepsi
+  gecmesine ragmen API surekli reddetti - bu, Google Cloud'un Custom
+  Search API'ye ozel, taze/yeni etkinlestirilen projelerde bazen saatler
+  surebilen bilinen bir arka uc gecikme sorunu gibi gorunuyor (bizim
+  kurulumumuzda bir hata bulunamadi).
+- **Karar**: Kullanici daha fazla vakit kaybetmek istemedi, Google
+  tarafi **su an icin birakildi**. Kod commit'lenip push edildi (env
+  degiskenleri tanimsiz oldugu icin Vercel'de bu adim sessizce devre
+  disi - mevcut davranisi bozmuyor). `GOOGLE_CSE_API_KEY`/`GOOGLE_CSE_CX`
+  **Vercel'e eklenmedi** (API zaten calismadigi icin eklemenin bir
+  faydasi yok). **Sonraki adim**: kullanici Google Cloud Console'da
+  API'nin calismaya basladigini fark ederse (birkac saat/gun icinde
+  kendiliginden duzelebilir), bu iki degeri Vercel > Settings >
+  Environment Variables'a eklemesi yeterli - kod tarafinda baska hicbir
+  sey yapmaya gerek yok, otomatik devreye girecek. O ana kadar
+  **`Koton linkiyle ekle` butonu** (elle link yapistirma) bu tur
+  urunler icin asil calisan yol olmaya devam ediyor.

@@ -6,7 +6,6 @@
 // arama başarısız olursa (bulunamadı/ağ hatası) hata yutulur, diğer ürünlerin aktarımı
 // durmaz.
 import { put } from "@vercel/blob";
-import * as cheerio from "cheerio";
 import { prisma } from "@/lib/prisma";
 import type { KotonEnrichmentTarget } from "@/lib/excel-import";
 import { sanitizeDescriptionHtml } from "@/lib/description-html";
@@ -73,46 +72,39 @@ async function fetchAutocompleteUrl(searchText: string): Promise<string | null> 
   return null;
 }
 
-const BROWSER_USER_AGENT =
-  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
-
 // Koton'un kendi arama uc noktalari (autocomplete/list) bazi urunler icin (ozellikle
 // arama indeksinden dusmus, tamamen stok disi kalmis urunler) hicbir sonuc vermiyor -
 // bkz. DEPLOY_STATUS.md, 6SAK40062PW ornegi. Bu urunler koton.com'da hala erisilebilir
 // (dogrudan URL calisiyor), sadece site ici aramaya girmiyor. Son bir deneme olarak
-// DuckDuckGo'nun anahtar gerektirmeyen HTML arama uc noktasinda `site:koton.com <kod>`
-// aranip ilk koton.com sonucu aliniyor - resmi bir arama API'si (Google dahil) anahtar/
-// ucret gerektirdigi icin tercih edilmedi, DuckDuckGo'nun bu HTML uc noktasi genel
-// kullanima acik ve anahtarsiz.
-async function fetchWebSearchUrl(query: string): Promise<string | null> {
-  try {
-    const res = await fetchWithTimeout(`https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`, {
-      headers: { "User-Agent": BROWSER_USER_AGENT }
-    });
-    if (!res.ok) return null;
-    const html = await res.text();
-    const $ = cheerio.load(html);
+// Google Custom Search JSON API'de (koton.com'a kisitlanmis bir arama motoru ile)
+// urun kodu araniyor. Daha once anahtarsiz DuckDuckGo HTML scraping'i denendi ama
+// Vercel'in sunucu IP'lerinden gelen istekleri bot trafigi sayip sessizce bos sonuc
+// donduruyordu (bkz. DEPLOY_STATUS.md) - Google'in resmi API'si (gunluk 100 sorgu
+// ucretsiz) bu sorunu yasamiyor. `GOOGLE_CSE_API_KEY`/`GOOGLE_CSE_CX` tanimli degilse
+// bu adim sessizce atlaniyor (ozellik devre disi kalir, hata vermez).
+async function fetchGoogleCseUrl(query: string): Promise<string | null> {
+  const apiKey = process.env.GOOGLE_CSE_API_KEY;
+  const cx = process.env.GOOGLE_CSE_CX;
+  if (!apiKey || !cx) return null;
 
-    for (const el of $("a.result__a").toArray()) {
-      const href = $(el).attr("href");
-      if (!href) continue;
-      // DuckDuckGo sonuc linkleri "//duckduckgo.com/l/?uddg=<encoded-hedef-url>&..." seklinde
-      // bir yonlendirme - gercek hedefi cikarmak icin uddg parametresi cozuluyor.
-      const absoluteHref = href.startsWith("http") ? href : `https:${href}`;
-      let target: string;
-      try {
-        const parsed = new URL(absoluteHref);
-        target = parsed.searchParams.get("uddg") ?? absoluteHref;
-      } catch {
-        continue;
-      }
-      if (/^https?:\/\/(www\.)?koton\.com\//i.test(target)) {
-        return target;
+  try {
+    const url = `https://www.googleapis.com/customsearch/v1?key=${encodeURIComponent(apiKey)}&cx=${encodeURIComponent(cx)}&q=${encodeURIComponent(query)}`;
+    const res = await fetchWithTimeout(url);
+    if (!res.ok) {
+      console.error(`Google arama başarısız (${query}): HTTP ${res.status}`);
+      return null;
+    }
+    const data = await res.json();
+    const items: unknown[] = Array.isArray(data?.items) ? data.items : [];
+    for (const item of items) {
+      const link = (item as { link?: string })?.link;
+      if (typeof link === "string" && /^https?:\/\/(www\.)?koton\.com\//i.test(link)) {
+        return link;
       }
     }
     return null;
   } catch (error) {
-    console.error(`DuckDuckGo araması başarısız oldu (${query}):`, error);
+    console.error(`Google araması başarısız oldu (${query}):`, error);
     return null;
   }
 }
@@ -186,12 +178,12 @@ async function findKotonProductData(barcode: string, productCode: string): Promi
     }
 
     // Koton'un kendi aramasi (autocomplete) hicbir sonuc vermedi - son care olarak
-    // DuckDuckGo'da "site:koton.com <urun kodu>" aranip ilk koton.com sonucu deneniyor.
-    const webSearchUrl = await fetchWebSearchUrl(`site:koton.com ${productCode}`);
+    // Google Custom Search'te urun kodu aranip ilk koton.com sonucu deneniyor.
+    const webSearchUrl = await fetchGoogleCseUrl(productCode);
     if (webSearchUrl) {
       const data = await fetchKotonProductData(webSearchUrl, productCode);
       if (data) {
-        console.log(`Koton eşleşmesi (${productCode}): web araması ile bulundu (${webSearchUrl})`);
+        console.log(`Koton eşleşmesi (${productCode}): Google araması ile bulundu (${webSearchUrl})`);
         return data;
       }
     }
