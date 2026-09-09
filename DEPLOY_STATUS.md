@@ -2291,21 +2291,57 @@ bulundu** (`optionImages: none`'a gore sorgulandi):
      ve `ProductOptionImage` kayitlarinin olustugu dogrulandi. Bu urun artik
      canli DB'de fotografli.
 2. **`6SAK40062PW` (Viskon Kumaş Bağlama Detaylı Cepli Pileli Geniş Paça
-   Palazzo Pantolon, renk "BEJ") - kullanicinin verdigi ornek kod,
-   coz ULEMEDI**: Bu kod hem autocomplete'te (barkod ve urun kodu ile),
-   hem `/list/` arama sonuclarinda, hem Google'da (`site:koton.com`) hicbir
-   sonuc vermiyor - Koton'un arama indeksinde hic yok gibi gorunuyor
-   (gecici stok tukenmesi degil, muhtemelen urun tamamen kaldirilmis/
-   kapatilmis). Kod seviyesinde bir arama/fallback iyilestirmesi bu
-   urun icin cozum getirmiyor - eger kullanici urune koton.com'da hala
-   dogrudan bir linkle ulasabiliyorsa, o tam URL'i verirse dogrudan
-   `fetchKotonProductData` ile denenebilir; aksi halde bu urun icin
-   fotograf Koton'dan otomatik cekilemez.
+   Palazzo Pantolon, renk "BEJ") - baslangicta "cozulemedi" denildi,
+   kullanicinin verdigi dogrudan link ile ikinci bir gercek hata daha
+   bulunup duzeltildi**: Bu kod autocomplete'te, `/list/`'te ve Google'da
+   hicbir sonuc vermiyor (urun Koton'un arama indeksinden tamamen
+   dusmus), ANCAK kullanici urune koton.com uzerinde "stokta yok" olarak
+   isaretli ama tiklaninca acilan bir sonuc karti uzerinden ulasip
+   dogrudan URL'ini verdi (`https://www.koton.com/viskon-kumas-baglama-detayli-cepli-pileli-genis-paca-palazzo-pantolon-ekru-4096215/`).
+   Bu URL'i `?format=json` ile dogrudan cekince **ikinci, bagimsiz bir kok
+   neden** ortaya cikti: `data.product.base_code` beklenen kodla dogru
+   eslesiyor (`in_stock: false, stock: 0`), AMA `data.variants` dizisi
+   **tamamen bos** donuyor - Koton, bir urunun renk secici (Renk varyant
+   grubu) olusturmasi icin en az 2 farkli renk secenegi olmasini bekliyor
+   gibi gorunuyor; bu urunun tek rengi (Bej/Ekru) oldugu ve/veya tum
+   stogu tukendigi icin `variants: []` donuyor. `fetchKotonProductData`
+   gorselleri SADECE `data.variants` icindeki Renk grubundan okuyordu,
+   bu yuzden `colorImageUrls` Map'i bos kaliyor, `enrichOne` yine sessizce
+   `imagesAdded: 0` donduruyordu - oysa gercek gorseller `data.product.
+   productimage_set`'te (renkten bagimsiz, urune dogrudan bagli) 7 adet
+   olarak duruyordu.
+   - **Duzeltme** (`src/lib/koton-images.ts`): `KotonProductData`'ya yeni
+     bir `fallbackImageUrls: string[]` alani eklendi (`data.product.
+     productimage_set`'ten dolduruluyor). `enrichOne` icinde, Koton'dan
+     hic renk grubu gelmediginde (`colorImageUrls.size === 0`) VE hedef
+     urunun DB'de de tek rengi oldugunda (`targetColors.length === 1`) -
+     birden fazla renk beklenirken yanlislikla tek renge ait gorselleri
+     hepsine uygulamamak icin bilincli olarak bu kosula baglandi - bu
+     yedek kullanilip o tek renge tum gorseller ekleniyor.
+   - **Canli DB'ye karsi gercek dogrulama yapildi**: `fetchKotonProductData`
+     gecici olarak export edilip (test sonrasi geri alindi) yukaridaki
+     gercek URL ile bu urun icin calistirildi: `colorImageUrls size: 0`,
+     `fallbackImageUrls: 7` dogru tespit edildi, 6 gorsel (MAX_IMAGES_
+     PER_COLOR siniri) gercekten Vercel Blob'a yuklenip `ProductOptionImage`
+     kayitlari olusturuldu. Bu urun de artik canli DB'de fotografli.
+   - **Bilinen sinir**: bu duzeltme sadece "sayfaya zaten ulasilabiliyor
+     ama gorseller variants disinda" durumunu cozer. Koton'un arama
+     indeksinden tamamen dusmus urunler (bu urun gibi) otomatik/toplu
+     Excel akisinda hala **bulunamaz** - cunku onlara giden URL'i hicbir
+     arama uc noktasi vermiyor, sadece kullanicinin elle bulup verdigi
+     dogrudan linkle erisilebiliyor. Toplu akista boyle bir urunle
+     karsilasilirsa hala "bulunamadi" sonucu donecek; admin panelinde
+     "yeniden ara" akisina bir "Koton URL'ini elle yapistir" secenegi
+     eklenmesi bu senaryo icin dusunulebilir ama bu oturumda
+     **yapilmadi** (kapsam disi birakildi, istenirse ayri bir istek
+     olarak ele alinabilir).
 
 **Test edildi**: `npx tsc --noEmit` ve `npm run build` hatasiz (ayrica
 bu oturumda, pull ile gelen `Order.deletedAt` sema degisikligi sonrasi
 `npx prisma generate` calistirilmadigi icin once alakasiz ~40 tip hatasi
 goruldu - `prisma generate` calistirilinca duzeldi, koddaki degisiklikle
-ilgisi yoktu). Yukarida anlatildigi gibi gercek canli Neon DB'ye karsi
-`enrichOne` calistirilarak uctan uca dogrulandi. Degisiklik commit'lenmeye
-hazir, henuz push edilmedi (kullanici onayi bekleniyor).
+ilgisi yoktu). Her iki gercek urun de (`6SAK30097AA` ve `6SAK40062PW`)
+canli Neon DB'sinde artik fotografli - gecici test scriptleriyle uctan
+uca dogrulanip scriptler commit'lenmeden silindi. Degisiklik commit'lendi
+(`d15bfdb` + bu ikinci duzeltme icin ek bir commit), henuz push
+edilmedi (kullanici onayi bekleniyor).

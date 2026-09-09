@@ -33,6 +33,11 @@ async function fetchWithTimeout(url: string, init?: RequestInit): Promise<Respon
 interface KotonProductData {
   description: string | null;
   colorImageUrls: Map<string, string[]>; // normalizeColorLabel(renk) -> tam görsel URL'leri
+  // Koton, urunun tek rengi varsa (renk secici gerekmiyorsa) ve/veya urun tamamen
+  // stok disiysa `variants` dizisini bos donduruyor - bu durumda gorseller sadece
+  // `product.productimage_set`'te (renkten bagimsiz, dogrudan urune bagli) bulunuyor.
+  // Bu alan o durum icin bir yedek: hicbir renk grubu yoksa kullaniliyor.
+  fallbackImageUrls: string[];
 }
 
 // Koton'un ürün sayfasındaki renk etiketleri (örn. "LACİVERT ÇİZGİLİ") ile Excel'den
@@ -105,7 +110,14 @@ async function fetchKotonProductData(
     if (label && images.length > 0) colorImageUrls.set(normalizeColorLabel(label), images);
   }
 
-  return { description, colorImageUrls };
+  const productImageSet: unknown[] = Array.isArray(data?.product?.productimage_set)
+    ? data.product.productimage_set
+    : [];
+  const fallbackImageUrls = productImageSet
+    .map((img) => (img as { image?: string })?.image)
+    .filter((url): url is string => typeof url === "string" && url.length > 0);
+
+  return { description, colorImageUrls, fallbackImageUrls };
 }
 
 async function findKotonProductData(barcode: string, productCode: string): Promise<KotonProductData | null> {
@@ -185,8 +197,16 @@ export async function enrichOne(
     result.descriptionUpdated = true;
   }
 
-  for (const [label, valueId] of Object.entries(target.colorValueIdByLabel)) {
-    const urls = data.colorImageUrls.get(normalizeColorLabel(label));
+  const targetColors = Object.entries(target.colorValueIdByLabel);
+  // Koton'un `variants` (Renk) dizisi tamamen bossa (urunun tek rengi var ya da urun
+  // tamamen stok disi oldugu icin renk secici olusturulmamis), tek renkli bir hedef
+  // icin `product.productimage_set` yedegini kullan - birden fazla renk beklenirken
+  // Koton'un tek bir renge ait gorselleri yanlislikla hepsine uygulamamak icin sadece
+  // hedefte de tek renk oldugunda devreye giriyor.
+  const useFallback = data.colorImageUrls.size === 0 && targetColors.length === 1 && data.fallbackImageUrls.length > 0;
+
+  for (const [label, valueId] of targetColors) {
+    const urls = useFallback ? data.fallbackImageUrls : data.colorImageUrls.get(normalizeColorLabel(label));
     if (!urls || urls.length === 0) continue;
 
     const uploaded: string[] = [];
