@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus, Package, FileSpreadsheet, ImageOff } from "lucide-react";
+import { Plus, Package, FileSpreadsheet, ImageOff, Archive } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { variantOptionsInclude } from "@/lib/variant-attributes";
@@ -28,15 +28,27 @@ export default async function AdminProductsPage({
   await requireAdmin();
   const { q, durum, kategori, fotograf, sort, dir } = await searchParams;
 
-  const totalCount = await prisma.product.count();
+  // Arsivlenmis urunler bu listede yer kaplamasin diye varsayilan olarak
+  // haric tutuluyor - kendi ayri sayfasinda (/admin/urunler/arsiv) duruyorlar.
+  const totalCount = await prisma.product.count({ where: { status: { not: "ARCHIVED" } } });
+  const archivedCount = await prisma.product.count({ where: { status: "ARCHIVED" } });
   const missingPhotoCount = await prisma.product.count({
-    where: { images: { none: {} }, optionImages: { none: {} } }
+    where: { status: { not: "ARCHIVED" }, images: { none: {} }, optionImages: { none: {} } }
   });
 
   if (totalCount === 0) {
     return (
       <div>
-        <h1 className="text-2xl font-semibold text-admin-text">Ürünler</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold text-admin-text">Ürünler</h1>
+          {archivedCount > 0 && (
+            <Link href="/admin/urunler/arsiv">
+              <Button variant="secondary" size="sm-md">
+                <Archive size={16} /> Arşiv ({archivedCount})
+              </Button>
+            </Link>
+          )}
+        </div>
         <div className="mt-8 rounded-lg border border-admin-border bg-admin-surface">
           <EmptyState
             icon={Package}
@@ -68,6 +80,7 @@ export default async function AdminProductsPage({
   const [products, categories] = await Promise.all([
     prisma.product.findMany({
       where: {
+        status: { not: "ARCHIVED" },
         ...(q
           ? {
               OR: [
@@ -136,6 +149,13 @@ export default async function AdminProductsPage({
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-admin-text">Ürünler</h1>
         <div className="flex items-center gap-2 md:gap-3">
+          {archivedCount > 0 && (
+            <Link href="/admin/urunler/arsiv">
+              <Button variant="secondary" size="sm-md">
+                <Archive size={16} /> Arşiv ({archivedCount})
+              </Button>
+            </Link>
+          )}
           <Link href="/admin/urunler/excel-yukle">
             <Button variant="secondary" size="sm-md">
               <FileSpreadsheet size={16} /> Excel'den Yükle

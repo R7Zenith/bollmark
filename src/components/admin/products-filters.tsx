@@ -47,7 +47,6 @@ export function ProductsFilters({ categories }: { categories: { id: string; name
         <option value="">Tüm durumlar</option>
         <option value="DRAFT">Taslak</option>
         <option value="PUBLISHED">Yayında</option>
-        <option value="ARCHIVED">Arşiv</option>
       </select>
       <select
         defaultValue={searchParams.get("kategori") ?? ""}
