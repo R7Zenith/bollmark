@@ -9,20 +9,27 @@ const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b8301
 export async function generateMetadata({
   searchParams
 }: {
-  searchParams: Promise<{ kategori?: string }>;
+  searchParams: Promise<{ kategori?: string; cinsiyet?: string }>;
 }): Promise<Metadata> {
-  const { kategori } = await searchParams;
+  const { kategori, cinsiyet } = await searchParams;
   if (kategori) {
     const category = await prisma.category.findUnique({
       where: { slug: kategori, isActive: true },
       select: { name: true }
     });
     if (category) {
+      const title = cinsiyet ? `${cinsiyet} ${category.name}` : category.name;
       return {
-        title: `${category.name} | Bollmark`,
-        description: `Bollmark ${category.name} koleksiyonunu keşfedin.`
+        title: `${title} | Bollmark`,
+        description: `Bollmark ${title} koleksiyonunu keşfedin.`
       };
     }
+  }
+  if (cinsiyet) {
+    return {
+      title: `${cinsiyet} Koleksiyonu | Bollmark`,
+      description: `Bollmark ${cinsiyet} koleksiyonunu keşfedin.`
+    };
   }
   return {
     title: "Tüm Ürünler | Bollmark",
@@ -33,23 +40,30 @@ export async function generateMetadata({
 export default async function ProductsPage({
   searchParams
 }: {
-  searchParams: { kategori?: string };
+  searchParams: Promise<{ kategori?: string; cinsiyet?: string }>;
 }) {
+  const { kategori, cinsiyet } = await searchParams;
+
   // Birden fazla rengi olan urunler burada renk basina ayri bir giris olarak
   // gelir (bkz. lib/catalog.ts getCatalogEntries) - musteri kataloga bakarken
   // her rengi urune tiklamadan ayri bir urunmus gibi gorur.
   const [entries, automaticCampaigns] = await Promise.all([
-    getCatalogEntries(searchParams.kategori),
+    getCatalogEntries(kategori, { genderLabel: cinsiyet }),
     getActiveAutomaticPercentCampaigns(prisma)
   ]);
 
+  const heading = cinsiyet ? `${cinsiyet} Koleksiyonu` : "Tüm Ürünler";
+  const emptyMessage = cinsiyet
+    ? `${cinsiyet} koleksiyonunda bu kategoride henüz ürün bulunmuyor.`
+    : "Bu kategoride henüz ürün bulunmuyor.";
+
   return (
     <div className="mx-auto max-w-6xl px-6 py-16">
-      <h1 className="font-display text-4xl">Tüm Ürünler</h1>
+      <h1 className="font-display text-4xl">{heading}</h1>
       <p className="mt-2 text-ink/60">{entries.length} ürün</p>
 
       {entries.length === 0 ? (
-        <p className="mt-10 text-ink/60">Bu kategoride henüz ürün bulunmuyor.</p>
+        <p className="mt-10 text-ink/60">{emptyMessage}</p>
       ) : (
         <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-4">
           {entries.map((entry) => (

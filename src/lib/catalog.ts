@@ -11,12 +11,13 @@ export function firstImageUrl(product: { images: { url: string }[]; optionImages
 
 export async function getPublishedProducts(
   categorySlug?: string,
-  options?: { featuredFirst?: boolean }
+  options?: { featuredFirst?: boolean; genderLabel?: string }
 ) {
   return prisma.product.findMany({
     where: {
       status: "PUBLISHED",
-      category: categorySlug ? { slug: categorySlug, isActive: true } : undefined
+      category: categorySlug ? { slug: categorySlug, isActive: true } : undefined,
+      gender: options?.genderLabel ? options.genderLabel : undefined
     },
     include: {
       images: { orderBy: { position: "asc" } },
@@ -64,12 +65,13 @@ export type CatalogEntry = {
 
 export async function getCatalogEntries(
   categorySlug?: string,
-  options?: { featuredFirst?: boolean }
+  options?: { featuredFirst?: boolean; genderLabel?: string }
 ): Promise<CatalogEntry[]> {
   const products = await prisma.product.findMany({
     where: {
       status: "PUBLISHED",
-      category: categorySlug ? { slug: categorySlug, isActive: true } : undefined
+      category: categorySlug ? { slug: categorySlug, isActive: true } : undefined,
+      gender: options?.genderLabel ? options.genderLabel : undefined
     },
     include: {
       images: { orderBy: { position: "asc" }, take: 1 },
