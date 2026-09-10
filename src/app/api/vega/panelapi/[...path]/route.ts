@@ -33,6 +33,20 @@ function logVega(label: string, detail: Record<string, unknown>) {
   console.log(`[vega-panelapi] ${label}`, JSON.stringify(detail));
 }
 
+// NextResponse.json() varsayilan Content-Type'i ("application/json",
+// charset belirtilmeden) birakiyor. Kategori Secimi, GUID/null duzeltmelerine
+// ragmen "0/40 basarili" gosterip hicbir kategori eklemeyince, Delphi
+// tarafinin charset belirtilmeyince govdeyi UTF-8 yerine sistem ANSI
+// kod sayfasiyla (Turkce Windows'ta genelde Windows-1254) okuyup Turkce
+// karakterli isimlerde (orn. "Dış Giyim", "Gömlek") bozulma yasayip tum
+// diziyi ayristiramadigi suphesiyle charset acikca belirtiliyor.
+function jsonResponse(data: unknown, init?: { status?: number }) {
+  return NextResponse.json(data, {
+    ...init,
+    headers: { "Content-Type": "application/json; charset=utf-8" }
+  });
+}
+
 // Authorization header'inin ve parola gibi alanlarin gercek degerini loglamadan
 // varligini/bicimini gorebilmek icin.
 function redactBody(body: unknown) {
@@ -61,7 +75,7 @@ async function handleAccountToken(request: NextRequest) {
 
   const parsed = tokenBodySchema.safeParse(body);
   if (!parsed.success) {
-    return NextResponse.json({ error: "email ve password alanlari gerekli." }, { status: 400 });
+    return jsonResponse({ error: "email ve password alanlari gerekli." }, { status: 400 });
   }
 
   const integration = await prisma.vegaIntegration.findUnique({ where: { id: "singleton" } });
@@ -74,7 +88,7 @@ async function handleAccountToken(request: NextRequest) {
 
   if (!integration?.email || !emailMatches || !passwordMatches) {
     logVega("POST Account/Token basarisiz", { girilenEmail: parsed.data.email });
-    return NextResponse.json({ error: "E-posta veya parola hatali." }, { status: 401 });
+    return jsonResponse({ error: "E-posta veya parola hatali." }, { status: 401 });
   }
 
   const { token, expiresIn } = await signVegaToken(integration.email);
@@ -83,7 +97,7 @@ async function handleAccountToken(request: NextRequest) {
   // Vega'nin cevaptaki token'i hangi JSON alanindan okudugu bilinmiyor, bu
   // yuzden en olasi birkac alan adiyla ayni deger tekrarlanip ilk canli
   // testte hangisinin isledigi gozlemlenecek.
-  return NextResponse.json({
+  return jsonResponse({
     token,
     accessToken: token,
     access_token: token,
@@ -127,7 +141,7 @@ async function handleCategories(request: NextRequest) {
   const auth = await verifyVegaToken(request);
   if (!auth.ok) {
     logVega("GET Categories yetkisiz", { error: auth.error });
-    return NextResponse.json({ error: auth.error }, { status: auth.status });
+    return jsonResponse({ error: auth.error }, { status: auth.status });
   }
 
   const { pageIndex, pageSize } = parsePageParams(request.nextUrl.searchParams);
@@ -163,7 +177,7 @@ async function handleCategories(request: NextRequest) {
     ParentId: category.parentId ? toGuid(category.parentId) : ""
   }));
 
-  return NextResponse.json(paginatedResponse(items, pageIndex, pageSize, totalCount));
+  return jsonResponse(paginatedResponse(items, pageIndex, pageSize, totalCount));
 }
 
 // Vega, Kategori Secimi'nden sonra kendiliginden siparis senkronizasyonu
@@ -175,7 +189,7 @@ async function handleSalesOrder(request: NextRequest) {
   const auth = await verifyVegaToken(request);
   if (!auth.ok) {
     logVega("GET SalesOrder yetkisiz", { error: auth.error });
-    return NextResponse.json({ error: auth.error }, { status: auth.status });
+    return jsonResponse({ error: auth.error }, { status: auth.status });
   }
 
   const { pageIndex, pageSize } = parsePageParams(request.nextUrl.searchParams);
@@ -187,7 +201,7 @@ async function handleSalesOrder(request: NextRequest) {
     pageSize
   });
 
-  return NextResponse.json(paginatedResponse([], pageIndex, pageSize, 0));
+  return jsonResponse(paginatedResponse([], pageIndex, pageSize, 0));
 }
 
 type Handler = (request: NextRequest) => Promise<NextResponse>;
@@ -213,7 +227,7 @@ async function dispatch(request: NextRequest, path: string[]) {
   const handler = routes[routeKey];
   if (!handler) {
     logVega("desteklenmeyen endpoint", { routeKey });
-    return NextResponse.json({ error: `Desteklenmeyen endpoint: ${routeKey}` }, { status: 404 });
+    return jsonResponse({ error: `Desteklenmeyen endpoint: ${routeKey}` }, { status: 404 });
   }
 
   return handler(request);
