@@ -86,9 +86,11 @@ function parsePageParams(searchParams: URLSearchParams) {
 // Vega'nin sayfalama zarfinda tam olarak hangi alan adlarini okudugu canli
 // testlerle adim adim ortaya cikti: once "TotalPageSize", sonra "Count"
 // (PascalCase - "PageIndex"/"PageSize" sorgu parametreleriyle ve
-// "OrderDateMin" gibi diger alan adlariyla tutarli). Hangisinin gercekten
-// kullanildigi kesinlesene kadar butun olasi alan adlari birlikte
-// donuluyor.
+// "OrderDateMin" gibi diger alan adlariyla tutarli). "TotalPageSize"
+// isminin aksine Vega bunu KAYIT SAYISI degil TOPLAM SAYFA SAYISI olarak
+// okuyor - ilk denemede kayit sayisi (40) konulunca Vega 40 sayfa oldugunu
+// sanip PageIndex=2..40'i de (hepsi bos) cekip kategori agacini bos
+// birakti (bkz. VEGA_PANELAPI_BULGULARI_VE_PLAN.md).
 function paginatedResponse(items: Record<string, unknown>[], pageIndex: number, pageSize: number, totalCount: number) {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   return {
@@ -97,7 +99,7 @@ function paginatedResponse(items: Record<string, unknown>[], pageIndex: number, 
     totalCount,
     TotalCount: totalCount,
     Count: totalCount,
-    TotalPageSize: totalCount,
+    TotalPageSize: totalPages,
     TotalPages: totalPages,
     pageIndex,
     PageIndex: pageIndex,
