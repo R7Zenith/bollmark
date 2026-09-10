@@ -1,6 +1,7 @@
 # Bollmark - Kurulum ve Canliya Alma Durumu
 
-Son guncelleme: 2026-09-09 (bu oturum)
+Son guncelleme: 2026-09-10 (bu oturum - Vega entegrasyonu, yarim kaldi,
+bkz. dosyanin sonundaki "Vega SanalMagaza panelapi entegrasyonu" bolumu)
 
 Bu dosya, projeyi Claude Code ile kurup canliya alma surecinde nereye kadar
 gelindigini kaydeder. Kaldigimiz yerden devam etmek icin bu dosyayi Claude'a
@@ -2718,3 +2719,19 @@ hizla dolmayacak.
   hatasiz gecti. Canli admin panelden tarayici testi bu oturumda
   yapilamadi (UI/tarayici erisimi yok) - kod incelemesi + tip/lint/build
   kontrolleriyle dogrulandi.
+
+## Vega SanalMagaza "panelapi" entegrasyonu (2026-09-10, yeni oturum) - YARIM KALDI
+
+Detayli bulgular, denenen/basarisiz olan seyler, guncel mimari ve
+**sıradaki somut adım** icin **`VEGA_PANELAPI_BULGULARI_VE_PLAN.md`**
+dosyasinin en ustundeki "GÜNCEL DURUM" bolumune bakin - bu oturuma
+kaldigi yerden devam etmek icin ilk okunmasi gereken dosya budur.
+
+Ozet: Vega ↔ Bollmark baglantisi (giris + kategori listesi cekme) HTTP
+seviyesinde calisiyor (Cloudflare Worker koprusu `vega-bridge-worker/` +
+`/api/vega/panelapi/...` route'u + yeni `VegaSession` tablosu - hepsi
+deploy edildi, canli test edildi). Ama Vega'nin "Kategori Secimi"
+penceresi hala bos kaliyor (cok sayida format denendi, hicbiri
+calismadi) ve bu, urun yukleme akisini tamamen engelliyor. Onerilen
+sonraki adim: Vega'nin kendi teknik destegine gercek JSON semasini
+sormak (hazir soru metni plan dosyasinda var).

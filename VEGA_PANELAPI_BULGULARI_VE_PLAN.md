@@ -1,5 +1,109 @@
 # Vega "E-Ticaret" Entegrasyonu — panelapi Keşif Bulguları ve Uygulama Planı
 
+## GÜNCEL DURUM (2026-09-10 akşamı) — buradan devam et
+
+**Çalışan kısım**: Vega ↔ Bollmark bağlantısı, giriş (Account/Token) ve
+kategori listesi (Categories) HTTP seviyesinde tam çalışıyor — Vercel
+loglarıyla defalarca doğrulandı (200 OK, doğru veri, doğru `Count`/
+`TotalPageSize`). Mimari:
+
+```
+Vega SanalMağaza (Site Adı: https://bollmark-vega-bridge.ozilevent.workers.dev/api/vega)
+  -> Cloudflare Worker (vega-bridge-worker/, cift slash'i normalize edip iletir)
+  -> https://bollmark.com/api/vega/panelapi/... (Next.js/Vercel, src/app/api/vega/panelapi/[...path]/route.ts)
+  -> Neon Postgres (Prisma)
+```
+
+**Kilitlenen nokta**: Vega'nın "Kategori Seçimi" penceresi (ve buna bağlı
+olarak "Seçili Ürünleri Yükle" akışı) HTTP isteği başarılı dönmesine
+rağmen (`Data` dizisinde 40 kategori, doğru `Count`/`TotalPageSize`)
+**hep boş/"No data to display" kalıyor**. Ürün yükleme denemesi de
+kategori ağacı boş olduğu için Bollmark'a **hiç istek atmadan** anında
+iptal oluyor — yani bu, atlanabilecek bir ayrıntı değil, gerçek bir
+önkoşul engeli.
+
+**Denenip İŞE YARAMAYAN kategori-ogesi format degisiklikleri** (hepsi
+canli Vega testiyle dogrulandi, sirayla):
+1. Kok kategoriler icin `ParentId: null` -> `ParentId: ""` (bos metin).
+2. `Id`/`ParentId` degerlerini Prisma cuid'den GUID formatina cevirmek
+   (`toGuid()` fonksiyonu, route.ts'te hala duruyor).
+3. JSON cevaplara acikca `charset=utf-8` eklemek (Turkce karakter
+   bozulmasi ihtimaline karsi).
+4. Her kategori ogesine ic ice (nested) `Children`/`SubCategories` dizisi
+   eklemek (duz `Data` listesi + ic ice agac ayni anda donuluyor).
+
+**Ayrica (asil sorunla ilgisiz ama yol boyunca cikan ve DUZELTILEN gercek
+hatalar)**:
+- `TotalPageSize` alani once "kayit sayisi" sanildi, gercekte Vega bunu
+  "toplam SAYFA sayisi" olarak okuyor - yanlis deger Vega'nin 40 sayfayi
+  tek tek (cogu bos) cekmesine yol acmisti. Duzeltildi.
+- `Count` adinda ayrica bir alan daha gerekiyordu (`TotalPageSize`'a ek).
+  Eklendi.
+- Token/oturum sorunu: once JWT (197 karakter) kullanildi, "gecersiz
+  token" hatalari cikti - once "Vega token'i kirpiyor" sanildi (kisa opak
+  32 karakterlik token'a gecildi), ama GERCEK sebep baskaydi: tek bir
+  "aktif token" alani, Claude'un test icin attigi HER giris isteginin
+  Vega'nin kendi aldigi token'i sessizce GECERSIZ KILMASIYDI. Ayri bir
+  `VegaSession` tablosuna gecilip her giris kendi bagimsiz satirini alacak
+  sekilde duzeltildi - bu artik saglam, tekrar test edilebilir.
+
+**Sonuc**: Kategori-ogesi seviyesindeki makul tahminler (isimlendirme,
+tip, null/bos, encoding, duzlik/ic-ice-lik) tukendi. Sunucu tarafinda
+yapabilecegimiz sey kalmadi - Vega'nin `panelapi/Categories` cevabini TAM
+OLARAK nasil bir semaya gore bekledigini bilmiyoruz ve bunu tahminle
+bulmak cok fazla deploy+test turu gerektiriyor.
+
+### Sıradaki adım (kullanıcı eve gidince)
+
+**Onerilen**: Vega'nin kendi teknik destek ekibine (SanalMagaza v_9.9.0.6
+uretici destegi) su soruyu sormak - asagidaki teknik metni oldugu gibi
+kopyalayip gonderebilir:
+
+> Merhaba, panelapi entegrasyonu uzerinde calisiyoruz.
+> `GET panelapi/Categories?PageIndex=1&PageSize=100` uc noktasina
+> Bearer token ile istek attigimizda 200 OK donuyoruz ve govdede su
+> sekilde bir JSON gonderiyoruz (asagida ornek), ama "Kategori Secimi"
+> penceresi hep bos kaliyor / "No data to display" gosteriyor. Sunucu
+> tarafinin dondurmesi gereken TAM JSON semasini (alan adlari, tipler,
+> zorunlu/opsiyonel alanlar, sayfalama zarfi) paylasabilir misiniz?
+>
+> Su an gonderdigimiz ornek govde:
+> `{"Data":[{"Id":"<guid>","Name":"Bluz","ParentId":"","Children":[]}],
+> "Count":40,"TotalPageSize":1,"TotalPages":1,"PageIndex":1,"PageSize":100}`
+
+Cevap gelince route.ts'teki `handleCategories` fonksiyonu (bkz.
+`src/app/api/vega/panelapi/[...path]/route.ts`) gercek semaya gore tek
+seferde duzeltilebilir - artik deploy+test dongusune gerek kalmadan.
+
+**Alternatif/paralel**: Kullanicinin bilgisayarinda Fiddler/Wireshark gibi
+bir arac calistirilip Vega'nin `Categories` cevabini aldiktan SONRA
+NE YAPTIGI (hata firlatiyor mu, baska bir istek mi atiyor, cevabi nasil
+isliyor) gozlemlenebilir - ama bu daha ileri duzey bir adim, once vendor
+destegi denenmeli.
+
+### Devam ederken hatırlatmalar
+
+- **Vercel loglarini okumak icin** (bu oturumda kullanilan yontem):
+  `cd Bollmark && npx vercel logs --token <TOKEN> --scope team_OUEAesDWsxc7OOxNugNNIY5l --since 10m --limit 300`
+  (`--token` kullanicidan alinmis gecici bir Vercel API token'idir, repoda
+  saklanmadi - yeni oturumda kullanicidan tekrar istenmeli, dash.vercel.com
+  -> Account Settings -> Tokens).
+- **Worker'i yeniden deploy etmek icin**: `cd vega-bridge-worker && npx wrangler deploy`
+  (Cloudflare API token gerekir, dash.cloudflare.com -> My Profile ->
+  API Tokens -> "Edit Cloudflare Workers" sablonu; repoda saklanmadi).
+- **Vega'daki mevcut ayarlar**: Site Adi =
+  `https://bollmark-vega-bridge.ozilevent.workers.dev/api/vega`, E-Mail =
+  `oguzhanleventoglu@hotmail.com`, Parola = kullanicinin /admin/ayarlar
+  panelinden belirledigi deger (Caps Lock'a dikkat - daha once bir kere
+  yanlislikla BUYUK harfle kaydedilmisti).
+- Test icin curl ile giris/kategori cekme ornegi (artik guvenle
+  calistirilabilir, Vega'nin oturumunu BOZMUYOR - VegaSession duzeltmesi
+  sayesinde):
+  ```
+  TOKEN=$(curl -s -X POST "https://bollmark-vega-bridge.ozilevent.workers.dev/api/vega/panelapi//Account/Token" -H "Content-Type: application/json" -d '{"email":"oguzhanleventoglu@hotmail.com","password":"<parola>"}' | node -e "process.stdin.on('data',d=>console.log(JSON.parse(d).token))")
+  curl -s "https://bollmark-vega-bridge.ozilevent.workers.dev/api/vega/panelapi//Categories?PageIndex=1&PageSize=100" -H "Authorization: Bearer $TOKEN"
+  ```
+
 Bu dosya VEGA_ENTEGRASYON_PLANI.md'nin devamı. Orada karar verilen
 "webhook.site ile canlı yakalama" yöntemi uygulandı ve gerçek istekler
 yakalandı. Bu dosya o bulguları ve buradan sonraki uygulama planını içerir.
