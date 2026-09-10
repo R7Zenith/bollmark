@@ -1,5 +1,11 @@
 {
   "crons": [
     { "path": "/api/cron/sepet-hatirlatma", "schedule": "0 8 * * *" }
+  ],
+  "rewrites": [
+    {
+      "source": "/api/vega/panelapi//:path*",
+      "destination": "/api/vega/panelapi/:path*"
+    }
   ]
 }
