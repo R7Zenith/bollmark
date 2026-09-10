@@ -79,6 +79,9 @@ model Tag {
 
 model Product {
   id          String        @id @default(cuid())
+  // Ticimax SOAP semasi urun/varyant kimliklerini int bekliyor (Category.vegaId
+  // ile ayni gerekce - bkz. VEGA_PANELAPI_BULGULARI_VE_PLAN.md).
+  vegaId      Int           @unique @default(autoincrement())
   name        String
   slug        String        @unique
   code        String?       // Ürün kodu / stil kodu, örn. "6SAM60012HW" - opsiyonel, tekil olmak zorunda degil
@@ -218,6 +221,7 @@ model ProductVariantOption {
 // Beden / renk gibi varyantlar, her biri kendi stok adedine sahip
 model ProductVariant {
   id             String   @id @default(cuid())
+  vegaId         Int      @unique @default(autoincrement())
   sku            String   @unique
   barcode        String?  // opsiyonel, SKU'dan ayri, kasa/etiket icin
   stock          Int      @default(0)

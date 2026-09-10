@@ -22,12 +22,14 @@ import { prisma } from "@/lib/prisma";
 // servisinin (ozellestirilmemis) varsayilan namespace'idir - bu yuzden
 // cevaplar da WCF'in varsayilan uretim kurallarina gore olusturuluyor:
 // "<MetotResponse><MetotResult>..." sarmalama ve DataContract sinif
-// alanlarinin "http://schemas.datacontract.org/2004/07/<CLR namespace>"
-// altinda, ALFABETIK sirayla dizilmesi. CLR namespace'i kesin bilinmiyor
-// (Ticimax'in kapali kaynak sunucu kodu), servis dosyasinin adindan
-// ("UrunServis.svc") "UrunServis" olarak tahmin edildi - canli testte
-// yanlissa Vega'nin davranisindan (bos liste / parse hatasi) anlasilip
-// duzeltilecek.
+// alanlarinin DATA_NS altinda, ALFABETIK sirayla dizilmesi.
+//
+// DATA_NS iki yanlis tahminden (".../2004/07/UrunServis" ve ".../2004/07/Ticimax")
+// sonra Vega'nin KENDI gonderdigi SelectUrunCount istegindeki filtre
+// alanlarindan birebir okundu: sonu BOS ("/2004/07/") - yani Ticimax'in
+// DataContract siniflari C# tarafinda isimsiz (kok) namespace'te duruyor.
+const DATA_NS = "http://schemas.datacontract.org/2004/07/";
+const XSI_NS = "http://www.w3.org/2001/XMLSchema-instance";
 
 function logTcmx(label: string, detail: Record<string, unknown>) {
   console.log(`[vega-tcmx] ${label}`, JSON.stringify(detail));
@@ -134,7 +136,7 @@ async function handleSelectKategori(rawBody: string) {
 
   const body =
     `<SelectKategoriResponse xmlns="http://tempuri.org/">` +
-    `<SelectKategoriResult xmlns:a="http://schemas.datacontract.org/2004/07/UrunServis" xmlns:i="http://www.w3.org/2001/XMLSchema-instance">` +
+    `<SelectKategoriResult xmlns:a="${DATA_NS}" xmlns:i="${XSI_NS}">` +
     items +
     `</SelectKategoriResult>` +
     `</SelectKategoriResponse>`;
@@ -142,10 +144,118 @@ async function handleSelectKategori(rawBody: string) {
   return xmlResponse(soapEnvelope(body));
 }
 
+// Vega'nin urun listeleme akisi once SelectUrunCount ile toplam sayiyi, sonra
+// SelectUrun ile sayfa sayfa urunleri cekiyor. Filtre alanlarinda -1 "filtre
+// yok" demek (bkz. Ticimax dokumantasyonu); Bollmark tarafinda su an sadece
+// yayindaki urunler doneceginden filtreler yok sayiliyor.
+function publishedProductsWhere() {
+  return { status: "PUBLISHED" as const };
+}
+
+async function handleSelectUrunCount(rawBody: string) {
+  const uyeKodu = extractTag(rawBody, "UyeKodu");
+  if (!(await verifyUyeKodu(uyeKodu))) {
+    logTcmx("SelectUrunCount yetkisiz", {});
+    return xmlResponse(soapFault("UyeKodu hatali."), 500);
+  }
+
+  const count = await prisma.product.count({ where: publishedProductsWhere() });
+  logTcmx("SelectUrunCount basarili", { count });
+
+  return xmlResponse(
+    soapEnvelope(
+      `<SelectUrunCountResponse xmlns="http://tempuri.org/">` +
+        `<SelectUrunCountResult>${count}</SelectUrunCountResult>` +
+        `</SelectUrunCountResponse>`
+    )
+  );
+}
+
+async function handleSelectUrun(rawBody: string) {
+  const uyeKodu = extractTag(rawBody, "UyeKodu");
+  if (!(await verifyUyeKodu(uyeKodu))) {
+    logTcmx("SelectUrun yetkisiz", {});
+    return xmlResponse(soapFault("UyeKodu hatali."), 500);
+  }
+
+  const startIndex = Number(extractTag(rawBody, "BaslangicIndex") ?? "0") || 0;
+  const pageSize = Math.min(500, Number(extractTag(rawBody, "KayitSayisi") ?? "100") || 100);
+
+  const products = await prisma.product.findMany({
+    where: publishedProductsWhere(),
+    orderBy: { vegaId: "asc" },
+    skip: startIndex,
+    take: pageSize,
+    include: {
+      category: true,
+      brand: true,
+      variants: { include: { options: { include: { value: true } } } }
+    }
+  });
+
+  logTcmx("SelectUrun basarili", { startIndex, pageSize, donenAdet: products.length });
+
+  // DataContract alanlari ALFABETIK sirada yazilmali (WCF varsayilani) -
+  // gonderilmeyen alanlar minOccurs=0 oldugu icin atlanabiliyor, bu yuzden
+  // sadece barkod eslestirmesi ve stok/fiyat icin gerekli olanlar donuluyor.
+  const items = products
+    .map((product) => {
+      const totalStock = product.variants.reduce((sum, variant) => sum + variant.stock, 0);
+      const variants = product.variants
+        .map((variant) => {
+          const priceCents = variant.priceCents ?? product.priceCents;
+          return (
+            `<a:Varyasyon>` +
+            `<a:Aktif>true</a:Aktif>` +
+            `<a:Barkod>${xmlEscape(variant.barcode ?? variant.sku)}</a:Barkod>` +
+            `<a:ID>${variant.vegaId}</a:ID>` +
+            `<a:KdvDahil>true</a:KdvDahil>` +
+            `<a:KdvOrani>10</a:KdvOrani>` +
+            `<a:ParaBirimiID>1</a:ParaBirimiID>` +
+            `<a:SatisFiyati>${(priceCents / 100).toFixed(2)}</a:SatisFiyati>` +
+            `<a:StokAdedi>${variant.stock}</a:StokAdedi>` +
+            `<a:StokKodu>${xmlEscape(variant.sku)}</a:StokKodu>` +
+            `<a:UrunKartiID>${product.vegaId}</a:UrunKartiID>` +
+            `</a:Varyasyon>`
+          );
+        })
+        .join("");
+
+      return (
+        `<a:UrunKarti>` +
+        `<a:Aciklama>${xmlEscape(product.description)}</a:Aciklama>` +
+        `<a:Aktif>true</a:Aktif>` +
+        `<a:AnaKategori>${xmlEscape(product.category?.name ?? "")}</a:AnaKategori>` +
+        `<a:AnaKategoriID>${product.category?.vegaId ?? 0}</a:AnaKategoriID>` +
+        `<a:ID>${product.vegaId}</a:ID>` +
+        `<a:Marka>${xmlEscape(product.brand?.name ?? "")}</a:Marka>` +
+        `<a:MarkaID>0</a:MarkaID>` +
+        `<a:SatisBirimi>Adet</a:SatisBirimi>` +
+        `<a:ToplamStokAdedi>${totalStock}</a:ToplamStokAdedi>` +
+        `<a:UrunAdi>${xmlEscape(product.name)}</a:UrunAdi>` +
+        `<a:Varyasyonlar>${variants}</a:Varyasyonlar>` +
+        `</a:UrunKarti>`
+      );
+    })
+    .join("");
+
+  return xmlResponse(
+    soapEnvelope(
+      `<SelectUrunResponse xmlns="http://tempuri.org/">` +
+        `<SelectUrunResult xmlns:a="${DATA_NS}" xmlns:i="${XSI_NS}">` +
+        items +
+        `</SelectUrunResult>` +
+        `</SelectUrunResponse>`
+    )
+  );
+}
+
 type Handler = (rawBody: string) => Promise<NextResponse>;
 
 const methods: Record<string, Handler> = {
-  SelectKategori: handleSelectKategori
+  SelectKategori: handleSelectKategori,
+  SelectUrunCount: handleSelectUrunCount,
+  SelectUrun: handleSelectUrun
 };
 
 export async function POST(request: NextRequest, context: { params: Promise<{ service: string }> }) {
