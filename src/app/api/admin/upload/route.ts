@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { put } from "@vercel/blob";
 import { authOptions } from "@/lib/auth";
+import { compressImage } from "@/lib/image-compress";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const MAX_SIZE_BYTES = 5 * 1024 * 1024;
@@ -25,8 +26,12 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const blob = await put(file.name, file, {
+    const original = Buffer.from(await file.arrayBuffer());
+    const { buffer, contentType, ext } = await compressImage(original);
+    const baseName = file.name.replace(/\.[^./\\]+$/, "");
+    const blob = await put(`${baseName}.${ext}`, buffer, {
       access: "public",
+      contentType,
       addRandomSuffix: true
     });
     return NextResponse.json({ url: blob.url });

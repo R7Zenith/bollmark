@@ -9,6 +9,7 @@ import { put } from "@vercel/blob";
 import { prisma } from "@/lib/prisma";
 import type { KotonEnrichmentTarget } from "@/lib/excel-import";
 import { sanitizeDescriptionHtml } from "@/lib/description-html";
+import { compressImage } from "@/lib/image-compress";
 
 const KOTON_BASE = "https://www.koton.com";
 const REQUEST_DELAY_MS = 900;
@@ -208,9 +209,8 @@ export async function reuploadImageToBlob(
   try {
     const res = await fetchWithTimeout(sourceUrl, { headers: { "User-Agent": USER_AGENT } });
     if (!res.ok) return null;
-    const contentType = res.headers.get("content-type") || "image/jpeg";
-    const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
-    const buffer = Buffer.from(await res.arrayBuffer());
+    const original = Buffer.from(await res.arrayBuffer());
+    const { buffer, contentType, ext } = await compressImage(original);
     const blob = await put(`${folder}/${pathHint}.${ext}`, buffer, {
       access: "public",
       contentType,

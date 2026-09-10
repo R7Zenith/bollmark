@@ -2614,3 +2614,70 @@ erisemiyor.
   halde ayni cikmaza tekrar zaman harcanabilir).
   **`Koton linkiyle ekle` butonu (elle link yapistirma), otomatik aramanin
   bulamadigi urunler icin kalici/tek cozum olarak kaldi.**
+
+## Gorsel sikistirma ve Blob kota temizligi (bu oturum)
+
+Bkz. `GORSEL_SIKISTIRMA_VE_BLOB_LIMIT_PLANI.md`. Vercel Blob Hobby plan
+kotasi (1GB depolama) hizla doluyordu; dort fazli plan uygulandi.
+
+### Faz 1 - Yeni yuklemelerde sikistirma (tamamlandi)
+
+`sharp` `package.json`'a dogrudan bagimlilik olarak eklendi (onceden
+sadece Next.js'in transitive bagimliligiydi). Yeni `src/lib/image-compress.ts`
+paylasimli `compressImage()` fonksiyonu: genislik max 1600px (orantili
+kucultur, kucukse buyutmez), WebP'e cevirir, kalite ~78. Hem
+`src/app/api/admin/upload/route.ts` (admin panel PC yuklemesi, 5MB/tip
+kontrolunden SONRA uygulaniyor) hem `src/lib/koton-images.ts` ->
+`reuploadImageToBlob()` (Excel aktariminda Koton'dan cekilen gorseller)
+bu fonksiyonu kullanacak sekilde guncellendi. Fonksiyon seviyesinde test
+edildi: `public/logo.png` (28.310 bytes) sikistirilinca 17.856 bytes
+WebP cikti (canli admin panelden gercek buyuk bir foto yukleyip
+karsilastirma yapilamadi - bu oturumda tarayici/UI erisimi yoktu, kod
+incelemesi + fonksiyon testi + `tsc`/`build` ile dogrulandi).
+
+### Faz 2 - Toplu silme bug'i (tamamlandi)
+
+`src/app/api/admin/urunler/bulk/route.ts`'deki DELETE aksiyonu artik
+`deleteMany`'den ONCE silinecek urunlerin `images`/`optionImages`
+url'lerini okuyor, silme basarili olduktan sonra `deleteBlobUrls()` ile
+Blob'dan da siliyor (tekli silmedeki `admin/urunler/[id]/page.tsx` ->
+`deleteProduct` ile ayni desen). Canli admin panelden birkac test urunu
+toplu silip Blob dashboard'unda dogrulama yapilamadi (UI/tarayici
+erisimi yok) - kod incelemesi + `tsc`/`build` ile dogrulandi.
+
+### Faz 3 - Yetim Blob temizligi (script hazir, dry-run calistirildi, execute ONAY BEKLIYOR)
+
+`scripts/temizle-yetim-blob.ts` yazildi (varsayilan dry-run, `--execute`
+ile gercek silme). Dry-run sonucu:
+
+- Toplam blob: **148**, referansli (kullanilan): **45**, yetim: **103**
+- Yetim dosyalarin toplam boyutu: **~275 MB**
+
+Kullanicinin onayi olmadan `--execute` calistirilmadi.
+
+### Faz 4 - Mevcut gorselleri geriye donuk sikistirma (script hazir, dry-run calistirildi, execute ONAY BEKLIYOR)
+
+`scripts/sikistir-mevcut-gorseller.ts` yazildi (varsayilan dry-run,
+`--execute` + opsiyonel `--limit=N` ile gercek islem, 20'serli grup +
+300ms bekleme, hata veren gorsel atlanip loglanir, script durmaz).
+Dry-run sonucu (tahmini, mevcut Blob boyutlarina bakarak):
+
+- Islenecek referansli gorsel: **45** (zaten `.webp` olan yok, atlanan: 0)
+- Mevcut toplam boyut: **~116 MB**
+- Tahmini islem sonrasi boyut (~%15 oraniyla): **~17.4 MB**
+
+Kullanicinin onayi olmadan `--execute` calistirilmadi.
+
+### Genel
+
+`npx tsc --noEmit` ve `npm run build` her iki fazdan sonra da hatasiz
+gecti. `.env`'de olmayip `.env.local`'de duran `BLOB_READ_WRITE_TOKEN`
+yuzunden her iki yeni script de standart `import "dotenv/config"`e ek
+olarak `.env.local`'i de aciyor (diger scriptlerden farkli, cunku onlar
+Blob'a degil sadece DB'ye erisiyor).
+
+**Sonraki oturumda/kullanicidan onay sonrasi yapilacak**: Once Faz 3
+`--execute` (yetim dosyalari kalici siler, geri donusu yok - digerlerini
+etkilemez cunku hicbir yerde referans edilmiyorlar), sonra Faz 4 once
+kucuk `--limit` ile test edilip sonuc kontrol edildikten sonra tum
+gorsellerle `--execute`.

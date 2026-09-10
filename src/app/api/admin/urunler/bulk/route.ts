@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { deleteBlobUrls } from "@/lib/blob";
 
 const allowedStatuses = new Set(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 
@@ -23,15 +24,24 @@ export async function POST(request: NextRequest) {
   }
 
   if (body.action === "DELETE") {
+    const targets = await prisma.product.findMany({
+      where: { id: { in: ids } },
+      select: {
+        images: { select: { url: true } },
+        optionImages: { select: { url: true } }
+      }
+    });
+    const urls = targets.flatMap((p) => [...p.images.map((i) => i.url), ...p.optionImages.map((i) => i.url)]);
     try {
       await prisma.product.deleteMany({ where: { id: { in: ids } } });
-      return NextResponse.json({ ok: true });
     } catch {
       return NextResponse.json(
         { error: "Seçili ürünlerden biri veya birkaçı mevcut siparişlere bağlı olduğu için silinemedi." },
         { status: 409 }
       );
     }
+    await deleteBlobUrls(urls);
+    return NextResponse.json({ ok: true });
   }
 
   if (body.action === "SET_STATUS" && allowedStatuses.has(body.status)) {
