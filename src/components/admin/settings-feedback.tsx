@@ -8,13 +8,17 @@ const errorMessages: Record<string, string> = {
   "kullanici-bulunamadi": "Kullanıcı bulunamadı.",
   "mevcut-sifre-yanlis": "Mevcut şifre yanlış.",
   "sifre-kisa": "Yeni şifre en az 8 karakter olmalı.",
-  "sifre-eslesmiyor": "Yeni şifreler eşleşmiyor."
+  "sifre-eslesmiyor": "Yeni şifreler eşleşmiyor.",
+  "vega-email-gerekli": "Vega entegrasyonu için e-posta gerekli.",
+  "vega-parola-gerekli": "İlk kayıtta bir parola belirlemelisiniz.",
+  "vega-parola-kisa": "Vega parolası en az 8 karakter olmalı."
 };
 
 const successMessages: Record<string, string> = {
   hesap: "Şifre başarıyla güncellendi.",
   magaza: "Mağaza bilgileri kaydedildi.",
-  "sepet-hatirlatma": "Sepet hatırlatma ayarları kaydedildi."
+  "sepet-hatirlatma": "Sepet hatırlatma ayarları kaydedildi.",
+  vega: "Vega entegrasyon bilgileri kaydedildi."
 };
 
 export function SettingsFeedback({ basarili, hata }: { basarili?: string; hata?: string }) {

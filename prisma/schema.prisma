@@ -426,6 +426,18 @@ model StoreSettings {
   updatedAt            DateTime @updatedAt
 }
 
+// Vega "E-Ticaret" entegrasyonu icin ayri, admin panel personel
+// hesaplarindan bagimsiz tek bir kullanici - Vega programindaki "E-Mail"/
+// "Parola" alanlarina bu bilgiler girilir (bkz.
+// VEGA_PANELAPI_BULGULARI_VE_PLAN.md). Singleton satir (StoreSettings ile
+// ayni desen).
+model VegaIntegration {
+  id           String   @id @default("singleton")
+  email        String   @default("")
+  passwordHash String   @default("")
+  updatedAt    DateTime @updatedAt
+}
+
 // Kritik islemlerin (siparis/iade durum degisikligi, personel yonetimi,
 // sadakat puani duzeltmesi) denetim kaydi - v1'de sadece gurultu
 // yaratmayacak kritik islemler loglanir (bkz. lib/audit-log.ts).

@@ -65,6 +65,37 @@ async function updateAbandonedCartSettings(formData: FormData) {
   redirect("/admin/ayarlar?basarili=sepet-hatirlatma");
 }
 
+async function updateVegaIntegration(formData: FormData) {
+  "use server";
+  const email = String(formData.get("vegaEmail") || "").trim();
+  const password = String(formData.get("vegaPassword") || "");
+
+  if (!email) redirect("/admin/ayarlar?hata=vega-email-gerekli");
+
+  if (!password) {
+    const existing = await prisma.vegaIntegration.findUnique({ where: { id: "singleton" } });
+    if (!existing?.passwordHash) redirect("/admin/ayarlar?hata=vega-parola-gerekli");
+
+    await prisma.vegaIntegration.upsert({
+      where: { id: "singleton" },
+      create: { id: "singleton", email },
+      update: { email }
+    });
+  } else {
+    if (password.length < 8) redirect("/admin/ayarlar?hata=vega-parola-kisa");
+
+    const passwordHash = await bcrypt.hash(password, 10);
+    await prisma.vegaIntegration.upsert({
+      where: { id: "singleton" },
+      create: { id: "singleton", email, passwordHash },
+      update: { email, passwordHash }
+    });
+  }
+
+  revalidatePath("/admin/ayarlar");
+  redirect("/admin/ayarlar?basarili=vega");
+}
+
 export default async function AdminSettingsPage({
   searchParams
 }: {
@@ -74,11 +105,16 @@ export default async function AdminSettingsPage({
   const { basarili, hata } = await searchParams;
   const session = await getServerSession(authOptions);
 
-  const [adminUser, storeSettings] = await Promise.all([
+  const [adminUser, storeSettings, vegaIntegration] = await Promise.all([
     session?.user?.email
       ? prisma.adminUser.findUnique({ where: { email: session.user.email } })
       : Promise.resolve(null),
     prisma.storeSettings.upsert({
+      where: { id: "singleton" },
+      create: { id: "singleton" },
+      update: {}
+    }),
+    prisma.vegaIntegration.upsert({
       where: { id: "singleton" },
       create: { id: "singleton" },
       update: {}
@@ -229,6 +265,45 @@ export default async function AdminSettingsPage({
             sayfasına gidin.
           </p>
         </div>
+      </Card>
+
+      <Card title="Vega E-Ticaret Entegrasyonu">
+        <div className="mb-4 flex gap-3 rounded-md bg-admin-bg p-4 text-sm text-admin-text-muted">
+          <Info size={18} className="mt-0.5 flex-shrink-0 text-admin-accent" />
+          <p>
+            Vega SanalMağaza programındaki &quot;E-Ticaret&quot; ayarının &quot;Site Adı&quot; alanına{" "}
+            <code className="rounded bg-white px-1 py-0.5">https://bollmark.com/api/vega/panelapi</code>, &quot;E-Mail&quot;
+            ve &quot;Parola&quot; alanlarına ise burada belirlediğiniz bilgileri girin. Bu, admin panel giriş
+            hesaplarınızdan bağımsız, sadece Vega&apos;nın kullandığı ayrı bir hesaptır.
+          </p>
+        </div>
+        <form action={updateVegaIntegration} className="space-y-4">
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">E-Mail</label>
+            <input
+              name="vegaEmail"
+              type="email"
+              required
+              defaultValue={vegaIntegration.email}
+              className="mt-1 w-full rounded-md border border-admin-border px-4 py-2.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">
+              Parola {vegaIntegration.passwordHash ? "(değiştirmek için doldurun, boş bırakırsanız değişmez)" : ""}
+            </label>
+            <input
+              name="vegaPassword"
+              type="password"
+              minLength={8}
+              placeholder={vegaIntegration.passwordHash ? "••••••••" : "En az 8 karakter"}
+              className="mt-1 w-full rounded-md border border-admin-border px-4 py-2.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+            />
+          </div>
+          <button className="rounded-md bg-admin-accent px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
+            Vega Entegrasyon Bilgilerini Kaydet
+          </button>
+        </form>
       </Card>
 
       <Card title="Önizleme Şifresi">
