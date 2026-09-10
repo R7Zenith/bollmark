@@ -1,8 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { signVegaToken, verifyVegaToken } from "@/lib/vega-auth";
+
+// Vega (Delphi tabanli) Id/ParentId alanlarinin gecerli bir GUID formatinda
+// (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) olmasini bekliyor gibi gorunuyor -
+// Prisma'nin kisa cuid string'leri (orn. "cmtsnxnev000104l1t72truy2") bu
+// formata uymuyor. Kategori Secimi "0/40 basarili" gosterip hicbir satir
+// eklemeyince (tum kayitlarda ayni sekilde basarisiz) bu supheleniliyor -
+// her Bollmark id'sinden SABIT (ayni id her zaman ayni GUID'i uretir) bir
+// GUID turetiliyor, boylece ileride Vega bu GUID'i bize geri gonderdiginde
+// (orn. urun-kategori eslemesi) hangi gercek kategoriye karsilik geldigini
+// yeniden hesaplayip bulabiliriz.
+function toGuid(id: string): string {
+  const hash = createHash("md5").update(id).digest("hex");
+  return `${hash.slice(0, 8)}-${hash.slice(8, 12)}-${hash.slice(12, 16)}-${hash.slice(16, 20)}-${hash.slice(20, 32)}`;
+}
 
 // Vega SanalMagaza programi "Site Adi" ayarinin sonuna kendisi bir "/" ekleyip
 // "panelapi/" ile birlestirdigi icin gercek istekler "panelapi//Account/Token"
@@ -135,17 +150,17 @@ async function handleCategories(request: NextRequest) {
     totalCount
   });
 
-  // Vega'nin agac gorunumu, sayfalama duzeldikten sonra bile bos kaldi
-  // (hatasiz ama bos). Olasi sebep: Delphi tarafi JSON "null"u kok
-  // kategoriyi isaretleyen bir "parent yok" degeri olarak tanimiyor -
-  // bu yuzden ust kategori icin null yerine bos metin deneniyor.
+  // Vega'nin agac gorunumu, sayfalama duzeldikten sonra da "0/40 basarili"
+  // gosterip hic satir eklemedi - tum kayitlar ayni sekilde basarisiz
+  // oldugu icin ortak bir alan formati suphesi var: Id/ParentId GUID
+  // formatina cevrildi (bkz. toGuid).
   const items = categories.map((category) => ({
-    id: category.id,
-    Id: category.id,
+    id: toGuid(category.id),
+    Id: toGuid(category.id),
     name: category.name,
     Name: category.name,
-    parentId: category.parentId ?? "",
-    ParentId: category.parentId ?? ""
+    parentId: category.parentId ? toGuid(category.parentId) : "",
+    ParentId: category.parentId ? toGuid(category.parentId) : ""
   }));
 
   return NextResponse.json(paginatedResponse(items, pageIndex, pageSize, totalCount));
