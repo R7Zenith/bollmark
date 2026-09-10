@@ -4,6 +4,8 @@ import { ArrowUp, ArrowDown, Trash2, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { Card } from "@/components/admin/card";
+import { VariantAttributeCard } from "@/components/admin/variant-attribute-card";
+import { VariantAttributesToggleAll } from "@/components/admin/variant-attributes-toggle-all";
 import { VariantAttributesFeedback } from "@/components/admin/variant-attributes-feedback";
 import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
 import { ColorAutoSubmitInput } from "@/components/admin/color-auto-submit-input";
@@ -162,6 +164,12 @@ export default async function VariantAttributesPage({
 
       <VariantAttributesFeedback basarili={basarili} hata={hata} />
 
+      {attributes.length > 0 && (
+        <div className="flex justify-end">
+          <VariantAttributesToggleAll />
+        </div>
+      )}
+
       <Card title="Özellik Ekle">
         <form action={createAttribute} className="flex gap-3">
           <input name="name" placeholder="örn. Beden, Renk, Kalıp" required className={inputClass} />
@@ -182,9 +190,11 @@ export default async function VariantAttributesPage({
           const createVal = createValue.bind(null, attribute.id);
 
           return (
-            <Card
+            <VariantAttributeCard
               key={attribute.id}
+              attributeId={attribute.id}
               title={attribute.name}
+              valueCount={attribute.values.length}
               action={
                 <div className="flex items-center gap-1.5">
                   <form action={moveAttrUp}>
@@ -296,7 +306,7 @@ export default async function VariantAttributesPage({
                   </button>
                 </form>
               </div>
-            </Card>
+            </VariantAttributeCard>
           );
         })
       )}
