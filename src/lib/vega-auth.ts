@@ -2,25 +2,23 @@ import { randomBytes } from "crypto";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// Vega'nin panelapi/Account/Token'dan aldigi bearer token'i uretir/dogrular.
+// Vega'nin panelapi/Account/Token'dan aldigi Bearer token'i uretir/dogrular.
 //
-// Once JWT kullanilmisti, ama canli testte taze uretilmis bir JWT (197
-// karakter) dogrudan test edildiginde sorunsuzken, Vega'nin sakladigi/geri
-// gonderdigi ayni token birkac dakika icinde "gecersiz" cevabi almaya
-// basladi - Vega'nin (Delphi tabanli, muhtemelen sabit uzunlukta bir
-// alanda tutulan) token'i saklarken/tekrar gonderirken kirptigi supheleniliyor.
-// Bu yuzden kisa (32 karakter), opak, rastgele bir token'a gecildi; token +
-// son gecerlilik zamani VegaIntegration singleton satirinda saklanip Bearer
-// dogrulamasinda karsilastiriliyor (bkz. VEGA_PANELAPI_BULGULARI_VE_PLAN.md).
+// Once bir JWT, sonra VegaIntegration uzerinde "tek aktif token" alani
+// denendi - ikisi de canli testte "gecersiz token" hatalarina yol acti.
+// Gercek sebep formatla ilgili degildi: tek bir aktif token alani, Claude'un
+// dogrulama icin attigi her test giris istegini Vega'nin kendi aldigi
+// token'in yerine geciriyordu (her yeni giris bir oncekini gecersiz
+// kiliyordu). Artik her giris VegaSession tablosunda kendi bagimsiz satirini
+// aliyor, birbirini etkilemiyor (bkz. VEGA_PANELAPI_BULGULARI_VE_PLAN.md).
 const VEGA_TOKEN_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 30;
 
 export async function signVegaToken(email: string) {
   const token = randomBytes(16).toString("hex");
   const expiresAt = new Date(Date.now() + VEGA_TOKEN_EXPIRES_IN_SECONDS * 1000);
 
-  await prisma.vegaIntegration.update({
-    where: { id: "singleton" },
-    data: { activeToken: token, activeTokenExpiresAt: expiresAt }
+  await prisma.vegaSession.create({
+    data: { token, expiresAt, vegaIntegrationId: "singleton" }
   });
 
   return { token, expiresIn: VEGA_TOKEN_EXPIRES_IN_SECONDS };
@@ -36,13 +34,14 @@ export async function verifyVegaToken(
   }
   const suppliedToken = match[1].trim();
 
-  const integration = await prisma.vegaIntegration.findUnique({ where: { id: "singleton" } });
-  if (!integration?.activeToken || integration.activeToken !== suppliedToken) {
-    return { ok: false, status: 401, error: "Gecersiz veya suresi dolmus token." };
-  }
-  if (!integration.activeTokenExpiresAt || integration.activeTokenExpiresAt.getTime() < Date.now()) {
+  const session = await prisma.vegaSession.findUnique({
+    where: { token: suppliedToken },
+    include: { vegaIntegration: true }
+  });
+
+  if (!session || session.expiresAt.getTime() < Date.now()) {
     return { ok: false, status: 401, error: "Gecersiz veya suresi dolmus token." };
   }
 
-  return { ok: true, email: integration.email };
+  return { ok: true, email: session.vegaIntegration.email };
 }

@@ -432,17 +432,27 @@ model StoreSettings {
 // VEGA_PANELAPI_BULGULARI_VE_PLAN.md). Singleton satir (StoreSettings ile
 // ayni desen).
 model VegaIntegration {
-  id                   String    @id @default("singleton")
-  email                String    @default("")
-  passwordHash         String    @default("")
-  // Vega'nin uzun JWT'leri saklarken/tekrar gonderirken kirptigi supheleniliyor
-  // (canli testte taze uretilmis bir JWT birkac dakika icinde "gecersiz" cevabi
-  // almaya basladi, ayni JWT dogrudan test edildiginde sorunsuzdu) - bu yuzden
-  // kisa, opak bir token'a gecildi, bu token + son gecerlilik zamani burada
-  // saklanip Bearer dogrulamasinda karsilastiriliyor (bkz. vega-auth.ts).
-  activeToken          String?
-  activeTokenExpiresAt DateTime?
-  updatedAt            DateTime  @updatedAt
+  id           String   @id @default("singleton")
+  email        String   @default("")
+  passwordHash String   @default("")
+  sessions     VegaSession[]
+  updatedAt    DateTime @updatedAt
+}
+
+// Vega'nin Account/Token'dan aldigi Bearer token'lar burada saklanir. Tek
+// bir "aktif token" alani (VegaIntegration uzerinde) YETERSIZ kaldi -
+// Claude'un dogrulama icin attigi test giris istekleri, Vega'nin kendi
+// aldigi token'i sessizce geciriyordu (her yeni giris bir oncekini
+// gecersiz kiliyordu), bu da canli testte gercek bir hata gibi gorunen
+// yanlis "gecersiz token" hatalarina yol acti. Artik her giris kendi
+// bagimsiz satirini aliyor, birbirini etkilemiyor.
+model VegaSession {
+  id                 String          @id @default(cuid())
+  token              String          @unique
+  vegaIntegrationId  String
+  vegaIntegration    VegaIntegration @relation(fields: [vegaIntegrationId], references: [id], onDelete: Cascade)
+  expiresAt          DateTime
+  createdAt          DateTime        @default(now())
 }
 
 // Kritik islemlerin (siparis/iade durum degisikligi, personel yonetimi,
