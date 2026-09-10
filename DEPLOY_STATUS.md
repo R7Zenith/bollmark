@@ -2645,28 +2645,31 @@ Blob'dan da siliyor (tekli silmedeki `admin/urunler/[id]/page.tsx` ->
 toplu silip Blob dashboard'unda dogrulama yapilamadi (UI/tarayici
 erisimi yok) - kod incelemesi + `tsc`/`build` ile dogrulandi.
 
-### Faz 3 - Yetim Blob temizligi (script hazir, dry-run calistirildi, execute ONAY BEKLIYOR)
+### Faz 3 - Yetim Blob temizligi (TAMAMLANDI)
 
 `scripts/temizle-yetim-blob.ts` yazildi (varsayilan dry-run, `--execute`
-ile gercek silme). Dry-run sonucu:
+ile gercek silme). Dry-run: 148 blob, 45 referansli, **103 yetim
+(~275 MB)**. Kullanici onayladi, `--execute` calistirildi:
 
-- Toplam blob: **148**, referansli (kullanilan): **45**, yetim: **103**
-- Yetim dosyalarin toplam boyutu: **~275 MB**
+- **103 dosya silindi, 274.99 MB bosaldi.**
 
-Kullanicinin onayi olmadan `--execute` calistirilmadi.
-
-### Faz 4 - Mevcut gorselleri geriye donuk sikistirma (script hazir, dry-run calistirildi, execute ONAY BEKLIYOR)
+### Faz 4 - Mevcut gorselleri geriye donuk sikistirma (TAMAMLANDI)
 
 `scripts/sikistir-mevcut-gorseller.ts` yazildi (varsayilan dry-run,
 `--execute` + opsiyonel `--limit=N` ile gercek islem, 20'serli grup +
 300ms bekleme, hata veren gorsel atlanip loglanir, script durmaz).
-Dry-run sonucu (tahmini, mevcut Blob boyutlarina bakarak):
+Dry-run: 45 referansli gorsel, ~116 MB, tahmini sikistirma sonrasi
+~17.4 MB. Kullanici onayladi, tum 45 gorselle `--execute` calistirildi:
 
-- Islenecek referansli gorsel: **45** (zaten `.webp` olan yok, atlanan: 0)
-- Mevcut toplam boyut: **~116 MB**
-- Tahmini islem sonrasi boyut (~%15 oraniyla): **~17.4 MB**
-
-Kullanicinin onayi olmadan `--execute` calistirilmadi.
+- **45/45 gorsel basariyla sikistirildi, 0 basarisiz.** Her gorsel
+  indirilip sharp ile (max 1600px, WebP kalite ~78) islendi, yeni Blob
+  path'ine yuklendi, ilgili DB satirindaki url alani guncellendi, eski
+  (sikistirilmamis) dosya silindi.
+- Dogrulama: script tekrar dry-run modunda calistirildi -> "islenecek
+  gorsel: 0, zaten islenmis (.webp): 45" (hepsi artik WebP). Yetim Blob
+  scripti de tekrar calistirildi -> "toplam blob: 45, referansli: 45,
+  yetim: 0" (hicbir eski/yetim dosya kalmadi, DB url'leri dogru
+  guncellenmis).
 
 ### Genel
 
@@ -2676,8 +2679,8 @@ yuzunden her iki yeni script de standart `import "dotenv/config"`e ek
 olarak `.env.local`'i de aciyor (diger scriptlerden farkli, cunku onlar
 Blob'a degil sadece DB'ye erisiyor).
 
-**Sonraki oturumda/kullanicidan onay sonrasi yapilacak**: Once Faz 3
-`--execute` (yetim dosyalari kalici siler, geri donusu yok - digerlerini
-etkilemez cunku hicbir yerde referans edilmiyorlar), sonra Faz 4 once
-kucuk `--limit` ile test edilip sonuc kontrol edildikten sonra tum
-gorsellerle `--execute`.
+**Toplam kazanc bu oturumda**: Blob deposundan ~275 MB yetim dosya
+silindi, kalan ~116 MB'lik kullanilan gorseller ~17 MB civarina indi -
+Hobby plandaki 1GB kotadan toplamda yaklasik 370+ MB yer acildi. Yeni
+yuklemeler de (Faz 1) artik otomatik sikistiriliyor, kota bir daha bu
+hizla dolmayacak.
