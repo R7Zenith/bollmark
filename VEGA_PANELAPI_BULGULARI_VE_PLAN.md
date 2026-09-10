@@ -114,6 +114,46 @@ Brands, Warehouses/Depo listesi, Products, Stock, Orders) da aynı
    incelenip bir sonraki adıma (muhtemelen Depo listesi / Brands / asıl
    ürün yükleme uç noktası) geçilecek.
 
+## Basarili: Kategori Secimi calisiyor (2026-09-10)
+
+Yukaridaki Cloudflare Worker koprusu + PascalCase sayfalama alanlari
+duzeltmeleri sonrasi kullanici Vega'da "Kategori Seçimi"ni tekrar denedi ve
+**kategoriler basariyla indirildi**. Canli iterasyonlarla ortaya cikan,
+Vega'nin sayfalama cevabinda kesin olarak gerektirdigi alanlar (`/api/vega/panelapi/[...path]/route.ts`
+icindeki `paginatedResponse()` helper'inda):
+
+- `Count` (toplam kayit sayisi) - zorunlu, eksikse "value 'Count' not
+  found" hatasi.
+- `TotalPageSize` (toplam kayit sayisi, `Count` ile ayni deger) - zorunlu,
+  eksikse "value 'TotalPageSize' not found" hatasi.
+- Muhtemelen ihtiyac olmayan ama zarar vermeyen ekstra alanlar da
+  birakildi: `data`/`Data`, `totalCount`/`TotalCount`, `TotalPages`,
+  `pageIndex`/`PageIndex`, `pageSize`/`PageSize`. Hangilerinin gercekten
+  okundugu tam kesinlesmedi (Vega sessizce yoksayiyor olabilir), ama
+  fazladan alan sorun cikarmadi.
+
+**Guncel mimari**: Vega -> `https://bollmark-vega-bridge.ozilevent.workers.dev/api/vega`
+(Cloudflare Worker, `vega-bridge-worker/`) -> cift slash normalize edilip
+sunucu-sunucu fetch ile -> `https://bollmark.com/api/vega/panelapi/...`
+(Next.js/Vercel, asil is mantigi + Neon DB).
+
+## Sirada (henuz yapilmadi)
+
+- **SalesOrder**: Vega, Kategori Secimi'nden hemen sonra kendiliginden
+  `GET SalesOrder` cagiriyor (siparis senkronizasyonu, `OrderDateMin`/
+  `OrderDateMax` araligiyla). Su an bos ama gecerli bir sayfali cevap
+  donuyor (hata vermiyor, ama gercek siparis verisi de gondermiyor). Vega'nin
+  beklidigi siparis JSON semasi bilinmiyor - gerekirse ayri bir arastirma/
+  plan konusu.
+- **Urun yukleme uc noktasi (asil hedef)**: Kullanici "Secili Urunleri
+  Yukle" dedigi zaman Vega'nin hangi uc noktaya (muhtemelen `POST Products`
+  veya benzeri) ne formatta veri gonderdigi henuz yakalanmadi/gorulmedi -
+  bir sonraki canli testte (kullanici gercekten bir urun secip yuklemeyi
+  deneyince) Vercel loglarindan veya webhook.site ile gorulecek.
+- **Brands/Warehouses (Depo) vb.**: Plandaki diger olasi uc noktalar henuz
+  hic denenmedi, Vega onlara ihtiyac duyarsa ayni "canli yakalama + PascalCase
+  alan adi deneme-yanilma" yontemiyle eklenecek.
+
 ## Sıradaki adım
 
 Yukarıdaki 1-7 maddeleri için Claude Code'a verilecek promptu aşağıda
