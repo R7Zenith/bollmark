@@ -328,10 +328,12 @@ export default async function AdminSettingsPage({
         <div className="mb-4 flex gap-3 rounded-md bg-admin-bg p-4 text-sm text-admin-text-muted">
           <Info size={18} className="mt-0.5 flex-shrink-0 text-admin-accent" />
           <p>
-            Vega&apos;da &quot;Site Tipi&quot; olarak <strong>Ticimax</strong> seçip &quot;Site Adı&quot; alanına{" "}
-            <code className="rounded bg-white px-1 py-0.5">https://bollmark.com/api/vega-tcmx</code> girin. &quot;Üye
-            Kodu&quot; alanına ise burada belirlediğiniz değeri aynen yazın (yukarıdaki E-Mail/Parola ile
-            ilgisi yok — Ticimax&apos;ın kendi protokolü tek bir kod kullanır).
+            Vega&apos;da &quot;Site Tipi&quot; olarak <strong>Ticimax</strong> seçip &quot;Site Adı&quot; alanına
+            (başındaki sabit &quot;www.&quot; öneki hariç) sadece{" "}
+            <code className="rounded bg-white px-1 py-0.5">bollmark.com</code> yazın — başına http(s):// veya
+            sonuna bir yol eklemeyin, Vega gerekeni kendisi ekliyor. &quot;Web Servis Kodu&quot; alanına ise
+            burada belirlediğiniz değeri aynen yazın (yukarıdaki E-Mail/Parola ile ilgisi yok — Ticimax&apos;ın
+            kendi protokolü tek bir kod kullanır).
           </p>
         </div>
         <form action={updateTicimaxIntegration} className="space-y-4">

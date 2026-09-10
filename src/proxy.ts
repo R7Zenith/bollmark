@@ -83,5 +83,10 @@ export default async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api|_next|favicon.ico).*)"]
+  // "Servis" (buyuk S) haric tutuluyor: Vega'nin Ticimax taklidi SOAP
+  // entegrasyonu (bkz. src/app/Servis) gercek Ticimax magazalarinin URL
+  // yapisiyla ("www.<domain>/Servis/<Servis>.svc", path yok) birebir
+  // eslesmesi icin site kokune yerlestirildi - onizleme sifresi kapisina
+  // takilirsa Vega SOAP istegi yerine HTML gate sayfasi alir.
+  matcher: ["/((?!api|Servis|_next|favicon.ico).*)"]
 };
