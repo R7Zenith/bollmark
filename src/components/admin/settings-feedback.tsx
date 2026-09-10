@@ -11,14 +11,16 @@ const errorMessages: Record<string, string> = {
   "sifre-eslesmiyor": "Yeni şifreler eşleşmiyor.",
   "vega-email-gerekli": "Vega entegrasyonu için e-posta gerekli.",
   "vega-parola-gerekli": "İlk kayıtta bir parola belirlemelisiniz.",
-  "vega-parola-kisa": "Vega parolası en az 8 karakter olmalı."
+  "vega-parola-kisa": "Vega parolası en az 8 karakter olmalı.",
+  "ticimax-uyekodu-gerekli": "Üye kodu gerekli."
 };
 
 const successMessages: Record<string, string> = {
   hesap: "Şifre başarıyla güncellendi.",
   magaza: "Mağaza bilgileri kaydedildi.",
   "sepet-hatirlatma": "Sepet hatırlatma ayarları kaydedildi.",
-  vega: "Vega entegrasyon bilgileri kaydedildi."
+  vega: "Vega entegrasyon bilgileri kaydedildi.",
+  ticimax: "Üye kodu kaydedildi."
 };
 
 export function SettingsFeedback({ basarili, hata }: { basarili?: string; hata?: string }) {

@@ -23,6 +23,11 @@ model AdminUser {
 
 model Category {
   id              String     @id @default(cuid())
+  // Ticimax'in SOAP semasi kategori ID'lerini Prisma'nin cuid string'leri
+  // yerine int bekliyor (bkz. VEGA_PANELAPI_BULGULARI_VE_PLAN.md - Ticimax
+  // taklidi bolumu). Bu alan Vega'ya donulen/Vega'dan gelen "ID"/"PID"
+  // degerleri icin kalici, kucuk bir tamsayi kimlik saglar.
+  vegaId          Int        @unique @default(autoincrement())
   name            String
   slug            String     @unique
   parentId        String?
@@ -436,6 +441,12 @@ model VegaIntegration {
   email        String   @default("")
   passwordHash String   @default("")
   sessions     VegaSession[]
+  // Ticimax taklidi SOAP entegrasyonu (Servis/UrunServis.svc vb.) icin ayri
+  // bir kimlik dogrulama alani - Ticimax'in gercek protokolunde tek bir
+  // "UyeKodu" (duz metin, API anahtari gibi calisan bir paylasilan sir)
+  // var, email+parola cifti yok. Panelden gosterilebilmesi icin (Vega'ya
+  // aynen kopyalanacak) bilerek hash'lenmeden saklaniyor.
+  ticimaxUyeKodu String @default("")
   updatedAt    DateTime @updatedAt
 }
 

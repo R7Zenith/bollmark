@@ -1,6 +1,104 @@
 # Vega "E-Ticaret" Entegrasyonu — panelapi Keşif Bulguları ve Uygulama Planı
 
-## GÜNCEL DURUM (2026-09-10 akşamı) — buradan devam et
+## GÜNCEL DURUM (2026-09-10 gece) — buradan devam et — Ticimax taklidi yaklaşımı
+
+**Yön değişikliği**: Aşağıdaki "panelapi" (JSON) yaklaşımı tıkanınca (bkz.
+altındaki eski GÜNCEL DURUM bölümü), kullanıcının önerisiyle farklı bir yol
+denendi: Vega'nın "Site Tipi" ayarında zaten **Ticimax** gibi hazır,
+bilinen platform entegrasyonları var. Ticimax'ın GERÇEK, resmi web servis
+protokolünü (SOAP/WCF, dokümante) taklit edip Vega'ya "ben bir Ticimax
+mağazasıyım" dedirtmek, bizim uydurduğumuz JSON formatını tahmin etmekten
+çok daha güvenilir bir temel sağlıyor.
+
+**Bulgular**:
+- Ticimax'ın resmi dokümantasyonu: `static.ticimax.com/dokumanlar/webservis.pdf`
+  ve `static.ticimax.com/dokumanlar/UrunServis.pdf`. Protokol SOAP/WCF
+  (`.svc` uzantılı), REST/JSON DEĞİL. 4 servis: `UrunServis.svc`
+  (kategori/marka/tedarikçi/ürün), `SiparisServis.svc`, `UyeServis.svc`,
+  `CustomServis.svc`. Kimlik doğrulama tek bir düz metin `UyeKodu`
+  parametresiyle (her metoda geçiliyor, email+parola yok).
+- **webhook.site ile gerçek Vega isteği yakalandı** (Vega'da Site Tipi=
+  Ticimax seçilip Site Adı geçici olarak webhook.site'a çevrilerek):
+  ```
+  POST {SiteAdı}/Servis/UrunServis.svc
+  SOAPAction: http://tempuri.org/IUrunServis/SelectKategori
+  User-Agent: Embarcadero SOAP 1.4
+  <SelectKategori xmlns="http://tempuri.org/">
+    <UyeKodu>...</UyeKodu><kategoriID>0</kategoriID><dil>tr</dil>
+  </SelectKategori>
+  ```
+  Önemli: Vega, Site Adı'nın sonuna kendisi `/Servis/UrunServis.svc` ekliyor
+  ve **çift slash sorunu burada YOK** (panelapi'deki gibi tek `/` ile
+  birleşiyor) - yani Cloudflare Worker köprüsüne gerek kalmadan doğrudan
+  `bollmark.com`'a bağlanılabilir.
+- **Gerçek bir Ticimax mağazasının (lorisparfum.com) WSDL'inden otomatik
+  üretilmiş açık kaynak bir PHP SOAP istemcisi bulundu**
+  (`github.com/asilbalaban/ticimax-wsdl-php`) - `Kategori` DataContract
+  sınıfının TAM alan listesi buradan doğrulandı: `Aktif`(bool), `ID`(int),
+  `Icerik`(string, nillable), `KategoriMenuGoster`(bool), `Kod`(string),
+  `PID`(int, üst kategori), `SeoAnahtarKelime`/`SeoSayfaAciklama`/
+  `SeoSayfaBaslik`(string), `Sira`(int), `Tanim`(string), `Url`(string).
+  Alfabetik sıra (`Aktif, ID, Icerik, KategoriMenuGoster, Kod, PID,
+  SeoAnahtarKelime, SeoSayfaAciklama, SeoSayfaBaslik, Sira, Tanim, Url`)
+  C#'ın DataContract varsayılan sıralamasıyla eşleşiyor, response XML'inde
+  bu sırayla kullanıldı.
+  - **Not**: `lorisparfum.com` artık Ticimax kullanmıyor (Shopify'a
+    geçmiş, `?wsdl` isteği 404 döndü) - bu yüzden gerçek namespace URI'sini
+    (DataContract namespace'i) canlı bir WSDL'den doğrulayamadık, sadece
+    alan adı/tip listesini doğrulayabildik.
+  - **Denenmeyen/vazgeçilen yol**: Ticimax'ın müşteri referans sayfasından
+    bulunan başka canlı mağazaların (`tudors.com` vb.) `.svc?wsdl`
+    adreslerini topluca çekmeye çalışırken **Claude Code'un güvenlik
+    sınıflandırıcısı bunu engelledi** (üçüncü taraf sitelerin iç servis
+    dosyalarını otomatik/toplu taramak gibi göründüğü için) - bu zorlanmadı,
+    tahmine dayalı ilerlendi.
+
+**Uygulanan** (bu oturumda kodlandı, deploy edilmeyi bekliyor):
+- `prisma/schema.prisma`: `Category.vegaId` (Int, `@unique @default(autoincrement())`)
+  eklendi - Ticimax'ın int kategori ID'si beklemesi nedeniyle (Prisma'nın
+  cuid string'leri yerine). `VegaIntegration.ticimaxUyeKodu` (String, düz
+  metin - hash'lenmedi çünkü Vega'ya aynen kopyalanacak bir değer, panelden
+  gösterilebilmesi gerekiyor). `npx prisma db push --accept-data-loss` ile
+  Neon'a uygulandı (kullanıcı onayı + Prisma'nın AI-agent güvenlik
+  kontrolü için `PRISMA_USER_CONSENT_FOR_DANGEROUS_AI_ACTION` env'i
+  kullanıldı - gerçek veri kaybı YOK, sadece yeni sütun eklendi).
+- **Yeni route**: `src/app/api/vega-tcmx/Servis/[service]/route.ts` - şu an
+  sadece `SelectKategori` metodunu (UrunServis.svc) implemente ediyor:
+  `UyeKodu`'nu `VegaIntegration.ticimaxUyeKodu` ile karşılaştırıyor,
+  Bollmark kategorilerini yukarıdaki `Kategori` şemasına göre SOAP XML
+  cevabı olarak dönüyor (`SelectKategoriResponse`/`SelectKategoriResult`
+  sarmalaması, `http://schemas.datacontract.org/2004/07/UrunServis`
+  namespace'i - **bu namespace TAHMİNİ**, servis dosya adından türetildi,
+  canlı testte yanlış çıkarsa Vega'nın davranışından anlaşılıp
+  düzeltilecek). Başka bir metot çağrılırsa SOAP Fault dönüp logluyor
+  (hangi metodun sırada geldiğini görmek için).
+- Admin panel (`/admin/ayarlar`): yeni "Vega — Ticimax Taklidi (SOAP)
+  Entegrasyonu" kartı - `ticimaxUyeKodu` için bir form alanı.
+
+**Sıradaki adım (henüz yapılmadı)**:
+1. Kullanıcı admin panelden `/admin/ayarlar` içinde yeni karta bir Üye Kodu
+   girip kaydetsin.
+2. Vega'da Site Tipi=Ticimax, Site Adı=`https://bollmark.com/api/vega-tcmx`,
+   Üye Kodu=panelden girilen deger olarak ayarlanıp **gerçek** "Kategori
+   Seçimi" denensin (webhook.site değil, artık canlı sunucumuz - gerçek
+   bir cevap dönebiliyor).
+3. Sonuç: kategoriler gerçekten göründü mü, boş mu kaldı, hata mesajı mı
+   çıktı? Vercel loglarından (`[vega-tcmx]` etiketli satırlar,
+   `npx vercel logs`) hangi metodun çağrıldığı ve gönderdiğimiz XML
+   görülebilir. Namespace/sarmalama tahmini yanlışsa (en olası hata
+   noktası budur) buna göre düzeltilip tekrar denenecek - ama artık
+   rastgele tahmin değil, gerçek Ticimax şemasına dayanan küçük
+   ayarlamalar olacak.
+4. Kategori Seçimi çalışırsa: `SelectMarka`, `SelectTedarikci`,
+   `SelectParaBirimi`, ve asıl hedef olan `SaveUrun` (ürün yükleme)
+   metotları aynı yöntemle (webhook.site ile gerçek istek yakalama +
+   `ticimax-wsdl-php` reposundaki ilgili struct dosyalarından şema alma)
+   sırayla eklenecek.
+
+---
+
+## GÜNCEL DURUM (2026-09-10 akşamı, eski/JSON yaklaşımı — artık aktif yol
+DEĞİL, referans için tutuluyor)
 
 **Çalışan kısım**: Vega ↔ Bollmark bağlantısı, giriş (Account/Token) ve
 kategori listesi (Categories) HTTP seviyesinde tam çalışıyor — Vercel

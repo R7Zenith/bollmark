@@ -2732,6 +2732,27 @@ seviyesinde calisiyor (Cloudflare Worker koprusu `vega-bridge-worker/` +
 `/api/vega/panelapi/...` route'u + yeni `VegaSession` tablosu - hepsi
 deploy edildi, canli test edildi). Ama Vega'nin "Kategori Secimi"
 penceresi hala bos kaliyor (cok sayida format denendi, hicbiri
-calismadi) ve bu, urun yukleme akisini tamamen engelliyor. Onerilen
-sonraki adim: Vega'nin kendi teknik destegine gercek JSON semasini
-sormak (hazir soru metni plan dosyasinda var).
+calismadi) ve bu, urun yukleme akisini tamamen engelliyor.
+
+## Vega - Ticimax taklidi SOAP entegrasyonu (2026-09-10 gece, ayni oturum devami) - YARIM KALDI
+
+Vega destege ulasilamadigi icin (kullanici bildirdi) yon degistirildi:
+Vega'nin "Site Tipi" ayarinda hazir bulunan **Ticimax** platformunun
+GERCEK, dokumante (SOAP/WCF) protokolu taklit edilmeye baslandi - tahmine
+dayali JSON yerine artik gercek bir semaya dayaniyor. Detaylar, canli
+yakalanan gercek Vega SOAP istegi, ve siradaki somut adim icin
+**`VEGA_PANELAPI_BULGULARI_VE_PLAN.md`** dosyasinin EN USTUNDEKI
+"GÜNCEL DURUM ... Ticimax taklidi yaklaşımı" bolumune bakin.
+
+Bu oturumda kodlanan/deploy edilen (kisa ozet):
+- `prisma/schema.prisma`: `Category.vegaId` (int, Ticimax'in beklediği
+  tamsayi kategori ID'si icin) ve `VegaIntegration.ticimaxUyeKodu`
+  (duz metin) eklendi, Neon'a `db push` ile uygulandi.
+- Yeni route: `src/app/api/vega-tcmx/Servis/[service]/route.ts` -
+  `UrunServis.svc`nin `SelectKategori` metodunu gercek Ticimax SOAP
+  seklinde cevaplıyor (namespace tahmini, canli testte dogrulanacak).
+- Admin panel (`/admin/ayarlar`): yeni "Ticimax Taklidi (SOAP)" karti,
+  `ticimaxUyeKodu` alani.
+- **Henuz yapilmadi**: kullanicinin panelden Uye Kodu girip Vega'da
+  Site Tipi=Ticimax, Site Adi=`https://bollmark.com/api/vega-tcmx` ile
+  canli "Kategori Secimi" testi + Vercel loglarindan sonucun okunmasi.

@@ -96,6 +96,24 @@ async function updateVegaIntegration(formData: FormData) {
   redirect("/admin/ayarlar?basarili=vega");
 }
 
+// Ticimax taklidi SOAP entegrasyonu (bkz. api/vega-tcmx) icin ayri bir
+// kimlik dogrulama alani - Ticimax'in gercek protokolunde email+parola
+// yerine tek bir "UyeKodu" (duz metin, API anahtari gibi) kullanilir.
+async function updateTicimaxIntegration(formData: FormData) {
+  "use server";
+  const ticimaxUyeKodu = String(formData.get("ticimaxUyeKodu") || "").trim();
+  if (!ticimaxUyeKodu) redirect("/admin/ayarlar?hata=ticimax-uyekodu-gerekli");
+
+  await prisma.vegaIntegration.upsert({
+    where: { id: "singleton" },
+    create: { id: "singleton", ticimaxUyeKodu },
+    update: { ticimaxUyeKodu }
+  });
+
+  revalidatePath("/admin/ayarlar");
+  redirect("/admin/ayarlar?basarili=ticimax");
+}
+
 export default async function AdminSettingsPage({
   searchParams
 }: {
@@ -302,6 +320,33 @@ export default async function AdminSettingsPage({
           </div>
           <button className="rounded-md bg-admin-accent px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
             Vega Entegrasyon Bilgilerini Kaydet
+          </button>
+        </form>
+      </Card>
+
+      <Card title="Vega — Ticimax Taklidi (SOAP) Entegrasyonu">
+        <div className="mb-4 flex gap-3 rounded-md bg-admin-bg p-4 text-sm text-admin-text-muted">
+          <Info size={18} className="mt-0.5 flex-shrink-0 text-admin-accent" />
+          <p>
+            Vega&apos;da &quot;Site Tipi&quot; olarak <strong>Ticimax</strong> seçip &quot;Site Adı&quot; alanına{" "}
+            <code className="rounded bg-white px-1 py-0.5">https://bollmark.com/api/vega-tcmx</code> girin. &quot;Üye
+            Kodu&quot; alanına ise burada belirlediğiniz değeri aynen yazın (yukarıdaki E-Mail/Parola ile
+            ilgisi yok — Ticimax&apos;ın kendi protokolü tek bir kod kullanır).
+          </p>
+        </div>
+        <form action={updateTicimaxIntegration} className="space-y-4">
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">Üye Kodu</label>
+            <input
+              name="ticimaxUyeKodu"
+              required
+              defaultValue={vegaIntegration.ticimaxUyeKodu}
+              placeholder="Vega'ya aynen kopyalanacak bir kod belirleyin"
+              className="mt-1 w-full rounded-md border border-admin-border px-4 py-2.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+            />
+          </div>
+          <button className="rounded-md bg-admin-accent px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
+            Üye Kodunu Kaydet
           </button>
         </form>
       </Card>
