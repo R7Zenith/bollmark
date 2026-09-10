@@ -83,12 +83,12 @@ function parsePageParams(searchParams: URLSearchParams) {
   return { pageIndex, pageSize };
 }
 
-// Vega'nin sayfalama zarfinda tam olarak hangi alan adlarini okudugu
-// canli testte ortaya cikti: "TotalPageSize" adinda bir alan bekliyor
+// Vega'nin sayfalama zarfinda tam olarak hangi alan adlarini okudugu canli
+// testlerle adim adim ortaya cikti: once "TotalPageSize", sonra "Count"
 // (PascalCase - "PageIndex"/"PageSize" sorgu parametreleriyle ve
 // "OrderDateMin" gibi diger alan adlariyla tutarli). Hangisinin gercekten
-// kullanildigi kesinlesene kadar hem kucuk harfli hem PascalCase alan
-// adlari birlikte donuluyor.
+// kullanildigi kesinlesene kadar butun olasi alan adlari birlikte
+// donuluyor.
 function paginatedResponse(items: Record<string, unknown>[], pageIndex: number, pageSize: number, totalCount: number) {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
   return {
@@ -96,6 +96,7 @@ function paginatedResponse(items: Record<string, unknown>[], pageIndex: number, 
     Data: items,
     totalCount,
     TotalCount: totalCount,
+    Count: totalCount,
     TotalPageSize: totalCount,
     TotalPages: totalPages,
     pageIndex,
