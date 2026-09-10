@@ -44,8 +44,11 @@ function xmlEscape(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
+// Etiket adindan sonra bosluk / "/" / ">" bekleniyor - aksi halde <ID> ararken
+// <IDBaskaBirSey> gibi etiketler de eslesir. Namespace oneki (orn. <a:ID>)
+// opsiyonel olarak kabul ediliyor.
 function extractTag(xml: string, tag: string): string | null {
-  const match = new RegExp(`<${tag}[^>]*>([\\s\\S]*?)</${tag}>`, "i").exec(xml);
+  const match = new RegExp(`<(?:\\w+:)?${tag}(?=[\\s/>])[^>]*>([\\s\\S]*?)</(?:\\w+:)?${tag}>`, "i").exec(xml);
   return match ? match[1].trim() : null;
 }
 
@@ -250,12 +253,60 @@ async function handleSelectUrun(rawBody: string) {
   );
 }
 
+// Vega, stok senkronizasyonunda her varyant icin ayri bir VaryasyonGuncelle
+// istegi atiyor (canli yakalamayla dogrulanan gercek govde):
+//   <urun><Aktif>true</Aktif><ID>28</ID><StokAdedi>0</StokAdedi></urun>
+//   <ayar><AktifGuncelle>true</AktifGuncelle><StokAdediGuncelle>true</StokAdediGuncelle></ayar>
+// "ayar" bloku hangi alanlarin yazilacagini soyler; sadece bayragi true olan
+// alan guncelleniyor. "Aktif" bayragi su an yok sayiliyor - Bollmark'ta
+// varyant seviyesinde aktiflik alani yok, urunun tamamini pasife cekmek de
+// istenmeyen bir yan etki olurdu.
+async function handleVaryasyonGuncelle(rawBody: string) {
+  const uyeKodu = extractTag(rawBody, "UyeKodu");
+  if (!(await verifyUyeKodu(uyeKodu))) {
+    logTcmx("VaryasyonGuncelle yetkisiz", {});
+    return xmlResponse(soapFault("UyeKodu hatali."), 500);
+  }
+
+  const urunBlock = extractTag(rawBody, "urun") ?? "";
+  const ayarBlock = extractTag(rawBody, "ayar") ?? "";
+
+  const vegaId = Number(extractTag(urunBlock, "ID") ?? "0");
+  const stokAdedi = Number(extractTag(urunBlock, "StokAdedi") ?? "0");
+  const stokGuncellensin = (extractTag(ayarBlock, "StokAdediGuncelle") ?? "").toLowerCase() === "true";
+
+  if (!vegaId || !stokGuncellensin) {
+    logTcmx("VaryasyonGuncelle atlandi", { vegaId, stokGuncellensin });
+    return xmlResponse(
+      soapEnvelope(
+        `<VaryasyonGuncelleResponse xmlns="http://tempuri.org/"><VaryasyonGuncelleResult>0</VaryasyonGuncelleResult></VaryasyonGuncelleResponse>`
+      )
+    );
+  }
+
+  const updated = await prisma.productVariant.updateMany({
+    where: { vegaId },
+    data: { stock: Math.max(0, Math.round(stokAdedi)) }
+  });
+
+  logTcmx("VaryasyonGuncelle", { vegaId, stokAdedi, guncellenen: updated.count });
+
+  return xmlResponse(
+    soapEnvelope(
+      `<VaryasyonGuncelleResponse xmlns="http://tempuri.org/">` +
+        `<VaryasyonGuncelleResult>${updated.count > 0 ? vegaId : 0}</VaryasyonGuncelleResult>` +
+        `</VaryasyonGuncelleResponse>`
+    )
+  );
+}
+
 type Handler = (rawBody: string) => Promise<NextResponse>;
 
 const methods: Record<string, Handler> = {
   SelectKategori: handleSelectKategori,
   SelectUrunCount: handleSelectUrunCount,
-  SelectUrun: handleSelectUrun
+  SelectUrun: handleSelectUrun,
+  VaryasyonGuncelle: handleVaryasyonGuncelle
 };
 
 export async function POST(request: NextRequest, context: { params: Promise<{ service: string }> }) {
