@@ -13,15 +13,24 @@
 // indirgeyip, asil Bollmark API'sine sunucu-sunucu bir fetch ile iletip
 // cevabi oldugu gibi geri donuyoruz - Vega hicbir zaman bir redirect
 // cevabi gormuyor.
+//
+// Ikinci bir kullanim alani daha eklendi: Vega'nin "TiciMax" (SOAP)
+// entegrasyonunda cift slash sorunu yok, ama Vega'nin eski Embarcadero SOAP
+// istemcisi Vercel'in TLS sertifikasi/sifreleme paketiyle anlasamiyor gibi
+// gorunuyor - webhook.site'a (Cloudflare) sorunsuz HTTPS istegi atarken
+// bollmark.com'a (Vercel) hic ulasamiyor (istek sessizce kayboluyor, Vercel
+// loglarinda hicbir iz yok). Cloudflare'in eski istemcilerle genis TLS
+// uyumlulugundan faydalanmak icin /Servis/... yolu da bu Worker uzerinden
+// (ayni sunucu-sunucu fetch deseniyle) Bollmark'a yonlendiriliyor.
 const ORIGIN = "https://bollmark.com";
-const ALLOWED_PREFIX = "/api/vega/panelapi/";
+const ALLOWED_PREFIXES = ["/api/vega/panelapi/", "/Servis/"];
 
 export default {
   async fetch(request) {
     const url = new URL(request.url);
     const normalizedPath = url.pathname.replace(/\/{2,}/g, "/");
 
-    if (!normalizedPath.startsWith(ALLOWED_PREFIX)) {
+    if (!ALLOWED_PREFIXES.some((prefix) => normalizedPath.startsWith(prefix))) {
       return new Response("Not found", { status: 404 });
     }
 
