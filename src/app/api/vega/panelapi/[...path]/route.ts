@@ -77,6 +77,34 @@ async function handleAccountToken(request: NextRequest) {
   });
 }
 
+function parsePageParams(searchParams: URLSearchParams) {
+  const pageIndex = Math.max(1, Math.round(Number(searchParams.get("PageIndex") ?? "1")) || 1);
+  const pageSize = Math.min(500, Math.max(1, Math.round(Number(searchParams.get("PageSize") ?? "100")) || 100));
+  return { pageIndex, pageSize };
+}
+
+// Vega'nin sayfalama zarfinda tam olarak hangi alan adlarini okudugu
+// canli testte ortaya cikti: "TotalPageSize" adinda bir alan bekliyor
+// (PascalCase - "PageIndex"/"PageSize" sorgu parametreleriyle ve
+// "OrderDateMin" gibi diger alan adlariyla tutarli). Hangisinin gercekten
+// kullanildigi kesinlesene kadar hem kucuk harfli hem PascalCase alan
+// adlari birlikte donuluyor.
+function paginatedResponse(items: Record<string, unknown>[], pageIndex: number, pageSize: number, totalCount: number) {
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  return {
+    data: items,
+    Data: items,
+    totalCount,
+    TotalCount: totalCount,
+    TotalPageSize: totalCount,
+    TotalPages: totalPages,
+    pageIndex,
+    PageIndex: pageIndex,
+    pageSize,
+    PageSize: pageSize
+  };
+}
+
 async function handleCategories(request: NextRequest) {
   const auth = await verifyVegaToken(request);
   if (!auth.ok) {
@@ -84,9 +112,7 @@ async function handleCategories(request: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const searchParams = request.nextUrl.searchParams;
-  const pageIndex = Math.max(1, Math.round(Number(searchParams.get("PageIndex") ?? "1")) || 1);
-  const pageSize = Math.min(500, Math.max(1, Math.round(Number(searchParams.get("PageSize") ?? "100")) || 100));
+  const { pageIndex, pageSize } = parsePageParams(request.nextUrl.searchParams);
 
   const [totalCount, categories] = await Promise.all([
     prisma.category.count({ where: { isActive: true } }),
@@ -106,23 +132,48 @@ async function handleCategories(request: NextRequest) {
     totalCount
   });
 
-  return NextResponse.json({
-    data: categories.map((category) => ({
-      id: category.id,
-      name: category.name,
-      parentId: category.parentId
-    })),
-    totalCount,
+  const items = categories.map((category) => ({
+    id: category.id,
+    Id: category.id,
+    name: category.name,
+    Name: category.name,
+    parentId: category.parentId,
+    ParentId: category.parentId
+  }));
+
+  return NextResponse.json(paginatedResponse(items, pageIndex, pageSize, totalCount));
+}
+
+// Vega, Kategori Secimi'nden sonra kendiliginden siparis senkronizasyonu
+// icin bu uc noktayi da cagiriyor (OrderDateMin/OrderDateMax araligiyla).
+// Siparis eslestirmesi henuz tasarlanmadi (Vega'nin beklidigi siparis JSON
+// semasi bilinmiyor) - simdilik bos ama gecerli bir sayfali cevap donup
+// Vega'nin bu adimda hata almadan devam edebilmesi saglaniyor.
+async function handleSalesOrder(request: NextRequest) {
+  const auth = await verifyVegaToken(request);
+  if (!auth.ok) {
+    logVega("GET SalesOrder yetkisiz", { error: auth.error });
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  const { pageIndex, pageSize } = parsePageParams(request.nextUrl.searchParams);
+  logVega("GET SalesOrder istegi (henuz uygulanmadi, bos donuyor)", {
+    email: auth.email,
+    orderDateMin: request.nextUrl.searchParams.get("OrderDateMin"),
+    orderDateMax: request.nextUrl.searchParams.get("OrderDateMax"),
     pageIndex,
     pageSize
   });
+
+  return NextResponse.json(paginatedResponse([], pageIndex, pageSize, 0));
 }
 
 type Handler = (request: NextRequest) => Promise<NextResponse>;
 
 const routes: Record<string, Handler> = {
   "POST Account/Token": handleAccountToken,
-  "GET Categories": handleCategories
+  "GET Categories": handleCategories,
+  "GET SalesOrder": handleSalesOrder
 };
 
 async function dispatch(request: NextRequest, path: string[]) {
