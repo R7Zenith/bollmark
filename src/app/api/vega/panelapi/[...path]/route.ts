@@ -135,13 +135,17 @@ async function handleCategories(request: NextRequest) {
     totalCount
   });
 
+  // Vega'nin agac gorunumu, sayfalama duzeldikten sonra bile bos kaldi
+  // (hatasiz ama bos). Olasi sebep: Delphi tarafi JSON "null"u kok
+  // kategoriyi isaretleyen bir "parent yok" degeri olarak tanimiyor -
+  // bu yuzden ust kategori icin null yerine bos metin deneniyor.
   const items = categories.map((category) => ({
     id: category.id,
     Id: category.id,
     name: category.name,
     Name: category.name,
-    parentId: category.parentId,
-    ParentId: category.parentId
+    parentId: category.parentId ?? "",
+    ParentId: category.parentId ?? ""
   }));
 
   return NextResponse.json(paginatedResponse(items, pageIndex, pageSize, totalCount));
