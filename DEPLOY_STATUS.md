@@ -2734,11 +2734,18 @@ deploy edildi, canli test edildi). Ama Vega'nin "Kategori Secimi"
 penceresi hala bos kaliyor (cok sayida format denendi, hicbiri
 calismadi) ve bu, urun yukleme akisini tamamen engelliyor.
 
-## Vega - Ticimax taklidi SOAP entegrasyonu - URUN LISTESI CALISIYOR (2026-09-11)
+## Vega - Ticimax taklidi SOAP entegrasyonu - CALISIYOR (2026-09-11)
 
-Vega'nin "Urun Yonetimi / TiciMax -> Listele" ekraninda 9 yayindaki Bollmark
-urunu, tum varyantlari (barkod, stok kodu, adet, fiyat, kategori) ile
-listelendi. Detayli bulgular ve siradaki adimlar icin
+Uctan uca calisan akis (canli dogrulandi): (1) Vega'nin "Urun Yonetimi /
+TiciMax -> Listele" ekraninda 9 yayindaki Bollmark urunu, tum varyantlari
+(barkod, stok kodu, adet, fiyat, kategori) ile listelendi. (2) Kullanici
+barkod eslestirmesini yapti. (3) Vega'dan stok gonderildiginde **sitedeki
+stoklar gercekten guncelleniyor** (`VaryasyonGuncelle` uc noktasi).
+
+**Artik stok konusunda kaynak Vega'dir** - gonderdigi deger sitedeki stogun
+uzerine yazilir (sadece barkodu eslestirilmis varyantlar icin).
+
+Detayli bulgular ve siradaki adimlar icin
 **`VEGA_PANELAPI_BULGULARI_VE_PLAN.md`** dosyasinin EN USTUNDEKI
 "CALISIYOR (2026-09-11)" bolumune bakin.
 

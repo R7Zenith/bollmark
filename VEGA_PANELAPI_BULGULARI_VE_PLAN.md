@@ -1,10 +1,23 @@
 # Vega "E-Ticaret" Entegrasyonu — panelapi Keşif Bulguları ve Uygulama Planı
 
-## ÇALIŞIYOR (2026-09-11) — Ticimax taklidi SOAP ile ürün listesi başarılı
+## ÇALIŞIYOR (2026-09-11) — ürün listesi + barkod eşleştirme + STOK SENKRONİZASYONU
 
-Vega'nın "Ürün Yönetimi / TiciMax → Listele" ekranında **9 yayındaki Bollmark
-ürünü, tüm varyantları (barkod, stok kodu, adet, fiyat, kategori) ile
-listelendi**. Aylardır süren engel aşıldı. Çalışan mimari:
+Uçtan uca çalışan akış (canlı doğrulandı):
+
+1. Vega'nın "Ürün Yönetimi / TiciMax → Listele" ekranında **9 yayındaki
+   Bollmark ürünü, tüm varyantlarıyla (barkod, stok kodu, adet, fiyat,
+   kategori)** listelendi.
+2. Kullanıcı Vega'daki stok kartlarıyla **barkod eşleştirmesini** yaptı
+   (yeşil ışık) — bu tamamen Vega'nın kendi içinde olur, sunucumuza istek
+   gelmez.
+3. Vega'dan "stok miktarlarını gönder" denildiğinde **sitedeki stoklar
+   gerçekten güncelleniyor** (`VaryasyonGuncelle`).
+
+**Artık stok konusunda kaynak Vega'dır**: gönderdiği değer sitedeki stoğun
+üzerine yazılır. Sadece barkodu eşleştirilmiş varyantlar etkilenir,
+eşleşmeyenlere dokunulmaz.
+
+Çalışan mimari:
 
 ```
 Vega (Site Tipi: TiciMax, Site Adı: bollmark-vega-bridge.ozilevent.workers.dev)
@@ -46,10 +59,51 @@ Vega (Site Tipi: TiciMax, Site Adı: bollmark-vega-bridge.ozilevent.workers.dev)
 ### Uygulanan uç noktalar (`src/app/Servis/[service]/route.ts`)
 
 - `SelectKategori` — Bollmark kategorilerini `Kategori` şemasıyla döner.
+  (Not: Vega'nın Kategori Ağacı ekranı hâlâ boş görünüyor ama bu akış için
+  gerekmiyor — ürün listesindeki kategori adları doğru geliyor.)
 - `SelectUrunCount` — yayındaki ürün sayısı (basit int).
 - `SelectUrun` — `BaslangicIndex`/`KayitSayisi` ile sayfalanmış ürün listesi;
   `UrunKarti` alanları ALFABETİK sırada (WCF varsayılanı), varyantlar
   `Varyasyonlar` altında (barkod, stok kodu, adet, fiyat).
+- `VaryasyonGuncelle` — **stok senkronizasyonu**. Vega her varyant için ayrı
+  bir istek atar. Yakalanan gerçek gövde:
+  ```xml
+  <VaryasyonGuncelle xmlns="http://tempuri.org/">
+    <UyeKodu>...</UyeKodu>
+    <urun xsi:type="NS1:Varyasyon">
+      <Aktif>true</Aktif><ID>28</ID><StokAdedi>0</StokAdedi>
+    </urun>
+    <ayar xsi:type="NS1:VaryasyonAyar">
+      <AktifGuncelle>true</AktifGuncelle><StokAdediGuncelle>true</StokAdediGuncelle>
+    </ayar>
+  </VaryasyonGuncelle>
+  ```
+  `urun.ID` = `ProductVariant.vegaId`. `ayar` bloğu hangi alanların
+  yazılacağını söyler; sadece bayrağı `true` olan alan güncellenir.
+  `Aktif` bilinçli olarak yok sayılıyor (Bollmark'ta varyant seviyesinde
+  aktiflik alanı yok; ürünün tamamını pasife çekmek istenmeyen bir yan etki
+  olurdu). Cevap tipi `int` — güncelleme olduysa varyant ID'si, olmadıysa 0.
+
+### Şema alanları nereden alındı
+
+Ticimax'ın `Kategori`, `UrunKarti`, `Varyasyon`, `VaryasyonAyar` sınıflarının
+tam alan listeleri, gerçek bir Ticimax mağazasının WSDL'inden üretilmiş açık
+kaynak PHP istemcisinden okundu:
+`github.com/asilbalaban/ticimax-wsdl-php` (örn.
+`Urun/Karti/TicimaxStructUrunKarti.php`, `Varyasyon/TicimaxStructVaryasyon.php`).
+Resmî dokümantasyon: `static.ticimax.com/dokumanlar/webservis.pdf` ve
+`.../UrunServis.pdf`. **Alanlar cevapta ALFABETİK sırada yazılmalı** (WCF
+DataContract varsayılanı); göndermediğimiz alanlar `minOccurs=0` olduğu için
+atlanabiliyor.
+
+### Veritabanı tarafı
+
+Ticimax şeması tamsayı kimlik beklediği için Prisma modellerine kalıcı,
+otomatik artan `vegaId` alanları eklendi: `Category.vegaId`,
+`Product.vegaId`, `ProductVariant.vegaId`. Kimlik doğrulama için
+`VegaIntegration.ticimaxUyeKodu` (düz metin - Vega'ya aynen kopyalanan bir
+API anahtarı gibi çalıştığı ve panelde gösterilmesi gerektiği için
+hash'lenmiyor). Hepsi `npm run db:push` ile Neon'a uygulandı.
 
 Kimlik doğrulama: Vega'daki **"Web Servis Kodu"** alanı SOAP gövdesinde
 `<UyeKodu>` olarak gelir; `/admin/ayarlar` sayfasındaki "Üye Kodu" değeriyle
@@ -59,15 +113,35 @@ Vega ayar ekranındaki "Site Adı" kutusunun önündeki sabit `www.` etiketi
 **sadece görseldir** - gerçek istekte host'a eklenmiyor (canlı yakalamayla
 doğrulandı).
 
-### Sırada
+### Sırada (bir sonraki oturum buradan devam etsin)
 
-- **Fiyat alanı**: Vega listesinde "Liste Fiyat" doluyor ama "Satış Fiyatı"
-  0 görünüyor - muhtemelen `IndirimliFiyati` alanı da doldurulmalı.
-- **Barkod eşleştirme**: kullanıcının asıl hedefi - "Vega Karşılığı" sütunu
-  şu an boş; Vega'daki stok kartlarıyla eşleştirme yapıldığında ürün
-  entegre olmuş sayılıyor.
-- **Sipariş akışı**: Vega periyodik olarak (~2 dakikada bir) `SelectSiparis`
-  (SiparisServis.svc) çağırıyor - henüz uygulanmadı.
+- **Fiyat senkronizasyonu**: Vega listesinde "Liste Fiyat" doluyor ama
+  "Satış Fiyatı" 0 görünüyor — muhtemelen `IndirimliFiyati` alanı da
+  doldurulmalı. Ayrıca Vega fiyat güncellemesi gönderirse
+  `VaryasyonGuncelle` içinde `SatisFiyatiGuncelle`/`IndirimliFiyatiGuncelle`
+  bayrakları gelecek; şu an sadece `StokAdediGuncelle` işleniyor, fiyat
+  alanları için handler genişletilmeli.
+- **Sipariş akışı**: Vega periyodik olarak (~2 dakikada bir)
+  `SiparisServis.svc` üzerinde `SelectSiparis` çağırıyor — dikkat, bu
+  istekler **GET** olarak geliyor (gövdesiz), route şu an sadece POST
+  export ediyor, o yüzden hiç loglanmıyor. Sitedeki siparişlerin Vega'ya
+  düşmesi için `SelectSiparis` + `SelectSiparisUrun` + `SelectSiparisOdeme`
+  uygulanmalı (alan listeleri yine ticimax-wsdl-php reposundan alınabilir).
+- **Kategori Ağacı ekranı**: hâlâ boş; ürün akışı için gerekmediğinden
+  ertelendi.
+
+### Teşhis yöntemleri (tekrar gerekirse)
+
+- **Vercel logları** (uygulama tarafı, `[vega-tcmx]` etiketli satırlar):
+  `npx vercel logs bollmark.com --token <VERCEL_TOKEN> --scope team_OUEAesDWsxc7OOxNugNNIY5l --since 15m -n 300`
+- **Cloudflare Worker canlı trafiği** (istek Worker'a ulaşıyor mu):
+  `cd vega-bridge-worker && CLOUDFLARE_API_TOKEN=<CF_TOKEN> npx wrangler tail --format pretty`
+- **Bilinmeyen bir metot geldiğinde** route.ts gövdeyi de logluyor
+  (UyeKodu gizlenerek) — yeni bir uç noktanın şeması tek canlı denemede
+  böyle yakalandı.
+- Token'lar repoda saklanmıyor; her yeni oturumda kullanıcıdan istenmeli
+  (Vercel: Account Settings → Tokens, Cloudflare: My Profile → API Tokens →
+  "Edit Cloudflare Workers").
 
 ## GÜNCEL DURUM (2026-09-10 gece) — buradan devam et — Ticimax taklidi yaklaşımı
 
