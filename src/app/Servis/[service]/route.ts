@@ -272,7 +272,15 @@ export async function POST(request: NextRequest, context: { params: Promise<{ se
 
   const handler = method ? methods[method] : undefined;
   if (!handler) {
-    logTcmx("desteklenmeyen metot", { service, method });
+    // Henuz uygulanmamis bir metot geldiginde govdeyi de logluyoruz: Vega'nin
+    // hangi alanlari nasil gonderdigini (ve DataContract namespace'lerini) tek
+    // bir canli denemede gorup uc noktayi ona gore yazabilmek icin. UyeKodu
+    // gizleniyor.
+    logTcmx("desteklenmeyen metot", {
+      service,
+      method,
+      body: rawBody.replace(/<UyeKodu>[^<]*<\/UyeKodu>/i, "<UyeKodu>***</UyeKodu>").slice(0, 4000)
+    });
     return xmlResponse(soapFault(`Desteklenmeyen metot: ${service}/${method ?? "?"}`), 500);
   }
 
