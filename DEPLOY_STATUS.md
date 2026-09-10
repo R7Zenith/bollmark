@@ -2734,7 +2734,25 @@ deploy edildi, canli test edildi). Ama Vega'nin "Kategori Secimi"
 penceresi hala bos kaliyor (cok sayida format denendi, hicbiri
 calismadi) ve bu, urun yukleme akisini tamamen engelliyor.
 
-## Vega - Ticimax taklidi SOAP entegrasyonu (2026-09-10 gece, ayni oturum devami) - YARIM KALDI
+## Vega - Ticimax taklidi SOAP entegrasyonu - URUN LISTESI CALISIYOR (2026-09-11)
+
+Vega'nin "Urun Yonetimi / TiciMax -> Listele" ekraninda 9 yayindaki Bollmark
+urunu, tum varyantlari (barkod, stok kodu, adet, fiyat, kategori) ile
+listelendi. Detayli bulgular ve siradaki adimlar icin
+**`VEGA_PANELAPI_BULGULARI_VE_PLAN.md`** dosyasinin EN USTUNDEKI
+"CALISIYOR (2026-09-11)" bolumune bakin.
+
+Ozet mimari: Vega -> Cloudflare Worker koprusu (`vega-bridge-worker/`) ->
+`https://bollmark.com/Servis/UrunServis.svc` -> Neon. Vega'da Site Tipi =
+TiciMax, Site Adi = `bollmark-vega-bridge.ozilevent.workers.dev`, Web Servis
+Kodu = `/admin/ayarlar` sayfasindaki "Uye Kodu" degeri (deger burada
+yazilmiyor, panelden okunabilir).
+
+**Onemli**: Vega, Vercel'e (bollmark.com) DOGRUDAN baglanamiyor - eski SOAP
+istemcisi ile TLS uyumsuzlugu suphesi; istek sessizce kayboluyor ve Vercel
+loglarinda hic gorunmuyor. Cloudflare Worker koprusu bu yuzden zorunlu.
+
+## Vega - Ticimax taklidi SOAP entegrasyonu (2026-09-10 gece) - ILK KURULUM
 
 Vega destege ulasilamadigi icin (kullanici bildirdi) yon degistirildi:
 Vega'nin "Site Tipi" ayarinda hazir bulunan **Ticimax** platformunun

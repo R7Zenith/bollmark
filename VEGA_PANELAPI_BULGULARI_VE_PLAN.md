@@ -1,5 +1,74 @@
 # Vega "E-Ticaret" Entegrasyonu — panelapi Keşif Bulguları ve Uygulama Planı
 
+## ÇALIŞIYOR (2026-09-11) — Ticimax taklidi SOAP ile ürün listesi başarılı
+
+Vega'nın "Ürün Yönetimi / TiciMax → Listele" ekranında **9 yayındaki Bollmark
+ürünü, tüm varyantları (barkod, stok kodu, adet, fiyat, kategori) ile
+listelendi**. Aylardır süren engel aşıldı. Çalışan mimari:
+
+```
+Vega (Site Tipi: TiciMax, Site Adı: bollmark-vega-bridge.ozilevent.workers.dev)
+  -> Cloudflare Worker (vega-bridge-worker/)
+  -> https://bollmark.com/Servis/UrunServis.svc  (src/app/Servis/[service]/route.ts)
+  -> Neon Postgres (Prisma)
+```
+
+### Çözüme götüren 4 kritik bulgu
+
+1. **Vercel'e doğrudan bağlanılamıyor.** Vega'nın eski Embarcadero SOAP
+   istemcisi webhook.site'a (Cloudflare) sorunsuz HTTPS isteği atarken
+   `bollmark.com`'a (Vercel) hiç ulaşamıyordu — istek sessizce kayboluyordu,
+   Vercel loglarında **hiçbir iz yoktu** (TLS uyumsuzluğu şüphesi). Çözüm:
+   zaten var olan Cloudflare Worker köprüsü `/Servis/*` yolunu da iletecek
+   şekilde genişletildi. Vega artık Worker'a bağlanıyor.
+2. **Vega TÜM hataları sessizce yutuyor.** Kasten gönderilen bir SOAP Fault'a
+   bile "Kategoriler Başarıyla Yüklendi" dedi. Yani o başarı penceresi
+   **hiçbir şey kanıtlamaz** - kategori ekranı teşhis için kullanılamaz.
+   Buna karşılık **Ürün Yönetimi → Listele ekranı gerçek hata metnini
+   gösteriyor** (ayrıştıramadığı ham XML'i ekrana döküyor) - teşhis hep bu
+   ekrandan yapılmalı.
+3. **DataContract namespace'i tahminle bulunamaz, Vega'nın kendi isteğinden
+   okundu.** İki tahmin (".../2004/07/UrunServis", ".../2004/07/Ticimax")
+   tutmadı. Vega'nın gönderdiği `SelectUrunCount` isteğinin filtre
+   alanlarında namespace açıkça görülüyordu:
+   `<Aktif xmlns="http://schemas.datacontract.org/2004/07/">-1</Aktif>`
+   — yani **sonu BOŞ**: `http://schemas.datacontract.org/2004/07/`
+   (Ticimax'ın DataContract sınıfları C# tarafında kök/isimsiz namespace'te).
+   Genel ders: bilinmeyen bir şemayı tahmin etmek yerine, karşı tarafın
+   kendi İSTEK gövdesinde sızdırdığı ipuçlarına bakmak çok daha hızlı.
+4. **webhook.site ile hızlı iterasyon.** webhook.site'ın ücretsiz API'si ile
+   sabit bir cevap tanımlanabiliyor, böylece her XML denemesi için deploy
+   beklemeye gerek kalmadı:
+   `curl -X PUT https://webhook.site/token/<TOKEN> -H "Content-Type: application/json" -d '{"default_status":200,"default_content_type":"text/xml; charset=utf-8","default_content":"<xml...>"}'`
+   Ama dikkat: tek bir sabit cevap döndüğü için ÇOK uç noktalı testlerde
+   (SelectUrunCount + SelectUrun birlikte) yetersiz kalır, gerçek sunucu gerekir.
+
+### Uygulanan uç noktalar (`src/app/Servis/[service]/route.ts`)
+
+- `SelectKategori` — Bollmark kategorilerini `Kategori` şemasıyla döner.
+- `SelectUrunCount` — yayındaki ürün sayısı (basit int).
+- `SelectUrun` — `BaslangicIndex`/`KayitSayisi` ile sayfalanmış ürün listesi;
+  `UrunKarti` alanları ALFABETİK sırada (WCF varsayılanı), varyantlar
+  `Varyasyonlar` altında (barkod, stok kodu, adet, fiyat).
+
+Kimlik doğrulama: Vega'daki **"Web Servis Kodu"** alanı SOAP gövdesinde
+`<UyeKodu>` olarak gelir; `/admin/ayarlar` sayfasındaki "Üye Kodu" değeriyle
+(VegaIntegration.ticimaxUyeKodu) karşılaştırılır.
+
+Vega ayar ekranındaki "Site Adı" kutusunun önündeki sabit `www.` etiketi
+**sadece görseldir** - gerçek istekte host'a eklenmiyor (canlı yakalamayla
+doğrulandı).
+
+### Sırada
+
+- **Fiyat alanı**: Vega listesinde "Liste Fiyat" doluyor ama "Satış Fiyatı"
+  0 görünüyor - muhtemelen `IndirimliFiyati` alanı da doldurulmalı.
+- **Barkod eşleştirme**: kullanıcının asıl hedefi - "Vega Karşılığı" sütunu
+  şu an boş; Vega'daki stok kartlarıyla eşleştirme yapıldığında ürün
+  entegre olmuş sayılıyor.
+- **Sipariş akışı**: Vega periyodik olarak (~2 dakikada bir) `SelectSiparis`
+  (SiparisServis.svc) çağırıyor - henüz uygulanmadı.
+
 ## GÜNCEL DURUM (2026-09-10 gece) — buradan devam et — Ticimax taklidi yaklaşımı
 
 **Yön değişikliği**: Aşağıdaki "panelapi" (JSON) yaklaşımı tıkanınca (bkz.
