@@ -1,30 +1,28 @@
-import { SignJWT, jwtVerify } from "jose";
+import { randomBytes } from "crypto";
 import type { NextRequest } from "next/server";
+import { prisma } from "@/lib/prisma";
 
 // Vega'nin panelapi/Account/Token'dan aldigi bearer token'i uretir/dogrular.
-// Ayri bir sir gerektirmesin diye NextAuth'un zaten tanimli NEXTAUTH_SECRET'i
-// paylasilir; "scope" alani bu token'i NextAuth session JWT'sinden ayirt eder.
-const VEGA_TOKEN_SCOPE = "vega-panelapi";
-// Vega bir kez giris yapip token'i program acik kaldigi surece tekrar
-// yenilemeden kullaniyor gibi gorunuyor (otomatik re-login yok) - kisa
-// bir sure (orn. 1 saat) "Gecersiz veya suresi dolmus token." hatasina
-// yol acip Vega'nin (kod tarafinda bir sorun yokken) calismayi kesmesine
-// sebep oldu. Bu bir kullanici oturumu degil, sunucu-sunucu entegrasyon
-// kimlik bilgisi oldugu icin uzun omurlu tutuluyor.
+//
+// Once JWT kullanilmisti, ama canli testte taze uretilmis bir JWT (197
+// karakter) dogrudan test edildiginde sorunsuzken, Vega'nin sakladigi/geri
+// gonderdigi ayni token birkac dakika icinde "gecersiz" cevabi almaya
+// basladi - Vega'nin (Delphi tabanli, muhtemelen sabit uzunlukta bir
+// alanda tutulan) token'i saklarken/tekrar gonderirken kirptigi supheleniliyor.
+// Bu yuzden kisa (32 karakter), opak, rastgele bir token'a gecildi; token +
+// son gecerlilik zamani VegaIntegration singleton satirinda saklanip Bearer
+// dogrulamasinda karsilastiriliyor (bkz. VEGA_PANELAPI_BULGULARI_VE_PLAN.md).
 const VEGA_TOKEN_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 30;
 
-function getSecretKey() {
-  const secret = process.env.NEXTAUTH_SECRET;
-  if (!secret) throw new Error("NEXTAUTH_SECRET tanimli degil.");
-  return new TextEncoder().encode(secret);
-}
-
 export async function signVegaToken(email: string) {
-  const token = await new SignJWT({ email, scope: VEGA_TOKEN_SCOPE })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime(`${VEGA_TOKEN_EXPIRES_IN_SECONDS}s`)
-    .sign(getSecretKey());
+  const token = randomBytes(16).toString("hex");
+  const expiresAt = new Date(Date.now() + VEGA_TOKEN_EXPIRES_IN_SECONDS * 1000);
+
+  await prisma.vegaIntegration.update({
+    where: { id: "singleton" },
+    data: { activeToken: token, activeTokenExpiresAt: expiresAt }
+  });
+
   return { token, expiresIn: VEGA_TOKEN_EXPIRES_IN_SECONDS };
 }
 
@@ -36,14 +34,15 @@ export async function verifyVegaToken(
   if (!match) {
     return { ok: false, status: 401, error: "Bearer token eksik." };
   }
+  const suppliedToken = match[1].trim();
 
-  try {
-    const { payload } = await jwtVerify(match[1], getSecretKey());
-    if (payload.scope !== VEGA_TOKEN_SCOPE || typeof payload.email !== "string") {
-      return { ok: false, status: 401, error: "Gecersiz token." };
-    }
-    return { ok: true, email: payload.email };
-  } catch {
+  const integration = await prisma.vegaIntegration.findUnique({ where: { id: "singleton" } });
+  if (!integration?.activeToken || integration.activeToken !== suppliedToken) {
     return { ok: false, status: 401, error: "Gecersiz veya suresi dolmus token." };
   }
+  if (!integration.activeTokenExpiresAt || integration.activeTokenExpiresAt.getTime() < Date.now()) {
+    return { ok: false, status: 401, error: "Gecersiz veya suresi dolmus token." };
+  }
+
+  return { ok: true, email: integration.email };
 }

@@ -432,10 +432,17 @@ model StoreSettings {
 // VEGA_PANELAPI_BULGULARI_VE_PLAN.md). Singleton satir (StoreSettings ile
 // ayni desen).
 model VegaIntegration {
-  id           String   @id @default("singleton")
-  email        String   @default("")
-  passwordHash String   @default("")
-  updatedAt    DateTime @updatedAt
+  id                   String    @id @default("singleton")
+  email                String    @default("")
+  passwordHash         String    @default("")
+  // Vega'nin uzun JWT'leri saklarken/tekrar gonderirken kirptigi supheleniliyor
+  // (canli testte taze uretilmis bir JWT birkac dakika icinde "gecersiz" cevabi
+  // almaya basladi, ayni JWT dogrudan test edildiginde sorunsuzdu) - bu yuzden
+  // kisa, opak bir token'a gecildi, bu token + son gecerlilik zamani burada
+  // saklanip Bearer dogrulamasinda karsilastiriliyor (bkz. vega-auth.ts).
+  activeToken          String?
+  activeTokenExpiresAt DateTime?
+  updatedAt            DateTime  @updatedAt
 }
 
 // Kritik islemlerin (siparis/iade durum degisikligi, personel yonetimi,
