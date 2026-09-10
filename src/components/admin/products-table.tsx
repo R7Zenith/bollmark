@@ -3,17 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ImageOff, Check, RefreshCw, Loader2, Link2 } from "lucide-react";
+import { ImageOff, Check, RefreshCw, Loader2, Link2, Pencil, Tag, ExternalLink, X } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { Badge, type BadgeTone } from "@/components/admin/badge";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
 import { useToast } from "@/components/admin/toast";
+import { IconButton, IconLinkButton } from "@/components/admin/icon-button";
 import { formatPrice } from "@/lib/format";
 
 export interface ProductRow {
   id: string;
   name: string;
   code: string | null;
+  slug: string;
   status: string;
   priceCents: number;
   stock: number;
@@ -50,6 +52,44 @@ export function ProductsTable({
   const { showToast } = useToast();
   const [refreshingIds, setRefreshingIds] = useState<Set<string>>(new Set());
   const [addingImageIds, setAddingImageIds] = useState<Set<string>>(new Set());
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null);
+  const [priceDraft, setPriceDraft] = useState("");
+  const [priceError, setPriceError] = useState<string | null>(null);
+  const [savingPrice, setSavingPrice] = useState(false);
+
+  function handleFiyatDuzenleAc(row: ProductRow) {
+    setEditingPriceId(row.id);
+    setPriceDraft((row.priceCents / 100).toFixed(2));
+    setPriceError(null);
+  }
+
+  function handleFiyatVazgec() {
+    setEditingPriceId(null);
+    setPriceError(null);
+  }
+
+  async function handleFiyatKaydet(id: string) {
+    const deger = parseFloat(priceDraft.replace(",", "."));
+    if (!Number.isFinite(deger) || deger <= 0) {
+      setPriceError("Geçerli bir fiyat girin");
+      return;
+    }
+    const priceCents = Math.round(deger * 100);
+    setSavingPrice(true);
+    try {
+      const { ok, error } = await bulkRequest({ ids: [id], action: "SET_PRICE", priceCents });
+      if (ok) {
+        setEditingPriceId(null);
+        setPriceError(null);
+        showToast("Fiyat güncellendi.", "success");
+        router.refresh();
+      } else {
+        showToast(error ?? "Bir hata oluştu.", "error");
+      }
+    } finally {
+      setSavingPrice(false);
+    }
+  }
 
   async function handleGorselEkle(id: string) {
     const url = window.prompt(
@@ -219,7 +259,43 @@ export function ProductsTable({
       header: "Fiyat",
       sortable: true,
       align: "right",
-      render: (row) => formatPrice(row.priceCents)
+      render: (row) =>
+        row.id === editingPriceId ? (
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-1">
+              <input
+                type="text"
+                inputMode="decimal"
+                autoFocus
+                disabled={savingPrice}
+                value={priceDraft}
+                onChange={(e) => setPriceDraft(e.target.value)}
+                onFocus={(e) => e.target.select()}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleFiyatKaydet(row.id);
+                  if (e.key === "Escape") handleFiyatVazgec();
+                }}
+                className={`h-8 w-20 rounded border px-1.5 py-1 text-right text-sm disabled:opacity-50 ${
+                  priceError ? "border-red-400" : "border-admin-border"
+                }`}
+              />
+              <IconButton
+                title="Kaydet"
+                disabled={savingPrice}
+                onClick={() => handleFiyatKaydet(row.id)}
+                className="text-green-600 hover:bg-green-50 hover:text-green-700"
+              >
+                {savingPrice ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+              </IconButton>
+              <IconButton title="Vazgeç" disabled={savingPrice} onClick={handleFiyatVazgec}>
+                <X size={14} />
+              </IconButton>
+            </div>
+            {priceError && <span className="text-xs text-red-600">{priceError}</span>}
+          </div>
+        ) : (
+          formatPrice(row.priceCents)
+        )
     },
     {
       key: "stock",
@@ -240,30 +316,52 @@ export function ProductsTable({
       header: "",
       align: "right",
       render: (row) => (
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center justify-end gap-1.5">
+          <IconLinkButton href={`/admin/urunler/${row.id}`} title="Düzenle" className="h-9 w-9 md:h-8 md:w-8">
+            <Pencil size={15} />
+          </IconLinkButton>
+          <IconButton
+            title="Fiyat Güncelle"
+            aria-label="Fiyat Güncelle"
+            onClick={() => handleFiyatDuzenleAc(row)}
+            className={`h-9 w-9 md:h-8 md:w-8 ${row.id === editingPriceId ? "bg-admin-accent/10 text-admin-accent" : ""}`}
+          >
+            <Tag size={15} />
+          </IconButton>
           {!row.imageUrl && (
-            <button
+            <IconButton
+              title="Fotoğrafları Yeniden Ara"
               onClick={() => handleGorselYenile(row.id)}
               disabled={refreshingIds.has(row.id)}
-              className="inline-flex items-center gap-1 text-xs text-admin-accent hover:underline disabled:opacity-50"
+              className="h-9 w-9 md:h-8 md:w-8"
             >
-              {refreshingIds.has(row.id) ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-              {refreshingIds.has(row.id) ? "Aranıyor..." : "Fotoğrafları yeniden ara"}
-            </button>
+              {refreshingIds.has(row.id) ? (
+                <Loader2 size={15} className="animate-spin" />
+              ) : (
+                <RefreshCw size={15} />
+              )}
+            </IconButton>
           )}
           {!row.imageUrl && (
-            <button
+            <IconButton
+              title="Koton Linkiyle Ekle"
               onClick={() => handleGorselEkle(row.id)}
               disabled={addingImageIds.has(row.id)}
-              className="inline-flex items-center gap-1 text-xs text-admin-accent hover:underline disabled:opacity-50"
+              className="h-9 w-9 md:h-8 md:w-8"
             >
-              {addingImageIds.has(row.id) ? <Loader2 size={12} className="animate-spin" /> : <Link2 size={12} />}
-              {addingImageIds.has(row.id) ? "Ekleniyor..." : "Koton linkiyle ekle"}
-            </button>
+              {addingImageIds.has(row.id) ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />}
+            </IconButton>
           )}
-          <Link href={`/admin/urunler/${row.id}`} className="text-admin-accent hover:underline">
-            Düzenle
-          </Link>
+          <IconLinkButton
+            href={`/urunler/${row.slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            title={row.status !== "PUBLISHED" ? "Ürün yayında değil, sitede görünmez" : "Ürünü Gör"}
+            disabled={row.status !== "PUBLISHED"}
+            className="h-9 w-9 md:h-8 md:w-8"
+          >
+            <ExternalLink size={15} />
+          </IconLinkButton>
         </div>
       )
     }

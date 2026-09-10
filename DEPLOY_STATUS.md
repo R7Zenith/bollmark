@@ -2684,3 +2684,37 @@ silindi, kalan ~116 MB'lik kullanilan gorseller ~17 MB civarina indi -
 Hobby plandaki 1GB kotadan toplamda yaklasik 370+ MB yer acildi. Yeni
 yuklemeler de (Faz 1) artik otomatik sikistiriliyor, kota bir daha bu
 hizla dolmayacak.
+
+## Urunler listesi - Aksiyonlar kolonu ikon butonlara cevrildi (bu oturum)
+
+`URUNLER_LISTESI_AKSIYON_BUTONLARI_PLANI.md`'deki plan uygulandi:
+
+- `src/components/admin/icon-button.tsx` (yeni): ortak `IconButton`
+  (buton) ve `IconLinkButton` (link, `disabled` durumunda `<span>`'e
+  duser) bilesenleri eklendi - `h-8 w-8`/`h-9 w-9`, `title`+`aria-label`
+  zorunlu, `border-admin-border`, hover'da `admin-accent`.
+- `src/components/admin/products-table.tsx`: "Aksiyonlar" kolonu artik
+  5 ikon buton: **Duzenle** (`Pencil`), **Fiyat Guncelle** (`Tag`),
+  **Fotograflari Yeniden Ara** (`RefreshCw`/`Loader2`, sadece
+  `imageUrl` yoksa), **Koton Linkiyle Ekle** (`Link2`, sadece
+  `imageUrl` yoksa), **Urunu Gor** (`ExternalLink`, yeni sekmede
+  `/urunler/{slug}`, `status !== "PUBLISHED"` ise pasif +
+  "Urun yayinda degil, sitede gorunmez" tooltip'i). Fiyat Guncelle
+  popup/prompt KULLANMIYOR: "Fiyat" kolonunun kendi hucresi
+  `editingPriceId` state'iyle inline `<input>`'a donusuyor, yaninda
+  Check (kaydet) ve X (vazgec) ikon butonlari cikiyor, Enter/Escape
+  destekleniyor, kaydederken `Loader2` spinner + input/butonlar
+  disabled, hata varsa (`<=0` veya sayi degil) kirmizi border + "Gecerli
+  bir fiyat girin" mesaji gosteriyor.
+- `src/app/api/admin/urunler/bulk/route.ts`: `SET_PRICE` action'i
+  eklendi (`priceCents` say 0'dan buyukse `updateMany`, degilse 400).
+- `src/app/(admin)/admin/urunler/page.tsx` ve `arsiv/page.tsx`:
+  `ProductRow`'a `slug` alani eklendi ("Urunu Gor" linki icin), her iki
+  sayfadaki `rows` map'ine `slug: p.slug` eklendi.
+- Mevcut gorsel arama/ekleme network mantigi (`handleGorselYenile`,
+  `handleGorselEkle`) ve toast/`router.refresh()` davranisi degismedi,
+  sadece gorunum ikon-butona cevrildi.
+- Dogrulama: `npx tsc --noEmit`, `npm run lint`, `npm run build` ucu de
+  hatasiz gecti. Canli admin panelden tarayici testi bu oturumda
+  yapilamadi (UI/tarayici erisimi yok) - kod incelemesi + tip/lint/build
+  kontrolleriyle dogrulandi.

@@ -125,6 +125,7 @@ export default async function AdminProductsPage({
       id: p.id,
       name: p.name,
       code: p.code,
+      slug: p.slug,
       status: p.status,
       priceCents: p.priceCents,
       stock: p.variants.reduce((sum, v) => sum + v.stock, 0),

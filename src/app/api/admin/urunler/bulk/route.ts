@@ -49,5 +49,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  if (body.action === "SET_PRICE") {
+    if (!Number.isFinite(body.priceCents) || body.priceCents <= 0) {
+      return NextResponse.json({ error: "Geçersiz fiyat." }, { status: 400 });
+    }
+    await prisma.product.updateMany({ where: { id: { in: ids } }, data: { priceCents: body.priceCents } });
+    return NextResponse.json({ ok: true });
+  }
+
   return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
 }
