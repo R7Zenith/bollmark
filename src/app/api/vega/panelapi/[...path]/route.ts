@@ -164,18 +164,35 @@ async function handleCategories(request: NextRequest) {
     totalCount
   });
 
-  // Vega'nin agac gorunumu, sayfalama duzeldikten sonra da "0/40 basarili"
-  // gosterip hic satir eklemedi - tum kayitlar ayni sekilde basarisiz
-  // oldugu icin ortak bir alan formati suphesi var: Id/ParentId GUID
-  // formatina cevrildi (bkz. toGuid).
-  const items = categories.map((category) => ({
-    id: toGuid(category.id),
-    Id: toGuid(category.id),
-    name: category.name,
-    Name: category.name,
-    parentId: category.parentId ? toGuid(category.parentId) : "",
-    ParentId: category.parentId ? toGuid(category.parentId) : ""
-  }));
+  // GUID/bos ParentId/UTF-8/Count-TotalPageSize duzeltmelerinin hicbiri
+  // agaci doldurmadi - Vega'nin duz liste + ParentId eslestirmesiyle degil,
+  // dogrudan ic ice (nested) "Children" dizisiyle agac kurdugu suphesiyle
+  // her kategoriye kendi alt kategorilerini iceren bir Children/children
+  // alani eklendi (flat "Data" bozulmadan, sadece ustune eklendi).
+  const byParentId = new Map<string | null, typeof categories>();
+  for (const category of categories) {
+    const key = category.parentId;
+    if (!byParentId.has(key)) byParentId.set(key, []);
+    byParentId.get(key)!.push(category);
+  }
+
+  function toItem(category: (typeof categories)[number]): Record<string, unknown> {
+    const children = (byParentId.get(category.id) ?? []).map(toItem);
+    return {
+      id: toGuid(category.id),
+      Id: toGuid(category.id),
+      name: category.name,
+      Name: category.name,
+      parentId: category.parentId ? toGuid(category.parentId) : "",
+      ParentId: category.parentId ? toGuid(category.parentId) : "",
+      children,
+      Children: children,
+      subCategories: children,
+      SubCategories: children
+    };
+  }
+
+  const items = categories.map(toItem);
 
   return jsonResponse(paginatedResponse(items, pageIndex, pageSize, totalCount));
 }
