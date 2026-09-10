@@ -179,6 +179,55 @@ gercek ortaya cikti:
   POST + govde ile `Location` adresine tekrar istek atmalidir - ama Vega'nin
   Embarcadero REST istemcisinin bunu gercekten yapip yapmadigi **bilinmiyor**
   ve sadece gercek Vega testinde (madde 8) gorulebilir.
+### Cozum: Cloudflare Worker koprusu (bu oturumda kuruldu, dogrulandi)
+
+Canli testte yukaridaki tahmin dogrulandi: kullanici parolayi duzeltip Site
+Adi'ni `https://bollmark.com/api/vega` yaptiktan sonra bile "kategoriler
+yuklenemedi" hatasi devam etti. Vercel loglari 45+ dakika boyunca **sifir**
+Vega istegi gosterdi (sadece alakasiz bir bot taramasi vardi). Kesin teshis
+icin Site Adi gecici olarak yeniden bir webhook.site adresine
+(`.../api/vega` seklinde, ayni yapida) cevrilip Vega'nin gercekte ne
+gonderdigi tekrar yakalandi (webhook.site API'si `GET/POST
+/token/{token}/request/{id}` ile programatik okundu):
+
+- 4x `POST .../api/vega/panelapi//Account/Token` (webhook.site gecerli bir
+  token formati donmedigi icin Vega tekrar tekrar deniyor - orijinal bulguyla
+  birebir ayni).
+- Sonra `GET .../api/vega/panelapi//Categories?PageIndex=1&PageSize=100`,
+  `Authorization: Bearer` (bos) ile - yani token alamamasina ragmen Vega yine
+  de devam ediyor.
+
+Ikisi de **cift slash** iceriyor, Site Adi'ndan bagimsiz (Vega'nin sabit
+`"panelapi/" + "/<endpoint>"` birlestirmesi, hicbir Site Adi degeri bunu
+engelleyemez). webhook.site (Cloudflare tabanli) bu path'i sorunsuz kabul
+ediyor (200), ama bollmark.com (Vercel/Next.js) koşulsuz 308 donuyor - ve
+Vega bu 308'i **takip etmiyor**, istek sessizce kayboluyor. Bu, "kategoriler
+yuklenemedi" hatasinin kesin sebebi.
+
+**Denenip ise yaramayan** ek onlemler (kayit icin):
+- `proxy.ts`'te cift slash'i yakalayip rewrite etmek - proxy hic
+  calismiyor (Next.js'in `base-server.js`'indeki kontrol proxy'den once,
+  kosulsuz calisiyor).
+- `vercel.json`'a `rewrites` eklemek (`/api/vega/panelapi//:path*` ->
+  `/api/vega/panelapi/:path*`) - Vercel'in edge katmani da ayni
+  normalizasyonu, custom rewrite kurallari degerlendirilmeden once
+  uyguluyor; deploy edilip dogrulandi, hala 308.
+
+**Ise yarayan cozum**: Next.js/Vercel disinda, cift slash'i normalize
+etmeyen ayri bir platformda (Cloudflare Workers - webhook.site testinde zaten
+sorunsuz oldugu goruldu) kucuk bir "kopru" servisi kuruldu:
+`vega-bridge-worker/` (bu depoda, ana Next.js uygulamasindan tamamen ayri,
+kendi `wrangler.toml`'u ile). Worker, gelen istegin path'indeki tekrarlanan
+slash'leri kendi JS kodunda duzeltip, asil `https://bollmark.com/api/vega/panelapi/...`
+adresine sunucu-sunucu bir `fetch` ile iletip cevabi oldugu gibi donuyor -
+Vega hicbir zaman bir redirect cevabi gormuyor. `npx wrangler deploy` ile
+Cloudflare'in ucretsiz `workers.dev` adresine (`https://bollmark-vega-bridge.ozilevent.workers.dev`)
+deploy edildi (DNS/custom domain gerekmedi). Uctan uca `curl` ile cift
+slash'li login + Categories akisi dogrulandi, ikisi de basarili.
+
+**Vega'da Site Adi artik su olmali**: `https://bollmark-vega-bridge.ozilevent.workers.dev/api/vega`
+(E-Mail/Parola degismedi).
+
 - **Onerilen ek onlem (ucretsiz, denemeye deger)**: kullanici canli testte
   Vega'daki "Site Adi" alanina once **sonunda `/` olacak sekilde**
   (`https://bollmark.com/api/vega/panelapi/`) girmeyi dener - Vega'nin kendi

@@ -49,3 +49,6 @@ bollmark.zip
 
 # script yedekleri (musteri verisi icerebilir)
 /backups/
+
+# Vega koprulu Worker'in yerel wrangler durumu
+/vega-bridge-worker/.wrangler/
