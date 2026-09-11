@@ -21,6 +21,9 @@ export type ProductCardData = {
   // (bkz. lib/coupons.ts matchAutomaticDiscount) - doluysa fiyatin yaninda
   // indirimli fiyat + rozet gosterilir.
   automaticDiscountPercent?: number | null;
+  // Doluysa bu urunun/rengin tum varyantlarinin stogu bitmis, kart soluk bir
+  // cam katmaniyla isaretlenir.
+  outOfStock?: boolean;
 };
 
 export function ProductCard({ product }: { product: ProductCardData }) {
@@ -44,6 +47,13 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           sizes="(min-width: 1024px) 25vw, 50vw"
           className="object-cover transition duration-500 group-hover:scale-105"
         />
+        {product.outOfStock && (
+          <div className="absolute inset-0 flex items-center justify-center bg-paper/60 backdrop-blur-[2px]">
+            <span className="border border-ink/20 bg-paper/85 px-3 py-1 text-xs uppercase tracking-wide text-ink/70">
+              Stokta Yok
+            </span>
+          </div>
+        )}
         <button
           type="button"
           onClick={(e) => {

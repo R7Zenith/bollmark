@@ -77,7 +77,8 @@ export default async function ProductsPage({
                 compareAtCents: entry.compareAtCents,
                 image: entry.image ?? FALLBACK_IMAGE,
                 colorLabel: entry.colorLabel,
-                automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, entry)?.percent ?? null
+                automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, entry)?.percent ?? null,
+                outOfStock: entry.outOfStock
               }}
             />
           ))}

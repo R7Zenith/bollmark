@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { getPublishedProducts, firstImageUrl } from "@/lib/catalog";
+import { getPublishedProducts, firstImageUrl, isOutOfStock } from "@/lib/catalog";
 import { ProductCard } from "@/components/product-card";
 import { prisma } from "@/lib/prisma";
 import { getActiveAutomaticPercentCampaigns, matchAutomaticDiscount } from "@/lib/coupons";
@@ -66,7 +66,8 @@ export default async function HomePage() {
                   priceCents: p.priceCents,
                   compareAtCents: p.compareAtCents,
                   image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800",
-                  automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, p)?.percent ?? null
+                  automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, p)?.percent ?? null,
+                  outOfStock: isOutOfStock(p.variants)
                 }}
               />
             ))}

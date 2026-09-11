@@ -2781,3 +2781,41 @@ Bu oturumda kodlanan/deploy edilen (kisa ozet):
 - **Henuz yapilmadi**: kullanicinin panelden Uye Kodu girip Vega'da
   Site Tipi=Ticimax, Site Adi=`https://bollmark.com/api/vega-tcmx` ile
   canli "Kategori Secimi" testi + Vercel loglarindan sonucun okunmasi.
+
+## Stoğu biten ürünleri kartlarda işaretleme (2026-09-11, yeni oturum)
+
+Plan `STOGU_BITEN_URUNLER_ISARETLEME_PLANI.md` dosyasinda cikarilip
+tamamen uygulandi: ana sayfa ("Öne Çıkanlar") ve `/urunler` listelemesinde
+stoğu tamamen bitmiş ürün/renk kartlari artik soluk bir cam katmani +
+"Stokta Yok" rozetiyle isaretleniyor, kart yine tiklanabilir kaliyor.
+
+- `src/lib/catalog.ts`: `isOutOfStock(variants)` yardimci fonksiyonu
+  eklendi (`variants.every(v => v.stock <= 0)`). `getPublishedProducts()`
+  artik `variants: { select: { stock: true } }` de cekiyor (once hic
+  cekmiyordu). `CatalogEntry` tipine `outOfStock: boolean` eklendi;
+  `getCatalogEntries()` tek renkli/varyantsiz urunlerde tum varyantlara,
+  cok renkli urunlerde SADECE o renge ait varyantlara bakarak hesapliyor
+  (bir rengin stoğu bitince sadece o renk kartı soluklaşıyor).
+- `src/components/product-card.tsx`: `ProductCardData.outOfStock?: boolean`
+  eklendi; doluysa gorselin uzerine `backdrop-blur` + yari saydam beyaz
+  katman ve "Stokta Yok" rozeti bindiriliyor (kalp butonundan once, link
+  hala tiklanabilir - `pointer-events-none` kullanilmadi).
+- `src/app/(site)/page.tsx` ve `src/app/(site)/urunler/page.tsx`:
+  `ProductCard`'a `outOfStock` degeri geciliyor.
+- **Dogrulama**: `npm run lint` ve `npx tsc --noEmit` calistirildi -
+  degisen 4 dosyada hic yeni hata/uyari yok (mevcut lint hatalari
+  `cart.tsx`/`wishlist.tsx`/`use-bundle-discount.ts` ve olusturulmus
+  Prisma dosyalarinda, `tsc` hatalari ise `Servis/[service]/route.ts` +
+  `admin/ayarlar/page.tsx`'te `vegaId`/`ticimaxUyeKodu` alanlari icin -
+  hepsi bu degisiklikten once de vardi, once cekilen Vega-Ticimax
+  calismasindan kalma, `npx prisma generate` calistirilmadigi icin olusan
+  tip hatalari, bu isin kapsami disinda dokunulmadi).
+- `npm run dev` ile canli Neon veritabanina karsi `curl` + `bm_preview`
+  cookie'siyle test edildi: hem `/` hem `/urunler` 200 donuyor, ikisinde
+  de DB'de zaten stoğu 0 olan bir urun/renk oldugu icin "Stokta Yok"
+  rozeti gercek veriyle goruldu (yapay test verisi eklenmedi, mevcut veri
+  yeterliydi). Kartin `<Link>` icinde kaldigi, rozetin gorselin uzerinde
+  dogru konumda render edildigi HTML'den dogrulandi.
+- Kapsam disi birakildi (plan boyle diyordu): urun detay sayfasi
+  (`urunler/[slug]` + `product-viewer.tsx`) ve rozetin tasarim detaylari.
+- Commit atilmadi/push edilmedi, kullanicinin onayi bekleniyor.

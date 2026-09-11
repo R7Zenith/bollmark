@@ -9,6 +9,10 @@ export function firstImageUrl(product: { images: { url: string }[]; optionImages
   return product.images[0]?.url ?? product.optionImages[0]?.url ?? null;
 }
 
+export function isOutOfStock(variants: { stock: number }[]): boolean {
+  return variants.length > 0 && variants.every((v) => v.stock <= 0);
+}
+
 export async function getPublishedProducts(
   categorySlug?: string,
   options?: { featuredFirst?: boolean; genderLabel?: string }
@@ -27,7 +31,8 @@ export async function getPublishedProducts(
     },
     include: {
       images: { orderBy: { position: "asc" } },
-      optionImages: { orderBy: { position: "asc" }, take: 1 }
+      optionImages: { orderBy: { position: "asc" }, take: 1 },
+      variants: { select: { stock: true } }
     },
     orderBy: options?.featuredFirst
       ? [{ isFeatured: "desc" }, { createdAt: "desc" }]
@@ -67,6 +72,7 @@ export type CatalogEntry = {
   colorLabel: string | null; // yalnizca birden fazla rengi olan urunlerde dolu
   categoryId: string | null;
   brandId: string | null;
+  outOfStock: boolean;
 };
 
 export async function getCatalogEntries(
@@ -115,13 +121,15 @@ export async function getCatalogEntries(
         image: p.images[0]?.url ?? p.optionImages[0]?.url ?? null,
         colorLabel: null,
         categoryId: p.categoryId,
-        brandId: p.brandId
+        brandId: p.brandId,
+        outOfStock: isOutOfStock(p.variants)
       });
       continue;
     }
 
     for (const [valueId, label] of colorLabelByValueId) {
       const colorImage = p.optionImages.find((img) => img.valueId === valueId)?.url;
+      const colorVariants = p.variants.filter((v) => v.options.some((o) => o.valueId === valueId));
       entries.push({
         productId: p.id,
         slug: p.slug,
@@ -131,7 +139,8 @@ export async function getCatalogEntries(
         image: colorImage ?? p.images[0]?.url ?? null,
         colorLabel: label,
         categoryId: p.categoryId,
-        brandId: p.brandId
+        brandId: p.brandId,
+        outOfStock: isOutOfStock(colorVariants)
       });
     }
   }
