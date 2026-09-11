@@ -58,7 +58,7 @@ export default async function HesapPage() {
             ))}
           </div>
         )}
-        <Link href="/hesap/siparislerim" className="mt-4 inline-block text-sm underline hover:text-accent">
+        <Link href="/hesap/siparislerim" className="mt-4 inline-block text-sm underline hover:text-clay">
           Tüm siparişlerimi gör
         </Link>
       </div>

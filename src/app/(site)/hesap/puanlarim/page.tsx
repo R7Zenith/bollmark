@@ -40,7 +40,7 @@ export default async function HesapPuanlarimPage() {
                   <p>{reasonLabel[t.reason] ?? t.reason}</p>
                   <p className="text-xs text-ink/50">{t.createdAt.toLocaleDateString("tr-TR")}</p>
                 </div>
-                <p className={t.points >= 0 ? "text-accent" : "text-ink/70"}>
+                <p className={t.points >= 0 ? "text-clay" : "text-ink/70"}>
                   {t.points >= 0 ? "+" : ""}
                   {t.points}
                 </p>

@@ -184,7 +184,7 @@ export default function SiparisDurumuPage() {
         <button
           type="submit"
           disabled={loading}
-          className="shrink-0 bg-ink px-8 py-3 text-sm uppercase tracking-wide text-paper hover:bg-accent disabled:opacity-50"
+          className="shrink-0 bg-ink px-8 py-3 text-sm uppercase tracking-wide text-cream hover:bg-clay disabled:opacity-50"
         >
           {loading ? "Aranıyor..." : "Sorgula"}
         </button>
@@ -311,7 +311,7 @@ export default function SiparisDurumuPage() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="w-full bg-ink py-3 text-sm uppercase tracking-wide text-paper hover:bg-accent disabled:opacity-50"
+                  className="w-full bg-ink py-3 text-sm uppercase tracking-wide text-cream hover:bg-clay disabled:opacity-50"
                 >
                   {submitting ? "Gönderiliyor..." : "Talebi Gönder"}
                 </button>

@@ -23,7 +23,7 @@ export function StarRating({
           className={onChange ? "cursor-pointer" : "cursor-default"}
           aria-label={`${s} yıldız`}
         >
-          <Star size={size} fill={s <= value ? "currentColor" : "none"} className={s <= value ? "text-accent" : "text-ink/30"} />
+          <Star size={size} fill={s <= value ? "currentColor" : "none"} className={s <= value ? "text-clay" : "text-ink/30"} />
         </button>
       ))}
     </div>

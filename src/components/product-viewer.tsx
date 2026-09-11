@@ -55,7 +55,7 @@ function StockAlertForm({ variantId }: { variantId: string }) {
         <button
           type="submit"
           disabled={status === "loading"}
-          className="shrink-0 border border-ink px-4 py-2.5 text-sm uppercase tracking-wide hover:bg-ink hover:text-paper disabled:opacity-40"
+          className="shrink-0 border border-ink px-4 py-2.5 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream disabled:opacity-40"
         >
           Haber Ver
         </button>
@@ -200,7 +200,7 @@ export function ProductViewer({
 
       <div>
         {(categoryName || brandName) && (
-          <p className="text-xs uppercase tracking-widest2 text-accent">
+          <p className="text-xs uppercase tracking-widest2 text-clay">
             {[categoryName, brandName].filter(Boolean).join(" · ")}
           </p>
         )}
@@ -227,7 +227,7 @@ export function ProductViewer({
                 {formatPrice(Math.round((selectedPriceCents * (100 - automaticDiscount.percent)) / 100))}
               </span>
               <span className="text-ink/40 line-through">{formatPrice(selectedPriceCents)}</span>
-              <span className="bg-accent px-2 py-1 text-xs font-medium uppercase tracking-wide text-paper">
+              <span className="bg-clay px-2 py-1 text-xs font-medium uppercase tracking-wide text-cream">
                 %{automaticDiscount.percent} İndirim
               </span>
             </>
@@ -241,7 +241,7 @@ export function ProductViewer({
           )}
         </div>
         {bundleInfo && bundleInfo.otherProductNames.length > 0 && (
-          <p className="mt-3 border border-accent/40 bg-accent/5 px-4 py-2.5 text-sm text-ink/80">
+          <p className="mt-3 border border-clay/40 bg-clay/5 px-4 py-2.5 text-sm text-ink/80">
             Bu ürünü <span className="font-medium">{bundleInfo.otherProductNames.join(", ")}</span> ile birlikte al, %
             {bundleInfo.discountPercent} indirim kazan.
           </p>
@@ -293,7 +293,7 @@ export function ProductViewer({
                     key={c}
                     onClick={() => setColor(c)}
                     className={`border px-4 py-2 text-sm ${
-                      color === c ? "border-ink bg-ink text-paper" : "border-line"
+                      color === c ? "border-ink bg-ink text-cream" : "border-line"
                     }`}
                   >
                     {c}
@@ -312,7 +312,7 @@ export function ProductViewer({
                     key={s}
                     onClick={() => setSize(s)}
                     className={`border px-4 py-2 text-sm ${
-                      size === s ? "border-ink bg-ink text-paper" : "border-line"
+                      size === s ? "border-ink bg-ink text-cream" : "border-line"
                     }`}
                   >
                     {s}
@@ -323,13 +323,13 @@ export function ProductViewer({
           )}
 
           {!outOfStock && selected.stock <= LOW_STOCK_THRESHOLD && (
-            <p className="text-sm text-accent">Son {selected.stock} adet</p>
+            <p className="text-sm text-clay">Son {selected.stock} adet</p>
           )}
 
           <button
             onClick={handleAdd}
             disabled={outOfStock}
-            className="w-full bg-ink py-4 text-sm uppercase tracking-widest2 text-paper transition hover:bg-accent disabled:cursor-not-allowed disabled:opacity-40"
+            className="w-full bg-ink py-4 text-sm uppercase tracking-widest2 text-cream transition hover:bg-clay disabled:cursor-not-allowed disabled:opacity-40"
           >
             {outOfStock ? "Stokta Yok" : added ? "Sepete Eklendi ✓" : `Sepete Ekle · ${formatPrice(selectedPriceCents)}`}
           </button>
@@ -339,7 +339,7 @@ export function ProductViewer({
           {added && (
             <button
               onClick={() => router.push("/sepet")}
-              className="w-full border border-ink py-3 text-sm uppercase tracking-wide hover:bg-ink hover:text-paper"
+              className="w-full border border-ink py-3 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
             >
               Sepete Git
             </button>

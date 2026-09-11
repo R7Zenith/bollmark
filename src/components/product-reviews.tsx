@@ -90,7 +90,7 @@ export function ProductReviews({
           <button
             type="button"
             onClick={() => setFormOpen(true)}
-            className="border border-ink px-5 py-2.5 text-sm uppercase tracking-wide hover:bg-ink hover:text-paper"
+            className="border border-ink px-5 py-2.5 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
           >
             Yorum Yaz
           </button>
@@ -148,14 +148,14 @@ export function ProductReviews({
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="bg-ink px-6 py-2.5 text-sm uppercase tracking-wide text-paper hover:bg-accent disabled:opacity-50"
+                  className="bg-ink px-6 py-2.5 text-sm uppercase tracking-wide text-cream hover:bg-clay disabled:opacity-50"
                 >
                   {submitting ? "Gönderiliyor..." : "Yorumu Gönder"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormOpen(false)}
-                  className="border border-line px-6 py-2.5 text-sm uppercase tracking-wide hover:bg-ink hover:text-paper"
+                  className="border border-line px-6 py-2.5 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
                 >
                   Vazgeç
                 </button>

@@ -64,7 +64,7 @@ export function LoyaltyField({
           <button
             type="button"
             onClick={() => applyPoints("0")}
-            className="shrink-0 border border-line px-4 py-2 text-sm uppercase tracking-wide hover:bg-ink hover:text-paper"
+            className="shrink-0 border border-line px-4 py-2 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
           >
             Temizle
           </button>

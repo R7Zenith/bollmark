@@ -106,7 +106,7 @@ export default async function HesapAdreslerimPage({
           <input name="address" required placeholder="Adres" className="col-span-2 border border-line px-3 py-2 text-sm" />
           <input name="city" required placeholder="İl" className="border border-line px-3 py-2 text-sm" />
           <input name="district" required placeholder="İlçe" className="border border-line px-3 py-2 text-sm" />
-          <button className="col-span-2 bg-ink py-2.5 text-sm uppercase tracking-wide text-paper hover:bg-accent">
+          <button className="col-span-2 bg-ink py-2.5 text-sm uppercase tracking-wide text-cream hover:bg-clay">
             Adres Ekle
           </button>
         </form>

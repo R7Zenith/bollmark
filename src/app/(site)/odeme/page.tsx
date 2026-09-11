@@ -146,7 +146,7 @@ export default function CheckoutPage() {
               href="/sayfa/mesafeli-satis-sozlesmesi"
               target="_blank"
               rel="noopener noreferrer"
-              className="underline hover:text-accent"
+              className="underline hover:text-clay"
             >
               Mesafeli Satış Sözleşmesi
             </Link>
@@ -159,7 +159,7 @@ export default function CheckoutPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="w-full bg-ink py-4 text-sm uppercase tracking-widest2 text-paper hover:bg-accent disabled:opacity-50"
+          className="w-full bg-ink py-4 text-sm uppercase tracking-widest2 text-cream hover:bg-clay disabled:opacity-50"
         >
           {submitting ? "İşleniyor..." : "Siparişi Tamamla"}
         </button>
@@ -189,19 +189,19 @@ export default function CheckoutPage() {
             <span>{formatPrice(totalCents)}</span>
           </div>
           {bundleDiscountCents > 0 && (
-            <div className="flex justify-between text-accent">
+            <div className="flex justify-between text-clay">
               <span>Bundle İndirimi</span>
               <span>-{formatPrice(bundleDiscountCents)}</span>
             </div>
           )}
           {discountCents > 0 && (
-            <div className="flex justify-between text-accent">
+            <div className="flex justify-between text-clay">
               <span>{coupon?.appliedName ? `İndirim (${coupon.appliedName})` : "İndirim"}</span>
               <span>-{formatPrice(discountCents)}</span>
             </div>
           )}
           {loyaltyDiscountCents > 0 && (
-            <div className="flex justify-between text-accent">
+            <div className="flex justify-between text-clay">
               <span>Puan İndirimi</span>
               <span>-{formatPrice(loyaltyDiscountCents)}</span>
             </div>

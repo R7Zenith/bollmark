@@ -23,61 +23,64 @@ export default async function HomePage() {
     {
       label: "Kadın",
       href: "/urunler?cinsiyet=Kadın",
-      image: "https://images.unsplash.com/photo-1495385794356-15371f348c31?w=1200"
+      image: "https://images.unsplash.com/photo-1495385794356-15371f348c31?w=1200",
+      span: "row-span-2"
     },
     {
       label: "Erkek",
       href: "/urunler?cinsiyet=Erkek",
-      image: "https://images.unsplash.com/photo-1516257984-b1b4d707412e?w=1200"
+      image: "https://images.unsplash.com/photo-1516257984-b1b4d707412e?w=1200",
+      span: ""
     },
     {
       label: "Aksesuar",
       href: "/urunler?kategori=aksesuar",
-      image: "https://images.unsplash.com/photo-1509941943102-10c232535736?w=1200"
+      image: "https://images.unsplash.com/photo-1509941943102-10c232535736?w=1200",
+      span: ""
     }
   ];
 
   return (
     <div>
-      <section className="relative flex h-[90vh] min-h-[560px] items-end overflow-hidden bg-ink text-paper">
+      <section className="relative flex min-h-screen items-center overflow-hidden bg-ink text-cream">
         <Image
           src="https://images.unsplash.com/photo-1490114538077-0a7f8cb49891?w=1800"
           alt="Bollmark kampanya görseli"
           fill
           priority
-          className="object-cover opacity-70"
+          className="object-cover opacity-60"
         />
-        <div className="relative z-10 mx-auto w-full max-w-6xl px-6 pb-20">
-          <p className="text-sm uppercase tracking-widest2">2026 Sonbahar / Kış Koleksiyonu</p>
-          <h1 className="mt-5 max-w-xl font-display text-5xl font-light leading-tight md:text-6xl">
-            Zamansız kesimler, özenle seçilmiş kumaşlar
+        <div className="relative z-10 mx-auto w-full max-w-7xl px-6">
+          <p className="text-xs uppercase tracking-widest2 text-cream/70">2026 Sonbahar / Kış</p>
+          <h1 className="mt-6 max-w-3xl font-display text-6xl font-light leading-[0.95] md:text-8xl">
+            Her gün için, her parça için
           </h1>
           <Link
             href="/urunler"
-            className="mt-10 inline-block rounded-full border border-paper px-8 py-3 text-sm uppercase tracking-wide transition hover:bg-paper hover:text-ink"
+            className="mt-10 inline-flex items-center gap-2 border-b border-cream pb-1 text-sm uppercase tracking-wide transition hover:gap-3"
           >
-            Koleksiyonu Keşfet
+            Koleksiyonu Keşfet <span aria-hidden>→</span>
           </Link>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 py-section">
-        <div className="grid gap-6 md:grid-cols-3 md:gap-8">
+      <section className="mx-auto max-w-7xl px-6 py-section">
+        <div className="grid grid-cols-2 grid-rows-2 gap-4 md:h-[720px]">
           {categoryShortcuts.map((c) => (
             <Link
               key={c.label}
               href={c.href}
-              className="group relative block aspect-[3/4] overflow-hidden rounded-2xl bg-line shadow-soft"
+              className={`group relative block overflow-hidden bg-line ${c.span} ${c.span ? "" : "aspect-[3/4] md:aspect-auto"}`}
             >
               <Image
                 src={c.image}
                 alt={`${c.label} koleksiyonu`}
                 fill
-                sizes="(min-width: 768px) 33vw, 100vw"
+                sizes="(min-width: 768px) 50vw, 100vw"
                 className="object-cover transition duration-500 ease-out group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-ink/50 via-transparent to-transparent" />
-              <span className="absolute bottom-6 left-6 font-display text-2xl uppercase tracking-widest2 text-paper">
+              <span className="absolute bottom-6 left-6 font-display text-3xl font-light text-cream">
                 {c.label}
               </span>
             </Link>
@@ -85,10 +88,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 py-section">
+      <section className="mx-auto max-w-7xl px-6 py-section">
         <div className="mb-12 flex items-end justify-between">
           <h2 className="font-display text-3xl font-light">Öne Çıkanlar</h2>
-          <Link href="/urunler" className="text-sm uppercase tracking-wide hover:text-accent">
+          <Link href="/urunler" className="text-sm uppercase tracking-wide hover:text-clay">
             Tümünü Gör →
           </Link>
         </div>
@@ -97,7 +100,7 @@ export default async function HomePage() {
             Henüz yayınlanmış ürün yok. Admin panelinden ilk ürününüzü ekleyin.
           </p>
         ) : (
-          <div className="grid grid-cols-2 gap-x-6 gap-y-14 md:grid-cols-3">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4">
             {products.map((p) => (
               <ProductCard
                 key={p.id}
@@ -117,9 +120,9 @@ export default async function HomePage() {
         )}
       </section>
 
-      <section id="hikaye" className="border-t border-line bg-white py-section">
-        <div className="mx-auto grid max-w-6xl gap-12 px-6 md:grid-cols-2 md:gap-20">
-          <div className="relative aspect-[4/3] overflow-hidden rounded-2xl">
+      <section id="hikaye" className="border-t border-line bg-cream py-section">
+        <div className="mx-auto grid max-w-7xl gap-12 px-6 md:grid-cols-2 md:gap-20">
+          <div className="relative aspect-[4/3] overflow-hidden">
             <Image
               src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1200"
               alt="Bollmark atölye"
@@ -128,7 +131,7 @@ export default async function HomePage() {
             />
           </div>
           <div className="flex flex-col justify-center">
-            <p className="text-sm uppercase tracking-widest2 text-accent">Hikayemiz</p>
+            <p className="text-sm uppercase tracking-widest2 text-clay">Hikayemiz</p>
             <h2 className="mt-4 font-display text-3xl font-light">Detaylara verdiğimiz önem</h2>
             <p className="mt-4 text-ink/70">
               Bollmark, kaliteli kumaşları sade ve zamansız tasarımlarla buluşturur. Her parça,

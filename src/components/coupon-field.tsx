@@ -86,7 +86,7 @@ export function CouponField({ onDiscountChange }: { onDiscountChange: (result: C
           <button
             type="button"
             onClick={handleRemove}
-            className="shrink-0 border border-line px-4 py-2 text-sm uppercase tracking-wide hover:bg-ink hover:text-paper"
+            className="shrink-0 border border-line px-4 py-2 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
           >
             Kaldır
           </button>
@@ -95,7 +95,7 @@ export function CouponField({ onDiscountChange }: { onDiscountChange: (result: C
             type="button"
             onClick={() => checkDiscount(input, true)}
             disabled={status === "loading"}
-            className="shrink-0 border border-ink px-4 py-2 text-sm uppercase tracking-wide hover:bg-ink hover:text-paper disabled:opacity-40"
+            className="shrink-0 border border-ink px-4 py-2 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream disabled:opacity-40"
           >
             Uygula
           </button>

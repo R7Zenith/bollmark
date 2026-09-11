@@ -102,7 +102,7 @@ export default function HesapGirisPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-ink py-3 text-sm uppercase tracking-widest2 text-paper hover:bg-accent disabled:opacity-50"
+            className="w-full bg-ink py-3 text-sm uppercase tracking-widest2 text-cream hover:bg-clay disabled:opacity-50"
           >
             {loading ? "İşleniyor..." : "Giriş Yap"}
           </button>
@@ -124,7 +124,7 @@ export default function HesapGirisPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-ink py-3 text-sm uppercase tracking-widest2 text-paper hover:bg-accent disabled:opacity-50"
+            className="w-full bg-ink py-3 text-sm uppercase tracking-widest2 text-cream hover:bg-clay disabled:opacity-50"
           >
             {loading ? "İşleniyor..." : "Hesap Oluştur"}
           </button>

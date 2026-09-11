@@ -16,7 +16,7 @@ export default function ThankYouPage({
       </p>
       <Link
         href="/urunler"
-        className="mt-10 inline-block border border-ink px-8 py-3 text-sm uppercase tracking-wide hover:bg-ink hover:text-paper"
+        className="mt-10 inline-block border border-ink px-8 py-3 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
       >
         Alışverişe Devam Et
       </Link>

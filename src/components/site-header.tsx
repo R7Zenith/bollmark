@@ -71,7 +71,7 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
   const heroImage = categories.find((c) => c.imageUrl)?.imageUrl ?? null;
 
   return (
-    <div className="absolute inset-x-0 top-full w-full rounded-b-2xl border-b border-line bg-paper shadow-soft">
+    <div className="absolute inset-x-0 top-full w-full rounded-b-2xl border-b border-line bg-cream shadow-soft">
       <div className="mx-auto flex max-w-6xl gap-12 px-6 py-10">
         <div className="grid flex-1 grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3 md:grid-cols-4">
           {columns.map((column, i) => (
@@ -82,7 +82,7 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
                   <li key={category.id}>
                     <Link
                       href={`/urunler?kategori=${category.slug}&cinsiyet=${genderLabel}`}
-                      className={`block border-b-2 pb-0.5 text-sm hover:text-accent ${isActive ? "border-accent text-accent" : "border-transparent text-ink/80"}`}
+                      className={`block border-b-2 pb-0.5 text-sm hover:text-clay ${isActive ? "border-clay text-clay" : "border-transparent text-ink/80"}`}
                     >
                       {category.name}
                     </Link>
@@ -93,11 +93,11 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
           ))}
         </div>
         {heroImage && (
-          <div className="hidden w-64 shrink-0 lg:block">
+          <div className="hidden w-80 shrink-0 lg:block">
             <Link href={`/urunler?cinsiyet=${genderLabel}`} className="block">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={heroImage} alt={`${genderLabel} koleksiyonu`} className="h-72 w-full rounded-xl object-cover" />
-              <span className="mt-3 block text-sm uppercase tracking-wide hover:text-accent">
+              <img src={heroImage} alt={`${genderLabel} koleksiyonu`} className="h-72 w-full rounded-none object-cover" />
+              <span className="mt-3 block text-sm uppercase tracking-wide hover:text-clay">
                 {genderLabel} Koleksiyonunu Gör
               </span>
             </Link>
@@ -113,7 +113,7 @@ function AksesuarPanel({ categories }: { categories: MenuCategory[] }) {
   const activeSlug = searchParams.get("kategori");
 
   return (
-    <div className="absolute inset-x-0 top-full w-full rounded-b-2xl border-b border-line bg-paper shadow-soft">
+    <div className="absolute inset-x-0 top-full w-full rounded-b-2xl border-b border-line bg-cream shadow-soft">
       <ul className="mx-auto max-w-6xl space-y-3 px-6 py-10">
         {categories.map((category) => {
           const isActive = activeSlug === category.slug;
@@ -121,7 +121,7 @@ function AksesuarPanel({ categories }: { categories: MenuCategory[] }) {
             <li key={category.id}>
               <Link
                 href={`/urunler?kategori=${category.slug}`}
-                className={`inline-block border-b-2 pb-0.5 text-sm hover:text-accent ${isActive ? "border-accent text-accent" : "border-transparent text-ink/80"}`}
+                className={`inline-block border-b-2 pb-0.5 text-sm hover:text-clay ${isActive ? "border-clay text-clay" : "border-transparent text-ink/80"}`}
               >
                 {category.name}
               </Link>
@@ -152,14 +152,14 @@ function DesktopNav({
 
   return (
     <nav className="hidden items-center gap-8 text-sm uppercase tracking-wide md:flex">
-      <Link href="/urunler" className="uppercase hover:text-accent">
+      <Link href="/urunler" className="uppercase hover:text-clay">
         Tüm Ürünler
       </Link>
       {tabs.map((tab) => (
         <Link
           key={tab.key}
           href={tab.href}
-          className="uppercase hover:text-accent"
+          className="uppercase hover:text-clay"
           aria-expanded={openMenu === tab.key}
           onMouseEnter={() => setOpenMenu(tab.key)}
           onFocus={() => setOpenMenu(tab.key)}
@@ -167,7 +167,7 @@ function DesktopNav({
           {tab.label}
         </Link>
       ))}
-      <Link href="/#hikaye" className="uppercase hover:text-accent">
+      <Link href="/#hikaye" className="uppercase hover:text-clay">
         Hikayemiz
       </Link>
     </nav>
@@ -211,7 +211,7 @@ function MobileAccordionSection({
         <ul className="space-y-3 pb-4 pl-2">
           {categories.map((category) => (
             <li key={category.id}>
-              <Link href={buildHref(category)} onClick={onNavigate} className="block text-sm text-ink/80 hover:text-accent">
+              <Link href={buildHref(category)} onClick={onNavigate} className="block text-sm text-ink/80 hover:text-clay">
                 {category.name}
               </Link>
             </li>
@@ -264,7 +264,7 @@ function MobileMenu({
         className="absolute inset-0 bg-ink/40"
         onClick={onClose}
       />
-      <div className="absolute right-0 top-0 flex h-full w-[85%] max-w-sm flex-col overflow-y-auto rounded-l-2xl bg-paper px-6 py-6 shadow-soft">
+      <div className="absolute right-0 top-0 flex h-full w-[85%] max-w-sm flex-col overflow-y-auto rounded-l-2xl bg-cream px-6 py-6 shadow-soft">
         <div className="flex items-center justify-between">
           <span className="font-display text-xl tracking-widest2 uppercase">Bollmark</span>
           <button type="button" aria-label="Kapat" onClick={onClose} className="p-1">
@@ -331,7 +331,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
 
   return (
     <header
-      className="sticky top-0 z-40 border-b border-line bg-paper/90 shadow-soft backdrop-blur relative"
+      className="sticky top-0 z-40 border-b border-line bg-cream relative"
       onMouseLeave={() => setOpenMenu(null)}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
@@ -344,17 +344,17 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
         <div className="flex items-center gap-4">
           <Link
             href={session?.user ? "/hesap" : "/hesap/giris"}
-            className="hidden text-sm uppercase tracking-wide hover:text-accent md:inline"
+            className="hidden text-sm uppercase tracking-wide hover:text-clay md:inline"
           >
             {session?.user?.name ?? "Giriş Yap"}
           </Link>
           <Link
             href="/sepet"
-            className="relative flex items-center gap-2 rounded-full border border-ink px-4 py-2 text-sm uppercase tracking-wide transition hover:bg-ink hover:text-paper"
+            className="relative flex items-center gap-2 bg-ink px-4 py-2 text-sm uppercase tracking-wide text-cream transition hover:bg-clay"
           >
             Sepet
             {totalCount > 0 && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs text-white">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cream text-xs text-ink">
                 {totalCount}
               </span>
             )}

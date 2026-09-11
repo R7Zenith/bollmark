@@ -58,7 +58,7 @@ export function HesapAddressRow({
     <li className="flex items-center justify-between p-4 text-sm">
       <div>
         <p className="font-medium">
-          {address.label} {address.isDefault && <span className="ml-2 text-xs text-accent">(Varsayılan)</span>}
+          {address.label} {address.isDefault && <span className="ml-2 text-xs text-clay">(Varsayılan)</span>}
         </p>
         <p className="text-ink/70">{address.name} · {address.phone}</p>
         <p className="text-ink/50">

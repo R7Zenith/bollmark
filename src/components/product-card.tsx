@@ -24,6 +24,9 @@ export type ProductCardData = {
   // Doluysa bu urunun/rengin tum varyantlarinin stogu bitmis, kart soluk bir
   // cam katmaniyla isaretlenir.
   outOfStock?: boolean;
+  // Doluysa hover'da ana gorselden buna capraz-solma (crossfade) yapilir;
+  // bos ise mevcut hafif buyume (scale) efekti kullanilir.
+  secondImage?: string | null;
 };
 
 export function ProductCard({ product }: { product: ProductCardData }) {
@@ -45,11 +48,24 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           alt={product.name}
           fill
           sizes="(min-width: 1024px) 25vw, 50vw"
-          className="object-cover transition duration-300 ease-out group-hover:scale-105"
+          className={
+            product.secondImage
+              ? "object-cover transition duration-300 ease-out group-hover:opacity-0"
+              : "object-cover transition duration-300 ease-out group-hover:scale-105"
+          }
         />
+        {product.secondImage && (
+          <Image
+            src={product.secondImage}
+            alt={product.name}
+            fill
+            sizes="(min-width: 1024px) 25vw, 50vw"
+            className="object-cover opacity-0 transition duration-300 ease-out group-hover:opacity-100"
+          />
+        )}
         {product.outOfStock && (
-          <div className="absolute inset-0 flex items-center justify-center bg-paper/60 backdrop-blur-[2px]">
-            <span className="border border-ink/20 bg-paper/85 px-3 py-1 text-xs uppercase tracking-wide text-ink/70">
+          <div className="absolute inset-0 flex items-center justify-center bg-cream/60 backdrop-blur-[2px]">
+            <span className="border border-ink/20 bg-cream/85 px-3 py-1 text-xs uppercase tracking-wide text-ink/70">
               Stokta Yok
             </span>
           </div>
@@ -60,19 +76,19 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             e.preventDefault();
             toggle(product.productId);
           }}
-          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-paper/90 text-ink shadow-soft transition hover:bg-paper"
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-cream/90 text-ink shadow-soft transition hover:bg-cream"
           title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
         >
           <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />
         </button>
         {discountPercent && (
-          <span className="absolute left-3 top-3 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-accent">
+          <span className="absolute left-3 top-3 bg-clay/10 px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-clay">
             %{discountPercent} İndirim
           </span>
         )}
       </div>
       <div className="mt-4 flex items-baseline justify-between">
-        <h3 className="text-sm uppercase tracking-wide">{product.name}</h3>
+        <h3 className="text-sm text-ink">{product.name}</h3>
       </div>
       {product.colorLabel && <p className="mt-1 text-xs text-ink/50">{product.colorLabel}</p>}
       <div className="mt-2 flex items-center gap-2">

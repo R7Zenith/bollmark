@@ -21,7 +21,7 @@ export default function CartPage() {
         <p className="mt-3 text-ink/60">Alışverişe başlamak için ürünlerimize göz atın.</p>
         <Link
           href="/urunler"
-          className="mt-8 inline-block border border-ink px-8 py-3 text-sm uppercase tracking-wide hover:bg-ink hover:text-paper"
+          className="mt-8 inline-block border border-ink px-8 py-3 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
         >
           Ürünleri Keşfet
         </Link>
@@ -54,7 +54,7 @@ export default function CartPage() {
                 />
                 <button
                   onClick={() => removeLine(line.variantId)}
-                  className="text-xs uppercase text-ink/50 hover:text-accent"
+                  className="text-xs uppercase text-ink/50 hover:text-clay"
                 >
                   Kaldır
                 </button>
@@ -75,13 +75,13 @@ export default function CartPage() {
           <span>{formatPrice(totalCents)}</span>
         </div>
         {bundleDiscountCents > 0 && (
-          <div className="flex items-center justify-between text-sm text-accent">
+          <div className="flex items-center justify-between text-sm text-clay">
             <span>Bundle İndirimi</span>
             <span>-{formatPrice(bundleDiscountCents)}</span>
           </div>
         )}
         {discountCents > 0 && (
-          <div className="flex items-center justify-between text-sm text-accent">
+          <div className="flex items-center justify-between text-sm text-clay">
             <span>{coupon?.appliedName ? `İndirim (${coupon.appliedName})` : "İndirim"}</span>
             <span>-{formatPrice(discountCents)}</span>
           </div>
@@ -94,7 +94,7 @@ export default function CartPage() {
 
       <Link
         href="/odeme"
-        className="mt-8 block w-full bg-ink py-4 text-center text-sm uppercase tracking-widest2 text-paper hover:bg-accent"
+        className="mt-8 block w-full bg-ink py-4 text-center text-sm uppercase tracking-widest2 text-cream hover:bg-clay"
       >
         Ödemeye Geç
       </Link>

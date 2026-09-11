@@ -137,7 +137,7 @@ export function HesapOrderCard({ order }: { order: HesapOrderView }) {
       {order.eligibleForReturn && selectableItems.length > 0 && (
         <div className="mt-4 border-t border-line pt-4">
           {!formOpen ? (
-            <button type="button" onClick={() => setFormOpen(true)} className="text-sm underline hover:text-accent">
+            <button type="button" onClick={() => setFormOpen(true)} className="text-sm underline hover:text-clay">
               İade/Değişim Talebi Oluştur
             </button>
           ) : (
@@ -188,14 +188,14 @@ export function HesapOrderCard({ order }: { order: HesapOrderView }) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="bg-ink px-5 py-2 text-sm uppercase tracking-wide text-paper hover:bg-accent disabled:opacity-50"
+                  className="bg-ink px-5 py-2 text-sm uppercase tracking-wide text-cream hover:bg-clay disabled:opacity-50"
                 >
                   {submitting ? "Gönderiliyor..." : "Talebi Gönder"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormOpen(false)}
-                  className="border border-line px-5 py-2 text-sm uppercase tracking-wide hover:bg-ink hover:text-paper"
+                  className="border border-line px-5 py-2 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
                 >
                   Vazgeç
                 </button>

@@ -12,11 +12,11 @@ html {
 }
 
 body {
-  background-color: #faf9f7;
-  color: #111111;
+  background-color: #f3ede3;
+  color: #1c1917;
 }
 
 ::selection {
-  background-color: #c9a24b;
+  background-color: #a9765a;
   color: #ffffff;
 }

@@ -5,10 +5,11 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        ink: "#111111",
-        paper: "#faf9f7",
-        accent: "#c9a24b",
-        line: "#e6e2da",
+        ink: "#1c1917",
+        cream: "#f3ede3",
+        clay: "#a9765a",
+        stone: "#8a8478",
+        line: "#e2dcd0",
         "admin-bg": "#f6f6f7",
         "admin-surface": "#ffffff",
         "admin-border": "#e3e3e5",
