@@ -71,18 +71,18 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
   const heroImage = categories.find((c) => c.imageUrl)?.imageUrl ?? null;
 
   return (
-    <div className="absolute inset-x-0 top-full w-full border-b border-line bg-paper shadow-lg">
-      <div className="mx-auto flex max-w-6xl gap-10 px-6 py-8">
+    <div className="absolute inset-x-0 top-full w-full rounded-b-2xl border-b border-line bg-paper shadow-soft">
+      <div className="mx-auto flex max-w-6xl gap-12 px-6 py-10">
         <div className="grid flex-1 grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3 md:grid-cols-4">
           {columns.map((column, i) => (
-            <ul key={i} className="space-y-2">
+            <ul key={i} className="space-y-3">
               {column.map((category) => {
                 const isActive = activeSlug === category.slug && activeGender === genderLabel;
                 return (
                   <li key={category.id}>
                     <Link
                       href={`/urunler?kategori=${category.slug}&cinsiyet=${genderLabel}`}
-                      className={`block text-sm hover:text-accent ${isActive ? "text-accent underline" : "text-ink/80"}`}
+                      className={`block border-b-2 pb-0.5 text-sm hover:text-accent ${isActive ? "border-accent text-accent" : "border-transparent text-ink/80"}`}
                     >
                       {category.name}
                     </Link>
@@ -96,7 +96,7 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
           <div className="hidden w-64 shrink-0 lg:block">
             <Link href={`/urunler?cinsiyet=${genderLabel}`} className="block">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={heroImage} alt={`${genderLabel} koleksiyonu`} className="h-72 w-full rounded object-cover" />
+              <img src={heroImage} alt={`${genderLabel} koleksiyonu`} className="h-72 w-full rounded-xl object-cover" />
               <span className="mt-3 block text-sm uppercase tracking-wide hover:text-accent">
                 {genderLabel} Koleksiyonunu Gör
               </span>
@@ -113,15 +113,15 @@ function AksesuarPanel({ categories }: { categories: MenuCategory[] }) {
   const activeSlug = searchParams.get("kategori");
 
   return (
-    <div className="absolute inset-x-0 top-full w-full border-b border-line bg-paper shadow-lg">
-      <ul className="mx-auto max-w-6xl space-y-3 px-6 py-8">
+    <div className="absolute inset-x-0 top-full w-full rounded-b-2xl border-b border-line bg-paper shadow-soft">
+      <ul className="mx-auto max-w-6xl space-y-3 px-6 py-10">
         {categories.map((category) => {
           const isActive = activeSlug === category.slug;
           return (
             <li key={category.id}>
               <Link
                 href={`/urunler?kategori=${category.slug}`}
-                className={`block text-sm hover:text-accent ${isActive ? "text-accent underline" : "text-ink/80"}`}
+                className={`inline-block border-b-2 pb-0.5 text-sm hover:text-accent ${isActive ? "border-accent text-accent" : "border-transparent text-ink/80"}`}
               >
                 {category.name}
               </Link>
@@ -264,7 +264,7 @@ function MobileMenu({
         className="absolute inset-0 bg-ink/40"
         onClick={onClose}
       />
-      <div className="absolute right-0 top-0 flex h-full w-[85%] max-w-sm flex-col overflow-y-auto bg-paper px-6 py-6 shadow-xl">
+      <div className="absolute right-0 top-0 flex h-full w-[85%] max-w-sm flex-col overflow-y-auto rounded-l-2xl bg-paper px-6 py-6 shadow-soft">
         <div className="flex items-center justify-between">
           <span className="font-display text-xl tracking-widest2 uppercase">Bollmark</span>
           <button type="button" aria-label="Kapat" onClick={onClose} className="p-1">
@@ -331,7 +331,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
 
   return (
     <header
-      className="sticky top-0 z-40 border-b border-line bg-paper/90 backdrop-blur relative"
+      className="sticky top-0 z-40 border-b border-line bg-paper/90 shadow-soft backdrop-blur relative"
       onMouseLeave={() => setOpenMenu(null)}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">

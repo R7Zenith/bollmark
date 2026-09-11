@@ -39,13 +39,13 @@ export function ProductCard({ product }: { product: ProductCardData }) {
 
   return (
     <Link href={href} className="group block">
-      <div className="relative aspect-[3/4] overflow-hidden bg-line">
+      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-line">
         <Image
           src={product.image}
           alt={product.name}
           fill
           sizes="(min-width: 1024px) 25vw, 50vw"
-          className="object-cover transition duration-500 group-hover:scale-105"
+          className="object-cover transition duration-300 ease-out group-hover:scale-105"
         />
         {product.outOfStock && (
           <div className="absolute inset-0 flex items-center justify-center bg-paper/60 backdrop-blur-[2px]">
@@ -60,22 +60,22 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             e.preventDefault();
             toggle(product.productId);
           }}
-          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-paper/90 text-ink transition hover:bg-paper"
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-paper/90 text-ink shadow-soft transition hover:bg-paper"
           title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
         >
           <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />
         </button>
         {discountPercent && (
-          <span className="absolute left-3 top-3 bg-accent px-2 py-1 text-xs font-medium uppercase tracking-wide text-paper">
+          <span className="absolute left-3 top-3 rounded-full bg-accent/10 px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-accent">
             %{discountPercent} İndirim
           </span>
         )}
       </div>
-      <div className="mt-3 flex items-baseline justify-between">
+      <div className="mt-4 flex items-baseline justify-between">
         <h3 className="text-sm uppercase tracking-wide">{product.name}</h3>
       </div>
-      {product.colorLabel && <p className="mt-0.5 text-xs text-ink/50">{product.colorLabel}</p>}
-      <div className="mt-1 flex items-center gap-2">
+      {product.colorLabel && <p className="mt-1 text-xs text-ink/50">{product.colorLabel}</p>}
+      <div className="mt-2 flex items-center gap-2">
         <span className="text-sm font-medium">
           {formatPrice(discountedPriceCents ?? product.priceCents)}
         </span>

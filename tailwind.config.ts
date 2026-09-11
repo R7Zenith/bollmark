@@ -22,6 +22,12 @@ const config: Config = {
       },
       letterSpacing: {
         widest2: "0.25em"
+      },
+      boxShadow: {
+        soft: "0 8px 30px -12px rgba(17,17,17,0.08)"
+      },
+      spacing: {
+        section: "6rem"
       }
     }
   },
