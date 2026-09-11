@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -7,6 +8,9 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCart } from "@/lib/cart";
 import type { MegaMenuData, MenuCategory } from "@/lib/site-nav";
+
+// logo.png / logo-white.png dosyalarinin gercek en-boy orani (1400x273px).
+const LOGO_ASPECT_RATIO = 1400 / 273;
 
 type GenderKey = "kadin" | "erkek";
 
@@ -46,18 +50,45 @@ function CloseIcon() {
   );
 }
 
-function ChevronIcon({ open }: { open: boolean }) {
+function ChevronIcon({ open, size = 16 }: { open: boolean; size?: number }) {
   return (
     <svg
-      width="16"
-      height="16"
+      width={size}
+      height={size}
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.75"
-      className={`transition-transform ${open ? "rotate-180" : ""}`}
+      className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
     >
       <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <circle cx="11" cy="11" r="7" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  );
+}
+
+function AccountIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+    </svg>
+  );
+}
+
+function CartIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <path d="M6 8h12l-1 12H7L6 8Z" />
+      <path d="M9 8V6a3 3 0 0 1 6 0v2" />
     </svg>
   );
 }
@@ -150,26 +181,29 @@ function DesktopNav({
     { key: "aksesuar", label: "Aksesuar", href: "/urunler?kategori=aksesuar" }
   ];
 
+  // Release temasinda olculen degerler (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md
+  // Adim 0d): 10px, normal agirlik, 1.4px harf araligi, buyuk harf - "ince ve
+  // pahali" his buradan geliyor, siradan text-sm ile karistirilmamali.
+  const linkClassName = "flex items-center gap-1 text-[10px] font-normal uppercase tracking-[1.4px] hover:text-clay";
+
   return (
-    <nav className="hidden items-center gap-8 text-sm md:flex">
-      <Link href="/urunler" className="hover:text-clay">
+    <nav className="hidden items-center gap-3 whitespace-nowrap xl:flex xl:gap-6">
+      <Link href="/urunler" className={linkClassName}>
         Tüm Ürünler
       </Link>
       {tabs.map((tab) => (
         <Link
           key={tab.key}
           href={tab.href}
-          className="hover:text-clay"
+          className={linkClassName}
           aria-expanded={openMenu === tab.key}
           onMouseEnter={() => setOpenMenu(tab.key)}
           onFocus={() => setOpenMenu(tab.key)}
         >
           {tab.label}
+          <ChevronIcon open={openMenu === tab.key} size={12} />
         </Link>
       ))}
-      <Link href="/#hikaye" className="hover:text-clay">
-        Hikayemiz
-      </Link>
     </nav>
   );
 }
@@ -257,7 +291,7 @@ function MobileMenu({
   // CSS'te fixed konumlanmayi ata elemente gore sinirlar), bu overlay body'ye
   // portal ile tasinir - aksi halde tam ekran degil header yuksekliginde kirpilir.
   return createPortal(
-    <div className="fixed inset-0 z-50 md:hidden">
+    <div className="fixed inset-0 z-50 xl:hidden">
       <button
         type="button"
         aria-label="Menüyü kapat"
@@ -266,7 +300,13 @@ function MobileMenu({
       />
       <div className="absolute right-0 top-0 flex h-full w-[85%] max-w-sm flex-col overflow-y-auto rounded-l-2xl bg-cream px-6 py-6 shadow-soft">
         <div className="flex items-center justify-between">
-          <span className="font-display text-xl tracking-widest2 uppercase">Bollmark</span>
+          <Image
+            src="/logo.png"
+            alt="Bollmark"
+            width={Math.round(22 * LOGO_ASPECT_RATIO)}
+            height={22}
+            priority
+          />
           <button type="button" aria-label="Kapat" onClick={onClose} className="p-1">
             <CloseIcon />
           </button>
@@ -354,23 +394,62 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
         }`}
         onMouseLeave={() => setOpenMenu(null)}
       >
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
-          <Link href="/" className="font-display text-2xl tracking-widest2 uppercase">
-            Bollmark
+        {/* 3 esit sutunlu grid - logo, sol/sag icerigin genisliginden bagimsiz
+            olarak her zaman container'in tam ortasinda kalir (flex
+            justify-between'de sol/sag esit genislikte olmadigi surece logo
+            merkezden kayar - bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md Adim 0c). */}
+        <div className="mx-auto grid max-w-7xl grid-cols-3 items-center px-6 py-5">
+          <div className="flex items-center">
+            <DesktopNav menuData={menuData} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+          </div>
+
+          <Link href="/" aria-label="Bollmark anasayfa" className="flex justify-center">
+            <Image
+              src={transparent ? "/logo-white.png" : "/logo.png"}
+              alt="Bollmark"
+              width={Math.round(28 * LOGO_ASPECT_RATIO)}
+              height={28}
+              priority
+            />
           </Link>
 
-          <DesktopNav menuData={menuData} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-
-          <div className="flex items-center gap-4">
+          <div className="flex items-center justify-end gap-4">
+            {/* Masaustu (xl+): Release'deki gibi kompakt ikon satiri - arama,
+                hesap, sepet. Arama simdilik /urunler'e yonlendiriyor, gercek
+                arama islevi bu adimin kapsami disinda. */}
+            <Link
+              href="/urunler"
+              aria-label="Ürünlerde ara"
+              className="hidden hover:text-clay xl:inline-flex"
+            >
+              <SearchIcon />
+            </Link>
             <Link
               href={session?.user ? "/hesap" : "/hesap/giris"}
-              className="hidden text-sm uppercase tracking-wide hover:text-clay md:inline"
+              aria-label="Hesabım"
+              className="hidden hover:text-clay xl:inline-flex"
             >
-              {session?.user?.name ?? "Giriş Yap"}
+              <AccountIcon />
             </Link>
             <Link
               href="/sepet"
-              className={`relative flex items-center gap-2 px-4 py-2 text-sm uppercase tracking-wide transition ${
+              aria-label="Sepetim"
+              className="relative hidden hover:text-clay xl:inline-flex"
+            >
+              <CartIcon />
+              {totalCount > 0 && (
+                <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-clay text-[10px] text-cream">
+                  {totalCount}
+                </span>
+              )}
+            </Link>
+
+            {/* xl alti (tablet/mobil): mevcut Sepet hap butonu + hamburger,
+                degistirilmedi (bkz. Adim 0d kapsami - sadece masaustu). */}
+            <Link
+              href="/sepet"
+              aria-label="Sepetim"
+              className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-sm uppercase tracking-wide transition xl:hidden ${
                 transparent
                   ? "border border-cream text-cream hover:bg-cream hover:text-ink"
                   : "bg-ink text-cream hover:bg-clay"
@@ -390,7 +469,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
             <button
               type="button"
               aria-label="Menüyü aç"
-              className="p-1 md:hidden"
+              className="p-1 xl:hidden"
               onClick={() => setMobileOpen(true)}
             >
               <HamburgerIcon />

@@ -19,6 +19,11 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
+              <Link href="/#hikaye" className="hover:text-clay">
+                Hikayemiz
+              </Link>
+            </li>
+            <li>
               <Link href="/siparis-durumu" className="hover:text-clay">
                 İade &amp; Değişim
               </Link>

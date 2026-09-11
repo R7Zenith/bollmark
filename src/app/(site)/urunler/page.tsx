@@ -82,7 +82,8 @@ export default async function ProductsPage({
                 image: entry.image ?? FALLBACK_IMAGE,
                 colorLabel: entry.colorLabel,
                 automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, entry)?.percent ?? null,
-                outOfStock: entry.outOfStock
+                outOfStock: entry.outOfStock,
+                quickAddVariant: entry.quickAddVariant
               }}
             />
           ))}

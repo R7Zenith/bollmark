@@ -1,6 +1,24 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import { variantOptionsInclude } from "@/lib/variant-attributes";
+import { optionValue, variantOptionsInclude, type VariantOptionInclude } from "@/lib/variant-attributes";
+
+// Katalog/kart gorunumunde "+" hizli sepete ekle butonu icin - stokta olan
+// ilk varyanti (ilk beden, secili renk grubu icinde) doner. Stokta hicbir
+// varyant yoksa null - kart zaten "Stokta Yok" gosterdigi icin buton
+// gizlenir/devre disi kalir (bkz. product-card.tsx).
+export type QuickAddVariant = { variantId: string; size: string; color: string } | null;
+
+function pickQuickAddVariant(
+  variants: (VariantOptionInclude & { id: string; stock: number })[]
+): QuickAddVariant {
+  const inStock = variants.find((v) => v.stock > 0);
+  if (!inStock) return null;
+  return {
+    variantId: inStock.id,
+    size: optionValue(inStock, "Beden"),
+    color: optionValue(inStock, "Renk")
+  };
+}
 
 // Genel urun gorseli (Product.images) yoksa - Excel/Koton aktariminda oldugu
 // gibi sadece renk bazli galeri (ProductOptionImage) doldurulmus olabilir -
@@ -32,7 +50,7 @@ export async function getPublishedProducts(
     include: {
       images: { orderBy: { position: "asc" } },
       optionImages: { orderBy: { position: "asc" }, take: 1 },
-      variants: { select: { stock: true } }
+      variants: { include: variantOptionsInclude }
     },
     orderBy: options?.featuredFirst
       ? [{ isFeatured: "desc" }, { createdAt: "desc" }]
@@ -42,7 +60,9 @@ export async function getPublishedProducts(
   // Stoğu tamamen bitmiş ürünler, mevcut sıralama korunarak listenin sonuna
   // atılır (Prisma tarafında hesaplanmış bir alan olmadığı için burada,
   // JS'in stabil sort'una güvenilerek yapılıyor).
-  return products.sort((a, b) => Number(isOutOfStock(a.variants)) - Number(isOutOfStock(b.variants)));
+  return products
+    .sort((a, b) => Number(isOutOfStock(a.variants)) - Number(isOutOfStock(b.variants)))
+    .map((p) => ({ ...p, quickAddVariant: pickQuickAddVariant(p.variants) }));
 }
 
 // React.cache ile sarmalanir - ayni istek icinde hem generateMetadata hem
@@ -78,6 +98,7 @@ export type CatalogEntry = {
   categoryId: string | null;
   brandId: string | null;
   outOfStock: boolean;
+  quickAddVariant: QuickAddVariant;
 };
 
 export async function getCatalogEntries(
@@ -127,7 +148,8 @@ export async function getCatalogEntries(
         colorLabel: null,
         categoryId: p.categoryId,
         brandId: p.brandId,
-        outOfStock: isOutOfStock(p.variants)
+        outOfStock: isOutOfStock(p.variants),
+        quickAddVariant: pickQuickAddVariant(p.variants)
       });
       continue;
     }
@@ -145,7 +167,8 @@ export async function getCatalogEntries(
         colorLabel: label,
         categoryId: p.categoryId,
         brandId: p.brandId,
-        outOfStock: isOutOfStock(colorVariants)
+        outOfStock: isOutOfStock(colorVariants),
+        quickAddVariant: pickQuickAddVariant(colorVariants)
       });
     }
   }
@@ -162,7 +185,7 @@ export async function getCategories() {
 // bazli oneri yeterli tutuluyor (elle eslestirme ayri, daha sonraki bir is).
 export async function getRelatedProducts(product: { id: string; categoryId: string | null }) {
   if (!product.categoryId) return [];
-  return prisma.product.findMany({
+  const products = await prisma.product.findMany({
     where: {
       categoryId: product.categoryId,
       id: { not: product.id },
@@ -170,9 +193,11 @@ export async function getRelatedProducts(product: { id: string; categoryId: stri
     },
     include: {
       images: { orderBy: { position: "asc" }, take: 1 },
-      optionImages: { orderBy: { position: "asc" }, take: 1 }
+      optionImages: { orderBy: { position: "asc" }, take: 1 },
+      variants: { include: variantOptionsInclude }
     },
     orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
     take: 4
   });
+  return products.map((p) => ({ ...p, quickAddVariant: pickQuickAddVariant(p.variants) }));
 }

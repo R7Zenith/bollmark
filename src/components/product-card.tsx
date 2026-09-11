@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Heart } from "lucide-react";
+import { useState } from "react";
+import { Heart, Plus, Check } from "lucide-react";
 import { formatPrice } from "@/lib/format";
 import { useWishlist } from "@/lib/wishlist";
+import { useCart } from "@/lib/cart";
+import type { QuickAddVariant } from "@/lib/catalog";
 
 export type ProductCardData = {
   productId: string;
@@ -27,11 +30,17 @@ export type ProductCardData = {
   // Doluysa hover'da ana gorselden buna capraz-solma (crossfade) yapilir;
   // bos ise mevcut hafif buyume (scale) efekti kullanilir.
   secondImage?: string | null;
+  // Doluysa karttaki "+" hizli sepete ekle butonu bu varyanti dogrudan sepete
+  // ekler (bkz. lib/catalog.ts pickQuickAddVariant) - sayfa yonlendirmesi
+  // olmadan. Null ise (stokta varyant yoksa) buton gizlenir.
+  quickAddVariant?: QuickAddVariant;
 };
 
 export function ProductCard({ product }: { product: ProductCardData }) {
   const { ids, toggle } = useWishlist();
+  const { addLine } = useCart();
   const isWishlisted = ids.has(product.productId);
+  const [justAdded, setJustAdded] = useState(false);
   const href = product.colorLabel
     ? `/urunler/${product.slug}?renk=${encodeURIComponent(product.colorLabel)}`
     : `/urunler/${product.slug}`;
@@ -39,6 +48,25 @@ export function ProductCard({ product }: { product: ProductCardData }) {
   const discountedPriceCents = discountPercent
     ? Math.round((product.priceCents * (100 - discountPercent)) / 100)
     : null;
+  const finalPriceCents = discountedPriceCents ?? product.priceCents;
+
+  const handleQuickAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!product.quickAddVariant || justAdded) return;
+    addLine({
+      productId: product.productId,
+      variantId: product.quickAddVariant.variantId,
+      name: product.name,
+      size: product.quickAddVariant.size,
+      color: product.quickAddVariant.color,
+      priceCents: finalPriceCents,
+      image: product.image,
+      quantity: 1
+    });
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 1500);
+  };
 
   return (
     <Link href={href} className="group block">
@@ -86,15 +114,24 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             %{discountPercent} İndirim
           </span>
         )}
+        {product.quickAddVariant && !product.outOfStock && (
+          <button
+            type="button"
+            onClick={handleQuickAdd}
+            title="Hızlı sepete ekle"
+            aria-label="Sepete ekle"
+            className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-ink text-cream opacity-100 transition hover:bg-clay md:opacity-0 md:group-hover:opacity-100"
+          >
+            {justAdded ? <Check size={16} /> : <Plus size={16} />}
+          </button>
+        )}
       </div>
       <div className="mt-4 flex items-baseline justify-between">
         <h3 className="text-sm text-ink">{product.name}</h3>
       </div>
       {product.colorLabel && <p className="mt-1 text-xs text-ink/50">{product.colorLabel}</p>}
       <div className="mt-2 flex items-center gap-2">
-        <span className="text-sm font-medium">
-          {formatPrice(discountedPriceCents ?? product.priceCents)}
-        </span>
+        <span className="text-sm font-medium">{formatPrice(finalPriceCents)}</span>
         {discountedPriceCents != null ? (
           <span className="text-xs text-ink/40 line-through">{formatPrice(product.priceCents)}</span>
         ) : (

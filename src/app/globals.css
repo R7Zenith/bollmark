@@ -3,8 +3,23 @@
 @tailwind utilities;
 
 :root {
-  --font-display: "Playfair Display", Georgia, serif;
-  --font-sans: "Inter", system-ui, sans-serif;
+  /* Shopify "Release" temasi referansi: tek govde/baslik fontu Poppins.
+     --font-poppins, (site)/layout.tsx'te next/font/google ile yuklenir;
+     tanimli degilse (ör. admin/gate katmanlari) "Poppins" metin adina,
+     o da sistem fontuna duser. Cumle icinde tek kelime vurgusu icin
+     (ornegin bir basligin bir kelimesi) --font-accent (Cormorant, italik). */
+  --font-sans: var(--font-poppins, "Poppins"), system-ui, sans-serif;
+  --font-accent: var(--font-cormorant, "Cormorant"), Georgia, serif;
+}
+
+@layer base {
+  /* Buyuk basliklarda (hero, sayfa basliklari) Aritzia'daki gibi hafif negatif
+     harf araligi - okunurlugu bozmayacak kadar ince. tracking-widest2 gibi
+     acik bir tracking utility'si varsa (ornegin logo/wordmark) utilities
+     katmani burayi ezer. */
+  .font-display {
+    letter-spacing: -0.015em;
+  }
 }
 
 html {
@@ -12,11 +27,30 @@ html {
 }
 
 body {
-  background-color: #f3ede3;
+  background-color: #fdfcfb;
   color: #1c1917;
 }
 
 ::selection {
   background-color: #a9765a;
   color: #ffffff;
+}
+
+/* Magaza (storefront) genel gövde metni/etiket okunurlugu icin bir tik
+   buyutulmus boyutlar - sadece .storefront govdesindeki text-xs/sm/base
+   kullanimlarini etkiler, admin paneline dokunmaz. Spacing/hizalama ayni
+   kalir, sadece font-size/line-height artiyor. */
+.storefront .text-xs {
+  font-size: 0.8125rem;
+  line-height: 1.125rem;
+}
+
+.storefront .text-sm {
+  font-size: 0.9375rem;
+  line-height: 1.375rem;
+}
+
+.storefront .text-base {
+  font-size: 1.0625rem;
+  line-height: 1.625rem;
 }

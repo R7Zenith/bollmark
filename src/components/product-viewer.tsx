@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Heart } from "lucide-react";
+import { Heart, Minus, Plus, Truck, RotateCcw, ShieldCheck, CreditCard } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { formatPrice } from "@/lib/format";
@@ -16,6 +16,16 @@ const LOW_STOCK_THRESHOLD = 3;
 // Stokta olmayan bir varyant secildiginde gosterilen "stok gelince haber ver"
 // formu. Kendi basina basari/hata durumunu yonetir, urun bilgisini disaridan
 // bilmesine gerek yok - sadece secili varyantin id'sini kullanir.
+// Urun sayfasi alt bilgi rozetleri (kargo/iade/guvenli odeme/musteri
+// destegi) - Shopify "Release" temasindaki 2x2 guven rozeti grid'ine
+// karsilik gelir, tamamen statik/bilgilendirici.
+const TRUST_BADGES = [
+  { icon: Truck, label: "Hızlı Kargo", detail: "1-3 iş günü içinde teslim" },
+  { icon: RotateCcw, label: "Kolay İade", detail: "14 gün içinde ücretsiz iade" },
+  { icon: ShieldCheck, label: "Güvenli Ödeme", detail: "256-bit SSL ile korumalı" },
+  { icon: CreditCard, label: "Taksit İmkanı", detail: "Kredi kartına taksit seçeneği" }
+];
+
 function StockAlertForm({ variantId }: { variantId: string }) {
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
@@ -55,7 +65,7 @@ function StockAlertForm({ variantId }: { variantId: string }) {
         <button
           type="submit"
           disabled={status === "loading"}
-          className="shrink-0 border border-ink px-4 py-2.5 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream disabled:opacity-40"
+          className="shrink-0 rounded-full border border-ink px-4 py-2.5 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream disabled:opacity-40"
         >
           Haber Ver
         </button>
@@ -157,6 +167,8 @@ export function ProductViewer({
     return anyForColor?.size ?? sizes[0] ?? "";
   });
   const [added, setAdded] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
   const selected = variants.find((v) => v.size === size && v.color === color);
   const outOfStock = !selected || selected.stock <= 0;
@@ -182,15 +194,21 @@ export function ProductViewer({
       color,
       priceCents: selectedPriceCents,
       image: galleryImages[0].url,
-      quantity: 1
+      quantity
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
   };
 
+  const handleBuyNow = () => {
+    if (!selected || outOfStock) return;
+    handleAdd();
+    router.push("/odeme");
+  };
+
   return (
     <div className="grid gap-12 md:grid-cols-2">
-      <div className="grid gap-4">
+      <div className="grid grid-cols-2 gap-4">
         {galleryImages.map((img, i) => (
           <div key={`${img.url}-${i}`} className="relative aspect-[3/4] overflow-hidden bg-line">
             <Image src={img.url} alt={img.alt} fill className="object-cover" />
@@ -223,17 +241,19 @@ export function ProductViewer({
         <div className="mt-4 flex items-center gap-3">
           {automaticDiscount ? (
             <>
-              <span className="text-xl">
+              <span className="text-xl font-medium text-sale">
                 {formatPrice(Math.round((selectedPriceCents * (100 - automaticDiscount.percent)) / 100))}
               </span>
               <span className="text-ink/40 line-through">{formatPrice(selectedPriceCents)}</span>
-              <span className="bg-clay px-2 py-1 text-xs font-medium uppercase tracking-wide text-cream">
+              <span className="bg-sale px-2 py-1 text-xs font-medium uppercase tracking-wide text-cream">
                 %{automaticDiscount.percent} İndirim
               </span>
             </>
           ) : (
             <>
-              <span className="text-xl">{formatPrice(selectedPriceCents)}</span>
+              <span className={`text-xl ${compareAtCents && compareAtCents > selectedPriceCents ? "font-medium text-sale" : ""}`}>
+                {formatPrice(selectedPriceCents)}
+              </span>
               {compareAtCents && compareAtCents > selectedPriceCents && (
                 <span className="text-ink/40 line-through">{formatPrice(compareAtCents)}</span>
               )}
@@ -247,13 +267,28 @@ export function ProductViewer({
           </p>
         )}
         {descriptionHtml && (
-          // descriptionHtml sunucuda sanitizeDescriptionHtml() ile temizleniyor
-          // (bkz. urunler/[slug]/page.tsx) - burada tekrar sanitize etmeye gerek yok.
-          // eslint-disable-next-line react/no-danger
-          <div
-            className="prose-description mt-6 leading-relaxed text-ink/70 [&_p]:mb-3 [&_p:last-child]:mb-0 [&>strong]:mb-1 [&>strong]:mt-4 [&>strong]:block [&>strong:first-child]:mt-0"
-            dangerouslySetInnerHTML={{ __html: descriptionHtml }}
-          />
+          <div className="mt-6">
+            <div
+              className={`prose-description relative leading-relaxed text-ink/70 [&_p]:mb-3 [&_p:last-child]:mb-0 [&>strong]:mb-1 [&>strong]:mt-4 [&>strong]:block [&>strong:first-child]:mt-0 ${
+                descriptionExpanded ? "" : "max-h-24 overflow-hidden"
+              }`}
+            >
+              {/* descriptionHtml sunucuda sanitizeDescriptionHtml() ile temizleniyor
+                  (bkz. urunler/[slug]/page.tsx) - burada tekrar sanitize etmeye gerek yok. */}
+              {/* eslint-disable-next-line react/no-danger */}
+              <div dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
+              {!descriptionExpanded && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-cream to-transparent" />
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setDescriptionExpanded((v) => !v)}
+              className="mt-2 text-xs font-medium uppercase tracking-wide text-ink underline underline-offset-4"
+            >
+              {descriptionExpanded ? "Daha Az Göster" : "Devamını Oku"}
+            </button>
+          </div>
         )}
 
         {(material || origin || careInstructions) && (
@@ -330,27 +365,73 @@ export function ProductViewer({
           )}
 
           {!outOfStock && selected.stock <= LOW_STOCK_THRESHOLD && (
-            <p className="text-sm text-clay">Son {selected.stock} adet</p>
+            <p className="text-sm text-sale">Son {selected.stock} adet kaldı</p>
           )}
 
-          <button
-            onClick={handleAdd}
-            disabled={outOfStock}
-            className="w-full bg-ink py-4 text-sm uppercase tracking-widest2 text-cream transition hover:bg-clay disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {outOfStock ? "Stokta Yok" : added ? "Sepete Eklendi ✓" : `Sepete Ekle · ${formatPrice(selectedPriceCents)}`}
-          </button>
+          {!outOfStock && (
+            <div className="flex items-center gap-1 rounded-full border border-line px-1 py-1 w-fit">
+              <button
+                type="button"
+                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                disabled={quantity <= 1}
+                aria-label="Adedi azalt"
+                className="flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-line disabled:opacity-30"
+              >
+                <Minus size={14} />
+              </button>
+              <span className="w-8 text-center text-sm">{quantity}</span>
+              <button
+                type="button"
+                onClick={() => setQuantity((q) => Math.min(selected?.stock ?? 1, q + 1))}
+                disabled={quantity >= (selected?.stock ?? 1)}
+                aria-label="Adedi artır"
+                className="flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-line disabled:opacity-30"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          )}
+
+          <div className="flex gap-3">
+            <button
+              onClick={handleAdd}
+              disabled={outOfStock}
+              className="flex-1 rounded-full bg-ink py-4 text-sm uppercase tracking-widest2 text-cream transition hover:bg-clay disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              {outOfStock ? "Stokta Yok" : added ? "Sepete Eklendi ✓" : "Sepete Ekle"}
+            </button>
+            {!outOfStock && (
+              <button
+                onClick={handleBuyNow}
+                className="flex-1 rounded-full border border-ink py-4 text-sm uppercase tracking-widest2 text-ink transition hover:bg-ink hover:text-cream"
+              >
+                Hemen Al
+              </button>
+            )}
+          </div>
 
           {outOfStock && selected && <StockAlertForm variantId={selected.id} />}
 
           {added && (
             <button
               onClick={() => router.push("/sepet")}
-              className="w-full border border-ink py-3 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
+              className="w-full rounded-full border border-ink py-3 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
             >
               Sepete Git
             </button>
           )}
+
+          <div className="grid grid-cols-2 gap-4 border-t border-line pt-6">
+            {TRUST_BADGES.map(({ icon: Icon, label, detail }) => (
+              <div key={label} className="flex items-start gap-2.5">
+                <Icon size={18} className="mt-0.5 shrink-0 text-ink/60" />
+                <div>
+                  <p className="text-xs font-medium uppercase tracking-wide text-ink">{label}</p>
+                  <p className="mt-0.5 text-xs text-ink/50">{detail}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

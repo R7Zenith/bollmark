@@ -136,7 +136,7 @@ export default async function ProductPage({
 
       {relatedProducts.length > 0 && (
         <div className="mt-20 border-t border-line pt-12">
-          <h2 className="font-display text-2xl">Benzer Ürünler</h2>
+          <h2 className="font-display text-2xl">Bunlar da hoşunuza gidebilir</h2>
           <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-4">
             {relatedProducts.map((p) => (
               <ProductCard
@@ -148,7 +148,8 @@ export default async function ProductPage({
                   priceCents: p.priceCents,
                   compareAtCents: p.compareAtCents,
                   image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800",
-                  automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, p)?.percent ?? null
+                  automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, p)?.percent ?? null,
+                  quickAddVariant: p.quickAddVariant
                 }}
               />
             ))}
