@@ -17,7 +17,7 @@ export async function getPublishedProducts(
   categorySlug?: string,
   options?: { featuredFirst?: boolean; genderLabel?: string }
 ) {
-  return prisma.product.findMany({
+  const products = await prisma.product.findMany({
     where: {
       status: "PUBLISHED",
       // slug ile birebir eslesen kategori VEYA o kategoriyi parent olarak
@@ -38,6 +38,11 @@ export async function getPublishedProducts(
       ? [{ isFeatured: "desc" }, { createdAt: "desc" }]
       : { createdAt: "desc" }
   });
+
+  // Stoğu tamamen bitmiş ürünler, mevcut sıralama korunarak listenin sonuna
+  // atılır (Prisma tarafında hesaplanmış bir alan olmadığı için burada,
+  // JS'in stabil sort'una güvenilerek yapılıyor).
+  return products.sort((a, b) => Number(isOutOfStock(a.variants)) - Number(isOutOfStock(b.variants)));
 }
 
 // React.cache ile sarmalanir - ayni istek icinde hem generateMetadata hem
@@ -144,7 +149,9 @@ export async function getCatalogEntries(
       });
     }
   }
-  return entries;
+  // Stoğu tamamen bitmiş renk/ürün girişleri, mevcut sıralama korunarak
+  // listenin sonuna atılır (bkz. getPublishedProducts'taki ayni yorum).
+  return entries.sort((a, b) => Number(a.outOfStock) - Number(b.outOfStock));
 }
 
 export async function getCategories() {
