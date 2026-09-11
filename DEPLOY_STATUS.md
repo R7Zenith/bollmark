@@ -2818,4 +2818,31 @@ stoğu tamamen bitmiş ürün/renk kartlari artik soluk bir cam katmani +
   dogru konumda render edildigi HTML'den dogrulandi.
 - Kapsam disi birakildi (plan boyle diyordu): urun detay sayfasi
   (`urunler/[slug]` + `product-viewer.tsx`) ve rozetin tasarim detaylari.
+
+## Favicon duzeltmesi (bu oturum)
+
+`FAVICON_DUZELTME_PLANI.md` planina gore uygulandi: sekmede favicon
+gorunmuyordu cunku `public/`'ta ayri bir ikon dosyasi yoktu ve 3 kok
+layout'ta (`(site)`, `(admin)`, `(gate)`) `metadata.icons` tanimli degildi.
+
+- `public/logo.png` (bollmark yazi logosu) icinden ilk "b" harfi Node.js
+  `sharp` ile piksel/alfa analiziyle kirpildi (bbox: x 0-158, y 48-272),
+  etrafina ~%20 padding birakilarak kare canvas'a oturtuldu. 16x16 ve
+  32x32 kucuk boyutlarda okunabilirligi goz kontroluyle dogrulandi.
+- Uretilen dosyalar `public/` altina eklendi: `icon.png` (48x48, seffaf),
+  `favicon.ico` (16/32/48 coklu boyut, PNG-embedded ICO container elle
+  olusturuldu - `png-to-ico` gibi ek paket kurulmadi), `apple-icon.png`
+  (180x180, beyaz arka plan - iOS seffafligi siyaha cevirdigi icin),
+  `icon-512.png` (512x512, seffaf, PWA/manifest icin).
+- `src/lib/site-metadata.ts` eklendi: `siteIcons` sabiti (`icon` +
+  `apple` alanlarini tanimliyor), 3 layout'ta da import edilip
+  `metadata.icons` alanina verildi (`(gate)/layout.tsx`'te daha once hic
+  `metadata` export'u yoktu, o da eklendi).
+- **Dogrulama**: `npx prisma generate` calistirildi (build'i bloke eden,
+  bu isle ilgisiz onceden var olan `vegaId`/`ticimaxUyeKodu` tip hatalari
+  bunun icin cozuldu), sonra `npm run build` hatasiz tamamlandi. Zaten
+  calismakta olan `npm run dev` (port 3000) uzerinden `curl` ile `/`,
+  `/hesap/giris` (gate) ve `/admin` (login'e yonleniyor, admin layout)
+  sayfalarinin HTML `<head>`'inde `icon.png`/`favicon.ico`/`apple-icon.png`
+  link etiketlerinin dogru geldigi dogrulandi.
 - Commit atilmadi/push edilmedi, kullanicinin onayi bekleniyor.

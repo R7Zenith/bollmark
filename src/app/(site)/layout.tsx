@@ -6,11 +6,13 @@ import { CustomerSessionProvider } from "@/components/customer-session-provider"
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getMegaMenuData } from "@/lib/site-nav";
+import { siteIcons } from "@/lib/site-metadata";
 
 export const metadata: Metadata = {
   title: "Bollmark | Modern Giyim",
   description:
-    "Bollmark - özenle seçilmiş kumaşlar, minimal kesimler. Sezonun öne çıkan giyim parçaları."
+    "Bollmark - özenle seçilmiş kumaşlar, minimal kesimler. Sezonun öne çıkan giyim parçaları.",
+  icons: siteIcons
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
