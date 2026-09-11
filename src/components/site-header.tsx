@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCart } from "@/lib/cart";
 import type { MegaMenuData, MenuCategory } from "@/lib/site-nav";
@@ -71,8 +71,8 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
   const heroImage = categories.find((c) => c.imageUrl)?.imageUrl ?? null;
 
   return (
-    <div className="absolute inset-x-0 top-full w-full rounded-b-2xl border-b border-line bg-cream shadow-soft">
-      <div className="mx-auto flex max-w-6xl gap-12 px-6 py-10">
+    <div className="absolute inset-x-0 top-full w-full border-b border-line bg-cream">
+      <div className="mx-auto flex max-w-7xl gap-12 px-6 py-10">
         <div className="grid flex-1 grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3 md:grid-cols-4">
           {columns.map((column, i) => (
             <ul key={i} className="space-y-3">
@@ -113,8 +113,8 @@ function AksesuarPanel({ categories }: { categories: MenuCategory[] }) {
   const activeSlug = searchParams.get("kategori");
 
   return (
-    <div className="absolute inset-x-0 top-full w-full rounded-b-2xl border-b border-line bg-cream shadow-soft">
-      <ul className="mx-auto max-w-6xl space-y-3 px-6 py-10">
+    <div className="absolute inset-x-0 top-full w-full border-b border-line bg-cream">
+      <ul className="mx-auto max-w-7xl space-y-3 px-6 py-10">
         {categories.map((category) => {
           const isActive = activeSlug === category.slug;
           return (
@@ -151,15 +151,15 @@ function DesktopNav({
   ];
 
   return (
-    <nav className="hidden items-center gap-8 text-sm uppercase tracking-wide md:flex">
-      <Link href="/urunler" className="uppercase hover:text-clay">
+    <nav className="hidden items-center gap-8 text-sm md:flex">
+      <Link href="/urunler" className="hover:text-clay">
         Tüm Ürünler
       </Link>
       {tabs.map((tab) => (
         <Link
           key={tab.key}
           href={tab.href}
-          className="uppercase hover:text-clay"
+          className="hover:text-clay"
           aria-expanded={openMenu === tab.key}
           onMouseEnter={() => setOpenMenu(tab.key)}
           onFocus={() => setOpenMenu(tab.key)}
@@ -167,7 +167,7 @@ function DesktopNav({
           {tab.label}
         </Link>
       ))}
-      <Link href="/#hikaye" className="uppercase hover:text-clay">
+      <Link href="/#hikaye" className="hover:text-clay">
         Hikayemiz
       </Link>
     </nav>
@@ -326,56 +326,86 @@ function MobileMenu({
 export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
   const { totalCount } = useCart();
   const { data: session } = useSession();
+  const pathname = usePathname();
+  const isHome = pathname === "/";
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<TabKey | null>(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  // Sadece ana sayfada, hero gorseli uzerindeyken header saydam + beyaz metinli
+  // gorunur (Aritzia'daki gibi) - scroll edildiginde veya menu acildiginda
+  // krem zemine gecer. Diger sayfalarda body ile ayni renkte oldugu icin
+  // saydamligin bir anlami yok, o yuzden hep katı baslar.
+  useEffect(() => {
+    if (!isHome) return;
+    const onScroll = () => setScrolled(window.scrollY > 60);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [isHome]);
+
+  const transparent = isHome && !scrolled && openMenu === null && !mobileOpen;
 
   return (
-    <header
-      className="sticky top-0 z-40 border-b border-line bg-cream relative"
-      onMouseLeave={() => setOpenMenu(null)}
-    >
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <Link href="/" className="font-display text-2xl tracking-widest2 uppercase">
-          Bollmark
-        </Link>
-
-        <DesktopNav menuData={menuData} openMenu={openMenu} setOpenMenu={setOpenMenu} />
-
-        <div className="flex items-center gap-4">
-          <Link
-            href={session?.user ? "/hesap" : "/hesap/giris"}
-            className="hidden text-sm uppercase tracking-wide hover:text-clay md:inline"
-          >
-            {session?.user?.name ?? "Giriş Yap"}
+    <>
+      <header
+        className={`fixed inset-x-0 top-0 z-40 transition-colors duration-300 ${
+          transparent ? "bg-transparent text-cream" : "border-b border-line bg-cream text-ink"
+        }`}
+        onMouseLeave={() => setOpenMenu(null)}
+      >
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+          <Link href="/" className="font-display text-2xl tracking-widest2 uppercase">
+            Bollmark
           </Link>
-          <Link
-            href="/sepet"
-            className="relative flex items-center gap-2 bg-ink px-4 py-2 text-sm uppercase tracking-wide text-cream transition hover:bg-clay"
-          >
-            Sepet
-            {totalCount > 0 && (
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cream text-xs text-ink">
-                {totalCount}
-              </span>
-            )}
-          </Link>
-          <button
-            type="button"
-            aria-label="Menüyü aç"
-            className="p-1 md:hidden"
-            onClick={() => setMobileOpen(true)}
-          >
-            <HamburgerIcon />
-          </button>
+
+          <DesktopNav menuData={menuData} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+
+          <div className="flex items-center gap-4">
+            <Link
+              href={session?.user ? "/hesap" : "/hesap/giris"}
+              className="hidden text-sm uppercase tracking-wide hover:text-clay md:inline"
+            >
+              {session?.user?.name ?? "Giriş Yap"}
+            </Link>
+            <Link
+              href="/sepet"
+              className={`relative flex items-center gap-2 px-4 py-2 text-sm uppercase tracking-wide transition ${
+                transparent
+                  ? "border border-cream text-cream hover:bg-cream hover:text-ink"
+                  : "bg-ink text-cream hover:bg-clay"
+              }`}
+            >
+              Sepet
+              {totalCount > 0 && (
+                <span
+                  className={`flex h-5 w-5 items-center justify-center rounded-full text-xs ${
+                    transparent ? "bg-cream text-ink" : "bg-cream text-ink"
+                  }`}
+                >
+                  {totalCount}
+                </span>
+              )}
+            </Link>
+            <button
+              type="button"
+              aria-label="Menüyü aç"
+              className="p-1 md:hidden"
+              onClick={() => setMobileOpen(true)}
+            >
+              <HamburgerIcon />
+            </button>
+          </div>
         </div>
-      </div>
 
-      {openMenu === "aksesuar" && <AksesuarPanel categories={menuData.aksesuar} />}
-      {(openMenu === "kadin" || openMenu === "erkek") && (
-        <GenderPanel gender={openMenu} categories={menuData[openMenu]} />
-      )}
+        {openMenu === "aksesuar" && <AksesuarPanel categories={menuData.aksesuar} />}
+        {(openMenu === "kadin" || openMenu === "erkek") && (
+          <GenderPanel gender={openMenu} categories={menuData[openMenu]} />
+        )}
 
-      <MobileMenu menuData={menuData} open={mobileOpen} onClose={() => setMobileOpen(false)} session={session} />
-    </header>
+        <MobileMenu menuData={menuData} open={mobileOpen} onClose={() => setMobileOpen(false)} session={session} />
+      </header>
+      {!isHome && <div aria-hidden className="h-[72px]" />}
+    </>
   );
 }

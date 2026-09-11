@@ -58,14 +58,18 @@ export default async function ProductsPage({
     : "Bu kategoride henüz ürün bulunmuyor.";
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-16">
-      <h1 className="font-display text-4xl">{heading}</h1>
-      <p className="mt-2 text-ink/60">{entries.length} ürün</p>
+    <div className="mx-auto max-w-7xl px-6 py-16">
+      <p className="text-xs uppercase tracking-widest2 text-ink/50">
+        Tüm Ürünler {cinsiyet ? `— ${cinsiyet}` : ""}
+      </p>
+      <h1 className="mt-2 font-display text-5xl font-light">
+        {heading} <sup className="text-lg font-sans text-ink/40">{entries.length}</sup>
+      </h1>
 
       {entries.length === 0 ? (
         <p className="mt-10 text-ink/60">{emptyMessage}</p>
       ) : (
-        <div className="mt-10 grid grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-4">
+        <div className="mt-12 grid grid-cols-2 gap-x-3 gap-y-12 md:grid-cols-4">
           {entries.map((entry) => (
             <ProductCard
               key={`${entry.productId}-${entry.colorLabel ?? "tek"}`}

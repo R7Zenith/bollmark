@@ -64,27 +64,58 @@ export default async function HomePage() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-7xl px-6 py-section">
-        <div className="grid grid-cols-2 grid-rows-2 gap-4 md:h-[720px]">
-          {categoryShortcuts.map((c) => (
-            <Link
-              key={c.label}
-              href={c.href}
-              className={`group relative block overflow-hidden bg-line ${c.span} ${c.span ? "" : "aspect-[3/4] md:aspect-auto"}`}
-            >
-              <Image
-                src={c.image}
-                alt={`${c.label} koleksiyonu`}
-                fill
-                sizes="(min-width: 768px) 50vw, 100vw"
-                className="object-cover transition duration-500 ease-out group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-ink/50 via-transparent to-transparent" />
-              <span className="absolute bottom-6 left-6 font-display text-3xl font-light text-cream">
-                {c.label}
-              </span>
-            </Link>
-          ))}
+      {/* Aritzia'daki gibi kenardan kenara, aralarinda bosluk olmayan kategori
+          duvari - max-w container ve gap kasitli olarak yok, tam tarayici
+          genisliginde "goruntu duvari" hissi icin. */}
+      <section className="grid grid-cols-2 grid-rows-2 md:h-[760px]">
+        {categoryShortcuts.map((c) => (
+          <Link
+            key={c.label}
+            href={c.href}
+            className={`group relative block overflow-hidden bg-line ${c.span} ${c.span ? "" : "aspect-[3/4] md:aspect-auto"}`}
+          >
+            <Image
+              src={c.image}
+              alt={`${c.label} koleksiyonu`}
+              fill
+              sizes="(min-width: 768px) 50vw, 100vw"
+              className="object-cover transition duration-500 ease-out group-hover:scale-105"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-ink/50 via-transparent to-transparent" />
+            <span className="absolute bottom-6 left-6 font-display text-3xl font-light text-cream">
+              {c.label}
+            </span>
+          </Link>
+        ))}
+      </section>
+
+      {/* Kenardan kenara editoryal ara blok - grid'i bolen buyuk bir "kampanya"
+          hissi, Aritzia'nin ana sayfa ortasindaki tam genislik gorsel+metin
+          bloklarina karsilik gelir. */}
+      <section id="hikaye" className="grid md:grid-cols-2">
+        <div className="relative aspect-[4/5] md:aspect-auto">
+          <Image
+            src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1400"
+            alt="Bollmark atölye"
+            fill
+            className="object-cover"
+          />
+        </div>
+        <div className="flex flex-col justify-center bg-ink px-10 py-16 text-cream md:px-16">
+          <p className="text-xs uppercase tracking-widest2 text-cream/60">Hikayemiz</p>
+          <h2 className="mt-4 max-w-md font-display text-4xl font-light leading-tight">
+            Detaylara verdiğimiz önem
+          </h2>
+          <p className="mt-6 max-w-md text-cream/70">
+            Bollmark, kaliteli kumaşları sade ve zamansız tasarımlarla buluşturur. Her parça, uzun
+            yıllar dolabınızda yer alacak şekilde tasarlanır.
+          </p>
+          <Link
+            href="/urunler"
+            className="mt-8 inline-flex w-fit items-center gap-2 border-b border-cream pb-1 text-sm uppercase tracking-wide transition hover:gap-3"
+          >
+            Koleksiyona Git <span aria-hidden>→</span>
+          </Link>
         </div>
       </section>
 
@@ -100,7 +131,7 @@ export default async function HomePage() {
             Henüz yayınlanmış ürün yok. Admin panelinden ilk ürününüzü ekleyin.
           </p>
         ) : (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-10 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-4">
             {products.map((p) => (
               <ProductCard
                 key={p.id}
@@ -120,25 +151,10 @@ export default async function HomePage() {
         )}
       </section>
 
-      <section id="hikaye" className="border-t border-line bg-cream py-section">
-        <div className="mx-auto grid max-w-7xl gap-12 px-6 md:grid-cols-2 md:gap-20">
-          <div className="relative aspect-[4/3] overflow-hidden">
-            <Image
-              src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1200"
-              alt="Bollmark atölye"
-              fill
-              className="object-cover"
-            />
-          </div>
-          <div className="flex flex-col justify-center">
-            <p className="text-sm uppercase tracking-widest2 text-clay">Hikayemiz</p>
-            <h2 className="mt-4 font-display text-3xl font-light">Detaylara verdiğimiz önem</h2>
-            <p className="mt-4 text-ink/70">
-              Bollmark, kaliteli kumaşları sade ve zamansız tasarımlarla buluşturur. Her parça,
-              uzun yıllar dolabınızda yer alacak şekilde tasarlanır.
-            </p>
-          </div>
-        </div>
+      {/* Aritzia'nin sayfa ortasindaki dev "Everyday Luxury" tek satirlik
+          marka ifadesine karsilik gelen nefes alma alani. */}
+      <section className="border-t border-line py-section text-center">
+        <p className="font-display text-4xl font-light md:text-5xl">Zamansız Rahatlık</p>
       </section>
     </div>
   );

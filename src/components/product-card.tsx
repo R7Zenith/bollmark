@@ -42,7 +42,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
 
   return (
     <Link href={href} className="group block">
-      <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-line">
+      <div className="relative aspect-[3/4] overflow-hidden bg-line">
         <Image
           src={product.image}
           alt={product.name}
@@ -76,7 +76,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             e.preventDefault();
             toggle(product.productId);
           }}
-          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-cream/90 text-ink shadow-soft transition hover:bg-cream"
+          className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-cream/90 text-ink transition hover:bg-cream"
           title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
         >
           <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />

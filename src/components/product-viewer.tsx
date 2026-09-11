@@ -198,7 +198,7 @@ export function ProductViewer({
         ))}
       </div>
 
-      <div>
+      <div className="md:sticky md:top-24 md:h-fit">
         {(categoryName || brandName) && (
           <p className="text-xs uppercase tracking-widest2 text-clay">
             {[categoryName, brandName].filter(Boolean).join(" · ")}
@@ -257,30 +257,37 @@ export function ProductViewer({
         )}
 
         {(material || origin || careInstructions) && (
-          <div className="mt-6 space-y-1 border-t border-line pt-6 text-sm text-ink/70">
-            {material && (
-              <p>
-                <span className="font-medium text-ink">Materyal:</span> {material}
-              </p>
-            )}
-            {origin && (
-              <p>
-                <span className="font-medium text-ink">Menşei:</span> {origin}
-              </p>
-            )}
-            {careInstructions && (
-              <p>
-                <span className="font-medium text-ink">Bakım:</span> {careInstructions}
-              </p>
-            )}
-          </div>
+          <details className="mt-6 border-t border-line pt-6 text-sm text-ink/70" open>
+            <summary className="cursor-pointer text-xs uppercase tracking-wide text-ink/60 underline underline-offset-4">
+              Ürün Detayları
+            </summary>
+            <div className="mt-3 space-y-1">
+              {material && (
+                <p>
+                  <span className="font-medium text-ink">Materyal:</span> {material}
+                </p>
+              )}
+              {origin && (
+                <p>
+                  <span className="font-medium text-ink">Menşei:</span> {origin}
+                </p>
+              )}
+              {careInstructions && (
+                <p>
+                  <span className="font-medium text-ink">Bakım:</span> {careInstructions}
+                </p>
+              )}
+            </div>
+          </details>
         )}
 
         {sizeGuide && (
-          <div className="mt-6 border-t border-line pt-6">
-            <p className="text-xs uppercase tracking-wide text-ink/60">Beden Tablosu</p>
-            <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-ink/70">{sizeGuide}</p>
-          </div>
+          <details className="mt-3 border-t border-line pt-6">
+            <summary className="cursor-pointer text-xs uppercase tracking-wide text-ink/60 underline underline-offset-4">
+              Beden Tablosu
+            </summary>
+            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink/70">{sizeGuide}</p>
+          </details>
         )}
 
         <div className="mt-8 space-y-6">
