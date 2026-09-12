@@ -303,10 +303,26 @@ geçmişindeki prompt).
       kategori `imageUrl` dolu olmadığı için sağ yarı bu ortamda hiç
       görünmüyor — bu, kodun değil verinin durumu). Commit henüz atılmadı,
       kullanıcı onayı bekleniyor.
-- [ ] **Adım 1b — Mobil menü (`MobileMenu`/`MobileAccordionSection`)**
-      Release'deki gerçek "drill-down" (geri oku ile çok seviyeli panel)
-      davranışına çevrilmeli — bkz. 1.2. Bu adımda BİLİNÇLİ OLARAK
-      dokunulmadı, ayrı bir prompt ile gelecek.
+- [x] **Adım 1b — Mobil menü gerçek "drill-down"a çevrildi (12 Eylül 2026):**
+      `MobileAccordionSection` kaldırıldı, yerine tek seviyeli `openSection`
+      state'i yerine bir panel yığını (`screenStack: MobileScreen[]`,
+      `"root" | "kadin" | "erkek" | "aksesuar"`) ve yeni `MobileDrillScreen`
+      bileşeni geldi. Kadın/Erkek/Aksesuar artık accordion gibi yerinde
+      açılmıyor — tıklanınca TÜM panel yeni bir tam ekrana geçiyor (üstte
+      geri oku + isim), geri okuna basınca yığından pop edilip bir önceki
+      ekrana dönülüyor, menü tamamen kapanınca yığın `["root"]`'a
+      sıfırlanıyor. Çekmece artık `w-[85%] rounded-l-2xl` değil, Release'deki
+      gibi tam ekran/köşesiz (`inset-0 w-full`) — opsiyonel overshoot
+      transform'u eklenmedi (koşullu mount/unmount ile zaten anlık açılıp
+      kapanıyor, ekleseydik gerçek bir animasyon üretmezdi). Her drill
+      ekranında masaüstündeki `PromoCard` bileşeni yeniden kullanılarak
+      (varsa) 2 sütunlu promosyon kartı gösteriliyor. Body scroll kilitleme
+      davranışı korundu. `npx tsc --noEmit` + `npm run build` hatasız;
+      Playwright ile 375px'de hamburger→tam ekran açılış, Kadın'a
+      dokununca (accordion DEĞİL) yeni ekrana geçiş, geri okuyla köke
+      dönüş, menü kapanıp tekrar açılınca köke sıfırlanma ve body
+      `overflow:hidden` DOĞRULANDI. Commit atıldı, push için onay
+      bekleniyor.
 - [ ] Adım 2 — Ürün listeleme (katalog) sayfası: kenar boşluğu daraltma,
       32px grid gap, Filters/Showing/Sort tek satır düzeni. Prompt verildi
       ama HENÜZ UYGULANMADI.

@@ -2888,3 +2888,23 @@ dokunulmadi - ayri promptla gelecek):
   promosyon gorseli bu ortamda hic gorunmuyor - bu kodun degil, veri
   eksikliginin sonucu (kod dogru sekilde sag yariyi hic render etmiyor).
 - **Commit atilmadi/push edilmedi - kullanicinin onayi bekleniyor.**
+
+## Mobil menu gercek drill-down'a cevrildi (2026-09-12, ayni oturum devami)
+
+Adim 1b: `src/components/site-header.tsx`'teki `MobileAccordionSection`
+(yerinde acilan accordion) kaldirildi, RELEASE_TEMA_BIREBIR_UYUM_PLANI.md
+1.2'de olculen gercek Release davranisina (cok seviyeli "drill-down", geri
+oku ile bir onceki ekrana donme) gore yeniden yazildi:
+
+- Tek seviyeli `openSection` state'i yerine bir panel yigini
+  (`screenStack: MobileScreen[]`) - drill-in `push`, geri oku `pop`, menu
+  kapaninca yigin `["root"]`'a sifirlaniyor.
+- Yeni `MobileDrillScreen` bileseni: kategori listesi + varsa masaustundeki
+  `PromoCard` ile ayni promosyon karti/kartlari (2 sutunlu grid).
+- Cekmece artik `w-[85%] rounded-l-2xl` degil, Release'deki gibi tam ekran/
+  kosesiz (`inset-0 w-full`).
+- `npx tsc --noEmit` + `npm run build` hatasiz. Playwright ile 375px'de:
+  hamburger -> tam ekran acilis, "Kadin"a dokununca (accordion DEGIL) yeni
+  ekrana gecis, geri okuyla koke donus, kapanip tekrar acilinca koke
+  sifirlanma, body `overflow:hidden` kilidi - hepsi DOGRULANDI.
+- **Commit atildi, push edilmedi - kullanicinin onayi bekleniyor.**

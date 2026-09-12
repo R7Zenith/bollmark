@@ -87,6 +87,25 @@ function ChevronIcon({ open, size = 16 }: { open: boolean; size?: number }) {
   );
 }
 
+// Mobil drill-down ekranlari icin - geri (sola) ve alt ekrana gir (saga) oklari
+// (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1.2 - Release'in "icon--rotate-180"
+// deseniyle ayni: tek bir ok, geri butonunda ters yone donuk).
+function BackIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <polyline points="15 6 9 12 15 18" />
+    </svg>
+  );
+}
+
+function ForwardIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+      <polyline points="9 6 15 12 9 18" />
+    </svg>
+  );
+}
+
 function SearchIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
@@ -258,49 +277,53 @@ function DesktopNav({
   );
 }
 
-function MobileAccordionSection({
-  label,
-  href,
+// Kok ekrandan sonraki alt ekranlar (Kadin/Erkek/Aksesuar) - Release'de
+// olculdugu gibi (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1.2) accordion
+// DEGIL, kendi tam ekranini kaplayan bir "drill" ekrani: duz kategori listesi
+// + varsa masaustuyle ayni promosyon karti/kartlari.
+type MobileScreen = "root" | "kadin" | "erkek" | "aksesuar";
+
+const MOBILE_SCREEN_LABEL: Record<Exclude<MobileScreen, "root">, string> = {
+  kadin: "Kadın",
+  erkek: "Erkek",
+  aksesuar: "Aksesuar"
+};
+
+function MobileDrillScreen({
   categories,
   buildHref,
-  isOpen,
-  onToggle,
+  allProductsHref,
+  promoImages,
+  promoHeadline,
   onNavigate
 }: {
-  label: string;
-  href: string;
   categories: MenuCategory[];
   buildHref: (category: MenuCategory) => string;
-  isOpen: boolean;
-  onToggle: () => void;
+  allProductsHref: string;
+  promoImages: MenuCategory[];
+  promoHeadline: string;
   onNavigate: () => void;
 }) {
   return (
-    <div className="border-b border-line">
-      <div className="flex items-center justify-between">
-        <Link href={href} onClick={onNavigate} className="flex-1 py-4 text-sm uppercase tracking-wide">
-          {label}
-        </Link>
-        <button
-          type="button"
-          onClick={onToggle}
-          aria-expanded={isOpen}
-          aria-label={`${label} alt kategorilerini ${isOpen ? "kapat" : "aç"}`}
-          className="p-4"
-        >
-          <ChevronIcon open={isOpen} />
-        </button>
-      </div>
-      {isOpen && (
-        <ul className="space-y-3 pb-4 pl-2">
-          {categories.map((category) => (
-            <li key={category.id}>
-              <Link href={buildHref(category)} onClick={onNavigate} className="block text-sm text-ink/80 hover:text-clay">
-                {category.name}
-              </Link>
-            </li>
+    <div className="flex-1 overflow-y-auto px-6 py-4">
+      <Link href={allProductsHref} onClick={onNavigate} className="block border-b border-line py-4 text-sm uppercase tracking-wide">
+        Tüm Ürünler
+      </Link>
+      <ul>
+        {categories.map((category) => (
+          <li key={category.id} className="border-b border-line">
+            <Link href={buildHref(category)} onClick={onNavigate} className="block py-4 text-sm uppercase tracking-wide">
+              {category.name}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {promoImages.length > 0 && (
+        <div className="mt-6 grid grid-cols-2 gap-4 pb-6">
+          {promoImages.map((category) => (
+            <PromoCard key={category.id} category={category} href={buildHref(category)} headline={promoHeadline} />
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );
@@ -317,8 +340,12 @@ function MobileMenu({
   onClose: () => void;
   session: ReturnType<typeof useSession>["data"];
 }) {
-  const [openSection, setOpenSection] = useState<"kadin" | "erkek" | "aksesuar" | null>(null);
+  // Tek seviyeli openSection state'i yerine bir "panel yigini" - drill-down'da
+  // geri okuna basinca stack'ten pop edilir, kok ekrana kadar geri gidilebilir
+  // (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1.2).
+  const [screenStack, setScreenStack] = useState<MobileScreen[]>(["root"]);
   const [mounted, setMounted] = useState(false);
+  const currentScreen = screenStack[screenStack.length - 1];
 
   useEffect(() => {
     setMounted(true);
@@ -329,6 +356,9 @@ function MobileMenu({
       document.body.style.overflow = "hidden";
     } else {
       document.body.style.overflow = "";
+      // Menu kapaninca yigin sifirlanir - bir dahaki acilista hep kok ekrandan
+      // baslanir, kullanicinin kaldigi alt ekranda kalmaz.
+      setScreenStack(["root"]);
     }
     return () => {
       document.body.style.overflow = "";
@@ -336,6 +366,9 @@ function MobileMenu({
   }, [open]);
 
   if (!open || !mounted) return null;
+
+  const pushScreen = (screen: MobileScreen) => setScreenStack((s) => [...s, screen]);
+  const popScreen = () => setScreenStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
 
   // Header'daki backdrop-blur bir containing block olusturdugu icin (backdrop-filter,
   // CSS'te fixed konumlanmayi ata elemente gore sinirlar), bu overlay body'ye
@@ -348,65 +381,87 @@ function MobileMenu({
         className="absolute inset-0 bg-ink/40"
         onClick={onClose}
       />
-      <div className="absolute right-0 top-0 flex h-full w-[85%] max-w-sm flex-col overflow-y-auto rounded-l-2xl bg-cream px-6 py-6 shadow-soft">
-        <div className="flex items-center justify-between">
-          <Image
-            src="/logo.png"
-            alt="Bollmark"
-            width={Math.round(22 * LOGO_ASPECT_RATIO)}
-            height={22}
-            priority
-          />
+      {/* Release'de oldugu gibi tam ekran, kosesiz panel (eskiden %85 genislik +
+          yuvarlak sol kose - artik degil, bkz. 1.2). */}
+      <div className="absolute inset-0 flex w-full flex-col bg-cream">
+        <div className="flex items-center justify-between border-b border-line px-6 py-5">
+          {currentScreen === "root" ? (
+            <Image
+              src="/logo.png"
+              alt="Bollmark"
+              width={Math.round(22 * LOGO_ASPECT_RATIO)}
+              height={22}
+              priority
+            />
+          ) : (
+            <button
+              type="button"
+              onClick={popScreen}
+              className="flex items-center gap-2 text-sm uppercase tracking-wide"
+            >
+              <BackIcon />
+              {MOBILE_SCREEN_LABEL[currentScreen]}
+            </button>
+          )}
           <button type="button" aria-label="Kapat" onClick={onClose} className="p-1">
             <CloseIcon />
           </button>
         </div>
 
-        <div className="mt-6 flex-1">
-          <Link href="/urunler" onClick={onClose} className="block border-b border-line py-4 text-sm uppercase tracking-wide">
-            Tüm Ürünler
-          </Link>
-          <MobileAccordionSection
-            label="Kadın"
-            href="/urunler?cinsiyet=Kadın"
-            categories={menuData.kadin}
-            buildHref={(c) => `/urunler?kategori=${c.slug}&cinsiyet=Kadın`}
-            isOpen={openSection === "kadin"}
-            onToggle={() => setOpenSection((s) => (s === "kadin" ? null : "kadin"))}
+        {currentScreen === "root" && (
+          <div className="flex-1 overflow-y-auto px-6 py-4">
+            <Link href="/urunler" onClick={onClose} className="block border-b border-line py-4 text-sm uppercase tracking-wide">
+              Tüm Ürünler
+            </Link>
+            {(["kadin", "erkek", "aksesuar"] as const).map((screen) => (
+              <button
+                key={screen}
+                type="button"
+                onClick={() => pushScreen(screen)}
+                aria-label={`${MOBILE_SCREEN_LABEL[screen]} kategorilerini gör`}
+                className="flex w-full items-center justify-between border-b border-line py-4 text-sm uppercase tracking-wide"
+              >
+                {MOBILE_SCREEN_LABEL[screen]}
+                <ForwardIcon />
+              </button>
+            ))}
+            <Link href="/#hikaye" onClick={onClose} className="block border-b border-line py-4 text-sm uppercase tracking-wide">
+              Hikayemiz
+            </Link>
+            <Link
+              href={session?.user ? "/hesap" : "/hesap/giris"}
+              onClick={onClose}
+              className="block border-b border-line py-4 text-sm uppercase tracking-wide"
+            >
+              {session?.user?.name ?? "Giriş Yap"}
+            </Link>
+            <Link href="/sepet" onClick={onClose} className="block py-4 text-sm uppercase tracking-wide">
+              Sepet
+            </Link>
+          </div>
+        )}
+
+        {(currentScreen === "kadin" || currentScreen === "erkek") && (
+          <MobileDrillScreen
+            categories={menuData[currentScreen]}
+            buildHref={(c) => `/urunler?kategori=${c.slug}&cinsiyet=${MOBILE_SCREEN_LABEL[currentScreen]}`}
+            allProductsHref={`/urunler?cinsiyet=${MOBILE_SCREEN_LABEL[currentScreen]}`}
+            promoImages={menuData[currentScreen].filter((c) => c.imageUrl).slice(0, 2)}
+            promoHeadline={`${MOBILE_SCREEN_LABEL[currentScreen]} Koleksiyonu`}
             onNavigate={onClose}
           />
-          <MobileAccordionSection
-            label="Erkek"
-            href="/urunler?cinsiyet=Erkek"
-            categories={menuData.erkek}
-            buildHref={(c) => `/urunler?kategori=${c.slug}&cinsiyet=Erkek`}
-            isOpen={openSection === "erkek"}
-            onToggle={() => setOpenSection((s) => (s === "erkek" ? null : "erkek"))}
-            onNavigate={onClose}
-          />
-          <MobileAccordionSection
-            label="Aksesuar"
-            href="/urunler?kategori=aksesuar"
+        )}
+
+        {currentScreen === "aksesuar" && (
+          <MobileDrillScreen
             categories={menuData.aksesuar}
             buildHref={(c) => `/urunler?kategori=${c.slug}`}
-            isOpen={openSection === "aksesuar"}
-            onToggle={() => setOpenSection((s) => (s === "aksesuar" ? null : "aksesuar"))}
+            allProductsHref="/urunler?kategori=aksesuar"
+            promoImages={menuData.aksesuar.filter((c) => c.imageUrl).slice(0, 1)}
+            promoHeadline="Aksesuar Koleksiyonu"
             onNavigate={onClose}
           />
-          <Link href="/#hikaye" onClick={onClose} className="block border-b border-line py-4 text-sm uppercase tracking-wide">
-            Hikayemiz
-          </Link>
-          <Link
-            href={session?.user ? "/hesap" : "/hesap/giris"}
-            onClick={onClose}
-            className="block border-b border-line py-4 text-sm uppercase tracking-wide"
-          >
-            {session?.user?.name ?? "Giriş Yap"}
-          </Link>
-          <Link href="/sepet" onClick={onClose} className="block py-4 text-sm uppercase tracking-wide">
-            Sepet
-          </Link>
-        </div>
+        )}
       </div>
     </div>,
     document.body
