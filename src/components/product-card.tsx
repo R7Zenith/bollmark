@@ -150,25 +150,25 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         )}
       </div>
       <div className="mt-4 flex items-baseline justify-between">
-        <h3 className="text-xs font-semibold uppercase leading-[15px] tracking-[0.48px] text-ink">
+        <h3 className="text-[12px] font-semibold uppercase leading-[15px] tracking-[0.48px] text-ink">
           {product.name}
         </h3>
       </div>
-      {product.colorLabel && <p className="mt-1 text-xs text-ink/50">{product.colorLabel}</p>}
+      {product.colorLabel && <p className="mt-1 text-[12px] text-ink/50">{product.colorLabel}</p>}
       <div className="mt-2 flex items-center gap-2">
         <span
-          className={`text-xs tracking-[0.48px] ${discountPercent ? "text-[rgb(194,81,81)]" : "text-ink"}`}
+          className={`text-[12px] tracking-[0.48px] ${discountPercent ? "text-[rgb(194,81,81)]" : "text-ink"}`}
         >
           {formatPrice(finalPriceCents)}
         </span>
         {discountedPriceCents != null ? (
-          <span className="text-xs tracking-[0.48px] text-ink line-through">
+          <span className="text-[12px] tracking-[0.48px] text-ink line-through">
             {formatPrice(product.priceCents)}
           </span>
         ) : (
           product.compareAtCents &&
           product.compareAtCents > product.priceCents && (
-            <span className="text-xs tracking-[0.48px] text-ink line-through">
+            <span className="text-[12px] tracking-[0.48px] text-ink line-through">
               {formatPrice(product.compareAtCents)}
             </span>
           )

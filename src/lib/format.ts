@@ -1,9 +1,11 @@
+// Intl'in otomatik ekledigi ₺ sembolu yerine Release temasindaki gibi duz
+// "TL" metni gosteriliyor (bkz. KATALOG_ROZET_HOVER_PLANI.md 3.1) - binlik/
+// ondalik ayiraclar tr-TR formatindan (nokta/virgul) geliyor, sadece sembol
+// yerine yazi kullaniliyor. Bu fonksiyon site geneli + admin panelde
+// kullanildigi icin degisiklik her yere yansir.
 export function formatPrice(cents: number): string {
-  return new Intl.NumberFormat("tr-TR", {
-    style: "currency",
-    currency: "TRY",
-    maximumFractionDigits: 0
-  }).format(cents / 100);
+  const amount = new Intl.NumberFormat("tr-TR", { maximumFractionDigits: 0 }).format(cents / 100);
+  return `${amount} TL`;
 }
 
 export function generateOrderNumber(): string {

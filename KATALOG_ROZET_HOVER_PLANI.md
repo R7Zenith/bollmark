@@ -67,6 +67,23 @@ Yani: eğer indirim, bir ürüne/varyanta admin panelinden doğrudan "Karşıla�
 4. Rozetler birden fazla olduğunda (ör. hem indirim hem "son adet") sol üst köşede yan yana dizilecek şekilde (`flex gap-1.5`) düzenlenmeli.
 5. **Başlık ve fiyat stilini güncellemek**: Ürün adı tamamen büyük harfe (`uppercase`) çevrilecek; indirimli üründe yeni fiyat da (şu anki siyah/ink yerine) indirim rozetiyle aynı vurgu renginde gösterilecek. Fiyat aralığı ("X TL'den başlayan") eklenmeyecek — tek fiyat gösterimi korunacak.
 
+## 3.1 Bulunan asıl sorun: başlık puntosu neden tutmuyor + fiyatta ₺ işareti
+
+**Başlık puntosu:** `product-card.tsx`'te başlık `<h3 className="text-sm text-ink">` — yani genel amaçlı `text-sm` Tailwind class'ını kullanıyor. Ama `globals.css`'te şu override var:
+
+```css
+.storefront .text-sm {
+  font-size: 0.9375rem; /* 15px */
+  line-height: 1.375rem;
+}
+```
+
+Bu override, mağazadaki genel gövde metni/etiketlerin okunurluğunu artırmak için bilerek eklenmiş (yorum satırında da öyle yazıyor) — ama ürün başlığı da aynı `text-sm` class'ını paylaştığı için **istemeden** bu büyütülmüş boyuta (15px) çekiliyor. Release'de ise başlık 12px, `font-weight: 600`, `letter-spacing: 0.48px` — yani hem Bollmark'ta 3px daha büyük hem de kalınlık/harf aralığı hiç ayarlanmamış (henüz uygulanmadığı için normal 400 ağırlıkta). Sonuç: iki site yan yana konunca başlık "tutmuyor" gibi görünüyor, çünkü aslında iki farklı şey karışmış — biri kasıtlı global okunurluk artışı, diğeri eksik/gelecek bir değişiklik.
+
+**Çözüm:** Ürün başlığına `text-sm` yerine kendine ait, `.storefront .text-sm` override'ından etkilenmeyecek özel bir boyut vermek gerekiyor (ör. Tailwind'in `text-[12px]` gibi keyfi değer sözdizimi + `tracking-[0.48px] font-semibold uppercase leading-[15px]`) — böylece genel gövde metni okunurluk ayarından bağımsız, Release'deki tam değerlere sabitlenmiş olur.
+
+**Fiyatta ₺ işareti:** `lib/format.ts`'teki `formatPrice()`, `Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" })` kullanıyor — bu, tarayıcının kendi TRY para birimi sembolünü (₺) otomatik ekliyor. Release'de ise sembol yok, sabit metin olarak "TL" ekleniyor. Düzeltme basit: `style: "currency"` yerine düz sayı formatlayıp sonuna elle `" TL"` eklemek (Türkçe biçimde binlik/ondalık ayıraçlar aynı kalabilir, sadece sembol yerine metin).
+
 ## 4. Claude Code'a verilecek prompt
 
 Aşağıdaki prompt doğrudan Claude Code'a kopyalanabilir:
@@ -90,6 +107,10 @@ Release Shopify temasının canlı demosunu (themes.shopify.com/themes/release/p
    - İndirimli üründe yeni/güncel fiyat: renk `rgb(194,81,81)` (kırık/toprak kırmızısı — indirim rozetinin parlak kırmızısından FARKLI, daha soluk bir ton, bilerek böyle) yap. Bu marka paletindeki "clay" tonuna göz kırpıyor, o rengi kullanmak da bir seçenek — Claude Code ikisini karşılaştırıp göstersin.
    - "Available in X size" tarzı varyant bilgisi metni: `font-size: 12px`, `font-weight: 400`, renk `rgba(17,17,17,0.5)` (%50 opaklıkta siyah) — muhtemelen zaten yakın, birebir hizala.
    - Çok varyantlı ürünlerde fiyat aralığı ("X TL'den başlayan") EKLEME — mevcut tek fiyat gösterimi aynen korunsun, bu bilinçli bir tercih.
+
+5. **Başlık puntosu düzeltmesi**: `product-card.tsx`'teki başlık (`<h3 className="text-sm text-ink">`), genel `text-sm` class'ını kullandığı için `globals.css`'teki `.storefront .text-sm { font-size: 0.9375rem; }` (15px, gövde metni okunurluğu için bilerek eklenmiş genel bir override) tarafından büyütülüyor — bu yüzden 4. maddedeki 12px hedefiyle çakışıyor. Başlığa bu global override'dan etkilenmeyecek kendine özel bir class ver (ör. Tailwind keyfi değer sözdizimiyle `text-[12px] tracking-[0.48px] leading-[15px] font-semibold uppercase`), `text-sm`'i kaldır. `globals.css`'teki `.storefront .text-sm` override'ına dokunma — o kasıtlı, sadece başlığın ona bağımlı olmasını kes.
+
+6. **Fiyatta ₺ yerine TL**: `lib/format.ts`'teki `formatPrice()` şu an `Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" })` kullanıyor, bu da tarayıcının ₺ sembolünü otomatik ekliyor. Bunun yerine sayıyı düz Türkçe formatta (binlik nokta, ondalık virgül) formatlayıp sonuna elle `" TL"` ekle — Release'deki gibi sembol değil, yazı olarak "TL" görünsün. Bu fonksiyon tüm sitede (katalog, ürün sayfası, sepet, admin vb.) kullanıldığı için tek yerden düzelmesi her yere yansıyacak, ayrıca kontrol et.
 
 Grid boşluklarına dokunma — zaten Release ile birebir uyumlu. Değişiklikleri yapmadan önce hangi ürünlerde/renklerde ikinci fotoğraf zaten kayıtlı olduğunu kontrol et, test için o ürünleri kullan.
 
