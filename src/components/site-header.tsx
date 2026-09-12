@@ -19,16 +19,37 @@ const GENDER_LABEL: Record<GenderKey, "Kadın" | "Erkek"> = {
   erkek: "Erkek"
 };
 
-// Sutun basina ~6-8 link kalacak sekilde 3-4 sutuna bol.
-function chunkColumns(items: MenuCategory[]): MenuCategory[][] {
-  if (items.length === 0) return [];
-  const columnCount = Math.min(4, Math.max(1, Math.ceil(items.length / 7)));
-  const perColumn = Math.ceil(items.length / columnCount);
-  const columns: MenuCategory[][] = [];
-  for (let i = 0; i < items.length; i += perColumn) {
-    columns.push(items.slice(i, i + perColumn));
-  }
-  return columns;
+// Release temasinda olculen mega-menu grup basligi/alt link tipografisi
+// (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1.1) - hem GenderPanel hem
+// AksesuarPanel ayni siniflari kullanir.
+const GROUP_HEADING_CLASS = "mb-4 text-sm font-semibold tracking-[0.28px] text-ink";
+const GROUP_LINK_CLASS =
+  "nav-underline inline-block text-sm uppercase leading-[21px] tracking-[-0.56px] text-ink/80 hover:text-clay";
+const GROUP_LINK_ACTIVE_CLASS = "nav-underline inline-block text-sm uppercase leading-[21px] tracking-[-0.56px] text-clay";
+
+function PromoCard({
+  category,
+  href,
+  headline
+}: {
+  category: MenuCategory;
+  href: string;
+  headline: string;
+}) {
+  return (
+    <Link href={href} className="group relative block aspect-[3/4] flex-1 overflow-hidden">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={category.imageUrl!}
+        alt=""
+        className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+      />
+      <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+        <span className="text-sm uppercase text-cream">{category.name}</span>
+        <span className="mt-2 text-4xl font-normal leading-[45px] tracking-[-1.44px] text-cream">{headline}</span>
+      </div>
+    </Link>
+  );
 }
 
 function HamburgerIcon() {
@@ -98,22 +119,39 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
   const searchParams = useSearchParams();
   const activeSlug = searchParams.get("kategori");
   const activeGender = searchParams.get("cinsiyet");
-  const columns = chunkColumns(categories);
-  const heroImage = categories.find((c) => c.imageUrl)?.imageUrl ?? null;
+  // Release'de "Featured" grubu kuratorlu 3 linke kadar yer aciyor, ama
+  // katalogda gercekten kullanilabilir bir "yeni gelenler/cok satanlar"
+  // sort/filtre parametresi yok (bkz. urunler/page.tsx, catalog.ts) - sahte
+  // bir param icat etmek yerine bu grup su an sadece "Tum Urunler" ile
+  // sinirli (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1.1).
+  const allProductsHref = `/urunler?cinsiyet=${genderLabel}`;
+  const isAllProductsActive = !activeSlug && activeGender === genderLabel;
+  const promoImages = categories.filter((c) => c.imageUrl).slice(0, 2);
 
   return (
     <div className="absolute inset-x-0 top-full w-full border-b border-line bg-cream">
-      <div className="mx-auto flex max-w-7xl gap-12 px-6 py-10">
-        <div className="grid flex-1 grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-3 md:grid-cols-4">
-          {columns.map((column, i) => (
-            <ul key={i} className="space-y-3">
-              {column.map((category) => {
+      <div className={`mx-auto grid max-w-7xl gap-10 px-6 py-10 ${promoImages.length > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+          <div>
+            <p className={GROUP_HEADING_CLASS}>Öne Çıkanlar</p>
+            <ul className="space-y-2">
+              <li>
+                <Link href={allProductsHref} className={isAllProductsActive ? GROUP_LINK_ACTIVE_CLASS : GROUP_LINK_CLASS}>
+                  Tüm Ürünler
+                </Link>
+              </li>
+            </ul>
+          </div>
+          <div>
+            <p className={GROUP_HEADING_CLASS}>Kategoriler</p>
+            <ul className="space-y-2">
+              {categories.map((category) => {
                 const isActive = activeSlug === category.slug && activeGender === genderLabel;
                 return (
                   <li key={category.id}>
                     <Link
                       href={`/urunler?kategori=${category.slug}&cinsiyet=${genderLabel}`}
-                      className={`block border-b-2 pb-0.5 text-sm hover:text-clay ${isActive ? "border-clay text-clay" : "border-transparent text-ink/80"}`}
+                      className={isActive ? GROUP_LINK_ACTIVE_CLASS : GROUP_LINK_CLASS}
                     >
                       {category.name}
                     </Link>
@@ -121,17 +159,18 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
                 );
               })}
             </ul>
-          ))}
+          </div>
         </div>
-        {heroImage && (
-          <div className="hidden w-80 shrink-0 lg:block">
-            <Link href={`/urunler?cinsiyet=${genderLabel}`} className="block">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={heroImage} alt={`${genderLabel} koleksiyonu`} className="h-72 w-full rounded-none object-cover" />
-              <span className="mt-3 block text-sm uppercase tracking-wide hover:text-clay">
-                {genderLabel} Koleksiyonunu Gör
-              </span>
-            </Link>
+        {promoImages.length > 0 && (
+          <div className="flex gap-6">
+            {promoImages.map((category) => (
+              <PromoCard
+                key={category.id}
+                category={category}
+                href={`/urunler?kategori=${category.slug}&cinsiyet=${genderLabel}`}
+                headline={`${genderLabel} Koleksiyonu`}
+              />
+            ))}
           </div>
         )}
       </div>
@@ -142,24 +181,35 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
 function AksesuarPanel({ categories }: { categories: MenuCategory[] }) {
   const searchParams = useSearchParams();
   const activeSlug = searchParams.get("kategori");
+  const promoImage = categories.find((c) => c.imageUrl) ?? null;
 
   return (
     <div className="absolute inset-x-0 top-full w-full border-b border-line bg-cream">
-      <ul className="mx-auto max-w-7xl space-y-3 px-6 py-10">
-        {categories.map((category) => {
-          const isActive = activeSlug === category.slug;
-          return (
-            <li key={category.id}>
-              <Link
-                href={`/urunler?kategori=${category.slug}`}
-                className={`inline-block border-b-2 pb-0.5 text-sm hover:text-clay ${isActive ? "border-clay text-clay" : "border-transparent text-ink/80"}`}
-              >
-                {category.name}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
+      <div className={`mx-auto grid max-w-7xl gap-10 px-6 py-10 ${promoImage ? "grid-cols-2" : "grid-cols-1"}`}>
+        <div>
+          <p className={GROUP_HEADING_CLASS}>Kategoriler</p>
+          <ul className="space-y-2">
+            {categories.map((category) => {
+              const isActive = activeSlug === category.slug;
+              return (
+                <li key={category.id}>
+                  <Link
+                    href={`/urunler?kategori=${category.slug}`}
+                    className={isActive ? GROUP_LINK_ACTIVE_CLASS : GROUP_LINK_CLASS}
+                  >
+                    {category.name}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+        {promoImage && (
+          <div className="flex gap-6">
+            <PromoCard category={promoImage} href={`/urunler?kategori=${promoImage.slug}`} headline="Aksesuar Koleksiyonu" />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

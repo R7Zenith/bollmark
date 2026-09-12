@@ -2846,3 +2846,45 @@ layout'ta (`(site)`, `(admin)`, `(gate)`) `metadata.icons` tanimli degildi.
   sayfalarinin HTML `<head>`'inde `icon.png`/`favicon.ico`/`apple-icon.png`
   link etiketlerinin dogru geldigi dogrulandi.
 - Commit atilmadi/push edilmedi, kullanicinin onayi bekleniyor.
+
+## Release temasi header/mega-menu analizi - sadece analiz, kod degisikligi YOK (2026-09-12)
+
+Kullanici istegiyle release-main.myshopify.com'un mega-menu ve mobil
+menusu Playwright ile DOM/computed style seviyesinde incelendi, mevcut
+`src/components/site-header.tsx` ile karsilastirildi. Bulgular
+`RELEASE_TEMA_BIREBIR_UYUM_PLANI.md` dosyasinin "1. Header - mega menu
+davranisi" bolumune islendi (onceki "mevcut yapi zaten yakin" notu
+yanlisti, duzeltildi). Ozet: masaustu mega menude "Featured/Categories"
+sabit grup basliklari + panelin net %50/%50 sol-sag (link/gorsel)
+bolunmesi eksik; mobilde ise Bollmark'taki yerinde-acilan accordion
+yerine Release'de gercek cok seviyeli "drill-down" (geri oku ile panel
+degisimi) kullaniliyor - bu, henuz hic ele alinmamis ayri bir fark.
+Bu oturumda **kod degisikligi yapilmadi**, sadece analiz ve plan
+guncellemesi; uygulama bir sonraki promptta yapilacak.
+
+## Header masaustu mega-menu Release olcumlerine gore yeniden yazildi (2026-09-12, ayni oturum devami)
+
+Bir onceki "sadece analiz" adiminda cikan RELEASE_TEMA_BIREBIR_UYUM_PLANI.md
+1.1/1.4 bulgulari, `src/components/site-header.tsx`'teki `GenderPanel` ve
+`AksesuarPanel`'e uygulandi (SADECE masaustu, mobil `MobileMenu`'ye
+dokunulmadi - ayri promptla gelecek):
+
+- `chunkColumns` (sayiya gore N sutuna bolme) kaldirildi, yerine 2 sabit
+  grup: "Öne Çıkanlar" (sadece "Tüm Ürünler" - katalogda gercek bir
+  yeni/cok-satan sort parametresi olmadigi icin uydurma param eklenmedi,
+  `urunler/page.tsx` + `catalog.ts` kontrol edildi) ve "Kategoriler".
+- Grup basligi/alt link tipografisi Release'den olculen degerlere cekildi
+  (14px/600/normal-case baslik, 14px/400/UPPERCASE/-0.56px tracking link),
+  yeni `.nav-underline` hover sinifi `globals.css`'e eklendi.
+- Panel ici `grid-cols-2` ile net %50/%50 sol-sag bolundu; sagda `imageUrl`'i
+  olan kategorilerden en fazla 2 (Aksesuar'da 1) promosyon karti - hic
+  gorsel yoksa sag yari hic render edilmiyor (sahte placeholder EKLENMEDI).
+- `npx tsc --noEmit` ve `npm run build` hatasiz. Localde (`npm run dev`,
+  onceden calisan bir surec zaten port 3000'de bulundu, yeniden
+  baslatilmadi) Playwright ile 1280/1600px genisliklerde Kadin/Erkek/
+  Aksesuar sekmelerine hover yapilip ekran goruntusu alindi - grup
+  basliklari ("Öne Çıkanlar"/"Kategoriler") dogru gorunuyor. Mevcut Neon
+  verisinde hicbir kategoride `imageUrl` dolu olmadigi icin sag yaridaki
+  promosyon gorseli bu ortamda hic gorunmuyor - bu kodun degil, veri
+  eksikliginin sonucu (kod dogru sekilde sag yariyi hic render etmiyor).
+- **Commit atilmadi/push edilmedi - kullanicinin onayi bekleniyor.**

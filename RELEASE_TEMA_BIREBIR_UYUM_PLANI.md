@@ -6,26 +6,144 @@ demo (release-main.myshopify.com) tarayıcıyla gezilip computed style / CSS
 seviyesinde ölçüldü — aşağıdaki değerler tahmini değil, demodan okunan gerçek
 değerlerdir.
 
-## 1. Header — mega menü davranışı (önceki prompt'ta eksik kalan kısım)
+## 1. Header — mega menü davranışı (Playwright ile DOM/CSS ölçümüyle DÜZELTİLDİ — 12 Eylül 2026)
 
-Önceki header prompt'u sadece logo ortalama (grid yapısı) ile ilgiliydi. Bu bölüm
-hover ile açılan menünün DAVRANIŞINI tarif ediyor:
+**Önceki değerlendirme YANLIŞTI.** Önceki not "Bollmark'ın mevcut GenderPanel/
+AksesuarPanel yapısı zaten bu mantığa çok yakın, sadece küçük ayar yeter"
+diyordu — bu, gerçek DOM/computed style ölçülmeden yapılmış yüzeysel bir
+karşılaştırmaydı. release-main.myshopify.com Playwright ile açılıp `Shop`
+mega menüsüne hover yapılarak ve `#Navigation-drawer-header` mobil çekmecesi
+tıklanarak gerçek değerler çıkarıldı; aradaki fark küçük değil, **yapısal**.
 
-- Menü öğesine (`Shop` gibi) mouse ile gelindiğinde, header'ın hemen altında
-  (`inset-block-start: 100%`), TAM SAYFA GENİŞLİĞİNDE beyaz bir panel açılıyor.
-  Üstte ince bir ayraç çizgisi (`border-block-start`) var.
-- **Açılma animasyonu YOK** — panel `display: none` → `display: block` ile anlık
-  beliriyor/kayboluyor (kaydırma/fade efekti yok). Karmaşık bir animasyon
-  eklemeye gerek yok, tek ihtiyaç doğru `hover` tetikleyicisi.
-- Panel içeriği 2 bölgeden oluşuyor: SOL tarafta düz metin link sütunları
-  (örn. "Featured" başlığı altında NEW/BESTSELLERS/BASICS, "Categories" başlığı
-  altında TOPS/JEANS/SHORTS/T-SHIRTS/...), SAĞ tarafta 2 adet yan yana
-  promosyon görseli (üzerine bindirilmiş küçük etiket + başlık yazısı, örn.
-  "SPOTLIGHT / Transient Echoes").
-- Bollmark'ın mevcut `GenderPanel`/`AksesuarPanel` yapısı zaten bu mantığa çok
-  yakın (tam genişlik, kategori linkleri + sağda görsel) — sadece sol tarafı
-  "Featured/Categories" gibi 2 gruba ayırmak ve panel açılışını anlık
-  (transition olmadan, sadece `openMenu` state'i ile) tutmak yeterli.
+### 1.1 Masaüstü — panel gerçek yapısı (1600px'de ölçüldü)
+
+- Panel `position: absolute; inset-inline: 0; top: 64px` (header'ın hemen
+  altında, TAM VİEWPORT genişliğinde — 1600px ekranda panel de 1600px).
+  Üstte `border-top: 1px solid rgb(235,235,235)` tek ayraç çizgisi.
+- **Açılma animasyonu gerçekten yok** — `display: none → block`, `transition`
+  ölçülmedi (anlık). Bollmark'taki `openMenu` state mantığı bunun için zaten
+  doğru yaklaşım.
+- İç dolgu: `padding: 32px 36px` (dikey 32, yatay 36).
+- **Panel tam olarak İKİYE bölünmüş, %50/%50 (764px / 764px, 1528px içerik
+  genişliğinde), aralarında ekstra boşluk yok** — Bollmark'taki gibi "geniş sol
+  link alanı + dar sağ görsel" değil, SOL YARI link grupları / SAĞ YARI 2
+  promosyon görseli şeklinde net bir ikiye bölünme:
+  - **SOL yarı**: `grid-template-columns: 376px 376px 0px` — yani sistem 3
+    gruba kadar yer ayırıyor (şu an sadece "Featured" ve "Categories" dolu),
+    grup sütunları arası boşluk `gap: 32px 12px`.
+    - Grup başlığı ("Featured", "Categories"): **14px, font-weight 600,
+      letter-spacing +0.28px, `text-transform: none` (BÜYÜK HARF DEĞİL, ilk
+      harf büyük normal yazı)**, `margin-bottom: 16px`, renk `#111`, font
+      Poppins.
+    - Alt linkler (New, Bestsellers, Tops, Jeans...): **14px, font-weight
+      400, `text-transform: uppercase` (BÜYÜK HARF)**, `letter-spacing:
+      -0.56px` (negatif — büyük harfe rağmen sıkışık, "ucuz kurumsal" değil
+      "sıkı/pahalı" bir his veriyor), `line-height: 21px`, satırlar arası
+      `gap: 8px`, dikey liste (flex column).
+    - **ÖNEMLİ FARK:** Bollmark'ta grup başlığı yok, tüm kategoriler tek
+      düz liste halinde 2-4 sütuna otomatik bölünüyor (`chunkColumns`
+      fonksiyonu). Release'de ise hep "Featured" ve "Categories" adında 2
+      SABİT anlamsal grup var; kategori sayısı ne olursa olsun bu 2 grup
+      yapısı korunuyor, "Featured" altında öne çıkan/kürasyonlu 3 link
+      (New/Bestsellers/Basics), "Categories" altında ürün tipi listesi yer
+      alıyor.
+  - **SAĞ yarı**: 2 adet promosyon kartı yan yana (`display:flex; gap:24px`),
+    her biri **370px genişlik, panel içeriğiyle aynı yükseklik (~493px,
+    portre/dikey oranlı, `object-fit: cover` arka plan görseli)**. Kart
+    içeriği ortalanmış (`align-center text-center justify-center`): küçük
+    beyaz eyebrow etiketi (`SPOTLIGHT`, `SS26` — CSS'te `text-transform`
+    YOK, metin HTML'de zaten büyük harf yazılmış, 14px normal weight) +
+    altında büyük başlık (`Transient Echoes`, `Get ready for the sun` —
+    **36px, font-weight 400, letter-spacing -1.44px, satır yüksekliği
+    45px, RENK BEYAZ, AYNI Poppins ailesi** — görselde farklı/dekoratif bir
+    yazı tipi gibi görünse de aslında sadece büyük boy + sıkı tracking'li
+    Poppins; ayrı bir serif/script font YOK).
+    - **ÖNEMLİ FARK:** Bollmark'ın `GenderPanel`'inde SADECE 1 görsel var
+      (`heroImage`, `w-80` yani 320px, `lg:` altında tamamen gizli). Release
+      DAİMA 2 görsel yan yana gösteriyor ve bunlar panelin `xl` altında değil
+      DAHA GENİŞ bir kesimde (masaüstünün ana hali) görünür durumda.
+      `AksesuarPanel`'de ise hiç görsel yok.
+
+### 1.2 Mobil — gerçek etkileşim: ACCORDION DEĞİL, DRILL-DOWN (375-390px'de ölçüldü)
+
+**Bu en kritik fark ve önceki planda hiç incelenmemişti.** Release'in mobil
+menüsü Bollmark'taki `MobileAccordionSection` gibi "başlığın altında yerinde
+açılan liste" değil — **çok seviyeli, yatay kaydırmalı bir "drill-down" (alt
+menüye girip geri dönme) sistemi**:
+
+- Çekmece tam ekran genişliğinde (`width: 390px` = viewport genişliğinin
+  tamamı, Bollmark'taki gibi `w-[85%] max-w-sm` sağdan açılan dar panel
+  DEĞİL), `position: fixed`, giriş/çıkışta
+  `transition: transform 0.45s cubic-bezier(0.74,-0.01,0.26,1)` — hafif
+  "overshoot" hissi veren özel bir easing kullanılıyor (Bollmark'ta
+  transform animasyonu yok, `open`/`!open` ile anlık mount/unmount).
+- **Seviye 0** (çekmece ilk açıldığında): düz liste — Home, `Shop ›`,
+  `Pages ›`, `Product features ›`, Contact, `Presets ›`. Alt kategorisi olan
+  öğelerin sağında sağa dönük ok (`›`) var.
+- **Seviye 1** (`Shop`'a dokunulduğunda): TÜM PANEL yeni bir görünümle
+  DEĞİŞİYOR — üstte geri oku + "SHOP" başlığı (`← SHOP`), altında yine düz
+  liste: `Featured ›`, `Categories ›` (bunlar da accordion gibi yerinde
+  AÇILMIYOR, kendi seviyelerine "girilerek" gösteriliyor), listenin altına
+  masaüstündeki AYNI 2 promosyon görseli (SPOTLIGHT/Transient Echoes,
+  SS26/Get ready for the sun) yan yana ekleniyor.
+- **Seviye 2** (`Featured`'a dokunulduğunda, aynı mantıkla): muhtemelen New /
+  Bestsellers / Basics düz liste + üstte `← FEATURED` geri oku (bu ekran
+  ayrıca doğrulanmadı ama Seviye 1 ile birebir aynı `menu-panel` / geri
+  butonu deseni izleniyor, DOM'da `data-menu="shop"` gibi her seviye için
+  ayrı bir panel div'i var).
+- **ÖNEMLİ FARK:** Bollmark'ın mevcut `MobileAccordionSection`'ı tek ekranda
+  kalıp `ChevronIcon` 180° dönerek `<ul>`'u AŞAĞI AÇIYOR (accordion). Bu,
+  Release'in davranışından tamamen farklı bir etkileşim modeli — "geri"
+  kavramı yok, alt kategoriler asıl listeyi aşağı itiyor. Release'de ise geri
+  navigasyonu var, her seviye kendi tam-genişlik ekranını kaplıyor ve
+  masaüstündeki promosyon görselleri MOBİLDE DE (sadece Shop alt menüsünde)
+  gösteriliyor — Bollmark'ın mobil menüsünde hiç görsel yok.
+- Bollmark'ta çekmece sağdan `%85` genişlikte ve köşesi yuvarlak
+  (`rounded-l-2xl`) açılıyor; Release'de tam genişlik, köşe yarıçapı yok.
+
+### 1.3 Nav linki hover altı çizgi animasyonu
+
+Ölçüldü: klasik "arka plan gradient büyütme" tekniği kullanılıyor.
+
+```css
+.nav-underline {
+  background-image: linear-gradient(currentColor, currentColor);
+  background-repeat: no-repeat;
+  background-position: 0 100%;
+  background-size: 0% 1px;
+  transition: background-size 0.4s ease;
+}
+.nav-underline:hover { background-size: 100% 1px; }
+```
+
+Bollmark'ın `DesktopNav` linklerine uygulanacak (uygulandı — bkz. sohbet
+geçmişindeki prompt).
+
+### 1.4 Sonraki adım için özet fark listesi
+
+**Masaüstü (Adım 1 kapsamına eklenecek):**
+1. `GenderPanel`/`AksesuarPanel`'e "Featured" (öne çıkan/kürasyonlu 3 link) ve
+   "Categories" (tüm kategori listesi) diye 2 sabit grup başlığı eklenmeli;
+   grup başlığı 14px/600/normal-case, alt linkler 14px/400/UPPERCASE/
+   letter-spacing -0.56px.
+2. Panel içeriği net %50/%50 sol-sağ ikiye bölünmeli (şu an sol taraf `flex-1`
+   ile esnek, sağda tek 320px görsel var — bunun yerine sabit 2 sütunlu sağ
+   blok, her biri panel yüksekliği kadar uzun, 2 farklı promosyon görseli).
+3. `AksesuarPanel`'e de en az 1 promosyon görseli eklenmeli (şu an hiç yok).
+
+**Mobil (yeni, önceki planda yoktu — ayrı bir adım olarak değerlendirilmeli):**
+1. `MobileAccordionSection`'ın "yerinde açılan accordion" davranışı,
+   "drill-down" (yeni panel + geri oku) davranışına çevrilmeli — bu, mevcut
+   tek-seviye state yönetiminden (`openSection`) çok seviyeli bir panel
+   yığınına (stack) geçiş gerektiren daha büyük bir refactor.
+2. Mobil "Shop" alt menüsüne masaüstündeki ile aynı 2 promosyon görseli
+   eklenmeli.
+3. Çekmece genişliği/köşe stili tartışılmalı: Release'in tam-genişlik +
+   köşesiz stiline mi geçilecek, yoksa Bollmark'ın mevcut sağdan-dar-yuvarlak
+   çekmece tercihi mi korunacak — bu bir tasarım kararı, ölçüm bunu
+   dayatmıyor sadece farkı gösteriyor.
+
+Bu adım SADECE analiz — yukarıdaki hiçbir madde henüz kodda uygulanmadı.
 
 ### 1.1 Nav linki hover altı çizgi animasyonu
 
@@ -169,9 +287,26 @@ geçmişindeki prompt).
       Eylül 2026) — chevron hover'da döndüğü, sepet rozetinin gerçek sepete
       eklemeyle güncellendiği ve footer linkinin göründüğü tek tek test
       edildi.
-- [ ] **Adım 1 — Nav linki hover altı çizgi animasyonu (`.nav-underline`),
-      mega menü animasyonsuz açılış kontrolü, hero görseli geçici Unsplash
-      placeholder. Prompt verildi ama HENÜZ UYGULANMADI.**
+- [x] **Adım 1a — Masaüstü mega menü (`GenderPanel`/`AksesuarPanel`) 1.1/1.4
+      ölçümlerine göre yeniden yazıldı (12 Eylül 2026):** `chunkColumns`
+      kaldırıldı, yerine sabit "Öne Çıkanlar" (sadece "Tüm Ürünler" — katalogda
+      gerçek bir yeni/çok-satan sort parametresi olmadığı için uydurma param
+      eklenmedi) + "Kategoriler" grupları geldi; grup başlığı 14px/600/
+      normal-case, alt linkler 14px/400/UPPERCASE/-0.56px tracking + yeni
+      `.nav-underline` hover'ı (`globals.css`'e eklendi); panel içi
+      `grid-cols-2` ile net %50/%50 sol-sağ bölünüyor, sağda `imageUrl`'i
+      olan kategorilerden en fazla 2 (Aksesuar'da 1) promosyon kartı —
+      hiç görsel yoksa sağ yarı hiç render edilmiyor (placeholder
+      eklenmedi). `npx tsc --noEmit` ve `npm run build` hatasız; localde
+      Playwright ile 1280/1600px'de Kadın/Erkek/Aksesuar hover ekran
+      görüntüleriyle DOĞRULANDI (grup başlıkları görünüyor, mevcut veride
+      kategori `imageUrl` dolu olmadığı için sağ yarı bu ortamda hiç
+      görünmüyor — bu, kodun değil verinin durumu). Commit henüz atılmadı,
+      kullanıcı onayı bekleniyor.
+- [ ] **Adım 1b — Mobil menü (`MobileMenu`/`MobileAccordionSection`)**
+      Release'deki gerçek "drill-down" (geri oku ile çok seviyeli panel)
+      davranışına çevrilmeli — bkz. 1.2. Bu adımda BİLİNÇLİ OLARAK
+      dokunulmadı, ayrı bir prompt ile gelecek.
 - [ ] Adım 2 — Ürün listeleme (katalog) sayfası: kenar boşluğu daraltma,
       32px grid gap, Filters/Showing/Sort tek satır düzeni. Prompt verildi
       ama HENÜZ UYGULANMADI.
