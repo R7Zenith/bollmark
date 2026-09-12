@@ -14,9 +14,24 @@ Karşılaştırılan dosyalar: `src/components/product-card.tsx`, `src/lib/catal
 **Rozetler (sol üst köşe, yan yana istiflenebiliyor):**
 - Kırmızı dolgu + beyaz metin, küçük dikdörtgen/hap: **"15% OFF"** — otomatik indirim yüzdesi.
 - Siyah dolgu + beyaz metin, aynı boyut: **"PRE-ORDER"**, **"SOLD OUT"** — stok/satış durumu etiketleri.
-- Beyaz dolgu + siyah ince kenarlık + siyah metin: **"LAST FEW"** — "son adetler" stok uyarısı.
+- Beyaz dolgu + siyah metin, **kenarlıksız** (ilk bakışta ince kenarlıklı sanılıyor ama değil — sadece açık gri görsel zemine karşı kontrastı öyle görünüyor): **"LAST FEW"** — "son adetler" stok uyarısı.
 - Rozetler her zaman görselin **sol üst köşesinde**, birden fazlaysa yatayda yan yana diziliyor (kırmızı/siyah/beyaz karışık olabiliyor, ör. "15% OFF" + "SOLD OUT" aynı kartta).
 - Sağ üst köşede ayrı bir "hızlı sepete ekle" (+) ikonu var — favorilere ekleme rozetle karışmıyor.
+
+**Tam ölçülmüş CSS değerleri (canlı demo `release-main.myshopify.com`'dan `getComputedStyle` ile doğrudan okundu — tahmin değil):**
+
+| Öğe | font-size | font-weight | letter-spacing | line-height | text-transform | renk | diğer |
+|---|---|---|---|---|---|---|---|
+| Ürün başlığı (`.product-card__title`) | 12px | 600 | 0.48px | 15px | uppercase | `#111111` | font: Poppins |
+| Fiyat, normal (`.product-card__price`) | 12px | 400 | 0.48px | — | uppercase (kapsayıcıdan miras) | `#111111` | — |
+| Fiyat, indirimde eski fiyat (`s`, üstü çizili) | 12px | 400 | 0.48px | — | uppercase | `#111111` (siyah — renk değişmiyor, sadece çizgi) | `text-decoration: line-through` |
+| Fiyat, indirimde yeni fiyat (`ins`) | 12px | 400 | 0.48px | — | uppercase | **`rgb(194, 81, 81)`** — kırık/toprak kırmızısı, parlak kırmızı DEĞİL | — |
+| Varyant bilgisi ("Available in X size") | 12px | 400 | normal | — | none | `rgba(17,17,17,0.5)` yani **%50 opaklıkta siyah** | — |
+| Rozet (hem indirim hem "last few", ortak taban stil) | 10px | 500 | 1.4px | 12.5px | uppercase | — | `border-radius: 4px`, `padding: 6px 8px`, kenarlık YOK |
+| İndirim rozeti zemin/metin | — | — | — | — | — | zemin **`rgb(239,45,45)`** (parlak kırmızı), metin beyaz | — |
+| "Last few" rozeti zemin/metin | — | — | — | — | — | zemin beyaz, metin `#111111`, kenarlıksız | — |
+
+Not: "indirimli yeni fiyat" ile "indirim rozeti zemin rengi" Release'de FARKLI iki kırmızı tonu (fiyat metni daha soluk/toprak `rgb(194,81,81)`, rozet zemini daha parlak `rgb(239,45,45)`) — birebir aynı renk değiller, bu bilinçli bir kontrast tercihi gibi duruyor.
 
 **Hover davranışı:**
 - Kartın üzerine gelince ürünün ikinci bir fotoğrafına yumuşak (soft) bir geçişle (crossfade/opacity) geçiliyor — ani değil, ~300ms transition.
@@ -62,11 +77,19 @@ Release Shopify temasının canlı demosunu (themes.shopify.com/themes/release/p
 
 1. **Hover'da ikinci fotoğraf**: `product-card.tsx`'teki `secondImage` mantığı zaten hazır ama hiç veri almıyor. `CatalogEntry` tipine (`lib/catalog.ts`) `secondImage: string | null` ekle, `getCatalogEntries()` içinde ürünün/seçili rengin galerisindeki 2. fotoğrafı (varsa `images[1]`, yoksa ilgili `optionImages`'ın 2. kaydı) bu alana doldur, `urunler/page.tsx`'te `ProductCard`'a geçir. 2. fotoğraf yoksa mevcut hafif büyüme (scale) efekti aynen kalsın.
 
-2. **İndirim rozetini düzelt ve belirginleştir** (ÖNCE düzeltme, SONRA stil): Şu an rozet SADECE admin → Kampanyalar'dan tanımlanan otomatik yüzde indirimlerinde çıkıyor. Ürüne/varyanta admin panelinden doğrudan "Karşılaştırma fiyatı" (compareAtCents) girilerek yapılan indirimlerde rozet HİÇ ÇIKMIYOR — sadece üstü çizili eski fiyat görünüyor (bu muhtemelen bildirdiğim/gördüğünüz sorun). `product-card.tsx`'teki rozet koşulunu, otomatik kampanya indirimi yoksa `compareAtCents > priceCents` durumunda da (yüzdeyi `Math.round((1 - priceCents/compareAtCents) * 100)` ile hesaplayıp) rozeti göstersin şekilde güncelle — otomatik kampanya varsa o öncelikli kalsın. Bunu yaparken aynı anda rozetin görselini de Release'deki gibi dolgulu, yüksek kontrastlı, kısa metinli (`%X İNDİRİM` veya `-%X`) küçük bir etiket kutusuna çevir — rengi hem markanın mevcut "clay" tonuyla uyumlu (tam doygunlukta clay + krem metin) hem de gerçek bir indirim kırmızısı seçeneği olarak iki örnek üret, ikisini de göster, birini seçeceğim.
+2. **İndirim rozetini düzelt ve belirginleştir** (ÖNCE düzeltme, SONRA stil): Şu an rozet SADECE admin → Kampanyalar'dan tanımlanan otomatik yüzde indirimlerinde çıkıyor. Ürüne/varyanta admin panelinden doğrudan "Karşılaştırma fiyatı" (compareAtCents) girilerek yapılan indirimlerde rozet HİÇ ÇIKMIYOR — sadece üstü çizili eski fiyat görünüyor (bu muhtemelen bildirdiğim/gördüğünüz sorun). `product-card.tsx`'teki rozet koşulunu, otomatik kampanya indirimi yoksa `compareAtCents > priceCents` durumunda da (yüzdeyi `Math.round((1 - priceCents/compareAtCents) * 100)` ile hesaplayıp) rozeti göstersin şekilde güncelle — otomatik kampanya varsa o öncelikli kalsın.
 
-3. **Stok uyarısı rozeti**: Bir ürünün/rengin toplam stoğu düşükse (ör. ≤3 adet) sol üst köşede indirim rozetinin yanına, beyaz zemin + ince siyah kenarlık + siyah metinli "Son X Adet" rozeti ekle. Birden fazla rozet varsa (indirim + stok uyarısı) yan yana, aralarında küçük bir boşlukla dizilsin. Ürün tamamen stokta yoksa mevcut tam ekran "Stokta Yok" overlay'i öncelikli kalsın, bu rozet gösterilmesin.
+   Rozetin görselini Release'in canlı demosundan `getComputedStyle` ile ölçülen şu tam değerlerle uygula: `font-size: 10px`, `font-weight: 500`, `letter-spacing: 1.4px`, `line-height: 12.5px`, `text-transform: uppercase`, `border-radius: 4px`, `padding: 6px 8px`, kenarlık yok. Zemin/metin rengi için iki seçenek üret (ikisini de göster, birini seçeceğim): (a) Release'in gerçek rengi `rgb(239,45,45)` zemin + beyaz metin, (b) markanın mevcut "clay" tonu tam doygunlukta zemin + krem metin.
 
-4. **Başlık ve fiyat stili**: Ürün adını (`product-card.tsx`'teki `<h3>`) tamamen büyük harfe çevir (`uppercase` class'ı ekle, gerekirse `tracking` ince ayarı yap). İndirimli üründe gösterilen yeni/güncel fiyatı, indirim rozetiyle aynı vurgu renginde göster (şu an ikisi de `text-ink` siyah — sadece eski fiyat zaten gri üstü çizili kalıyor, ona dokunma). Çok varyantlı ürünlerde fiyat aralığı ("X TL'den başlayan") EKLEME — mevcut tek fiyat gösterimi aynen korunsun, bu bilinçli bir tercih.
+3. **Stok uyarısı rozeti**: Bir ürünün/rengin toplam stoğu düşükse (ör. ≤3 adet) sol üst köşede indirim rozetinin yanına "Son X Adet" rozeti ekle — Release'deki "last few" rozetiyle AYNI taban stil (`font-size: 10px`, `font-weight: 500`, `letter-spacing: 1.4px`, `border-radius: 4px`, `padding: 6px 8px`, uppercase), ama zemin BEYAZ + metin `#111111`, kenarlıksız (Release'de bu rozetin görünürdeki ince çerçeve hissi aslında kenarlıktan değil, açık gri ürün fotoğrafı zeminine karşı oluşan kontrasttan geliyor — gerçek CSS'te border yok, bizde de olmasın). Birden fazla rozet varsa (indirim + stok uyarısı) yan yana, aralarında küçük bir boşlukla dizilsin. Ürün tamamen stokta yoksa mevcut tam ekran "Stokta Yok" overlay'i öncelikli kalsın, bu rozet gösterilmesin.
+
+4. **Başlık ve fiyat stili** — Release'den ölçülen tam değerlerle:
+   - Ürün adı (`product-card.tsx`'teki `<h3>`): `text-transform: uppercase`, `font-weight: 600` (şu an muhtemelen 400/normal), `font-size: 12px`, `letter-spacing: 0.48px`, `line-height: 15px`.
+   - Fiyat (indirimsiz durumda, normal): `font-size: 12px`, `font-weight: 400`, `letter-spacing: 0.48px`, renk `#111111` — muhtemelen zaten yakın, birebir hizala.
+   - İndirimli üründe eski fiyat (üstü çizili): renk **değişmesin**, siyah (`#111111`) kalsın, sadece `line-through` — Release'de de böyle, sandığımızın aksine gri değil.
+   - İndirimli üründe yeni/güncel fiyat: renk `rgb(194,81,81)` (kırık/toprak kırmızısı — indirim rozetinin parlak kırmızısından FARKLI, daha soluk bir ton, bilerek böyle) yap. Bu marka paletindeki "clay" tonuna göz kırpıyor, o rengi kullanmak da bir seçenek — Claude Code ikisini karşılaştırıp göstersin.
+   - "Available in X size" tarzı varyant bilgisi metni: `font-size: 12px`, `font-weight: 400`, renk `rgba(17,17,17,0.5)` (%50 opaklıkta siyah) — muhtemelen zaten yakın, birebir hizala.
+   - Çok varyantlı ürünlerde fiyat aralığı ("X TL'den başlayan") EKLEME — mevcut tek fiyat gösterimi aynen korunsun, bu bilinçli bir tercih.
 
 Grid boşluklarına dokunma — zaten Release ile birebir uyumlu. Değişiklikleri yapmadan önce hangi ürünlerde/renklerde ikinci fotoğraf zaten kayıtlı olduğunu kontrol et, test için o ürünleri kullan.
 

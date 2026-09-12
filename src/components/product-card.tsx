@@ -126,12 +126,12 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         {(discountPercent || product.lowStockCount != null) && (
           <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
             {discountPercent && (
-              <span className="rounded-sm bg-red-600 px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-white">
+              <span className="rounded bg-[rgb(239,45,45)] px-2 py-1.5 text-[10px] font-medium uppercase leading-[12.5px] tracking-[1.4px] text-white">
                 %{discountPercent} İndirim
               </span>
             )}
             {product.lowStockCount != null && (
-              <span className="rounded-sm border border-ink/80 bg-cream px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-ink">
+              <span className="rounded bg-white px-2 py-1.5 text-[10px] font-medium uppercase leading-[12.5px] tracking-[1.4px] text-ink">
                 Son {product.lowStockCount} Adet
               </span>
             )}
@@ -150,19 +150,25 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         )}
       </div>
       <div className="mt-4 flex items-baseline justify-between">
-        <h3 className="text-sm uppercase tracking-wide text-ink">{product.name}</h3>
+        <h3 className="text-xs font-semibold uppercase leading-[15px] tracking-[0.48px] text-ink">
+          {product.name}
+        </h3>
       </div>
       {product.colorLabel && <p className="mt-1 text-xs text-ink/50">{product.colorLabel}</p>}
       <div className="mt-2 flex items-center gap-2">
-        <span className={`text-sm font-medium ${discountPercent ? "text-red-600" : ""}`}>
+        <span
+          className={`text-xs tracking-[0.48px] ${discountPercent ? "text-[rgb(194,81,81)]" : "text-ink"}`}
+        >
           {formatPrice(finalPriceCents)}
         </span>
         {discountedPriceCents != null ? (
-          <span className="text-xs text-ink/40 line-through">{formatPrice(product.priceCents)}</span>
+          <span className="text-xs tracking-[0.48px] text-ink line-through">
+            {formatPrice(product.priceCents)}
+          </span>
         ) : (
           product.compareAtCents &&
           product.compareAtCents > product.priceCents && (
-            <span className="text-xs text-ink/40 line-through">
+            <span className="text-xs tracking-[0.48px] text-ink line-through">
               {formatPrice(product.compareAtCents)}
             </span>
           )
