@@ -455,6 +455,100 @@ geçmişindeki prompt).
       **Bu adımla RELEASE_TEMA_BIREBIR_UYUM_PLANI.md'deki tüm adımlar
       tamamlandı.**
 
+- [x] **Adım 5 — Kategori sayfası banner'ı + saydam header, katalog
+      buton şekilleri, ürün galerisi zoom (13 Eylül 2026):** Önceki adım
+      "tüm adımlar tamamlandı" dese de kullanıcı iki canlı Release
+      sayfasını (`/collections/tops`, `/products/top-10`) `curl` ile
+      indirilen gerçek HTML/CSS'i üzerinden yeniden incelememi istedi -
+      bu adımda hâlâ eksik olan üç şey işlendi:
+      1. `urunler/page.tsx`: seçili kategorinin gerçek `imageUrl`'i varsa
+         (mega menüdeki promosyon kartlarıyla aynı veri) sayfa üstünde
+         50svh'lik bir banner render ediliyor; `site-header.tsx`'teki
+         `transparent` state'i artık sadece anasayfada değil, bu banner
+         varken de tetikleniyor (Release'in `header-is-transparent`
+         mekanizmasının karşılığı - aynı koşul iki dosyada da kontrol
+         ediliyor, birbirinden bağımsız kaymasın diye).
+      2. `catalog-toolbar.tsx`: "Filtrele"/"Sırala" tetikleyicileri
+         eskiden çerçevesiz düz metin+ok linkiydi; Release'in
+         `.facets__button-filters`/`.custom-select__btn`'i ölçülüp
+         (1px `#EBEBEB` kenarlık, `border-radius: 0.8rem`) aynı cerceveli
+         "buton" diline çekildi.
+      3. `product-viewer.tsx`: galeri görsellerine tıklayınca açılan,
+         imleç konumuna göre 2x yakınlaştıran bir lightbox/zoom eklendi
+         (Release PhotoSwipe + `zoom="click"` kullanıyor, bizde tıklama
+         hiçbir şey yapmıyordu). Galeri oranı 56/44'ten canlı ölçülen
+         60/40'a (`product-grid__size--large`) çekildi.
+      `tsc --noEmit` + `eslint` temiz. Commit atıldı, push edildi.
+
+- [x] **Adım 6 — Ürün detay sağ panel: font boyutları, güven rozeti
+      ticker'ı, buton/adet seçici düzeni, renk paleti (13 Eylül 2026,
+      aynı oturum devamı):** Kullanıcı Adım 5'in yetersiz kaldığını,
+      "sağdaki yazı boyutlarına hiç dokunmadığını", animasyonlu güven
+      rozeti yazılarının eksik olduğunu ve Sepete Ekle/adet/Hemen Al
+      konumlarının hâlâ farklı olduğunu belirtti - `products/top-8`
+      sayfasının `:root` CSS değişkenleri ve `section-product.css`'i
+      satır satır okunarak (tahmin değil) şu değerler bulundu ve
+      uygulandı:
+      - Ürün başlığı `h6` (2.1rem, `letter-spacing -0.04em`), fiyat
+        `--font-size-static-md` (1.4rem), beden/renk kutucuk yazısı
+        `.product-option__label` (12px + `0.1rem` tracking), accordion
+        başlıkları (`Ürün Detayları`/`Beden Tablosu`) `.accordion__button`
+        (1.6rem, büyük harf değil, sadece hover'da alt çizgi) - hepsi
+        eski tahmini/house-style değerlerin yerine geçti.
+      - Rozetler (İndirim/Son N Adet) fiyatın altından **başlığın
+        üstüne** taşındı (gerçek DOM sırası `.product__badges` →
+        `<h1>`), köşe yarıçapı eklendi (`--badge-border-radius: 0.4rem`).
+      - Fiyatın altındaki "Taxes included." notu bizde "KDV dahildir."
+        olarak eklendi, sonra kullanıcının ekran görüntüsünde fiyatla
+        AYNI SATIRDA olduğu görülüp öyle taşındı.
+      - **Güven rozeti "ticker"ı**: meğer Release'de bizim tek 4 mesajlı
+        ticker'ımızdan tamamen farklı, İKİ AYRI eleman var - (a) iki ayrı
+        ticker SATIRI, ikisi de aynı 2 mesaj ("Free delivery and
+        shipping"/"Secure online payment") arasında farklı sırada geçiş
+        yapıyor (`@keyframes textSwap`, 5.9s, -100%/-200%); (b) altlarında
+        statik, kenarlıklı/köşesi yuvarlak (1.4rem) 3'lü ikon+etiket
+        ızgarası (`.product__content-grid`, sadece tablet+). Bunlar
+        `globals.css`'teki `.trust-ticker` ve yeni statik ızgarayla
+        ayrıştırıldı.
+      - **Sepete Ekle / adet seçici / Hemen Al**: `.product-form__buttons
+        {grid-template-columns: repeat(10,1fr)}` - adet 3/10, Sepete Ekle
+        7/10 aynı satırda; Hemen Al bunun ALTINDA ayrı, tam genişlik bir
+        satır. Eskiden adet kendi satırında, iki buton altta %50/%50'ydi -
+        `grid-cols-10` yapısına çevrildi. Dolu buton hover'ı da Release'de
+        renk değiştirmiyor (`bg-clay`), dolgu şeffaflaşıp çerçeveye
+        dönüşüyor - o şekilde düzeltildi.
+      - **Renk paleti**: kullanıcının açık onayıyla `tailwind.config.ts`
+        (ink/cream/line/stone) Release'in ölçülen monokrom paletine
+        (`#111111`/`#FFFFFF`/`#EBEBEB`/`#65706E`) çekildi, `clay` de
+        `ink`'e eşitlendi (Release'de ayrı bir vurgu rengi yok, hover
+        geri bildirimi renkle değil `.nav-underline`/invert geçişiyle
+        veriliyor).
+      **Bulunan ve düzeltilen 2 hata**: (1) `globals.css`'teki
+      `body{background-color:#fdfcfb}` ve `::selection` ham hex ile
+      yazılmıştı, Tailwind config'inden bağımsız olduğu için palet
+      değişikliği hiç yansımıyordu - site kremsi kalmaya devam ediyordu,
+      düzeltildi. (2) `.trust-ticker`'ın `prefers-reduced-motion` bloğu
+      animasyonu TAMAMEN durdurup pencereyi kaldırıyordu - kullanıcının
+      ekran görüntüsünde tam olarak bu görülmüştü (2 mesaj sabit/
+      hareketsiz, 4 satır halinde listeli); artık tamamen durmuyor,
+      sadece yavaşlıyor (5.9s → 20s).
+      `tsc --noEmit` + `eslint` temiz. Commit atıldı, push edildi.
+
+- [x] **Adım 7 — Vercel build hatası (13 Eylül 2026, aynı oturum
+      devamı):** Adım 5-6 push edildikten sonra kullanıcı "deploy
+      olmadı" dedi, Vercel build log'u paylaşıldı: `/hesap/adreslerim`
+      statik sayfa üretiminde "`useSearchParams()` should be wrapped in
+      a suspense boundary" hatasıyla build tamamen duruyordu. Kök neden
+      bu oturumun değişiklikleriyle ilgisizdi (önceden var olan bir
+      hata, `SiteHeader`'ın banner/saydam header kontrolü için kullandığı
+      `useSearchParams()` kök layout'ta bir `Suspense` sınırı olmadan
+      render ediliyordu) - ama paylaşılan bilesen oldugu icin muhtemelen
+      `(site)` route grubundaki birçok sayfayı etkiliyordu. `(site)/
+      layout.tsx`'te `<SiteHeader>` bir `<Suspense>` ile sarıldı. Yerel
+      `npm run build` ile 67/67 sayfanın hatasız (`/hesap/adreslerim`
+      artık doğru şekilde `ƒ` dinamik) üretildiği doğrulandı. Commit
+      atıldı, push edildi.
+
 **Not:** Bir adımı [x] olarak işaretlemeden önce ya dosyayı tekrar okuyup
 gerçekten uygulandığını doğrula, ya da kullanıcının "bitti/uyguladım"
 dediğini bekle — tahmin ederek işaretleme.

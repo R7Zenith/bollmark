@@ -2938,3 +2938,30 @@ bitisi ve panel dolgusu - HEPSINDE fark 0.0px (tam eslesme). `npx tsc
 --noEmit` ve `npm run build` hatasiz.
 
 **Commit atildi, push edilmedi - kullanicinin onayi bekleniyor.**
+
+## Vercel build hatasi: SiteHeader Suspense'e alindi (2026-09-13)
+
+Kategori sayfasi banner'i, katalog toolbar butonlari, urun detay sag panel
+(font boyutlari/ticker/buton duzeni/renk paleti) duzeltmeleri push edildikten
+sonra kullanici "deploy olmadi" dedi, Vercel dashboard'dan build log'u
+paylasti: `npm run build` adiminda `/hesap/adreslerim` statik sayfa
+uretiminde `useSearchParams() should be wrapped in a suspense boundary`
+hatasiyla **build tamamen duruyordu** (`Export encountered an error...
+exiting the build`).
+
+- **Kok neden**: `src/components/site-header.tsx`'teki `SiteHeader`
+  (banner/saydam header kontrolu icin `useSearchParams()` kullaniyor,
+  ayni oturumda eklendi) kok layout'ta (`src/app/(site)/layout.tsx`) bir
+  `Suspense` siniri olmadan render ediliyordu. Next.js 16 statik sayfa
+  uretiminde bu durumu build hatasina ceviriyor. Bu bilesen TUM `(site)`
+  route grubu sayfalarinin paylastigi layout'ta oldugu icin sorun
+  aslinda tek `/hesap/adreslerim`'e ozel degildi - build, hatayi ilk
+  rastladigi sayfada (67 sayfadan 33.'sunde) durup cikiyordu, digerleri
+  hic denenmemisti.
+- **Duzeltme**: `(site)/layout.tsx`'te `<SiteHeader menuData={menuData} />`
+  bir `<Suspense fallback={<div className="h-[72px]" />}>` ile sarildi.
+- **Dogrulama**: yerel `.next` klasoru temizlenip `npm run build`
+  calistirildi - 67/67 sayfa hatasiz uretildi, `/hesap/adreslerim` artik
+  dogru sekilde `ƒ` (dinamik) olarak isaretleniyor.
+- Commit atildi (`c72da90`), push edildi - Vercel git baglantisi
+  sayesinde otomatik deploy tetiklendi.
