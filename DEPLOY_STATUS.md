@@ -3032,3 +3032,55 @@ cok yakin. 1280px ve 390px'te `scrollWidth === clientWidth` dogrulandi,
 yatay tasma yok.
 
 **Commit atildi, push edildi.**
+
+## Genis ekranda galeri fotograflari kucuk kaliyordu - yuzdesel bolunme -> minmax (2026-09-12, ayni oturum devami)
+
+Yukaridaki bosluk duzeltmesinden sonra kullanici "hala esitlenmedi, Release'in
+fotograflari daha genis yer kapliyor" dedi. Onceki analiz sadece **1600px'te**
+olcmustu (895/586 - 888/592, neredeyse esit), sorun sadece **genis ekranlarda
+(1800px+)** ortaya cikiyordu.
+
+**Onemli teknik not**: Release'in galerisi CSS `fr` ile degil, sayfa
+yuklenirken JS ile hesaplanan px degerleriyle calisiyor (Shopify temasinin
+kendi grid/swiper mantigi) - tarayici penceresini sadece yeniden
+boyutlandirmak (resize) bu degerleri guncellemiyor, **sayfanin o genislikte
+yeniden yuklenmesi (reload) gerekiyor**. Ilk denemede resize yapip eski/bayat
+degerleri okumak yanlis sonuca goturmustu; bu kez her genislikte sayfa
+yeniden yuklenerek olculdu.
+
+**Gercek olcum** (her genislikte reload ile):
+
+| Viewport | Release galeri | Release bilgi paneli | Bollmark galeri (once) | Bollmark bilgi paneli (once) |
+|---|---|---|---|---|
+| 1600px | 895px | 586px | 888px | 592px |
+| 1920px | 1211px | 590px | 1081px | 720px |
+
+Release'in bilgi paneli ~586-590px civarinda neredeyse sabit kaliyor, ekstra
+genisligin tamami galeriye gidiyor. Bollmark'in `md:grid-cols-[60fr_40fr]`
+(yuzdesel) bolunmesi ise her iki tarafi da orantili buyutuyor - 1920px'te
+bilgi paneli 720px'e sisiyor, galeri buna bagli olarak Release'den %11 dar
+kaliyor (1081px).
+
+**Duzeltme**: `src/components/product-viewer.tsx` satir 291:
+`grid gap-x-8 gap-y-12 md:grid-cols-[60fr_40fr]` ->
+`grid gap-x-8 gap-y-12 md:grid-cols-[1fr_minmax(320px,590px)]`. Bilgi paneli
+320px (alt sinir, dar masaustunde metin sikismasin) ile 590px (ust sinir,
+Release'in olculen sabit genisligi) arasinda tutuluyor, galeri sutunu (`1fr`)
+kalan tum alani aliyor.
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Playwright ile
+`/urunler/trousers` sayfasi her genislikte reload edilerek
+`getBoundingClientRect()` ile olculdu:
+
+| Viewport | Galeri | Bilgi paneli | Not |
+|---|---|---|---|
+| 1024px | 339px | 590px | tasma yok |
+| 1280px | 571px | 590px | tasma yok |
+| 1600px | 891px | 590px | Release: 895/586 - cok yakin |
+| 1920px | 1211px | 590px | Release: 1211/590 - birebir |
+| 390px | - | - | `scrollWidth === clientWidth` (375=375), tasma yok |
+
+Bilgi paneli 1920px'te de 590px'te sabit kaldi (buyumedi), tum ekstra
+genislik galeriye gitti - Release'in davranisiyla birebir eslesti.
+
+**Commit onerilir, ama kullanicinin onayi olmadan push edilmeyecek.**

@@ -280,15 +280,16 @@ export function ProductViewer({
     router.push("/odeme");
   };
 
-  // release-main.myshopify.com/products/top-10 canli DOM'undan olculdu
-  // (12 Eylul 2026): masaustu galeri/bilgi grid'i `.product-grid__size--large`
-  // ile 5 esit sutuna bolunuyor, galeri 3/5 (%60) - bilgi 2/5 (%40) kapliyor,
-  // aralarindaki bosluk `gap: 2.8rem`. Onceki oran (56/44, gap 48px) farkli
-  // bir olcumdendi - burada guncel canli degerlere cekildi, sag panel biraz
-  // daralip galeri biraz genisledi.
+  // release-main.myshopify.com/products/top-8'de her genislikte SAYFA
+  // YENIDEN YUKLENEREK olculdu (resize yetmiyor, tema grid genisliklerini
+  // JS ile sayfa yuklenirken hesapliyor): bilgi paneli ~586-590px civarinda
+  // sabit kaliyor (1600px'te 586px, 1920px'te 590px), ekstra genislik
+  // TAMAMEN galeriye gidiyor (1600px'te 895px, 1920px'te 1211px). Yuzdesel
+  // bolunme (60fr/40fr) bunu yanlis modelliyordu - genis ekranlarda bilgi
+  // paneli sisip galeriyi daraltiyordu (1920px'te 720px/1081px).
   return (
     <>
-    <div className="grid gap-x-8 gap-y-12 md:grid-cols-[60fr_40fr]">
+    <div className="grid gap-x-8 gap-y-12 md:grid-cols-[1fr_minmax(320px,590px)]">
       {/* Release'in `.main-product__media--grid`'inde kutular arasi bosluk
           `gallery-gap/2` = 0.8rem (~13px, bizde eskiden 16px'ti) - buna
           cekildi. aspect-[3/4] + object-cover korunuyor: Release'de
