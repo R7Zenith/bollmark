@@ -265,7 +265,7 @@ function DesktopNav({
   return (
     <nav className="hidden items-center gap-3 whitespace-nowrap xl:flex xl:gap-6">
       <Link href="/urunler" className={linkClassName}>
-        Tüm Ürünler
+        <span className="nav-underline inline-block">Tüm Ürünler</span>
       </Link>
       {tabs.map((tab) => (
         <Link
@@ -276,7 +276,7 @@ function DesktopNav({
           onMouseEnter={() => setOpenMenu(tab.key)}
           onFocus={() => setOpenMenu(tab.key)}
         >
-          {tab.label}
+          <span className="nav-underline inline-block">{tab.label}</span>
           <ChevronIcon open={openMenu === tab.key} size={12} />
         </Link>
       ))}
