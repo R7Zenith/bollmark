@@ -512,8 +512,14 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
             merkezden kayar - bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md Adim 0c).
             Release'de header'in max-width'i yok, yan bosluk masaustunde sabit
             36px (bkz. 1.1) - bu yuzden max-w-7xl kaldirildi. xl altinda mevcut
-            24px'lik bosluk korunuyor. */}
-        <div className="grid w-full grid-cols-3 items-center px-6 py-5 xl:px-9">
+            24px'lik bosluk korunuyor.
+            Sutunlar esit ucte bir (grid-cols-3) DEGIL "1fr auto 1fr": esit
+            uctebirde dar ekranlarda logo sutunu logodan (143px) kucuk kaliyor
+            ve yanindaki sutunlar logonun ustune biniyordu (390px'te sepet
+            butonu logoyu kapatiyordu). "auto" orta sutun logoya tam genisligini
+            verir, iki yandaki 1fr birbirine esit kaldigi icin logo yine tam
+            ortada durur (Adim 0c'nin garantisi korunuyor). */}
+        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center px-6 py-5 xl:px-9">
           <div className="flex items-center">
             <DesktopNav menuData={menuData} openMenu={openMenu} setOpenMenu={setOpenMenu} />
           </div>
@@ -546,37 +552,15 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
             >
               <AccountIcon />
             </Link>
-            <Link
-              href="/sepet"
-              aria-label="Sepetim"
-              className="relative hidden hover:text-clay xl:inline-flex"
-            >
+            {/* Sepet ikonu her genislikte gorunur. xl altinda daha once genis
+                bir "SEPET" hap butonu duruyordu; 390px'te sag sutun bu butonla
+                hamburgeri yan yana sigdiramayip logonun ustune biniyordu.
+                Ikon, arama/hesaptan farkli olarak mobilde de gerekli - sepete
+                tek erisim yolu menuyu acmak olmasin diye. */}
+            <Link href="/sepet" aria-label="Sepetim" className="relative inline-flex hover:text-clay">
               <CartIcon />
               {totalCount > 0 && (
                 <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-clay text-[10px] text-cream">
-                  {totalCount}
-                </span>
-              )}
-            </Link>
-
-            {/* xl alti (tablet/mobil): mevcut Sepet hap butonu + hamburger,
-                degistirilmedi (bkz. Adim 0d kapsami - sadece masaustu). */}
-            <Link
-              href="/sepet"
-              aria-label="Sepetim"
-              className={`relative flex items-center gap-2 rounded-full px-4 py-2 text-sm uppercase tracking-wide transition xl:hidden ${
-                transparent
-                  ? "border border-cream text-cream hover:bg-cream hover:text-ink"
-                  : "bg-ink text-cream hover:bg-clay"
-              }`}
-            >
-              Sepet
-              {totalCount > 0 && (
-                <span
-                  className={`flex h-5 w-5 items-center justify-center rounded-full text-xs ${
-                    transparent ? "bg-cream text-ink" : "bg-cream text-ink"
-                  }`}
-                >
                   {totalCount}
                 </span>
               )}

@@ -378,6 +378,23 @@ geçmişindeki prompt).
       `?kategori=canta` oluyor ve sayaç 9 → 2 düşüyor; `?sirala=fiyat-artan`
       fiyatları 790→1890 sıralıyor, stokta olmayan 2 giriş sonda kalıyor;
       tetikleyici etiket seçili sıralamayı gösteriyor.
+- [x] **Adım 2b — Mobil header çakışması düzeltildi (12 Eylül 2026):** Adım 2
+      doğrulanırken 390px ekran görüntüsünde "SEPET" hap butonunun logonun
+      üstüne bindiği görüldü. Sebep: header `grid-cols-3` (eşit üçte bir) idi;
+      390px'te her sütun 114px oluyordu ama logo 144px, sağdaki hap buton +
+      hamburger ise ~128px yer istiyordu, ikisi de sütunlarından taşıp
+      üst üste biniyordu. İki düzeltme: (1) `grid-cols-3` yerine
+      `grid-cols-[1fr_auto_1fr]` — orta sütun logoya tam genişliğini verir,
+      iki yan sütun birbirine eşit kaldığı için logo yine tam ortada
+      (Adım 0c'nin garantisi korunur); (2) `xl` altındaki geniş "SEPET" hap
+      butonu kaldırılıp masaüstündeki kompakt sepet ikonu (clay rozetli) her
+      genişlikte gösterildi — arama/hesap ikonları masaüstüne özel kaldı, o
+      yüzden mobilde sağ sütun ferah. **Playwright ile 360/390/430/768/1024/
+      1280/1600px'te DOĞRULANDI:** her genişlikte logonun merkez sapması
+      0.0px, logo ile sepet/nav/hamburger arasındaki örtüşme her yerde negatif
+      (yani gerçek boşluk var, en dar durum 360px'te 18px), yatay taşma yok.
+      Anasayfadaki saydam header hali ve sepete ekleyince rozetin "1" olması
+      da ekran görüntüsüyle doğrulandı.
 - [ ] Adım 3 — Ürün detay sayfası piksel ölçüleri: galeri/bilgi oranı %56/%44,
       buton 46px+50px radius, beden chip 28x28 kare, güven rozeti ticker
       animasyonu (`@keyframes textSwap`).
