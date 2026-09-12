@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Poppins, Cormorant } from "next/font/google";
 import "../globals.css";
 import { CartProvider } from "@/lib/cart";
@@ -44,7 +45,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <CustomerSessionProvider>
           <CartProvider>
             <WishlistProvider>
-              <SiteHeader menuData={menuData} />
+              {/* BUILD HATASI (13 Eylul 2026): SiteHeader `useSearchParams()`
+                  kullaniyor (banner/saydam header kontrolu icin, bkz.
+                  site-header.tsx) - Next.js 16 statik sayfa uretiminde bu bir
+                  Suspense siniri icinde olmadan kullanilirsa build'i hata ile
+                  durduruyor ("should be wrapped in a suspense boundary").
+                  Vercel build log'unda /hesap/adreslerim'de patladi ama kok
+                  neden layout'taki bu bilesen oldugu icin ayni build
+                  siradaki her (site) sayfasini (belki hepsini) etkiliyordu -
+                  tek tek her sayfaya `export const dynamic` eklemek yerine
+                  kaynagi burada Suspense'e aliyoruz. */}
+              <Suspense fallback={<div className="h-[72px]" />}>
+                <SiteHeader menuData={menuData} />
+              </Suspense>
               <main>{children}</main>
               <SiteFooter />
             </WishlistProvider>
