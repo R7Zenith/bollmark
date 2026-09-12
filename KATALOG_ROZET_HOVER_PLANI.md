@@ -37,7 +37,7 @@ Not: "indirimli yeni fiyat" ile "indirim rozeti zemin rengi" Release'de FARKLI i
 - Kartın üzerine gelince ürünün ikinci bir fotoğrafına yumuşak (soft) bir geçişle (crossfade/opacity) geçiliyor — ani değil, ~300ms transition.
 - İkinci fotoğrafı olmayan ürünlerde hover'da hafif bir zoom/scale efekti var.
 
-**Grid:** 4 sütun (masaüstü), kart arası ~32px boşluk — bu zaten Bollmark'ta birebir aynı.
+**Grid:** 4 sütun (masaüstü) — kart arası boşluk ve kenar payı **DÜZELTME (aşağıya bkz. §3.4): önceki notlarda "32px, birebir aynı" denmişti, bu YANLIŞMIŞ — gerçek değer 24px, Bollmark'ta hâlâ 32px kullanılıyor.**
 
 ## 2. Bollmark'ta şu an ne var (product-card.tsx / catalog.ts / urunler/page.tsx)
 
@@ -96,6 +96,23 @@ Bu override, mağazadaki genel gövde metni/etiketlerin okunurluğunu artırmak 
 
 Yani sorun aslında zaten §2 ve §3'te tespit edilen "başlık text-sm'e bağımlı, ondan kendine özel bir sınıfa ayrılması lazım" maddesiyle aynı kök nedene dayanıyor — punto küçülüp Release'in gerçek 12px/600 değerine sabitlenince bu "koyuluk" hissi de düzelecek (600 ağırlık normalde daha koyu olsa da, küçük puntoda mutlak stroke kalınlığı Bollmark'ın şu anki 15px/400'ünden daha ince kalacak).
 
+## 3.4 Bulunan asıl sorun: katalog fotoğrafları arasındaki boşluk ve genişlik
+
+Haklıydınız — ama sebep, daha önceki bir incelemede yanlış ölçülmüş bir sayıymış. `release-main.myshopify.com`'a gerçek masaüstü genişliğinde (1440px viewport) girip `getComputedStyle` ile ölçtüm:
+
+| Viewport | Sütun sayısı | Kenar boşluğu (sayfa kenarı) | Fotoğraflar arası boşluk (gap) | Tek fotoğraf genişliği |
+|---|---|---|---|---|
+| 1440px (masaüstü) | 4 | 36px | **24px** | 320px |
+| 414px (mobil) | 2 | 16px | **16px** | 183px |
+
+Bollmark'ın kodunda (`urunler/page.tsx`): `className="mt-8 grid grid-cols-2 gap-8 md:grid-cols-4"` — yani `gap-8` (Tailwind'de 32px) kullanılıyor, hem masaüstünde hem mobilde. Kenar boşluğu (`px-4 md:px-6 xl:px-9`) masaüstünde (1280px+) 36px'e denk geliyor ve bu Release ile zaten aynı — sorun kenar boşluğunda değil, **sadece fotoğraflar arası boşlukta**.
+
+Yani: masaüstünde Bollmark 32px boşluk kullanıyor, Release'in gerçeği 24px — 8px fazla. Bu fazlalık hem fotoğrafları "daha uzak" gösteriyor hem de aynı sayfa genişliğinden 3 boşluk daha az çıkarıldığı için her fotoğrafı biraz daha "dar" yapıyor (Bollmark'ta hesapla ~318px, Release'de 320px — küçük ama; asıl büyük fark mobilde: Bollmark 32px'e karşı Release'in 16px'i, yani TAM İKİ KAT fazla boşluk kullanıyoruz mobilde).
+
+Önceki bir incelemede (RELEASE_TEMA_BIREBIR_UYUM_PLANI.md) bu boşluk "32px, zaten aynı" olarak not edilmiş — o ölçüm hatalıymış, bu ölçüm doğrudan şimdi tekrar doğrulandı.
+
+**Düzeltme:** `urunler/page.tsx`'teki grid class'ını `gap-8` yerine masaüstünde 24px'e (`md:gap-6`), mobilde 16px'e (`gap-4`) çevirmek gerekiyor — yani `className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6"`. Aynı grid başka sayfalarda da (ana sayfa öne çıkanlar, benzer ürünler vb.) kullanılıyorsa oralarda da aynı düzeltme yapılmalı.
+
 ## 3.3 Ayrı not (prompt'a dahil edilmedi): fiyat metninde de benzer bir ağırlık farkı var
 
 Bu, sormadığınız ama incelerken fark ettiğim bir şey — dahil etmedim, isterseniz ayrıca ekleriz: `product-card.tsx`'teki fiyat her zaman `font-medium` (500), Release'de fiyat her zaman `font-weight: 400`. `product-viewer.tsx`'teki (ürün detay) indirimli fiyat da hem 14px hem `font-medium` (Release: 12px/400). İsterseniz bunu da ayrı bir madde olarak prompt'a ekleyebilirim.
@@ -130,7 +147,9 @@ Release Shopify temasının canlı demosunu (themes.shopify.com/themes/release/p
 
 7. **Poppins font dosyasına 600 ağırlığını ekle**: `(site)/layout.tsx`'teki `Poppins({ weight: ["400", "500"] })` çağrısına `"600"` ağırlığını da ekle. 4. maddedeki başlık için istenen `font-semibold`/600 ağırlık, bu ağırlık font dosyasında hiç yüklenmediği için şu an en yakın mevcut ağırlığa (500) düşüyor — gerçek 600 görünmesi için font dosyasının da bu ağırlığı içermesi lazım. (Not: başlığın Release'e göre "koyu/kalın" durmasının asıl sebebi ağırlık değil punto farkı — 4 ve 6. maddelerdeki punto düzeltmesi zaten bunu çözecek, bu madde sadece 600 ağırlığın gerçekten render edilebilmesi için teknik bir ön koşul.)
 
-Grid boşluklarına dokunma — zaten Release ile birebir uyumlu. Değişiklikleri yapmadan önce hangi ürünlerde/renklerde ikinci fotoğraf zaten kayıtlı olduğunu kontrol et, test için o ürünleri kullan.
+8. **Grid boşluğunu düzelt**: `urunler/page.tsx`'teki katalog grid'i şu an `gap-8` (32px, hem masaüstü hem mobil) kullanıyor. Release'in gerçek (canlı demodan ölçülmüş) değerleri: masaüstünde (1280px+) 24px, mobilde 16px. Class'ı `grid-cols-2 gap-4 md:grid-cols-4 md:gap-6` olacak şekilde güncelle (`gap-4`=16px, `gap-6`=24px). Kenar boşluğuna (`px-4 md:px-6 xl:px-9`) dokunma, o zaten doğru. Aynı grid deseni ana sayfa/benzer ürünler gibi başka yerlerde de kullanılıyorsa oraları da aynı şekilde güncelle.
+
+Değişiklikleri yapmadan önce hangi ürünlerde/renklerde ikinci fotoğraf zaten kayıtlı olduğunu kontrol et, test için o ürünleri kullan.
 
 ---
 

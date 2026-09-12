@@ -146,8 +146,10 @@ export default async function ProductsPage({
       {entries.length === 0 ? (
         <p className="mt-10 text-ink/60">{emptyMessage}</p>
       ) : (
-        // Kartlar arasi bosluk Release'de 32px, masaustunde 4 sutun (bkz. 2).
-        <div className="mt-8 grid grid-cols-2 gap-8 md:grid-cols-4">
+        // Kartlar arasi bosluk Release'de olculmus gercek deger: mobilde 16px,
+        // masaustunde 24px (bkz. KATALOG_ROZET_HOVER_PLANI.md 3.4 - 32px'lik
+        // onceki not hataliymis).
+        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
           {entries.map((entry) => (
             <ProductCard
               key={`${entry.productId}-${entry.colorLabel ?? "tek"}`}
