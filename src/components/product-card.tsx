@@ -92,8 +92,8 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           sizes="(min-width: 1024px) 25vw, 50vw"
           className={
             product.secondImage
-              ? "object-cover transition duration-300 ease-out group-hover:opacity-0"
-              : "object-cover transition duration-300 ease-out group-hover:scale-105"
+              ? "object-cover transition duration-700 [transition-timing-function:ease] group-hover:opacity-0"
+              : "object-cover transition duration-700 [transition-timing-function:ease] group-hover:scale-105"
           }
         />
         {product.secondImage && (
@@ -102,7 +102,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             alt={product.name}
             fill
             sizes="(min-width: 1024px) 25vw, 50vw"
-            className="object-cover opacity-0 transition duration-300 ease-out group-hover:opacity-100"
+            className="object-cover opacity-0 transition duration-700 [transition-timing-function:ease] group-hover:opacity-100"
           />
         )}
         {product.outOfStock && (
