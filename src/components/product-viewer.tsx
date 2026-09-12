@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
@@ -14,7 +14,8 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
-  ZoomIn
+  ZoomIn,
+  Clock
 } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
@@ -196,6 +197,19 @@ export function ProductViewer({
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [zoomed, setZoomed] = useState(false);
   const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
+  const [activeImage, setActiveImage] = useState(0);
+
+  // release-main.myshopify.com/products/top-8 canli DOM'unda "Size guide"
+  // linki BEDEN etiketinin hemen yaninda duruyor (`group "Size XS Size
+  // guide"`), asagidaki ayri "Beden Tablosu" accordion'undan bagimsiz bir
+  // kisayol - tiklaninca ayni accordion'u acip oraya kaydiriyor.
+  const sizeGuideRef = useRef<HTMLDetailsElement>(null);
+  const openSizeGuide = () => {
+    const el = sizeGuideRef.current;
+    if (!el) return;
+    el.open = true;
+    el.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
 
   const selected = variants.find((v) => v.size === size && v.color === color);
   const outOfStock = !selected || selected.stock <= 0;
@@ -210,6 +224,12 @@ export function ProductViewer({
     if (fallbackImages.length > 0) return fallbackImages;
     return [{ url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1200", alt: productName }];
   }, [selectedColorValueId, colorGalleries, fallbackImages, productName]);
+
+  // Renk degisince mobil galerinin ana gorseli, yeni set'in disinda kalan
+  // eski bir index'te takili kalmasin diye basa donuyor.
+  useEffect(() => {
+    setActiveImage(0);
+  }, [galleryImages]);
 
   // Release'de urun gorselleri PhotoSwipe ile tiklaninca tam ekran bir
   // lightbox'ta aciliyor (zoom="click", bkz. product-media-gallery.js).
@@ -276,7 +296,49 @@ export function ProductViewer({
           bizim urun fotograflarimiz tutarli bir kesim/oranla cekilmedigi
           icin contain'e gecmek bos/kucuk gorunen kutulara yol acardi -
           object-cover kutuyu her zaman doldurup "buyuk" hissi koruyor. */}
-      <div className="grid grid-cols-2 gap-[0.8rem]">
+      {/* Mobilde Release tek buyuk ana gorsel + altinda kucuk kare
+          kucukresim seridi kullaniyor - masaustundeki gibi TUM gorselleri
+          alt alta 2 sutuna dizmiyor (release-main.myshopify.com/products/
+          top-8, 390px'te Playwright ile ekran goruntusu alinarak dogrulandi,
+          12 Eylul 2026). Eskiden mobilde de masaustundeki 2 sutunlu grid
+          aynen kullanilyordu - bu, "desktop tasarimini kuculterek mobil
+          yapma" hatasiydi, burada ayri bir mobil duzen olarak ayristirildi. */}
+      <div className="md:hidden">
+        <button
+          type="button"
+          onClick={() => {
+            setZoomed(false);
+            setLightboxIndex(activeImage);
+          }}
+          className="relative block aspect-[3/4] w-full cursor-zoom-in overflow-hidden bg-line"
+        >
+          <Image
+            src={galleryImages[activeImage].url}
+            alt={galleryImages[activeImage].alt}
+            fill
+            className="object-cover"
+            priority
+          />
+        </button>
+        {galleryImages.length > 1 && (
+          <div className="mt-3 flex gap-2 overflow-x-auto">
+            {galleryImages.map((img, i) => (
+              <button
+                key={`${img.url}-${i}`}
+                type="button"
+                onClick={() => setActiveImage(i)}
+                className={`relative aspect-square w-16 shrink-0 overflow-hidden bg-line ${
+                  i === activeImage ? "ring-1 ring-ink ring-offset-1" : "opacity-70"
+                }`}
+              >
+                <Image src={img.url} alt={img.alt} fill className="object-cover" />
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="hidden md:grid md:grid-cols-2 md:gap-[8px]">
         {galleryImages.map((img, i) => (
           <button
             key={`${img.url}-${i}`}
@@ -302,21 +364,17 @@ export function ProductViewer({
           </p>
         )}
         {/* Release'de `.product__badges` basligin UZERINDE ayri bir blok -
-            eskiden fiyatin altindaydi, gercek DOM sirasina cekildi (bkz.
-            top-8 canli HTML'i, 13 Eylul 2026). Kose yariçapi
-            --badge-border-radius: 0.4rem. */}
-        {(automaticDiscount || (!outOfStock && selected.stock <= LOW_STOCK_THRESHOLD)) && (
+            ama bu SADECE indirim/kampanya rozeti icin (bkz. top-8 canli
+            HTML'i, 13 Eylul 2026). Kose yariçapi --badge-border-radius:
+            0.4rem. Dusuk stok uyarisi ORADA DEGIL - accessibility snapshot'i
+            ile dogrulandi (12 Eylul 2026, Playwright): gercek DOM'da "Only N
+            left in stock" satiri butonlarin ALTINDA, saat ikonuyla ayri bir
+            status satiri - asagida o konuma tasindi. */}
+        {automaticDiscount && (
           <div className="flex flex-wrap items-center gap-2">
-            {automaticDiscount && (
-              <span className="rounded-[0.4rem] bg-sale px-2 py-1 text-[10px] font-medium uppercase tracking-[1.4px] text-cream">
-                %{automaticDiscount.percent} İndirim
-              </span>
-            )}
-            {!outOfStock && selected.stock <= LOW_STOCK_THRESHOLD && (
-              <span className="rounded-[0.4rem] bg-ink px-2 py-1 text-[10px] font-medium uppercase tracking-[1.4px] text-cream">
-                Son {selected.stock} Adet
-              </span>
-            )}
+            <span className="rounded-[4px] bg-sale px-2 py-1 text-[10px] font-medium uppercase tracking-[1.4px] text-cream">
+              %{automaticDiscount.percent} İndirim
+            </span>
           </div>
         )}
         <div className="mt-2 flex items-start justify-between gap-3">
@@ -326,7 +384,7 @@ export function ProductViewer({
               degiskenleri, 13 Eylul 2026 olculdu) - eskiden genel text-4xl
               (2.25rem, sitenin geneldeki acik/ferah baslik dilinde) idi,
               bu sayfaya ozel birebir olcuye cekildi. */}
-          <h1 className="font-display text-[2.1rem] leading-[1.15] tracking-[-0.04em]">{productName}</h1>
+          <h1 className="font-display text-[21px] leading-[1.15] tracking-[-0.84px]">{productName}</h1>
           <button
             type="button"
             onClick={() => toggleWishlist(productId)}
@@ -351,14 +409,14 @@ export function ProductViewer({
         <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           {automaticDiscount ? (
             <>
-              <span className="text-[1.4rem] font-medium text-sale">
+              <span className="text-[14px] font-medium text-sale">
                 {formatPrice(Math.round((selectedPriceCents * (100 - automaticDiscount.percent)) / 100))}
               </span>
               <span className="text-ink/40 line-through">{formatPrice(selectedPriceCents)}</span>
             </>
           ) : (
             <>
-              <span className={`text-[1.4rem] ${compareAtCents && compareAtCents > selectedPriceCents ? "font-medium text-sale" : ""}`}>
+              <span className={`text-[14px] ${compareAtCents && compareAtCents > selectedPriceCents ? "font-medium text-sale" : ""}`}>
                 {formatPrice(selectedPriceCents)}
               </span>
               {compareAtCents && compareAtCents > selectedPriceCents && (
@@ -377,7 +435,7 @@ export function ProductViewer({
         {descriptionHtml && (
           <div className="mt-6">
             <div
-              className={`prose-description relative leading-relaxed text-ink/70 [&_p]:mb-3 [&_p:last-child]:mb-0 [&>strong]:mb-1 [&>strong]:mt-4 [&>strong]:block [&>strong:first-child]:mt-0 ${
+              className={`prose-description text-sm relative leading-relaxed text-ink/70 [&_p]:mb-3 [&_p:last-child]:mb-0 [&>strong]:mb-1 [&>strong]:mt-4 [&>strong]:block [&>strong:first-child]:mt-0 ${
                 descriptionExpanded ? "" : "max-h-24 overflow-hidden"
               }`}
             >
@@ -406,7 +464,7 @@ export function ProductViewer({
                 sadece hover'da altini cizen bir gecis var (bkz.
                 section-accordions.css, 13 Eylul 2026). Eskiden 12px kucuk
                 harf + surekli alt cizgiliydi. */}
-            <summary className="cursor-pointer text-[1.6rem] tracking-[-0.04em] text-ink underline decoration-transparent underline-offset-[5px] transition duration-300 hover:decoration-ink">
+            <summary className="cursor-pointer text-[16px] tracking-[-0.64px] text-ink underline decoration-transparent underline-offset-[5px] transition duration-300 hover:decoration-ink">
               Ürün Detayları
             </summary>
             <div className="mt-3 space-y-1">
@@ -430,8 +488,8 @@ export function ProductViewer({
         )}
 
         {sizeGuide && (
-          <details className="mt-3 border-t border-line pt-6">
-            <summary className="cursor-pointer text-[1.6rem] tracking-[-0.04em] text-ink underline decoration-transparent underline-offset-[5px] transition duration-300 hover:decoration-ink">
+          <details ref={sizeGuideRef} className="mt-3 border-t border-line pt-6">
+            <summary className="cursor-pointer text-[16px] tracking-[-0.64px] text-ink underline decoration-transparent underline-offset-[5px] transition duration-300 hover:decoration-ink">
               Beden Tablosu
             </summary>
             <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink/70">{sizeGuide}</p>
@@ -454,7 +512,7 @@ export function ProductViewer({
                   <button
                     key={c}
                     onClick={() => setColor(c)}
-                    className={`flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-3 text-xs uppercase leading-none tracking-[0.1rem] transition duration-300 ${
+                    className={`flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-3 text-xs uppercase leading-none tracking-[1px] transition duration-300 ${
                       color === c ? "bg-ink text-cream" : "bg-transparent text-ink hover:bg-ink/5"
                     }`}
                   >
@@ -467,7 +525,18 @@ export function ProductViewer({
 
           {sizes.length > 0 && sizes.some(Boolean) && (
             <div>
-              <p className="text-xs uppercase tracking-wide text-ink/60">Beden</p>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs uppercase tracking-wide text-ink/60">Beden</p>
+                {sizeGuide && (
+                  <button
+                    type="button"
+                    onClick={openSizeGuide}
+                    className="text-xs uppercase tracking-wide text-ink underline underline-offset-4 hover:text-ink/70"
+                  >
+                    Beden Rehberi
+                  </button>
+                )}
+              </div>
               {/* Release'de beden kutucuklari 28x28px KARE, 1px duz siyah
                   cerceve, kose yariçapi 0 (bkz. 3) - hap/pill degil. Bollmark'ta
                   "Standart"/"One Size" gibi uzun etiketler de olabildigi icin
@@ -479,7 +548,7 @@ export function ProductViewer({
                   <button
                     key={s}
                     onClick={() => setSize(s)}
-                    className={`flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-1 text-xs leading-none tracking-[0.1rem] transition duration-300 ${
+                    className={`flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-1 text-xs leading-none tracking-[1px] transition duration-300 ${
                       size === s ? "bg-ink text-cream" : "bg-transparent text-ink hover:bg-ink/5"
                     }`}
                   >
@@ -547,6 +616,13 @@ export function ProductViewer({
 
           {outOfStock && selected && <StockAlertForm variantId={selected.id} />}
 
+          {!outOfStock && selected.stock <= LOW_STOCK_THRESHOLD && (
+            <p className="flex items-center gap-2 text-xs text-ink/70">
+              <Clock size={14} className="shrink-0 text-ink/60" />
+              Son {selected.stock} adet kaldı. Acele edin.
+            </p>
+          )}
+
           {added && (
             <button
               onClick={() => router.push("/sepet")}
@@ -592,11 +668,11 @@ export function ProductViewer({
           {/* `.product__content-grid`: kenarlikli, kose yariçapi 1.4rem,
               ikon+etiket dikey kutu, 3 sutun - sadece orta+genis ekranda
               gorunur (`small-hide`, bkz. canli CSS). */}
-          <div className="hidden grid-cols-3 gap-[0.8rem] md:grid">
+          <div className="hidden grid-cols-3 gap-[8px] md:grid">
             {STATIC_TRUST_ITEMS.map(({ icon: Icon, label }) => (
               <div
                 key={label}
-                className="flex flex-col items-center justify-center gap-2 rounded-[1.4rem] border border-line p-4 text-center"
+                className="flex flex-col items-center justify-center gap-2 rounded-[14px] border border-line p-4 text-center"
               >
                 <Icon size={20} className="text-ink" />
                 <span className="text-[10px] uppercase tracking-wide text-ink">{label}</span>

@@ -2965,3 +2965,49 @@ exiting the build`).
   dogru sekilde `ƒ` (dinamik) olarak isaretleniyor.
 - Commit atildi (`c72da90`), push edildi - Vercel git baglantisi
   sayesinde otomatik deploy tetiklendi.
+
+## Urun detay sayfasi yazi boyutu kok nedeni: rem/px taban karisikligi (2026-09-12)
+
+Kullanici release-main.myshopify.com/products/top-8 ile Bollmark'in urun
+detay sayfasini yan yana karsilastirdi, yazilarin punto olarak tutmadigini
+bildirdi. Tarayicida gercek `getComputedStyle` olcumuyle kok neden bulundu
+(bkz. `FONT_BOYUTU_KOK_NEDEN_PLANI.md`): **Release'in kok (`html`)
+font-size'i 10px, Bollmark'inki Tailwind varsayilani 16px.** Onceki
+oturumlarda (Adim 3/6) Release'in CSS'inden okunan `rem` degerleri
+(`2.1rem`, `1.4rem` vb.) doğru okunmustu ama Bollmark'a rem olarak aynen
+yazilinca, farkli taban yuzunden ~1.6 kat (16/10) daha buyuk render
+oluyorlardi (olculdu: h1 33.6px/olmasi gereken 21px, fiyat 22.4px/14px,
+accordion basligi 25.6px/16px).
+
+**Secilen cozum (Seçenek B, dar kapsamli)**: Kok font-size'i site genelinde
+degistirmek yerine (bu, tum storefront'u - header/katalog/sepet/checkout -
+etkiler ve kapsam disiydi), `src/components/product-viewer.tsx` icindeki
+`text-[Xrem]` / `tracking-[Xrem]` / `rounded-[Xrem]` / `gap-[Xrem]`
+yazimlari Release'in gercek piksel karsiligina (deger × 10) cevrildi:
+- h1 baslik: `text-[2.1rem] tracking-[-0.04em]` -> `text-[21px]
+  tracking-[-0.84px]`
+- Fiyat (2 yer): `text-[1.4rem]` -> `text-[14px]`
+- Accordion basliklari (2 yer): `text-[1.6rem] tracking-[-0.04em]` ->
+  `text-[16px] tracking-[-0.64px]`
+- Beden/renk kutucugu harf araligi (2 yer): `tracking-[0.1rem]` ->
+  `tracking-[1px]`
+- Indirim rozeti: `rounded-[0.4rem]` -> `rounded-[4px]`
+- Guven izgarasi karti: `rounded-[1.4rem]` -> `rounded-[14px]`
+- Galeri/guven izgarasi bosluk (2 yer): `gap-[0.8rem]` -> `gap-[8px]`
+- Urun aciklamasi: font-size hic belirtilmemisti (Tailwind varsayilani
+  16px'e duşuyordu, Release'de 14px) - `text-sm` eklendi.
+
+**Kalici kural**: Bundan sonra Release'in CSS'inden okunan HER rem degeri,
+Bollmark'a yazilirken × 10 yapilip **px olarak** yazilmali - rem asla aynen
+kopyalanmamali (kok font-size'lar farkli). Onceki adimlarda (header/mega
+menu olcumleri) bu kural uygulanmis miydi ayrica gozden gecirilmeli, bu
+oturumda sadece urun detay sayfasi duzeltildi.
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz (67 sayfa).
+Playwright ile yerel dev sunucuda urun sayfasi acilip `getComputedStyle`
+ile olculdu: h1 = 21px, fiyat = 14px (dogrulandi - Release'in gercek
+degerleriyle birebir). 1600px ve 390px ekran goruntuleri alindi, yatay
+tasma yok, genel gorunum bozulmadi.
+
+**Commit atilmadi - kullanicinin onayi bekleniyor (plan dosyasinda
+"onayim olmadan push etme" notu var).**
