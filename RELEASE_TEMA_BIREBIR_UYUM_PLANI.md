@@ -356,9 +356,28 @@ geçmişindeki prompt).
       her iki grup başlığının x'i, sağ yarının başlangıcı, sağ kenar bitişi
       ve panel dolgusunun HEPSİNDE fark 0.0px.** `tsc` + `build` hatasız.
       Commit atıldı, PUSH EDİLMEDİ.
-- [ ] Adım 2 — Ürün listeleme (katalog) sayfası: kenar boşluğu daraltma,
-      32px grid gap, Filters/Showing/Sort tek satır düzeni. Prompt verildi
-      ama HENÜZ UYGULANMADI.
+- [x] **Adım 2 — Ürün listeleme (katalog) sayfası (12 Eylül 2026):**
+      `urunler/page.tsx`'teki `mx-auto max-w-7xl px-6` kaldırıldı, header/mega
+      menüyle aynı ölçüye çekildi (`w-full px-4 md:px-6 xl:px-9`); grid
+      `gap-x-3 gap-y-12` yerine her iki yönde 32px (`gap-8`), masaüstünde 4 /
+      mobilde 2 sütun. Başlıktaki ürün sayısı `<sup>`'u kaldırıldı, yerine
+      yeni `CatalogToolbar` (`src/components/catalog-toolbar.tsx`) geldi:
+      tek satırda solda "Filtrele" açılır menüsü (o cinsiyet kapsamında
+      gerçekten yayında ürünü olan kategoriler), ortada sonuç sayacı, sağda
+      sıralama açılır menüsü (Önerilen / Fiyat artan / Fiyat azalan /
+      İsim A-Z, `?sirala=` parametresi). Release'de ortada "Showing X of Y"
+      yazar ama orası sayfalamalı; Bollmark tek sayfada tüm sonucu
+      gösterdiği için iki sayı hep eşit olurdu — uydurma "X of Y" yerine
+      gerçek sonuç sayısı yazılıyor. Sıralama `page.tsx` içinde bellekte
+      yapılıyor (yeni DB sorgusu yok) ve stoğu biten girişler her durumda
+      sonda kalıyor. `tsc --noEmit` + `npm run build` hatasız. **Playwright
+      ile localde DOĞRULANDI:** 1600px'te sütunlar 358px, ilk kartın x'i 36,
+      sağ kenar 1564 (=1600−36), column/row gap 32px; 1280px'te aynı şekilde
+      x=36 / 278px / 32px; 390px'te 2 sütun, 16px yan boşluk, yatay taşma yok
+      (`scrollWidth` 390). Filtre menüsü açılıp "Çanta" seçilince URL
+      `?kategori=canta` oluyor ve sayaç 9 → 2 düşüyor; `?sirala=fiyat-artan`
+      fiyatları 790→1890 sıralıyor, stokta olmayan 2 giriş sonda kalıyor;
+      tetikleyici etiket seçili sıralamayı gösteriyor.
 - [ ] Adım 3 — Ürün detay sayfası piksel ölçüleri: galeri/bilgi oranı %56/%44,
       buton 46px+50px radius, beden chip 28x28 kare, güven rozeti ticker
       animasyonu (`@keyframes textSwap`).
