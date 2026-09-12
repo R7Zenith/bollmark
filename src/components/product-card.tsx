@@ -22,7 +22,8 @@ export type ProductCardData = {
   colorLabel?: string | null;
   // Urunun kategori/markasina uyan aktif bir otomatik kampanya varsa yuzdesi
   // (bkz. lib/coupons.ts matchAutomaticDiscount) - doluysa fiyatin yaninda
-  // indirimli fiyat + rozet gosterilir.
+  // indirimli fiyat + rozet gosterilir. Bos olsa da compareAtCents > priceCents
+  // ise indirim rozeti yine gosterilir (bkz. asagidaki discountPercent hesabi).
   automaticDiscountPercent?: number | null;
   // Doluysa bu urunun/rengin tum varyantlarinin stogu bitmis, kart soluk bir
   // cam katmaniyla isaretlenir.
@@ -48,9 +49,18 @@ export function ProductCard({ product }: { product: ProductCardData }) {
   const href = product.colorLabel
     ? `/urunler/${product.slug}?renk=${encodeURIComponent(product.colorLabel)}`
     : `/urunler/${product.slug}`;
-  const discountPercent = product.automaticDiscountPercent;
-  const discountedPriceCents = discountPercent
-    ? Math.round((product.priceCents * (100 - discountPercent)) / 100)
+  // Otomatik kampanya indirimi varsa o oncelikli (priceCents uzerinden
+  // yuzde hesaplanip dusuruluyor); yoksa admin panelinden dogrudan girilen
+  // "Karsilastirma fiyati" (compareAtCents) da bir indirim sayilir - bu
+  // durumda priceCents zaten indirimli fiyattir, sadece rozette gosterilecek
+  // yuzde compareAtCents'e gore hesaplanir (bkz. KATALOG_ROZET_HOVER_PLANI.md 2.1).
+  const compareAtDiscountPercent =
+    product.compareAtCents && product.compareAtCents > product.priceCents
+      ? Math.round((1 - product.priceCents / product.compareAtCents) * 100)
+      : null;
+  const discountPercent = product.automaticDiscountPercent ?? compareAtDiscountPercent;
+  const discountedPriceCents = product.automaticDiscountPercent
+    ? Math.round((product.priceCents * (100 - product.automaticDiscountPercent)) / 100)
     : null;
   const finalPriceCents = discountedPriceCents ?? product.priceCents;
 
@@ -140,11 +150,13 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         )}
       </div>
       <div className="mt-4 flex items-baseline justify-between">
-        <h3 className="text-sm text-ink">{product.name}</h3>
+        <h3 className="text-sm uppercase tracking-wide text-ink">{product.name}</h3>
       </div>
       {product.colorLabel && <p className="mt-1 text-xs text-ink/50">{product.colorLabel}</p>}
       <div className="mt-2 flex items-center gap-2">
-        <span className="text-sm font-medium">{formatPrice(finalPriceCents)}</span>
+        <span className={`text-sm font-medium ${discountPercent ? "text-red-600" : ""}`}>
+          {formatPrice(finalPriceCents)}
+        </span>
         {discountedPriceCents != null ? (
           <span className="text-xs text-ink/40 line-through">{formatPrice(product.priceCents)}</span>
         ) : (
