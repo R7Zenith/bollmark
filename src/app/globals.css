@@ -69,3 +69,57 @@ body {
 .nav-underline:hover {
   background-size: 100% 1px;
 }
+
+/* Urun sayfasindaki guven rozeti "ticker"i (bkz.
+   RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 3): tek satir yuksekliginde (22px) bir
+   pencere, icindeki satir yigini yukari kayarak sirayla her mesaji gosterir.
+   Release'de 3 mesaj var, Bollmark'ta 4 - satir basina ritim birebir
+   korundu: her mesaj 1.89s duruyor, gecis 1.06s suruyor (Release'in 5.9s'lik
+   3 mesajli dongusunden turetildi), yani 4 gecis x 2.95s = 11.8s.
+   Yuzdeler: bekleme 1.89/11.8 = %16, gecis 1.06/11.8 = %9.
+   Yuzde degerleri satir yigininin TAMAMINA gore hesaplandigi icin (tek
+   satira gore degil) bir satir = %20: yigin 4 mesaj + sona eklenen 1.
+   mesajin kopyasi = 5 satir. Kopya sayesinde dongu bitiminde sifira donus
+   gorunmez oluyor - aksi halde son mesajdan ilkine sicrama goze carpardi. */
+.trust-ticker {
+  height: 22px;
+  overflow: hidden;
+}
+
+.trust-ticker__rows {
+  animation: trustTickerSwap 11.8s ease-in-out infinite;
+}
+
+.trust-ticker__row {
+  height: 22px;
+}
+
+@keyframes trustTickerSwap {
+  0% { transform: translateY(0); }
+  16% { transform: translateY(0); }
+  25% { transform: translateY(-20%); }
+  41% { transform: translateY(-20%); }
+  50% { transform: translateY(-40%); }
+  66% { transform: translateY(-40%); }
+  75% { transform: translateY(-60%); }
+  91% { transform: translateY(-60%); }
+  100% { transform: translateY(-80%); }
+}
+
+/* Hareketi azaltmayi tercih eden kullanicida mesajlar kaybolmasin diye
+   animasyon durdurulup dort satir birden aciliyor - kopya satir burada
+   gizleniyor, yoksa ilk mesaj iki kez gorunurdu. */
+@media (prefers-reduced-motion: reduce) {
+  .trust-ticker {
+    height: auto;
+    overflow: visible;
+  }
+
+  .trust-ticker__rows {
+    animation: none;
+  }
+
+  .trust-ticker__row--clone {
+    display: none;
+  }
+}

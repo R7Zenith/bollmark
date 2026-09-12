@@ -395,9 +395,40 @@ geçmişindeki prompt).
       (yani gerçek boşluk var, en dar durum 360px'te 18px), yatay taşma yok.
       Anasayfadaki saydam header hali ve sepete ekleyince rozetin "1" olması
       da ekran görüntüsüyle doğrulandı.
-- [ ] Adım 3 — Ürün detay sayfası piksel ölçüleri: galeri/bilgi oranı %56/%44,
-      buton 46px+50px radius, beden chip 28x28 kare, güven rozeti ticker
-      animasyonu (`@keyframes textSwap`).
+- [x] **Adım 3 — Ürün detay sayfası piksel ölçüleri (12 Eylül 2026):**
+      `product-viewer.tsx` + `urunler/[slug]/page.tsx` + `globals.css`.
+      Yapılanlar ve Playwright ile 1600px'te ölçülen sonuçlar:
+      - Galeri/bilgi oranı: `md:grid-cols-2` → `md:grid-cols-[56fr_44fr]`.
+        Ölçülen genişlikler 828.8px / 651.2px, oran **1.273** (56/44 =
+        1.2727) — birebir.
+      - Sayfa konteyneri `mx-auto max-w-6xl px-6` → `w-full px-4 md:px-6
+        xl:px-9`. Gerekçe: plandaki oran 1595px'lik bir konteynerde ölçülmüş,
+        yani Release'de ürün sayfasının da max-width'i yok; header/katalogla
+        aynı 36px yan boşluk kullanıldı.
+      - Butonlar: ikisi de **46px yükseklik, 50px köşe yarıçapı, 10px
+        BÜYÜK HARF, 1.4px harf aralığı**; "Sepete Ekle" siyah dolgu, "Hemen
+        Al" saydam + siyah çerçeve. Hepsi computed style ile doğrulandı.
+      - Beden kutucukları: pill değil **28x28px kare, 1px düz ink çerçeve,
+        köşe yarıçapı 0** (ölçüldü: 5 kutucuk da tam 28x28, radius 0px).
+        Genişlik `min-w-[28px]` bırakıldı: "Standart"/"One Size" gibi uzun
+        etiketler metni kırpmak yerine yatayda büyüsün diye.
+      - Rozetler fiyatın ÜSTÜNE taşındı (ölçüm: rozet y=280, fiyat y=319):
+        indirim rozeti eskiden fiyatın yanındaydı, "Son N adet" ise beden
+        seçiminin altında ayrı bir satırdı — ikisi de artık küçük dolgu
+        etiket olarak yan yana duruyor.
+      - Güven rozetleri 2x2 grid'den dikey **ticker**'a çevrildi
+        (`.trust-ticker`, globals.css). **Bilinçli sapma:** Release'de 3 mesaj
+        var ve döngüsü 5.9s; Bollmark'ta 4 mesaj olduğu için satır sayısı
+        farklı — satır başına ritim birebir korundu (1.89s bekleme + 1.06s
+        geçiş), döngü 11.8s. Ayrıca plandaki `translateY(-100%)` bizim
+        yapımızda tüm yığını kaydırıp satırları atlıyordu (ilk denemede
+        ölçüldü: 0 → -88px → -176px); yüzdeler yığının tamamına göre
+        hesaplandığı için -20%/-40%/-60%'a çevrildi ve sona 1. mesajın
+        görünmez bir kopyası eklendi (döngü başa dönerken sıçrama olmasın
+        diye). Düzeltme sonrası ölçüm: 0 → -22px → -44px, yani satır satır.
+        `prefers-reduced-motion` altında animasyon duruyor ve dört mesaj
+        birden açılıyor (kopya satır gizleniyor).
+      `tsc --noEmit` + `npm run build` hatasız; 390px'te yatay taşma yok.
 - [ ] Adım 4 — (varsa) kalan ince ayarlar / genel görsel kontrol.
 
 **Not:** Bir adımı [x] olarak işaretlemeden önce ya dosyayı tekrar okuyup

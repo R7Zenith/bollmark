@@ -206,8 +206,11 @@ export function ProductViewer({
     router.push("/odeme");
   };
 
+  // Release'de galeri/bilgi paneli orani %56/%44 (1595px konteynerde 901px
+  // galeri olculdu - bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 3). fr birimi
+  // aradaki bosluk dusuldukten sonra kalani 56:44 boler, yani oran birebir.
   return (
-    <div className="grid gap-12 md:grid-cols-2">
+    <div className="grid gap-12 md:grid-cols-[56fr_44fr]">
       <div className="grid grid-cols-2 gap-4">
         {galleryImages.map((img, i) => (
           <div key={`${img.url}-${i}`} className="relative aspect-[3/4] overflow-hidden bg-line">
@@ -238,6 +241,24 @@ export function ProductViewer({
             Favorileriniz bu cihazda saklanıyor, kalıcı olması için giriş yapın.
           </p>
         )}
+        {/* Release'de rozetler (LAST FEW / SALE gibi) fiyatin USTUNDE, kucuk
+            dolgu etiketler halinde yan yana durur (bkz. 3) - indirim rozeti
+            eskiden fiyatin yaninda, "Son N adet" ise beden seciminin altinda
+            ayri bir satirdi, ikisi de buraya tasindi. */}
+        {(automaticDiscount || (!outOfStock && selected.stock <= LOW_STOCK_THRESHOLD)) && (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {automaticDiscount && (
+              <span className="bg-sale px-2 py-1 text-[10px] font-medium uppercase tracking-[1.4px] text-cream">
+                %{automaticDiscount.percent} İndirim
+              </span>
+            )}
+            {!outOfStock && selected.stock <= LOW_STOCK_THRESHOLD && (
+              <span className="bg-ink px-2 py-1 text-[10px] font-medium uppercase tracking-[1.4px] text-cream">
+                Son {selected.stock} Adet
+              </span>
+            )}
+          </div>
+        )}
         <div className="mt-4 flex items-center gap-3">
           {automaticDiscount ? (
             <>
@@ -245,9 +266,6 @@ export function ProductViewer({
                 {formatPrice(Math.round((selectedPriceCents * (100 - automaticDiscount.percent)) / 100))}
               </span>
               <span className="text-ink/40 line-through">{formatPrice(selectedPriceCents)}</span>
-              <span className="bg-sale px-2 py-1 text-xs font-medium uppercase tracking-wide text-cream">
-                %{automaticDiscount.percent} İndirim
-              </span>
             </>
           ) : (
             <>
@@ -348,13 +366,19 @@ export function ProductViewer({
           {sizes.length > 0 && sizes.some(Boolean) && (
             <div>
               <p className="text-xs uppercase tracking-wide text-ink/60">Beden</p>
-              <div className="mt-2 flex gap-2">
+              {/* Release'de beden kutucuklari 28x28px KARE, 1px duz siyah
+                  cerceve, kose yariçapi 0 (bkz. 3) - hap/pill degil. Bollmark'ta
+                  "Standart"/"One Size" gibi uzun etiketler de olabildigi icin
+                  genislik 28px'e sabitlenmedi, minimum 28px: kisa bedenler
+                  (S/M/38) birebir kare kalir, uzun etiket sigmazsa yatayda
+                  buyur - metni kirpmak yerine. */}
+              <div className="mt-2 flex flex-wrap gap-2">
                 {sizes.map((s) => (
                   <button
                     key={s}
                     onClick={() => setSize(s)}
-                    className={`border px-4 py-2 text-sm ${
-                      size === s ? "border-ink bg-ink text-cream" : "border-line"
+                    className={`flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-1 text-[11px] leading-none transition ${
+                      size === s ? "bg-ink text-cream" : "bg-transparent text-ink hover:bg-ink/5"
                     }`}
                   >
                     {s}
@@ -362,10 +386,6 @@ export function ProductViewer({
                 ))}
               </div>
             </div>
-          )}
-
-          {!outOfStock && selected.stock <= LOW_STOCK_THRESHOLD && (
-            <p className="text-sm text-sale">Son {selected.stock} adet kaldı</p>
           )}
 
           {!outOfStock && (
@@ -392,18 +412,22 @@ export function ProductViewer({
             </div>
           )}
 
+          {/* Release olcumleri (bkz. 3): her iki buton da 46px yuksekliginde ve
+              50px kose yariçapli (tam hap), yazi ~10px BUYUK HARF + harf
+              arali. "Sepete Ekle" siyah dolgu, "Hemen Al" dolgusuz (seffaf +
+              siyah cerceve). */}
           <div className="flex gap-3">
             <button
               onClick={handleAdd}
               disabled={outOfStock}
-              className="flex-1 rounded-full bg-ink py-4 text-sm uppercase tracking-widest2 text-cream transition hover:bg-clay disabled:cursor-not-allowed disabled:opacity-40"
+              className="h-[46px] flex-1 rounded-[50px] bg-ink text-[10px] uppercase tracking-[1.4px] text-cream transition hover:bg-clay disabled:cursor-not-allowed disabled:opacity-40"
             >
               {outOfStock ? "Stokta Yok" : added ? "Sepete Eklendi ✓" : "Sepete Ekle"}
             </button>
             {!outOfStock && (
               <button
                 onClick={handleBuyNow}
-                className="flex-1 rounded-full border border-ink py-4 text-sm uppercase tracking-widest2 text-ink transition hover:bg-ink hover:text-cream"
+                className="h-[46px] flex-1 rounded-[50px] border border-ink bg-transparent text-[10px] uppercase tracking-[1.4px] text-ink transition hover:bg-ink hover:text-cream"
               >
                 Hemen Al
               </button>
@@ -421,16 +445,38 @@ export function ProductViewer({
             </button>
           )}
 
-          <div className="grid grid-cols-2 gap-4 border-t border-line pt-6">
-            {TRUST_BADGES.map(({ icon: Icon, label, detail }) => (
-              <div key={label} className="flex items-start gap-2.5">
-                <Icon size={18} className="mt-0.5 shrink-0 text-ink/60" />
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-ink">{label}</p>
-                  <p className="mt-0.5 text-xs text-ink/50">{detail}</p>
-                </div>
+          {/* Release'de guven rozetleri 2x2 bir grid degil, tek satir
+              yuksekliginde dikey bir "ticker": mesajlar sirayla yukari kayarak
+              degisiyor (bkz. 3 - animasyonun olculen keyframe'leri
+              globals.css'teki .trust-ticker). Ust cizgi/dolgu disarida:
+              .trust-ticker'in kendisi 22px'lik pencere oldugu icin uzerine
+              padding verilirse pencere bozulur. */}
+          <div className="border-t border-line pt-6">
+            <div className="trust-ticker">
+              <div className="trust-ticker__rows">
+                {/* Son eleman ilk mesajin kopyasi - dongu basa donerken
+                    sicrama gorunmesin diye (bkz. globals.css .trust-ticker). */}
+                {[...TRUST_BADGES, TRUST_BADGES[0]].map(({ icon: Icon, label, detail }, i) => {
+                  const isClone = i === TRUST_BADGES.length;
+                  return (
+                    <div
+                      key={`${label}-${i}`}
+                      aria-hidden={isClone}
+                      className={`trust-ticker__row flex items-center gap-2.5 ${
+                        isClone ? "trust-ticker__row--clone" : ""
+                      }`}
+                    >
+                      <Icon size={16} className="shrink-0 text-ink/60" />
+                      <p className="min-w-0 truncate text-xs text-ink/60">
+                        <span className="font-medium uppercase tracking-wide text-ink">{label}</span>
+                        <span className="mx-1.5">·</span>
+                        {detail}
+                      </p>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
+            </div>
           </div>
         </div>
       </div>

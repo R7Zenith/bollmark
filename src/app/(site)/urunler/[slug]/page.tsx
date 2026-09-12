@@ -101,7 +101,11 @@ export default async function ProductPage({
   };
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-16">
+    // Release'de urun sayfasinin da max-width'i yok - galeri/bilgi orani
+    // 1595px'lik bir konteynerde olculdu (bkz.
+    // RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 3), yani konteyner neredeyse tam
+    // viewport. Katalog ve header ile ayni yan bosluk kullaniliyor.
+    <div className="w-full px-4 py-16 md:px-6 xl:px-9">
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <ProductViewer
