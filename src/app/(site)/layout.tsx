@@ -11,13 +11,14 @@ import { getMegaMenuData } from "@/lib/site-nav";
 import { siteIcons } from "@/lib/site-metadata";
 
 // Shopify "Release" temasi referansi: tek govde/baslik fontu Poppins
-// (400-500 agirlik). Cumle icinde tek tek vurgulanan kelimeler icin
-// (ornegin bir basligin bir kelimesi <em> ile) ikinci, italik serif font:
-// Cormorant. Turkce karakterler (ç, ğ, ı, ö, ş, ü) icin latin-ext alt
-// kumesi de dahil edildi.
+// (400-600 agirlik - 600 katalog karti urun basligi icin, bkz.
+// KATALOG_ROZET_HOVER_PLANI.md 7 ve product-card.tsx). Cumle icinde tek tek
+// vurgulanan kelimeler icin (ornegin bir basligin bir kelimesi <em> ile)
+// ikinci, italik serif font: Cormorant. Turkce karakterler (ç, ğ, ı, ö, ş, ü)
+// icin latin-ext alt kumesi de dahil edildi.
 const poppins = Poppins({
   subsets: ["latin", "latin-ext"],
-  weight: ["400", "500"],
+  weight: ["400", "500", "600"],
   variable: "--font-poppins",
   display: "swap"
 });

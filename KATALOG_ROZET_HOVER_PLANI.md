@@ -84,6 +84,22 @@ Bu override, mağazadaki genel gövde metni/etiketlerin okunurluğunu artırmak 
 
 **Fiyatta ₺ işareti:** `lib/format.ts`'teki `formatPrice()`, `Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" })` kullanıyor — bu, tarayıcının kendi TRY para birimi sembolünü (₺) otomatik ekliyor. Release'de ise sembol yok, sabit metin olarak "TL" ekleniyor. Düzeltme basit: `style: "currency"` yerine düz sayı formatlayıp sonuna elle `" TL"` eklemek (Türkçe biçimde binlik/ondalık ayıraçlar aynı kalabilir, sadece sembol yerine metin).
 
+## 3.2 Bulunan asıl sorun: ürün BAŞLIĞI neden Release'e göre daha koyu/kalın duruyor
+
+(Not: bir önceki incelemede bunu yanlışlıkla fiyat metnine de genelleştirmiştim — kullanıcı sadece ürün başlığından bahsetmişti, aşağıdaki analiz sadece başlığa ait. Fiyat metninde ayrıca fark ettiğim bir font-weight farkı var ama o ayrı bir konu, aşağıda §3.3'te ayrı not olarak duruyor, ana prompt'a dahil edilmedi.)
+
+Şaşırtıcı olan şu: Release'in gerçek başlık ağırlığı (600) Bollmark'ınkinden (şu an hiç ağırlık class'ı yok, yani tarayıcı varsayılanı 400) daha YÜKSEK. Yani salt font-weight rakamına bakılırsa Bollmark'ın daha ince görünmesi beklenir — ama tam tersi oluyor. Sebebi ağırlık değil, **punto (font-size)**:
+
+- Başlık `<h3 className="text-sm text-ink">` genel `text-sm` class'ını kullanıyor, bu da `globals.css`'teki `.storefront .text-sm { font-size: 0.9375rem }` (15px, gövde metni okunurluğu için bilerek eklenmiş genel bir override) tarafından büyütülüyor.
+- Release'de başlık 12px. Bollmark'ta 15px — yaklaşık %25 daha büyük.
+- Aynı (hatta daha düşük) font-weight'te bile, harf gövdesinin (stroke) mutlak piksel kalınlığı punto büyüdükçe artıyor — göz bunu "daha kalın/koyu" olarak algılıyor. Release küçük (12px) puntoyla bilinçli olarak ince/zarif bir görünüm hedefliyor; Bollmark'taki okunurluk amaçlı genel büyütme, başlık için tam tersi bir izlenim veriyor.
+
+Yani sorun aslında zaten §2 ve §3'te tespit edilen "başlık text-sm'e bağımlı, ondan kendine özel bir sınıfa ayrılması lazım" maddesiyle aynı kök nedene dayanıyor — punto küçülüp Release'in gerçek 12px/600 değerine sabitlenince bu "koyuluk" hissi de düzelecek (600 ağırlık normalde daha koyu olsa da, küçük puntoda mutlak stroke kalınlığı Bollmark'ın şu anki 15px/400'ünden daha ince kalacak).
+
+## 3.3 Ayrı not (prompt'a dahil edilmedi): fiyat metninde de benzer bir ağırlık farkı var
+
+Bu, sormadığınız ama incelerken fark ettiğim bir şey — dahil etmedim, isterseniz ayrıca ekleriz: `product-card.tsx`'teki fiyat her zaman `font-medium` (500), Release'de fiyat her zaman `font-weight: 400`. `product-viewer.tsx`'teki (ürün detay) indirimli fiyat da hem 14px hem `font-medium` (Release: 12px/400). İsterseniz bunu da ayrı bir madde olarak prompt'a ekleyebilirim.
+
 ## 4. Claude Code'a verilecek prompt
 
 Aşağıdaki prompt doğrudan Claude Code'a kopyalanabilir:
@@ -111,6 +127,8 @@ Release Shopify temasının canlı demosunu (themes.shopify.com/themes/release/p
 5. **Başlık puntosu düzeltmesi**: `product-card.tsx`'teki başlık (`<h3 className="text-sm text-ink">`), genel `text-sm` class'ını kullandığı için `globals.css`'teki `.storefront .text-sm { font-size: 0.9375rem; }` (15px, gövde metni okunurluğu için bilerek eklenmiş genel bir override) tarafından büyütülüyor — bu yüzden 4. maddedeki 12px hedefiyle çakışıyor. Başlığa bu global override'dan etkilenmeyecek kendine özel bir class ver (ör. Tailwind keyfi değer sözdizimiyle `text-[12px] tracking-[0.48px] leading-[15px] font-semibold uppercase`), `text-sm`'i kaldır. `globals.css`'teki `.storefront .text-sm` override'ına dokunma — o kasıtlı, sadece başlığın ona bağımlı olmasını kes.
 
 6. **Fiyatta ₺ yerine TL**: `lib/format.ts`'teki `formatPrice()` şu an `Intl.NumberFormat("tr-TR", { style: "currency", currency: "TRY" })` kullanıyor, bu da tarayıcının ₺ sembolünü otomatik ekliyor. Bunun yerine sayıyı düz Türkçe formatta (binlik nokta, ondalık virgül) formatlayıp sonuna elle `" TL"` ekle — Release'deki gibi sembol değil, yazı olarak "TL" görünsün. Bu fonksiyon tüm sitede (katalog, ürün sayfası, sepet, admin vb.) kullanıldığı için tek yerden düzelmesi her yere yansıyacak, ayrıca kontrol et.
+
+7. **Poppins font dosyasına 600 ağırlığını ekle**: `(site)/layout.tsx`'teki `Poppins({ weight: ["400", "500"] })` çağrısına `"600"` ağırlığını da ekle. 4. maddedeki başlık için istenen `font-semibold`/600 ağırlık, bu ağırlık font dosyasında hiç yüklenmediği için şu an en yakın mevcut ağırlığa (500) düşüyor — gerçek 600 görünmesi için font dosyasının da bu ağırlığı içermesi lazım. (Not: başlığın Release'e göre "koyu/kalın" durmasının asıl sebebi ağırlık değil punto farkı — 4 ve 6. maddelerdeki punto düzeltmesi zaten bunu çözecek, bu madde sadece 600 ağırlığın gerçekten render edilebilmesi için teknik bir ön koşul.)
 
 Grid boşluklarına dokunma — zaten Release ile birebir uyumlu. Değişiklikleri yapmadan önce hangi ürünlerde/renklerde ikinci fotoğraf zaten kayıtlı olduğunu kontrol et, test için o ürünleri kullan.
 
