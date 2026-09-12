@@ -288,7 +288,7 @@ export function ProductViewer({
   // daralip galeri biraz genisledi.
   return (
     <>
-    <div className="grid gap-x-11 gap-y-12 md:grid-cols-[60fr_40fr]">
+    <div className="grid gap-x-8 gap-y-12 md:grid-cols-[60fr_40fr]">
       {/* Release'in `.main-product__media--grid`'inde kutular arasi bosluk
           `gallery-gap/2` = 0.8rem (~13px, bizde eskiden 16px'ti) - buna
           cekildi. aspect-[3/4] + object-cover korunuyor: Release'de

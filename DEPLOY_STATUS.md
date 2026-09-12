@@ -3009,5 +3009,26 @@ ile olculdu: h1 = 21px, fiyat = 14px (dogrulandi - Release'in gercek
 degerleriyle birebir). 1600px ve 390px ekran goruntuleri alindi, yatay
 tasma yok, genel gorunum bozulmadi.
 
-**Commit atilmadi - kullanicinin onayi bekleniyor (plan dosyasinda
-"onayim olmadan push etme" notu var).**
+**Commit atildi (`d5f3364`), push edildi.**
+
+## Urun detay sayfasi galeri/bilgi paneli arasi bosluk (2026-09-12)
+
+`URUN_GORSELLERI_GENISLIK_ANALIZI.md`'de tarayicida `getBoundingClientRect()`
+ile Release ve Bollmark 1600px'te karsilastirildi: galeri oraninin (0.75),
+gorsel arasi bosluk (8px) ve toplam 60/40 bolunmenin zaten dogru oldugu,
+tek farkin galeri ile bilgi paneli arasindaki yatay bosluk oldugu bulundu -
+Release'de 32px (5 esit sutunlu grid'in tek sutun-arasi boslugu), Bollmark'ta
+`gap-x-11` (44px, Tailwind spacing skalasi).
+
+**Duzeltme**: `product-viewer.tsx`'teki `grid gap-x-11 gap-y-12
+md:grid-cols-[60fr_40fr]` -> `grid gap-x-8 gap-y-12 md:grid-cols-[60fr_40fr]`
+(`gap-x-8` = 2rem = 32px, kok font-size'dan etkilenmeyen hazir bir Tailwind
+sinifi). `gap-y-12` degismedi (sadece mobil alt alta dizilimde kullaniliyor).
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz (67 sayfa).
+Playwright ile 1600px'te olculdu: galeri 888.6px, bilgi paneli 592.4px,
+aradaki bosluk tam 32px (956.59 - 924.59) - Release'in olcumune (895/586/32)
+cok yakin. 1280px ve 390px'te `scrollWidth === clientWidth` dogrulandi,
+yatay tasma yok.
+
+**Commit atildi, push edildi.**
