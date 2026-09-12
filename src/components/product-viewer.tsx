@@ -1,9 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { Heart, Minus, Plus, Truck, RotateCcw, ShieldCheck, CreditCard } from "lucide-react";
+import {
+  Heart,
+  Minus,
+  Plus,
+  Truck,
+  RotateCcw,
+  ShieldCheck,
+  Check,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  ZoomIn
+} from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { formatPrice } from "@/lib/format";
@@ -13,17 +25,23 @@ import { effectivePrice } from "@/lib/variant";
 // salt UI bir isaret. Ileride StoreSettings'e tasinabilir (Faz A'ya dahil degil).
 const LOW_STOCK_THRESHOLD = 3;
 
-// Stokta olmayan bir varyant secildiginde gosterilen "stok gelince haber ver"
-// formu. Kendi basina basari/hata durumunu yonetir, urun bilgisini disaridan
-// bilmesine gerek yok - sadece secili varyantin id'sini kullanir.
-// Urun sayfasi alt bilgi rozetleri (kargo/iade/guvenli odeme/musteri
-// destegi) - Shopify "Release" temasindaki 2x2 guven rozeti grid'ine
-// karsilik gelir, tamamen statik/bilgilendirici.
-const TRUST_BADGES = [
-  { icon: Truck, label: "Hızlı Kargo", detail: "1-3 iş günü içinde teslim" },
-  { icon: RotateCcw, label: "Kolay İade", detail: "14 gün içinde ücretsiz iade" },
-  { icon: ShieldCheck, label: "Güvenli Ödeme", detail: "256-bit SSL ile korumalı" },
-  { icon: CreditCard, label: "Taksit İmkanı", detail: "Kredi kartına taksit seçeneği" }
+// release-main.myshopify.com/products/top-8 canli DOM'unda urun bilgisi
+// altinda IKI AYRI eleman var, biz eskiden bunlari tek bir 4-mesajli
+// ticker'da karistirmistik:
+// 1) `.product__text--body-animated` x2: her biri onay isaretli, 2 kisa
+//    mesaj arasinda gecis yapan tek satirlik bir "ticker" (bkz.
+//    globals.css .trust-ticker - keyframe'ler dogrudan Release'in
+//    `@keyframes textSwap`'inden alindi: 5.9s, -100%/-200%). Iki ticker
+//    ayni 2 mesaji FARKLI sirada gosteriyor (biri "kargo" ile, digeri
+//    "odeme" ile basliyor) - kucuk bir gorsel kayma/stagger hissi icin.
+const TICKER_MESSAGES = ["Ücretsiz kargo ve teslimat", "Güvenli online ödeme"];
+// 2) `.product__content-grid`: kenarlikli, kose yuvarlatilmis (1.4rem) 3
+//    kutudan olusan STATIK bir izgara (ikon ustte, etiket altta) - sadece
+//    orta+genis ekranlarda gorunur (`small-hide`).
+const STATIC_TRUST_ITEMS = [
+  { icon: Truck, label: "Hızlı Kargo" },
+  { icon: RotateCcw, label: "Ücretsiz İade" },
+  { icon: ShieldCheck, label: "%100 Güvenli Ödeme" }
 ];
 
 function StockAlertForm({ variantId }: { variantId: string }) {
@@ -170,6 +188,15 @@ export function ProductViewer({
   const [quantity, setQuantity] = useState(1);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
 
+  // Release'de urun gorselleri PhotoSwipe ile tiklaninca tam ekran bir
+  // lightbox'ta aciliyor (zoom="click", bkz. product-media-gallery.js).
+  // Bizde tiklama hicbir sey yapmiyordu - burada ayni davranisin sade bir
+  // karsiligi: index null degilse tam ekran overlay, icinde tekrar tiklayinca
+  // 2x yakinlastirma (imlec pozisyonuna gore transform-origin).
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [zoomed, setZoomed] = useState(false);
+  const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
+
   const selected = variants.find((v) => v.size === size && v.color === color);
   const outOfStock = !selected || selected.stock <= 0;
   const selectedPriceCents = selected ? effectivePrice({ priceCents }, selected) : priceCents;
@@ -183,6 +210,33 @@ export function ProductViewer({
     if (fallbackImages.length > 0) return fallbackImages;
     return [{ url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1200", alt: productName }];
   }, [selectedColorValueId, colorGalleries, fallbackImages, productName]);
+
+  // Release'de urun gorselleri PhotoSwipe ile tiklaninca tam ekran bir
+  // lightbox'ta aciliyor (zoom="click", bkz. product-media-gallery.js).
+  // Bizde tiklama hicbir sey yapmiyordu - burada ayni davranisin sade bir
+  // karsiligi: index null degilse tam ekran overlay, icinde tekrar
+  // tiklayinca 2x yakinlastirma (imlec pozisyonuna gore transform-origin).
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setLightboxIndex(null);
+      if (e.key === "ArrowRight") {
+        setZoomed(false);
+        setLightboxIndex((i) => (i === null ? i : (i + 1) % galleryImages.length));
+      }
+      if (e.key === "ArrowLeft") {
+        setZoomed(false);
+        setLightboxIndex((i) => (i === null ? i : (i - 1 + galleryImages.length) % galleryImages.length));
+      }
+    };
+    document.addEventListener("keydown", onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [lightboxIndex, galleryImages.length]);
 
   const handleAdd = () => {
     if (!selected || outOfStock) return;
@@ -206,16 +260,38 @@ export function ProductViewer({
     router.push("/odeme");
   };
 
-  // Release'de galeri/bilgi paneli orani %56/%44 (1595px konteynerde 901px
-  // galeri olculdu - bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 3). fr birimi
-  // aradaki bosluk dusuldukten sonra kalani 56:44 boler, yani oran birebir.
+  // release-main.myshopify.com/products/top-10 canli DOM'undan olculdu
+  // (12 Eylul 2026): masaustu galeri/bilgi grid'i `.product-grid__size--large`
+  // ile 5 esit sutuna bolunuyor, galeri 3/5 (%60) - bilgi 2/5 (%40) kapliyor,
+  // aralarindaki bosluk `gap: 2.8rem`. Onceki oran (56/44, gap 48px) farkli
+  // bir olcumdendi - burada guncel canli degerlere cekildi, sag panel biraz
+  // daralip galeri biraz genisledi.
   return (
-    <div className="grid gap-12 md:grid-cols-[56fr_44fr]">
-      <div className="grid grid-cols-2 gap-4">
+    <>
+    <div className="grid gap-x-11 gap-y-12 md:grid-cols-[60fr_40fr]">
+      {/* Release'in `.main-product__media--grid`'inde kutular arasi bosluk
+          `gallery-gap/2` = 0.8rem (~13px, bizde eskiden 16px'ti) - buna
+          cekildi. aspect-[3/4] + object-cover korunuyor: Release'de
+          --product-media-object-fit: contain ile gorsel kirpilmiyor ama
+          bizim urun fotograflarimiz tutarli bir kesim/oranla cekilmedigi
+          icin contain'e gecmek bos/kucuk gorunen kutulara yol acardi -
+          object-cover kutuyu her zaman doldurup "buyuk" hissi koruyor. */}
+      <div className="grid grid-cols-2 gap-[0.8rem]">
         {galleryImages.map((img, i) => (
-          <div key={`${img.url}-${i}`} className="relative aspect-[3/4] overflow-hidden bg-line">
-            <Image src={img.url} alt={img.alt} fill className="object-cover" />
-          </div>
+          <button
+            key={`${img.url}-${i}`}
+            type="button"
+            onClick={() => {
+              setZoomed(false);
+              setLightboxIndex(i);
+            }}
+            className="group relative aspect-[3/4] cursor-zoom-in overflow-hidden bg-line"
+          >
+            <Image src={img.url} alt={img.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+            <span className="pointer-events-none absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-cream/90 opacity-0 shadow transition-opacity duration-200 group-hover:opacity-100">
+              <ZoomIn size={16} className="text-ink" />
+            </span>
+          </button>
         ))}
       </div>
 
@@ -225,8 +301,32 @@ export function ProductViewer({
             {[categoryName, brandName].filter(Boolean).join(" · ")}
           </p>
         )}
+        {/* Release'de `.product__badges` basligin UZERINDE ayri bir blok -
+            eskiden fiyatin altindaydi, gercek DOM sirasina cekildi (bkz.
+            top-8 canli HTML'i, 13 Eylul 2026). Kose yariçapi
+            --badge-border-radius: 0.4rem. */}
+        {(automaticDiscount || (!outOfStock && selected.stock <= LOW_STOCK_THRESHOLD)) && (
+          <div className="flex flex-wrap items-center gap-2">
+            {automaticDiscount && (
+              <span className="rounded-[0.4rem] bg-sale px-2 py-1 text-[10px] font-medium uppercase tracking-[1.4px] text-cream">
+                %{automaticDiscount.percent} İndirim
+              </span>
+            )}
+            {!outOfStock && selected.stock <= LOW_STOCK_THRESHOLD && (
+              <span className="rounded-[0.4rem] bg-ink px-2 py-1 text-[10px] font-medium uppercase tracking-[1.4px] text-cream">
+                Son {selected.stock} Adet
+              </span>
+            )}
+          </div>
+        )}
         <div className="mt-2 flex items-start justify-between gap-3">
-          <h1 className="font-display text-4xl">{productName}</h1>
+          {/* release-main.myshopify.com/products/top-8 urun basligi `h6`
+              sinifini kullanir: --font-size-static-h6: 2.1rem,
+              --font-heading-letter-spacing: -0.04em (bkz. canli tema CSS
+              degiskenleri, 13 Eylul 2026 olculdu) - eskiden genel text-4xl
+              (2.25rem, sitenin geneldeki acik/ferah baslik dilinde) idi,
+              bu sayfaya ozel birebir olcuye cekildi. */}
+          <h1 className="font-display text-[2.1rem] leading-[1.15] tracking-[-0.04em]">{productName}</h1>
           <button
             type="button"
             onClick={() => toggleWishlist(productId)}
@@ -241,35 +341,24 @@ export function ProductViewer({
             Favorileriniz bu cihazda saklanıyor, kalıcı olması için giriş yapın.
           </p>
         )}
-        {/* Release'de rozetler (LAST FEW / SALE gibi) fiyatin USTUNDE, kucuk
-            dolgu etiketler halinde yan yana durur (bkz. 3) - indirim rozeti
-            eskiden fiyatin yaninda, "Son N adet" ise beden seciminin altinda
-            ayri bir satirdi, ikisi de buraya tasindi. */}
-        {(automaticDiscount || (!outOfStock && selected.stock <= LOW_STOCK_THRESHOLD)) && (
-          <div className="mt-4 flex flex-wrap items-center gap-2">
-            {automaticDiscount && (
-              <span className="bg-sale px-2 py-1 text-[10px] font-medium uppercase tracking-[1.4px] text-cream">
-                %{automaticDiscount.percent} İndirim
-              </span>
-            )}
-            {!outOfStock && selected.stock <= LOW_STOCK_THRESHOLD && (
-              <span className="bg-ink px-2 py-1 text-[10px] font-medium uppercase tracking-[1.4px] text-cream">
-                Son {selected.stock} Adet
-              </span>
-            )}
-          </div>
-        )}
-        <div className="mt-4 flex items-center gap-3">
+        {/* Fiyat: Release'de `.product__price .price{font-size:
+            var(--font-size-static-md)}` = 1.4rem - eskiden genel text-xl
+            (1.25rem) kullaniliyordu. */}
+        {/* Release'de "Taxes included." notu fiyatla AYNI SATIRDA, hemen
+            yaninda duruyor - eskiden fiyatin ALTINA ayri bir satir olarak
+            konmustu, kullanicinin paylastigi ekran goruntusunde bu fark
+            acikca goruluyordu. */}
+        <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
           {automaticDiscount ? (
             <>
-              <span className="text-xl font-medium text-sale">
+              <span className="text-[1.4rem] font-medium text-sale">
                 {formatPrice(Math.round((selectedPriceCents * (100 - automaticDiscount.percent)) / 100))}
               </span>
               <span className="text-ink/40 line-through">{formatPrice(selectedPriceCents)}</span>
             </>
           ) : (
             <>
-              <span className={`text-xl ${compareAtCents && compareAtCents > selectedPriceCents ? "font-medium text-sale" : ""}`}>
+              <span className={`text-[1.4rem] ${compareAtCents && compareAtCents > selectedPriceCents ? "font-medium text-sale" : ""}`}>
                 {formatPrice(selectedPriceCents)}
               </span>
               {compareAtCents && compareAtCents > selectedPriceCents && (
@@ -277,6 +366,7 @@ export function ProductViewer({
               )}
             </>
           )}
+          <span className="text-[10px] uppercase tracking-wide text-ink/40">KDV dahildir.</span>
         </div>
         {bundleInfo && bundleInfo.otherProductNames.length > 0 && (
           <p className="mt-3 border border-clay/40 bg-clay/5 px-4 py-2.5 text-sm text-ink/80">
@@ -311,7 +401,12 @@ export function ProductViewer({
 
         {(material || origin || careInstructions) && (
           <details className="mt-6 border-t border-line pt-6 text-sm text-ink/70" open>
-            <summary className="cursor-pointer text-xs uppercase tracking-wide text-ink/60 underline underline-offset-4">
+            {/* Release'in `.accordion__button`'u: font-size 1.6rem,
+                letter-spacing -0.04em, BUYUK HARF DEGIL, alti cizili degil -
+                sadece hover'da altini cizen bir gecis var (bkz.
+                section-accordions.css, 13 Eylul 2026). Eskiden 12px kucuk
+                harf + surekli alt cizgiliydi. */}
+            <summary className="cursor-pointer text-[1.6rem] tracking-[-0.04em] text-ink underline decoration-transparent underline-offset-[5px] transition duration-300 hover:decoration-ink">
               Ürün Detayları
             </summary>
             <div className="mt-3 space-y-1">
@@ -336,7 +431,7 @@ export function ProductViewer({
 
         {sizeGuide && (
           <details className="mt-3 border-t border-line pt-6">
-            <summary className="cursor-pointer text-xs uppercase tracking-wide text-ink/60 underline underline-offset-4">
+            <summary className="cursor-pointer text-[1.6rem] tracking-[-0.04em] text-ink underline decoration-transparent underline-offset-[5px] transition duration-300 hover:decoration-ink">
               Beden Tablosu
             </summary>
             <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink/70">{sizeGuide}</p>
@@ -359,7 +454,7 @@ export function ProductViewer({
                   <button
                     key={c}
                     onClick={() => setColor(c)}
-                    className={`flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-3 text-[11px] uppercase leading-none tracking-wide transition ${
+                    className={`flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-3 text-xs uppercase leading-none tracking-[0.1rem] transition duration-300 ${
                       color === c ? "bg-ink text-cream" : "bg-transparent text-ink hover:bg-ink/5"
                     }`}
                   >
@@ -384,7 +479,7 @@ export function ProductViewer({
                   <button
                     key={s}
                     onClick={() => setSize(s)}
-                    className={`flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-1 text-[11px] leading-none transition ${
+                    className={`flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-1 text-xs leading-none tracking-[0.1rem] transition duration-300 ${
                       size === s ? "bg-ink text-cream" : "bg-transparent text-ink hover:bg-ink/5"
                     }`}
                   >
@@ -395,51 +490,60 @@ export function ProductViewer({
             </div>
           )}
 
-          {!outOfStock && (
-            <div className="flex items-center gap-1 rounded-full border border-line px-1 py-1 w-fit">
-              <button
-                type="button"
-                onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                disabled={quantity <= 1}
-                aria-label="Adedi azalt"
-                className="flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-line disabled:opacity-30"
-              >
-                <Minus size={14} />
-              </button>
-              <span className="w-8 text-center text-sm">{quantity}</span>
-              <button
-                type="button"
-                onClick={() => setQuantity((q) => Math.min(selected?.stock ?? 1, q + 1))}
-                disabled={quantity >= (selected?.stock ?? 1)}
-                aria-label="Adedi artır"
-                className="flex h-8 w-8 items-center justify-center rounded-full transition hover:bg-line disabled:opacity-30"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
-          )}
-
-          {/* Release olcumleri (bkz. 3): her iki buton da 46px yuksekliginde ve
-              50px kose yariçapli (tam hap), yazi ~10px BUYUK HARF + harf
-              arali. "Sepete Ekle" siyah dolgu, "Hemen Al" dolgusuz (seffaf +
-              siyah cerceve). */}
-          <div className="flex gap-3">
+          {/* release-main.myshopify.com/products/top-8 canli CSS'inde
+              `.product-form__buttons{display:grid;grid-template-columns:
+              repeat(10,1fr)}` - adet secici 3/10 (%30), "Add to cart" 7/10
+              (%70), AYNI SATIRDA yan yana (bkz. 13 Eylul 2026 olcumu).
+              "Buy it now" ise bu satirin ALTINDA, tam genislikte ayri bir
+              satir (Shopify'in `.shopify-payment-button`'u 10/10 span
+              alip otomatik alt satira dusuyor). Eskiden adet secici kendi
+              satirinda, Sepete Ekle/Hemen Al da altta %50/%50 yan yanaydi -
+              ucu de degisti. */}
+          <div className="grid grid-cols-10 gap-3">
+            {!outOfStock && (
+              <div className="col-span-3 flex h-[46px] items-center justify-between rounded-full border border-line px-1">
+                <button
+                  type="button"
+                  onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+                  disabled={quantity <= 1}
+                  aria-label="Adedi azalt"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition duration-300 hover:bg-line disabled:opacity-30"
+                >
+                  <Minus size={14} />
+                </button>
+                <span className="text-center text-sm">{quantity}</span>
+                <button
+                  type="button"
+                  onClick={() => setQuantity((q) => Math.min(selected?.stock ?? 1, q + 1))}
+                  disabled={quantity >= (selected?.stock ?? 1)}
+                  aria-label="Adedi artır"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition duration-300 hover:bg-line disabled:opacity-30"
+                >
+                  <Plus size={14} />
+                </button>
+              </div>
+            )}
+            {/* Release'de dolu ("filled") butonun hover'i renk degistirmez
+                (mesela kahve/clay tonuna kaymaz) - arka plani SEFFAMLASIP
+                metin/cerceve dolgu rengine donerek "outline"a donusur
+                (bkz. base.css .button--filled, 13 Eylul 2026). */}
             <button
               onClick={handleAdd}
               disabled={outOfStock}
-              className="h-[46px] flex-1 rounded-[50px] bg-ink text-[10px] uppercase tracking-[1.4px] text-cream transition hover:bg-clay disabled:cursor-not-allowed disabled:opacity-40"
+              className={`${outOfStock ? "col-span-10" : "col-span-7"} h-[46px] rounded-[50px] border border-ink bg-ink text-[10px] uppercase tracking-[1.4px] text-cream transition duration-300 hover:bg-transparent hover:text-ink disabled:cursor-not-allowed disabled:opacity-40`}
             >
               {outOfStock ? "Stokta Yok" : added ? "Sepete Eklendi ✓" : "Sepete Ekle"}
             </button>
-            {!outOfStock && (
-              <button
-                onClick={handleBuyNow}
-                className="h-[46px] flex-1 rounded-[50px] border border-ink bg-transparent text-[10px] uppercase tracking-[1.4px] text-ink transition hover:bg-ink hover:text-cream"
-              >
-                Hemen Al
-              </button>
-            )}
           </div>
+
+          {!outOfStock && (
+            <button
+              onClick={handleBuyNow}
+              className="h-[46px] w-full rounded-[50px] border border-ink bg-transparent text-[10px] uppercase tracking-[1.4px] text-ink transition duration-300 hover:bg-ink hover:text-cream"
+            >
+              Hemen Al
+            </button>
+          )}
 
           {outOfStock && selected && <StockAlertForm variantId={selected.id} />}
 
@@ -452,41 +556,146 @@ export function ProductViewer({
             </button>
           )}
 
-          {/* Release'de guven rozetleri 2x2 bir grid degil, tek satir
-              yuksekliginde dikey bir "ticker": mesajlar sirayla yukari kayarak
-              degisiyor (bkz. 3 - animasyonun olculen keyframe'leri
-              globals.css'teki .trust-ticker). Ust cizgi/dolgu disarida:
-              .trust-ticker'in kendisi 22px'lik pencere oldugu icin uzerine
-              padding verilirse pencere bozulur. */}
-          <div className="border-t border-line pt-6">
-            <div className="trust-ticker">
-              <div className="trust-ticker__rows">
-                {/* Son eleman ilk mesajin kopyasi - dongu basa donerken
-                    sicrama gorunmesin diye (bkz. globals.css .trust-ticker). */}
-                {[...TRUST_BADGES, TRUST_BADGES[0]].map(({ icon: Icon, label, detail }, i) => {
-                  const isClone = i === TRUST_BADGES.length;
-                  return (
-                    <div
-                      key={`${label}-${i}`}
-                      aria-hidden={isClone}
-                      className={`trust-ticker__row flex items-center gap-2.5 ${
-                        isClone ? "trust-ticker__row--clone" : ""
-                      }`}
-                    >
-                      <Icon size={16} className="shrink-0 text-ink/60" />
-                      <p className="min-w-0 truncate text-xs text-ink/60">
-                        <span className="font-medium uppercase tracking-wide text-ink">{label}</span>
-                        <span className="mx-1.5">·</span>
-                        {detail}
-                      </p>
-                    </div>
-                  );
-                })}
+          {/* release-main.myshopify.com/products/top-8'de IKI AYRI ticker
+              satiri var, ikisi de ayni 2 mesaj arasinda geçiş yapiyor ama
+              FARKLI sirada basliyor (kucuk bir kayma hissi icin, bkz. canli
+              HTML, 13 Eylul 2026). Animasyon Release'in kendi
+              `@keyframes textSwap`'i: 5.9s, -100%/-200% (globals.css
+              .trust-ticker - eskiden 4 mesajli TEK bir ticker'dik, artik
+              gercek yapiya cekildi). */}
+          <div className="space-y-2 border-t border-line pt-6">
+            {[0, 1].map((offset) => {
+              const ordered = [TICKER_MESSAGES[offset % 2], TICKER_MESSAGES[(offset + 1) % 2]];
+              const rows = [...ordered, ordered[0]];
+              return (
+                <div className="trust-ticker" key={offset}>
+                  <div className="trust-ticker__rows">
+                    {rows.map((message, i) => {
+                      const isClone = i === 2;
+                      return (
+                        <div
+                          key={`${message}-${i}`}
+                          aria-hidden={isClone}
+                          className={`trust-ticker__row flex items-center gap-2 ${isClone ? "trust-ticker__row--clone" : ""}`}
+                        >
+                          <Check size={14} className="shrink-0 text-ink/60" />
+                          <p className="min-w-0 truncate text-xs text-ink/70">{message}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* `.product__content-grid`: kenarlikli, kose yariçapi 1.4rem,
+              ikon+etiket dikey kutu, 3 sutun - sadece orta+genis ekranda
+              gorunur (`small-hide`, bkz. canli CSS). */}
+          <div className="hidden grid-cols-3 gap-[0.8rem] md:grid">
+            {STATIC_TRUST_ITEMS.map(({ icon: Icon, label }) => (
+              <div
+                key={label}
+                className="flex flex-col items-center justify-center gap-2 rounded-[1.4rem] border border-line p-4 text-center"
+              >
+                <Icon size={20} className="text-ink" />
+                <span className="text-[10px] uppercase tracking-wide text-ink">{label}</span>
               </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>
     </div>
+
+    {/* Zoom lightbox: Release'in PhotoSwipe ile actigi tam ekran gorunumun
+        sade bir karsiligi. Arka plana/X'e tiklamak kapatir, gorselin
+        kendisine tiklamak 2x yakinlastirir (imlec konumuna gore
+        transform-origin), sol/sag oklar + <- -> tuslari galeri icinde
+        gezdirir. */}
+    {lightboxIndex !== null && (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-ink/95 p-4"
+        onClick={() => setLightboxIndex(null)}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`${productName} - görsel önizleme`}
+      >
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            setLightboxIndex(null);
+          }}
+          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-cream/30 text-cream transition duration-300 hover:bg-cream/10"
+          aria-label="Kapat"
+        >
+          <X size={20} />
+        </button>
+
+        {galleryImages.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setZoomed(false);
+                setLightboxIndex((i) => (i === null ? i : (i - 1 + galleryImages.length) % galleryImages.length));
+              }}
+              className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-cream/30 text-cream transition duration-300 hover:bg-cream/10 md:left-4"
+              aria-label="Önceki görsel"
+            >
+              <ChevronLeft size={22} />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setZoomed(false);
+                setLightboxIndex((i) => (i === null ? i : (i + 1) % galleryImages.length));
+              }}
+              className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-cream/30 text-cream transition duration-300 hover:bg-cream/10 md:right-4"
+              aria-label="Sonraki görsel"
+            >
+              <ChevronRight size={22} />
+            </button>
+          </>
+        )}
+
+        <div
+          className={`relative h-full max-h-[85vh] w-full max-w-3xl overflow-hidden ${zoomed ? "cursor-zoom-out" : "cursor-zoom-in"}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            setZoomed((z) => !z);
+          }}
+          onMouseMove={(e) => {
+            if (!zoomed) return;
+            const rect = e.currentTarget.getBoundingClientRect();
+            setZoomOrigin({
+              x: ((e.clientX - rect.left) / rect.width) * 100,
+              y: ((e.clientY - rect.top) / rect.height) * 100
+            });
+          }}
+        >
+          <Image
+            src={galleryImages[lightboxIndex].url}
+            alt={galleryImages[lightboxIndex].alt}
+            fill
+            sizes="100vw"
+            className="object-contain transition-transform duration-200 ease-out"
+            style={{
+              transform: zoomed ? "scale(2)" : "scale(1)",
+              transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`
+            }}
+          />
+        </div>
+
+        {galleryImages.length > 1 && (
+          <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs uppercase tracking-widest text-cream/60">
+            {lightboxIndex + 1} / {galleryImages.length}
+          </p>
+        )}
+      </div>
+    )}
+    </>
   );
 }

@@ -479,24 +479,42 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
   const { totalCount } = useCart();
   const { data: session } = useSession();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isHome = pathname === "/";
+  // Katalog sayfasi (urunler/page.tsx) secili bir kategorinin gercek
+  // `imageUrl`'i varsa tepede bir banner render ediyor (bkz. o dosyadaki
+  // "Release'de her koleksiyon sayfasinin ustunde..." notu) - burada AYNI
+  // kosul kontrol ediliyor ki header'in saydamligi banner'in gercekten
+  // ekranda olup olmamasiyla birebir eslessin, ikisi birbirinden bagimsiz
+  // kaymasin.
+  const activeCategorySlug = pathname === "/urunler" ? searchParams.get("kategori") : null;
+  const hasBanner =
+    !!activeCategorySlug &&
+    [...menuData.kadin, ...menuData.erkek, ...menuData.aksesuar].some(
+      (c) => c.slug === activeCategorySlug && !!c.imageUrl
+    );
+  const isTransparentPage = isHome || hasBanner;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<TabKey | null>(null);
   const [scrolled, setScrolled] = useState(false);
 
-  // Sadece ana sayfada, hero gorseli uzerindeyken header saydam + beyaz metinli
-  // gorunur (Aritzia'daki gibi) - scroll edildiginde veya menu acildiginda
-  // krem zemine gecer. Diger sayfalarda body ile ayni renkte oldugu icin
-  // saydamligin bir anlami yok, o yuzden hep katı baslar.
+  // Ana sayfada ve banner'li koleksiyon sayfalarinda, hero/banner gorseli
+  // uzerindeyken header saydam + beyaz metinli gorunur (Aritzia'daki gibi) -
+  // scroll edildiginde veya menu acildiginda krem zemine gecer. Diger
+  // sayfalarda body ile ayni renkte oldugu icin saydamligin bir anlami yok,
+  // o yuzden hep katı baslar. Banner yuksekligi 50svh (bkz. urunler/page.tsx)
+  // oldugu icin ayni esik (scrollY > 60) banner'dan cikmadan once tetiklenir
+  // - bu, anasayfadaki hero'da da ayni sekilde erken tetiklenen mevcut
+  // davranis, bilincli olarak korundu.
   useEffect(() => {
-    if (!isHome) return;
+    if (!isTransparentPage) return;
     const onScroll = () => setScrolled(window.scrollY > 60);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
-  }, [isHome]);
+  }, [isTransparentPage]);
 
-  const transparent = isHome && !scrolled && openMenu === null && !mobileOpen;
+  const transparent = isTransparentPage && !scrolled && openMenu === null && !mobileOpen;
 
   return (
     <>
@@ -583,7 +601,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
 
         <MobileMenu menuData={menuData} open={mobileOpen} onClose={() => setMobileOpen(false)} session={session} />
       </header>
-      {!isHome && <div aria-hidden className="h-[72px]" />}
+      {!isTransparentPage && <div aria-hidden className="h-[72px]" />}
     </>
   );
 }

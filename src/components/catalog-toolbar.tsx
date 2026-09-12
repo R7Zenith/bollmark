@@ -24,8 +24,14 @@ export const CATALOG_SORTS = [
 
 export type CatalogSortKey = (typeof CATALOG_SORTS)[number]["key"];
 
+// release-main.myshopify.com'da hem "Filters" hem sort tetikleyicisi cerceveli
+// birer buton (`.facets__button-filters`/`.custom-select__btn`): 1px duz
+// `rgb(235,235,235)` kenarlik, `border-radius: 0.8rem`, ikon metnin saginda
+// kucuk bir bosluklu (bkz. component-facets.css / component-custom-select.css,
+// 13 Eylul 2026 canli CSS'ten olculdu). Bizde eskiden cercevesiz duz metin +
+// ok linkiydi - o cerceveli "buton" hissi kayboluyordu, buraya cekildi.
 const TRIGGER_CLASS =
-  "flex items-center gap-1.5 text-[10px] font-normal uppercase tracking-[1.4px] text-ink transition hover:text-clay";
+  "flex items-center gap-2 rounded-[0.8rem] border border-line bg-cream px-5 py-3 text-[10px] font-normal uppercase tracking-[1.4px] text-ink transition hover:border-ink";
 const ITEM_CLASS =
   "block w-full px-4 py-2 text-left text-[10px] uppercase tracking-[1.4px] text-ink/70 transition hover:bg-line/60 hover:text-ink";
 const ITEM_ACTIVE_CLASS =
@@ -39,7 +45,7 @@ function Chevron({ open }: { open: boolean }) {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.75"
+      strokeWidth="1.25"
       className={`shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
     >
       <polyline points="6 9 12 15 18 9" />
@@ -133,8 +139,11 @@ export function CatalogToolbar({
   const activeSortLabel =
     CATALOG_SORTS.find((s) => s.key === activeSort)?.label ?? CATALOG_SORTS[0].label;
 
+  // Release'de cubugun kendi bir ust/alt cizgisi yok - ayrim artik butonlarin
+  // kendi cercevesinden geliyor (bkz. TRIGGER_CLASS), disaridaki border-y
+  // cift cerceve gibi durup gereksiz agirlasiyordu, kaldirildi.
   return (
-    <div className="flex items-center justify-between gap-4 border-y border-line py-4">
+    <div className="flex items-center justify-between gap-4 py-4">
       <Dropdown label="Filtrele" align="left">
         {(close) => (
           <>

@@ -26,13 +26,18 @@ html {
   scroll-behavior: smooth;
 }
 
+/* BUG (13 Eylul 2026): tailwind.config.ts'teki ink/cream token'lari Release
+   paletine (siyah/beyaz) cekilmisti ama burasi ham hex ile yaziliydi -
+   Tailwind token'indan tamamen bagimsiz oldugu icin o degisiklik body'ye hic
+   yansimiyordu, site kremsi arka planda kalmaya devam ediyordu. Token'la
+   AYNI degerler dogrudan yazildi. */
 body {
-  background-color: #fdfcfb;
-  color: #1c1917;
+  background-color: #ffffff;
+  color: #111111;
 }
 
 ::selection {
-  background-color: #a9765a;
+  background-color: #111111;
   color: #ffffff;
 }
 
@@ -92,23 +97,24 @@ body {
 }
 
 /* Urun sayfasindaki guven rozeti "ticker"i (bkz.
-   RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 3): tek satir yuksekliginde (22px) bir
-   pencere, icindeki satir yigini yukari kayarak sirayla her mesaji gosterir.
-   Release'de 3 mesaj var, Bollmark'ta 4 - satir basina ritim birebir
-   korundu: her mesaj 1.89s duruyor, gecis 1.06s suruyor (Release'in 5.9s'lik
-   3 mesajli dongusunden turetildi), yani 4 gecis x 2.95s = 11.8s.
-   Yuzdeler: bekleme 1.89/11.8 = %16, gecis 1.06/11.8 = %9.
-   Yuzde degerleri satir yigininin TAMAMINA gore hesaplandigi icin (tek
-   satira gore degil) bir satir = %20: yigin 4 mesaj + sona eklenen 1.
-   mesajin kopyasi = 5 satir. Kopya sayesinde dongu bitiminde sifira donus
-   gorunmez oluyor - aksi halde son mesajdan ilkine sicrama goze carpardi. */
+   release-main.myshopify.com/products/top-8'in canli CSS'inden dogrudan
+   alindi (13 Eylul 2026, section-product.css .product__text--body-wrapper):
+   `.product__text--body-animated{height:2.2rem;overflow:hidden}`,
+   `.product__text--body{animation:textSwap 5.9s ease-in-out infinite}`,
+   `@keyframes textSwap{0%{translateY(0)}32%{translateY(0)}50%{translateY(-100%)}
+   82%{translateY(-100%)}100%{translateY(-200%)}}`. Bizde 2 mesaj var, yigin
+   2 mesaj + sona eklenen 1. mesajin kopyasi = 3 satir - Release'deki gibi
+   translateY yuzdeleri SATIR YUKSEKLIGINE (tek satir = %100) gore, yigina
+   gore degil, bu yuzden -100%/-200% degerleri degistirilmeden kullanilabildi
+   (eskiden 4 mesajli surumde yigina gore hesaplanan farkli bir yuzde
+   sistemi vardi). */
 .trust-ticker {
   height: 22px;
   overflow: hidden;
 }
 
 .trust-ticker__rows {
-  animation: trustTickerSwap 11.8s ease-in-out infinite;
+  animation: trustTickerSwap 5.9s ease-in-out infinite;
 }
 
 .trust-ticker__row {
@@ -117,30 +123,25 @@ body {
 
 @keyframes trustTickerSwap {
   0% { transform: translateY(0); }
-  16% { transform: translateY(0); }
-  25% { transform: translateY(-20%); }
-  41% { transform: translateY(-20%); }
-  50% { transform: translateY(-40%); }
-  66% { transform: translateY(-40%); }
-  75% { transform: translateY(-60%); }
-  91% { transform: translateY(-60%); }
-  100% { transform: translateY(-80%); }
+  32% { transform: translateY(0); }
+  50% { transform: translateY(-100%); }
+  82% { transform: translateY(-100%); }
+  100% { transform: translateY(-200%); }
 }
 
-/* Hareketi azaltmayi tercih eden kullanicida mesajlar kaybolmasin diye
-   animasyon durdurulup dort satir birden aciliyor - kopya satir burada
-   gizleniyor, yoksa ilk mesaj iki kez gorunurdu. */
+/* Hareketi azaltmayi tercih eden kullanicida (Windows "Show animations"
+   kapali, macOS "Reduce motion" acik vb.) animasyon TAMAMEN durdurulmuyor -
+   onceki surumde `animation:none` + kopya satir gizleme yapiliyordu, bu da
+   pencereyi (`overflow:hidden`) da kaldirdigi icin 2 mesajin HER IKISI de
+   ayni anda, sabit/hareketsiz listelenmis halde goruluyordu (kullanicinin
+   ekran goruntusunde yakaladigi tam olarak buydu - Release'deki gibi
+   TEK satirlik kayan bir ticker degil, dort satirlik sabit bir liste).
+   Bunun yerine animasyon sadece YAVASLATILIYOR (5.9s -> 20s): pencere/
+   kirpma korunuyor, ticker gene Release'deki gibi tek satir gosterip kayarak
+   degisiyor, sadece dusuk hareket duyarliligi olan kullanicilar icin daha
+   yumusak/agir bir gecis oluyor. */
 @media (prefers-reduced-motion: reduce) {
-  .trust-ticker {
-    height: auto;
-    overflow: visible;
-  }
-
   .trust-ticker__rows {
-    animation: none;
-  }
-
-  .trust-ticker__row--clone {
-    display: none;
+    animation-duration: 20s;
   }
 }

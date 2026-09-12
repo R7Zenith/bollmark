@@ -78,7 +78,7 @@ export default async function ProductsPage({
         products: { some: { status: "PUBLISHED", gender: cinsiyet ? cinsiyet : undefined } }
       },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      select: { name: true, slug: true }
+      select: { name: true, slug: true, imageUrl: true }
     })
   ]);
   const entries = sortEntries(rawEntries, sirala);
@@ -88,15 +88,51 @@ export default async function ProductsPage({
     ? `${cinsiyet} koleksiyonunda bu kategoride henüz ürün bulunmuyor.`
     : "Bu kategoride henüz ürün bulunmuyor.";
 
+  // Release'de her koleksiyon sayfasinin ustunde tam genislikte bir banner
+  // var, banner varken header saydamlasip banner'in uzerine biniyor (bkz.
+  // RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1 - `header-is-transparent`). Bunun
+  // icin uydurma bir kampanya gorseli eklemek yerine, secili kategorinin
+  // zaten var olan (mega menudeki promosyon kartlariyla ayni) gercek
+  // `imageUrl`'i kullaniliyor - kategori bir gorsele sahip degilse banner hic
+  // render edilmiyor, sayfa eskisi gibi duz baslikla aciliyor. SiteHeader'daki
+  // saydamlik kontrolu de (bkz. site-header.tsx) tam olarak ayni kosulu
+  // kontrol ediyor, ikisi birbirinden bagimsiz kaymasin diye.
+  const activeCategory = kategori ? filterCategories.find((c) => c.slug === kategori) : null;
+  const bannerImageUrl = activeCategory?.imageUrl ?? null;
+
   return (
-    // Release'in katalog sayfasinda max-width yok: her ekran genisliginde tam
-    // viewport, sabit 36px yan bosluk (mobilde 16px) - header/mega menu ile
-    // ayni olcu (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1.1 ve 2).
-    <div className="w-full px-4 py-16 md:px-6 xl:px-9">
-      <p className="text-xs uppercase tracking-widest2 text-ink/50">
-        Tüm Ürünler {cinsiyet ? `— ${cinsiyet}` : ""}
-      </p>
-      <h1 className="mt-2 font-display text-5xl font-light">{heading}</h1>
+    <div className="w-full">
+      {bannerImageUrl && (
+        <div className="relative flex h-[50svh] min-h-[320px] w-full items-center justify-center overflow-hidden bg-ink">
+          {/* Mega menudeki PromoCard ile ayni sebepten duz <img>: kategori
+              imageUrl'i Unsplash/Blob disinda bir kaynaktan da gelebiliyor,
+              next/image'in remotePatterns kisitlamasina takilmasin diye. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={bannerImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
+          <div className="absolute inset-0 bg-ink/35" />
+          <div className="relative z-10 text-center text-cream">
+            {cinsiyet && (
+              <p className="text-xs uppercase tracking-widest2 text-cream/70">{cinsiyet}</p>
+            )}
+            <h1 className="mt-2 font-display text-5xl font-light">{activeCategory!.name}</h1>
+          </div>
+        </div>
+      )}
+
+      {/* Release'in katalog sayfasinda max-width yok: her ekran genisliginde
+          tam viewport, sabit 36px yan bosluk (mobilde 16px) - header/mega
+          menu ile ayni olcu (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1.1 ve
+          2). Banner varken ustteki dikey bosluk banner'dan geldigi icin
+          daralttik (py-16 -> pt-8 pb-16). */}
+      <div className={`px-4 md:px-6 xl:px-9 ${bannerImageUrl ? "pt-8 pb-16" : "py-16"}`}>
+        {!bannerImageUrl && (
+          <>
+            <p className="text-xs uppercase tracking-widest2 text-ink/50">
+              Tüm Ürünler {cinsiyet ? `— ${cinsiyet}` : ""}
+            </p>
+            <h1 className="mt-2 font-display text-5xl font-light">{heading}</h1>
+          </>
+        )}
 
       <div className="mt-8">
         <CatalogToolbar
@@ -131,6 +167,7 @@ export default async function ProductsPage({
           ))}
         </div>
       )}
+      </div>
     </div>
   );
 }
