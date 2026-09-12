@@ -30,6 +30,10 @@ export type ProductCardData = {
   // Doluysa hover'da ana gorselden buna capraz-solma (crossfade) yapilir;
   // bos ise mevcut hafif buyume (scale) efekti kullanilir.
   secondImage?: string | null;
+  // Doluysa (0 hariç, ör. 2) toplam stok dusuk demektir - indirim rozetinin
+  // yaninda "Son X Adet" uyarisi gosterilir. outOfStock true ise bu rozet
+  // hic render edilmez (tam ekran "Stokta Yok" katmani zaten oncelikli).
+  lowStockCount?: number | null;
   // Doluysa karttaki "+" hizli sepete ekle butonu bu varyanti dogrudan sepete
   // ekler (bkz. lib/catalog.ts pickQuickAddVariant) - sayfa yonlendirmesi
   // olmadan. Null ise (stokta varyant yoksa) buton gizlenir.
@@ -109,10 +113,19 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         >
           <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />
         </button>
-        {discountPercent && (
-          <span className="absolute left-3 top-3 bg-clay/10 px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-clay">
-            %{discountPercent} İndirim
-          </span>
+        {(discountPercent || product.lowStockCount != null) && (
+          <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+            {discountPercent && (
+              <span className="rounded-sm bg-red-600 px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-white">
+                %{discountPercent} İndirim
+              </span>
+            )}
+            {product.lowStockCount != null && (
+              <span className="rounded-sm border border-ink/80 bg-cream px-2.5 py-1 text-xs font-medium uppercase tracking-wide text-ink">
+                Son {product.lowStockCount} Adet
+              </span>
+            )}
+          </div>
         )}
         {product.quickAddVariant && !product.outOfStock && (
           <button

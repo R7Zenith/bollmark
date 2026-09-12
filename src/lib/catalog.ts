@@ -31,6 +31,14 @@ export function isOutOfStock(variants: { stock: number }[]): boolean {
   return variants.length > 0 && variants.every((v) => v.stock <= 0);
 }
 
+// Katalog kartinda "Son X Adet" rozeti icin esik - toplam stok bu sayinin
+// altinda (ve stok tamamen bitmemisse) rozet gosterilir (bkz. product-card.tsx).
+const LOW_STOCK_THRESHOLD = 3;
+
+function totalStock(variants: { stock: number }[]): number {
+  return variants.reduce((sum, v) => sum + Math.max(v.stock, 0), 0);
+}
+
 export async function getPublishedProducts(
   categorySlug?: string,
   options?: { featuredFirst?: boolean; genderLabel?: string }
@@ -98,6 +106,12 @@ export type CatalogEntry = {
   categoryId: string | null;
   brandId: string | null;
   outOfStock: boolean;
+  // Doluysa toplam stok LOW_STOCK_THRESHOLD altinda (ama stok tamamen bitmemis)
+  // - kartta "Son X Adet" rozeti icin (bkz. product-card.tsx).
+  lowStockCount: number | null;
+  // Doluysa hover'da ana gorselden buna capraz-solma yapilir (bkz.
+  // product-card.tsx) - urunun/rengin galerisindeki 2. fotograf.
+  secondImage: string | null;
   quickAddVariant: QuickAddVariant;
 };
 
@@ -118,7 +132,9 @@ export async function getCatalogEntries(
       gender: options?.genderLabel ? options.genderLabel : undefined
     },
     include: {
-      images: { orderBy: { position: "asc" }, take: 1 },
+      // take:2 - ilk fotograf kart gorseli, 2.si hover'da capraz-solma icin
+      // (bkz. secondImage / product-card.tsx).
+      images: { orderBy: { position: "asc" }, take: 2 },
       optionImages: { orderBy: { position: "asc" } },
       variants: { include: variantOptionsInclude }
     },
@@ -138,6 +154,8 @@ export async function getCatalogEntries(
     }
 
     if (colorLabelByValueId.size <= 1) {
+      const outOfStock = isOutOfStock(p.variants);
+      const stock = totalStock(p.variants);
       entries.push({
         productId: p.id,
         slug: p.slug,
@@ -145,29 +163,35 @@ export async function getCatalogEntries(
         priceCents: p.priceCents,
         compareAtCents: p.compareAtCents,
         image: p.images[0]?.url ?? p.optionImages[0]?.url ?? null,
+        secondImage: p.images[1]?.url ?? p.optionImages[1]?.url ?? null,
         colorLabel: null,
         categoryId: p.categoryId,
         brandId: p.brandId,
-        outOfStock: isOutOfStock(p.variants),
+        outOfStock,
+        lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,
         quickAddVariant: pickQuickAddVariant(p.variants)
       });
       continue;
     }
 
     for (const [valueId, label] of colorLabelByValueId) {
-      const colorImage = p.optionImages.find((img) => img.valueId === valueId)?.url;
+      const colorImages = p.optionImages.filter((img) => img.valueId === valueId);
       const colorVariants = p.variants.filter((v) => v.options.some((o) => o.valueId === valueId));
+      const outOfStock = isOutOfStock(colorVariants);
+      const stock = totalStock(colorVariants);
       entries.push({
         productId: p.id,
         slug: p.slug,
         name: p.name,
         priceCents: p.priceCents,
         compareAtCents: p.compareAtCents,
-        image: colorImage ?? p.images[0]?.url ?? null,
+        image: colorImages[0]?.url ?? p.images[0]?.url ?? null,
+        secondImage: colorImages[1]?.url ?? p.images[1]?.url ?? null,
         colorLabel: label,
         categoryId: p.categoryId,
         brandId: p.brandId,
-        outOfStock: isOutOfStock(colorVariants),
+        outOfStock,
+        lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,
         quickAddVariant: pickQuickAddVariant(colorVariants)
       });
     }

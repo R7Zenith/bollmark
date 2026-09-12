@@ -158,9 +158,11 @@ export default async function ProductsPage({
                 priceCents: entry.priceCents,
                 compareAtCents: entry.compareAtCents,
                 image: entry.image ?? FALLBACK_IMAGE,
+                secondImage: entry.secondImage,
                 colorLabel: entry.colorLabel,
                 automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, entry)?.percent ?? null,
                 outOfStock: entry.outOfStock,
+                lowStockCount: entry.lowStockCount,
                 quickAddVariant: entry.quickAddVariant
               }}
             />
