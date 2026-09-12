@@ -20,6 +20,29 @@ tıklanarak gerçek değerler çıkarıldı; aradaki fark küçük değil, **yap
 - Panel `position: absolute; inset-inline: 0; top: 64px` (header'ın hemen
   altında, TAM VİEWPORT genişliğinde — 1600px ekranda panel de 1600px).
   Üstte `border-top: 1px solid rgb(235,235,235)` tek ayraç çizgisi.
+- **KRİTİK — `max-width` YOK (12 Eylül 2026'da ayrıca ölçüldü):** Ne header
+  satırının ne de panel içeriğinin bir `max-width`'i var. Hem header
+  (`header .container`) hem panel (`.header__nav-dropdown-inner`) her ekran
+  genişliğinde tam viewport'u kaplıyor, tek sınır **sabit 36px yan dolgu**
+  (mobilde 16px). Ölçülen: 1280px → içerik 1208px, 1600px → 1528px,
+  1920px → 1848px; nav'ın ilk öğesi her zaman `x = 36`.
+  **Bollmark'ta ilk uygulamada bu atlanmıştı** (`mx-auto max-w-7xl px-6`
+  korunmuştu → 1600px'te içerik 1232px'e sıkışıp her yanda ~184px boşluk
+  kalıyordu). Düzeltildi: header `w-full px-6 xl:px-9`, panel `px-9 py-8`.
+- **Sol/sağ yarı ekranla orantılı ölçekleniyor** (sabit piksel değil).
+  4 genişlikte ölçülen tablo:
+
+  | viewport | içerik | sol yarı | sağ yarı başı | sol sütunlar | kart |
+  |---|---|---|---|---|---|
+  | 1280 | 1208 | 604 | 640 | 296 + 296 | 290 |
+  | 1440 | 1368 | 684 | 720 | 336 + 336 | 330 |
+  | 1600 | 1528 | 764 | 800 | 376 + 376 | 370 |
+  | 1920 | 1848 | 924 | 960 | 456 + 456 | 450 |
+
+  Yani her genişlikte içerik tam ortadan ikiye bölünüyor, iki yarı arasında
+  **0px boşluk** var, sol yarıdaki iki sütun `(yarı − 12) / 2` genişliğinde
+  (aralarında 12px). Tailwind karşılığı: dış `grid grid-cols-2`, sol yarı
+  `grid grid-cols-2 gap-x-3`, sağ yarı `flex gap-6`.
 - **Açılma animasyonu gerçekten yok** — `display: none → block`, `transition`
   ölçülmedi (anlık). Bollmark'taki `openMenu` state mantığı bunun için zaten
   doğru yaklaşım.
@@ -318,6 +341,21 @@ geçmişindeki prompt).
       geri dönüş, yeniden açılışta köke sıfırlanma ve body scroll kilidi
       DOĞRULANDI. **Commit atıldı (`c298e2b`), PUSH EDİLMEDİ — kullanıcı
       onayı bekleniyor.**
+- [x] **Adım 1c — Menü genişliği düzeltmesi (12 Eylül 2026):** Kullanıcı
+      "Release'in menüsü sağa sola geniş yayılmış, bizimki içeri sıkışmış"
+      dedi — haklıydı: 1.1'de "panel tam viewport genişliğinde, 36px yan
+      boşluk" diye ölçülmüştü ama uygulamada eski `mx-auto max-w-7xl px-6`
+      korunmuştu, yani 1600px ekranda içerik 1232px'e sıkışıp her yanda
+      ~184px boşluk kalıyordu. Release yeniden ölçülüp (1280/1440/1600/1920)
+      düzeltildi: header satırı `w-full px-6 xl:px-9` (max-width kaldırıldı),
+      panel `grid grid-cols-2 px-9 py-8`, sol yarıdaki sütun arası
+      `gap-x-8` → `gap-x-3` (12px), iki yarı arasındaki `gap-10` kaldırıldı
+      (Release'de 0px), promosyon görseli olmasa bile sol yarı %50'de
+      sabit kalıyor. **Playwright ile Bollmark ve Release'in aynı
+      koordinatları karşılaştırıldı — 1280px ve 1600px'te nav başlangıcı,
+      her iki grup başlığının x'i, sağ yarının başlangıcı, sağ kenar bitişi
+      ve panel dolgusunun HEPSİNDE fark 0.0px.** `tsc` + `build` hatasız.
+      Commit atıldı, PUSH EDİLMEDİ.
 - [ ] Adım 2 — Ürün listeleme (katalog) sayfası: kenar boşluğu daraltma,
       32px grid gap, Filters/Showing/Sort tek satır düzeni. Prompt verildi
       ama HENÜZ UYGULANMADI.

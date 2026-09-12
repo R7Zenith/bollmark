@@ -147,10 +147,17 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
   const isAllProductsActive = !activeSlug && activeGender === genderLabel;
   const promoImages = categories.filter((c) => c.imageUrl).slice(0, 2);
 
+  // Release'de panel iceriginin max-width'i YOK: her ekran genisliginde tam
+  // viewport, yan bosluk sabit 36px (px-9), dikey 32px (py-8); sol ve sag yari
+  // tam ortadan bolunuyor, aralarinda bosluk yok (bkz. 1.1).
   return (
     <div className="absolute inset-x-0 top-full w-full border-b border-line bg-cream">
-      <div className={`mx-auto grid max-w-7xl gap-10 px-6 py-10 ${promoImages.length > 0 ? "grid-cols-2" : "grid-cols-1"}`}>
-        <div className="grid grid-cols-2 gap-x-8 gap-y-3">
+      {/* Sol/sag yari her ekran genisliginde tam ortadan bolunur (Release'de
+          1280/1440/1600/1920'de olculdu: sol yari = sag yari = icerigin
+          yarisi), promosyon gorseli olmasa bile sol yari yayilmaz - gorsel
+          eklendiginde duzen kaymasin diye. Sol yaridaki 2 sutun arasi 12px. */}
+      <div className="grid grid-cols-2 px-9 py-8">
+        <div className="grid grid-cols-2 gap-x-3 gap-y-3">
           <div>
             <p className={GROUP_HEADING_CLASS}>Öne Çıkanlar</p>
             <ul className="space-y-2">
@@ -204,7 +211,7 @@ function AksesuarPanel({ categories }: { categories: MenuCategory[] }) {
 
   return (
     <div className="absolute inset-x-0 top-full w-full border-b border-line bg-cream">
-      <div className={`mx-auto grid max-w-7xl gap-10 px-6 py-10 ${promoImage ? "grid-cols-2" : "grid-cols-1"}`}>
+      <div className="grid grid-cols-2 px-9 py-8">
         <div>
           <p className={GROUP_HEADING_CLASS}>Kategoriler</p>
           <ul className="space-y-2">
@@ -502,8 +509,11 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
         {/* 3 esit sutunlu grid - logo, sol/sag icerigin genisliginden bagimsiz
             olarak her zaman container'in tam ortasinda kalir (flex
             justify-between'de sol/sag esit genislikte olmadigi surece logo
-            merkezden kayar - bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md Adim 0c). */}
-        <div className="mx-auto grid max-w-7xl grid-cols-3 items-center px-6 py-5">
+            merkezden kayar - bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md Adim 0c).
+            Release'de header'in max-width'i yok, yan bosluk masaustunde sabit
+            36px (bkz. 1.1) - bu yuzden max-w-7xl kaldirildi. xl altinda mevcut
+            24px'lik bosluk korunuyor. */}
+        <div className="grid w-full grid-cols-3 items-center px-6 py-5 xl:px-9">
           <div className="flex items-center">
             <DesktopNav menuData={menuData} openMenu={openMenu} setOpenMenu={setOpenMenu} />
           </div>

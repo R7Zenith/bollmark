@@ -2908,3 +2908,33 @@ oku ile bir onceki ekrana donme) gore yeniden yazildi:
   ekrana gecis, geri okuyla koke donus, kapanip tekrar acilinca koke
   sifirlanma, body `overflow:hidden` kilidi - hepsi DOGRULANDI.
 - **Commit atildi, push edilmedi - kullanicinin onayi bekleniyor.**
+
+## Menu genisligi duzeltmesi - max-width kaldirildi (2026-09-12, ayni oturum devami)
+
+Kullanici "Release'in menusu saga sola genis yayilmis, bizimki iceri
+sikistirilmis" dedi - hakliydi. Plan dosyasinin 1.1 bolumunde "panel tam
+viewport genisliginde, 36px yan bosluk" diye olculmustu ama Adim 1a
+uygulanirken eski `mx-auto max-w-7xl px-6` sarmalayicisi korunmustu, yani
+1600px ekranda icerik 1280px'e sikisip her yanda ~184px bos alan kaliyordu.
+
+Release yeniden olculdu (1280/1440/1600/1920 genisliklerinde): header ve
+panel icin `max-width` HIC YOK, tek sinir sabit 36px yan dolgu; icerik her
+genislikte tam ortadan %50/%50 bolunuyor, iki yari arasinda 0px bosluk var,
+sol yaridaki iki sutun (yari-12)/2 genisliginde.
+
+Uygulanan degisiklikler (`src/components/site-header.tsx`):
+- Header satiri: `mx-auto grid max-w-7xl ... px-6` -> `grid w-full ... px-6
+  xl:px-9` (masaustunde 36px, xl altinda mevcut 24px korundu).
+- Panel ici: `mx-auto grid max-w-7xl gap-10 px-6 py-10` -> `grid grid-cols-2
+  px-9 py-8` (iki yari arasi bosluk kaldirildi, dikey dolgu 40->32px).
+- Sol yaridaki sutun arasi `gap-x-8` (32px) -> `gap-x-3` (12px, olculen deger).
+- Promosyon gorseli olmasa bile sol yari %50'de sabit kaliyor (onceden tum
+  genislige yayiliyordu; gorsel eklendiginde duzen kaymasin diye).
+
+**Dogrulama**: Playwright ile Bollmark'in ve Release'in ayni koordinatlari
+karsilastirildi. 1280px ve 1600px'te nav ilk ogesi, "Öne Çıkanlar"/"Featured"
+ve "Kategoriler"/"Categories" x konumlari, sag yarinin baslangici, sag kenar
+bitisi ve panel dolgusu - HEPSINDE fark 0.0px (tam eslesme). `npx tsc
+--noEmit` ve `npm run build` hatasiz.
+
+**Commit atildi, push edilmedi - kullanicinin onayi bekleniyor.**
