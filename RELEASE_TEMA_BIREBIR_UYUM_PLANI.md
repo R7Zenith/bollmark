@@ -429,12 +429,32 @@ geçmişindeki prompt).
         `prefers-reduced-motion` altında animasyon duruyor ve dört mesaj
         birden açılıyor (kopya satır gizleniyor).
       `tsc --noEmit` + `npm run build` hatasız; 390px'te yatay taşma yok.
-- [ ] Adım 4 — (varsa) kalan ince ayarlar / genel görsel kontrol.
+- [x] **Adım 4 — Genel görsel kontrol / kalan ince ayarlar (12 Eylül 2026):**
+      Adım 3'ün ekran görüntüsünde "Renk" seçim butonunun ("HAKİ") Adım 3'te
+      yeni kare/keskin köşeli hale getirilen "Beden" kutucuklarıyla aynı
+      sayfada gözle görülür şekilde farklı bir dilde durduğu (eski
+      `border px-4 py-2 text-sm` — daha iri, köşeleri Tailwind'in varsayılan
+      buton hissine yakın) fark edildi. `product-viewer.tsx`'teki Renk
+      butonları beden kutucuklarıyla aynı görsel dile çekildi: keskin köşe
+      (`rounded-none`), 1px ink çerçeve, `h-7`/`min-w-[28px]`, 11px büyük
+      harf. Beden kutucuklarından farklı olarak `px-3` bırakıldı (renk
+      isimleri "Haki"/"Lacivert" gibi bedenlerden daha uzun metinler
+      olabiliyor, kareye sıkıştırmak metni keserdi).
+      Ardından **Playwright ile anasayfa, katalog, ürün detay, sepet ve
+      mobil menü** 1600/1280/1024/390px genişliklerde tam sayfa ekran
+      görüntüsü alınarak tarandı — Adım 0-3 arasında yapılan tüm
+      değişikliklerin (header hizası, mega menü, mobil drill-down, katalog
+      düzeni, ürün detay ölçüleri) birbiriyle ve genel siteyle tutarlı
+      durduğu, yeni bir taşma/çakışma/kırık düzen bulunmadığı doğrulandı.
+      1024px'te (xl kırılımının altı) header'ın mobil/tablet hamburger
+      moduna doğru şekilde düştüğü ve katalog/ürün detay ızgaralarının
+      bozulmadığı ayrıca kontrol edildi. `tsc --noEmit` + `npm run build`
+      hatasız (build sırasında aynı anda çalışan dev sunucusunun `.next`
+      klasörünü bozması nedeniyle bir defaya mahsus `.next` temizlenip
+      build tekrarlandı — kod kaynaklı bir hata değildi).
+      **Bu adımla RELEASE_TEMA_BIREBIR_UYUM_PLANI.md'deki tüm adımlar
+      tamamlandı.**
 
 **Not:** Bir adımı [x] olarak işaretlemeden önce ya dosyayı tekrar okuyup
 gerçekten uygulandığını doğrula, ya da kullanıcının "bitti/uyguladım"
 dediğini bekle — tahmin ederek işaretleme.
-
-Sıradaki iş: Adım 0c'nin gerçekten uygulanıp uygulanmadığını kontrol et,
-sonra sırayla Adım 1 → 2 → 3 → 4 şeklinde ilerle. Her adım uygulanıp
-kontrol edildikten sonra bir sonrakine geçilecek.

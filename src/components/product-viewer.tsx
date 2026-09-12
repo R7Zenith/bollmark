@@ -347,13 +347,20 @@ export function ProductViewer({
           {colors.length > 0 && colors.some(Boolean) && (
             <div>
               <p className="text-xs uppercase tracking-wide text-ink/60">Renk</p>
-              <div className="mt-2 flex gap-2">
+              {/* Beden kutucuklarindaki keskin kose/ince cerceve diline
+                  cekildi (bkz. Adim 3) - eskiden py-2/text-sm ile beden
+                  kutucuklarindan gozle gorulur bicimde daha iri/yuvarlak
+                  duruyordu, iki secim grubu ayni sayfada farkli dillerde
+                  gorunuyordu. Renk isimleri degisken uzunlukta oldugu icin
+                  (bkz. beden kutucuklarindaki ayni gerekce) genislik sabit
+                  degil, min-w-[28px] + px-3 ile yatayda buyuyor. */}
+              <div className="mt-2 flex flex-wrap gap-2">
                 {colors.map((c) => (
                   <button
                     key={c}
                     onClick={() => setColor(c)}
-                    className={`border px-4 py-2 text-sm ${
-                      color === c ? "border-ink bg-ink text-cream" : "border-line"
+                    className={`flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-3 text-[11px] uppercase leading-none tracking-wide transition ${
+                      color === c ? "bg-ink text-cream" : "bg-transparent text-ink hover:bg-ink/5"
                     }`}
                   >
                     {c}
