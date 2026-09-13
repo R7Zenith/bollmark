@@ -58,8 +58,8 @@ yüksekliği bu geometriye göre (`calc(16vw + 60px)`, `max-height:340px`) ölç
 `position:absolute` ile `ribbon-wrap` içinde ortalanıp döndürüldü.
 
 **b) Şerit viewport kenarlarına tam yaslanmıyordu.**
-`ribbon` genişliği `130vw` → `145vw`'ye çıkarıldı, geniş monitörlerde sınırsız büyümesini önlemek
-için `max-width:2200px` eklendi (aşağıdaki (d) maddesiyle bağlantılı).
+`ribbon` genişliği `130vw` → `145vw`'ye çıkarıldı (üst sınır yok — bkz. §3.1, bu ilk çözümün
+2K/4K'da nasıl yeniden bozulduğu ve nihai haliyle nasıl düzeltildiği için).
 
 **c) z-index katman sırası çalışmıyordu (şerit her iki satırın da üstünde opak duruyordu).**
 Sebep: z-index yalnızca konumlandırılmış (`position:relative/absolute/...`) elemanlarda işlev
@@ -70,9 +70,15 @@ görür; ilk versiyonda satırlar `position:static` idi. §2'de anlatılan harf 
 Kök sebep: `ribbon` genişliği `vw` ile (pratikte) sınırsız büyürken, içindeki `ribbon-item`
 metninin `font-size`'ı `clamp()` ile bir tavanda sabitleniyordu — yani şerit genişliği bir
 noktadan sonra metin genişliğini geçiyordu. 1920px+ monitörlerde ölçülüp doğrulandı
-(`seqWidth < ribbonWidth`). Çözüm: `ribbon`'a `max-width:2200px` eklendi VE tekrar sayısı
-(`MARQUEE_REPEATS`) 8'den 24'e çıkarıldı. 390px'den 2560px'e kadar test edilip her genişlikte
-`seqWidth > ribbonWidth` olduğu (yani sarma anında hiç boşluk kalmadığı) doğrulandı.
+(`seqWidth < ribbonWidth`). **İlk çözüm** (`ribbon`'a `max-width:2200px` + `MARQUEE_REPEATS` 8→24)
+bu bugı giderdi AMA yeni bir bug açtı: 2K (2560px) gibi geniş monitörlerde artık şeridin
+KENDİSİ viewport'tan dar kalıyor, sol/sağda ~188px krem boşluk bırakıyordu (kullanıcı kendi 2K
+monitöründen ekran görüntüsüyle bildirdi). **Nihai çözüm:** `max-width` tamamen kaldırıldı
+(şerit yine `vw` ile sınırsız büyüyor, her zaman kenara yaslanıyor), bunun yerine
+`MARQUEE_REPEATS` çok daha agresif artırıldı (24 → 56) — 390px'den 3840px'e (4K) hatta 5120px'e
+(ultra-wide/5K) kadar `seqWidth`'in `ribbonWidth`'i her zaman aştığı doğrulandı. Yani "genişliği
+sınırla" yaklaşımı yerine "içeriği fazlasıyla besle" yaklaşımına geçildi — ikisi birbiriyle
+çelişen iki farklı sorunu (kenar boşluğu vs. metin boşluğu) aynı anda çözebilen tek yol bu.
 
 **e) Animasyon "durmuş" gibi görünüyordu.**
 Kod tarafında `@keyframes csMarquee` + `animation: csMarquee 22s linear infinite` her zaman
@@ -84,6 +90,17 @@ Seamless loop tekniği: `ribbon-track` içinde `ribbon-seq` iki kez ardışık r
 track'in toplam genişliği bir `ribbon-seq`'in tam 2 katı, `translateX(0) → translateX(-50%)`
 animasyonu bu sayede dikişsiz döngü oluşturuyor (ikinci kopya `aria-hidden`).
 
+**f) Mobilde şerit "COMING SOON"u orantısız kapatıyordu.**
+Şeridin kalınlığı (`padding`) ve içindeki yazının `font-size`'ı sabit px/clamp değerleriyle
+tanımlıydı, oysa başlığın (`h1`) font boyutu mobilde çok daha fazla küçülüyordu (clamp alt
+sınırı 48px'e kadar iniyor). Sonuç: şerit mobilde başlığa göre ORANTISIZ kalın kalıyor, "COMING"
+kelimesinin büyük kısmını (yalnızca "SOON" değil) kapatıyordu. Çözüm: `.cs` üzerinde
+`--h1-size: clamp(48px, 13vw, 120px)` adında ortak bir CSS değişkeni tanımlandı; hem `h1`'in
+`font-size`'ı hem `ribbon`'un `padding`'i (`clamp(3px, calc(var(--h1-size) * 0.045), 8px)`) hem
+de `ribbon-item`'in `font-size`'ı (`clamp(11px, calc(var(--h1-size) * 0.16), 19px)`) artık AYNI
+değişkene oranlı. Böylece şeridin kapladığı ORAN masaüstü ve mobilde aynı kalıyor — sabit piksel
+değeri değil, başlığa göre göreli bir kalınlık.
+
 ## 4. Diğer düzeltmeler
 
 - **Sayfa kenarlarında beyaz çerçeve:** `(gate)/layout.tsx` `globals.css`'i import etmediği için
@@ -91,7 +108,8 @@ animasyonu bu sayede dikişsiz döngü oluşturuyor (ikinci kopya `aria-hidden`)
   ile giderildi.
 - **Tipografi:** Başlık `font-weight:800` (Arial Black benzeri, çok kalın) → self-host General
   Sans `600` (semibold), harf aralığı `-0.015em`. Şerit metni TÜMÜ BÜYÜK HARF + `700-800` ağırlık
-  → Title Case + `500` ağırlık (daha ince/zarif), şerit kalınlığı (`padding`) `10px → 8px`.
+  → Title Case + `500` ağırlık (daha ince/zarif); şerit kalınlığı sabit px'ten başlığa oranlı
+  bir değere geçirildi (bkz. §3.f).
 - **Türkçe çeviriler:** "Launch in" → "Lansmana kalan süre", "Stay Tuned" → "Çok Yakında",
   "About Bollmark" → "Bollmark Hakkında".
 - **Başlık metni seçimi:** "COMING SOON" ile "ÇOK YAKINDA" ekran görüntüsüyle karşılaştırıldı —
@@ -106,8 +124,11 @@ Playwright (Node, proje bağımlılığı olarak eklenmedi — geçici scratchpa
   gerçekten çalıştığı doğrulandı (statik ekran görüntüsü yeterli kanıt değil).
 - `prefers-reduced-motion: reduce` emüle edilerek giriş animasyonunun durduğu, marquee'nin
   durmadığı doğrulandı.
-- 390/1440/1920/2560px genişliklerde `ribbon-seq` genişliğinin `ribbon` genişliğini her zaman
-  aştığı (marquee boşluk bugı için) doğrulandı.
+- 390/1440/1920/2560/3440/3840/5120px genişliklerde hem `ribbon`'un viewport kenarlarını gerçekten
+  aştığı (`getBoundingClientRect().left < 0` ve `.right > viewportWidth`) hem de `ribbon-seq`
+  genişliğinin `ribbon` genişliğini her zaman aştığı (marquee boşluk bugı için) doğrulandı.
+- Kullanıcının kendi 2K monitöründen paylaştığı ekran görüntüsüyle kenar boşluğu bugı gerçek
+  donanımda da doğrulanıp aynı gün içinde düzeltildi.
 - ESLint + `tsc --noEmit` her değişiklik turunda temiz geçti.
 
 ## 6. Bilinen sınırlamalar / sonraki adımlar
@@ -115,6 +136,6 @@ Playwright (Node, proje bağımlılığı olarak eklenmedi — geçici scratchpa
 - Sosyal medya linklerinden yalnızca Instagram eklendi (kullanıcı isteğiyle).
 - `NEXT_PUBLIC_LAUNCH_DATE` `.env.example` ve `.env.local`'a eklendi, gerçek lansman tarihi
   netleşince güncellenmeli.
-- Ribbon `max-width:2200px` ile sınırlandığı için çok geniş (ultra-wide, 3440px+) monitörlerde
-  şerit artık tam kenardan kenara uzanmayabilir — bu, marquee boşluk bugını önlemek için bilinçli
-  bir denge.
+- `MARQUEE_REPEATS` (56) ~5100px genişliğe kadar test edildi; bundan daha geniş bir ekran
+  (ör. çoklu monitör birleşik genişlik) kullanılırsa tekrar sayısının yeniden gözden geçirilmesi
+  gerekebilir.
