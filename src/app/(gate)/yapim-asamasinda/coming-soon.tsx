@@ -26,13 +26,14 @@ function pad(value: number) {
   return String(value).padStart(2, "0");
 }
 
-// Serit genisligi (145vw) bazi genis ekranlarda tek bir ribbon-seq'in
-// toplam metin genislikten fazla olabiliyordu - bu da tek turun sagdan
-// "bitip" bosluk birakmasina, sonra ikinci turun yetisip doldurmasina yol
-// aciyordu (kullanicinin bildirdigi hata). Tekrar sayisini, en genis
-// ekranda bile tek ribbon-seq'in gorunur serit genisliginden fazla
-// olmasini garantileyecek kadar arttirdik.
-const MARQUEE_REPEATS = 24;
+// Serit genisligi (145vw) UST SINIRSIZ (bkz. .cs .ribbon yorumu - 2K/4K
+// monitorlerde kenara tam yaslanabilmesi icin max-width kaldirildi), bu
+// yuzden tekrar sayisi cok genis ekranlarda (5K/ultra-wide, ~5100px'e
+// kadar) bile tek bir ribbon-seq'in gorunur serit genisliginden fazla
+// olacak sekilde ayarlandi - aksi halde metin "sagdan bitip" bosluk
+// birakiyor, sonra ikinci tur yetisip dolduruyordu (kullanicinin
+// bildirdigi hata). 390px'den 5120px'e kadar test edilip dogrulandi.
+const MARQUEE_REPEATS = 56;
 const MARQUEE_WORD = "Çok Yakında";
 
 // Referanstaki (slink) gibi seridin bazi harflerin ONUNDEN, bazilarinin
@@ -79,6 +80,11 @@ export function ComingSoon({ launchDateMs }: { launchDateMs: number }) {
           --muted: #9a9690;
           --lemon: #d9df8c;
           --line: rgba(20,20,20,0.14);
+          /* h1 ile serit kalinligi/pozisyonu ayni degiskene bagli - boylece
+             oran her ekran genisliginde ayni kalir (bkz. asagidaki .ribbon
+             ve .ribbon-item yorumu, mobilde seridin COMING/SOON'u orandan
+             fazla kapatmasi sorunu). */
+          --h1-size: clamp(48px, 13vw, 120px);
           position: relative;
           min-height: 100vh;
           min-height: 100dvh;
@@ -137,7 +143,7 @@ export function ComingSoon({ launchDateMs }: { launchDateMs: number }) {
           text-transform: uppercase;
           line-height: 0.92;
           letter-spacing: -0.015em;
-          font-size: clamp(48px, 13vw, 120px);
+          font-size: var(--h1-size);
         }
         .cs h1 .row {
           display: block;
@@ -186,7 +192,7 @@ export function ComingSoon({ launchDateMs }: { launchDateMs: number }) {
           position: absolute;
           left: 0;
           right: 0;
-          top: calc(clamp(28px, 6vw, 56px) + clamp(48px, 13vw, 120px) * 1);
+          top: calc(clamp(28px, 6vw, 56px) + var(--h1-size) * 1);
           transform: translateY(-50%);
           height: calc(16vw + 60px);
           max-height: 340px;
@@ -194,21 +200,28 @@ export function ComingSoon({ launchDateMs }: { launchDateMs: number }) {
           overflow: hidden;
           pointer-events: none;
         }
-        /* max-width olmadan genis monitorlerde (1920px+) serit vw ile
-           sinirsiz buyuyor ama ribbon-item'in font-size'i clamp() ile
-           bir tavanda sabitlendigi icin tek bir ribbon-seq'in metin
-           genisligi bir noktadan sonra sabit kaliyor - serit metinden
-           genis hale geldiginde metin "sagdan bitip" bosluk birakiyordu
-           (bkz. MARQUEE_REPEATS yorumu). max-width bu buyumeyi sinirliyor. */
+        /* 2K/4K monitorlerde (1920px+) serit viewport kenarina tam
+           yaslanabilsin diye genislik ust siniri YOK - vw ile sinirsiz
+           buyuyor (bkz. bounding-box olcumleri: 2560px genislikte
+           max-width:2200px varken seridin solunda/saginda ~188px bos
+           krem alan kaliyordu, kullanici ekran goruntusunde yakaladi).
+           Bunun yerine "metin sagdan bitip bosluk birakiyor" bugini
+           MARQUEE_REPEATS'i (bkz. yukarida) cok genis ekranlari da
+           (4K/ultra-wide, ~5600px'e kadar) kapsayacak sekilde
+           buyuterek cozduk - genislik sinirlamasi yerine icerik fazlasi. */
         .cs .ribbon {
           position: absolute;
           left: 50%;
           top: 50%;
           width: 145vw;
-          max-width: 2200px;
           transform: translate(-50%, -50%) rotate(-8deg);
           background: var(--lemon);
-          padding: 8px 0;
+          /* Kalinlik artik sabit px degil, --h1-size'a orantili (~%4) -
+             boylece mobildeki kucuk basligin ustunde serit orantisiz
+             kalin durmuyor, desktop'taki gorunumle ayni oranda kaliyor
+             (kullanicinin bildirdigi "mobilde serit COMING SOON'u fazla
+             kapatiyor" sorunu). */
+          padding: clamp(3px, calc(var(--h1-size) * 0.045), 8px) 0;
           pointer-events: auto;
         }
         /* Kullanicinin acik talebiyle: marquee prefers-reduced-motion'a
@@ -228,7 +241,7 @@ export function ComingSoon({ launchDateMs }: { launchDateMs: number }) {
           flex-shrink: 0;
           font-family: var(--bm-coming-font-display), sans-serif;
           font-weight: 500;
-          font-size: clamp(13px, 2.1vw, 19px);
+          font-size: clamp(11px, calc(var(--h1-size) * 0.16), 19px);
           letter-spacing: 0.01em;
           color: #141414;
           padding: 0 1.1em;
