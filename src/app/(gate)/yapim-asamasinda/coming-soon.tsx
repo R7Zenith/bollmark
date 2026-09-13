@@ -208,12 +208,25 @@ export function ComingSoon({ launchDateMs }: { launchDateMs: number }) {
            Bunun yerine "metin sagdan bitip bosluk birakiyor" bugini
            MARQUEE_REPEATS'i (bkz. yukarida) cok genis ekranlari da
            (4K/ultra-wide, ~5600px'e kadar) kapsayacak sekilde
-           buyuterek cozduk - genislik sinirlamasi yerine icerik fazlasi. */
+           buyuterek cozduk - genislik sinirlamasi yerine icerik fazlasi.
+
+           GENISLIK 145vw DEGIL 120vw: -8deg donuk bir dikdortgenin
+           kirpma penceresini (ribbon-wrap, en fazla 340px yukseklik) her
+           noktasinda tam viewport genisligini kapsamasi icin geometrik
+           olarak gereken fazlalik trigonometriyle hesaplaninca sadece
+           ~%3-6 (Wt*(1+(Hc/Wt)*tan(8deg))/cos(8deg) formulu) - 145vw
+           (%45 fazlalik) gereksiz derecede asiriydi. Bu kadar buyuk,
+           donuk, TEK RENK dolgulu bir katman bazi GPU'larda "tile seam"
+           (kompozisyon karosu dikisi) olarak bilinen ince bir cizgi
+           artefaktina yol acabiliyor - kullanicinin "yesil seritte kesik"
+           diye bildirdigi sorun buydu. 120vw hem gerekli minimumun
+           (~%106) rahat uzerinde hem de 145vw'den cok daha kucuk bir
+           katman oldugu icin bu riski azaltiyor. */
         .cs .ribbon {
           position: absolute;
           left: 50%;
           top: 50%;
-          width: 145vw;
+          width: 120vw;
           transform: translate(-50%, -50%) rotate(-8deg);
           background: var(--lemon);
           /* Kalinlik artik sabit px degil, --h1-size'a orantili (~%4) -
@@ -226,11 +239,18 @@ export function ComingSoon({ launchDateMs }: { launchDateMs: number }) {
         }
         /* Kullanicinin acik talebiyle: marquee prefers-reduced-motion'a
            bakmaksizin her zaman akiyor (yalnizca giris fade animasyonu
-           erisilebilirlik icin durduruluyor, bkz. yukaridaki csRise blogu). */
+           erisilebilirlik icin durduruluyor, bkz. yukaridaki csRise blogu).
+
+           Sure, MARQUEE_REPEATS ile AYNI oranda buyutulmeli: translateX(-50%)
+           HER ZAMAN bir ribbon-seq'in tam genisligi kadar yol alir, yani
+           tekrar sayisi arttikca (2K/4K kenar bosluğu bugi icin 24->56)
+           kat edilen mesafe de artiyor - sure sabit kalirsa goze CARPICI
+           sekilde hizlanmis gorunuyor (kullanicinin bildirdigi "asiri hizli,
+           okunmuyor" hatasi tam olarak buydu). 22s * (56/24) = ~51s. */
         .cs .ribbon-track {
           display: flex;
           width: max-content;
-          animation: csMarquee 22s linear infinite;
+          animation: csMarquee 51s linear infinite;
           will-change: transform;
         }
         .cs .ribbon-seq {

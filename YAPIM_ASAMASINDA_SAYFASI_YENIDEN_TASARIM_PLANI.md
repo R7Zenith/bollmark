@@ -101,6 +101,33 @@ de `ribbon-item`'in `font-size`'ı (`clamp(11px, calc(var(--h1-size) * 0.16), 19
 değişkene oranlı. Böylece şeridin kapladığı ORAN masaüstü ve mobilde aynı kalıyor — sabit piksel
 değeri değil, başlığa göre göreli bir kalınlık.
 
+## 3.1. "2K kenar boşluğu" düzeltmesinin kendi regresyonları
+
+`MARQUEE_REPEATS`'i 24→56'ya çıkarıp `ribbon`'un `max-width`'ini kaldırdıktan (§3.d) sonra iki yeni
+sorun ortaya çıktı — ikisi de kullanıcının kendi ekran görüntüleriyle bildirdi:
+
+**g) Animasyon aşırı hızlı, okunmuyor hale geldi.**
+`translateX(-50%)` her zaman TEK bir `ribbon-seq`'in tam genişliği kadar yol alır. Tekrar sayısı
+24'ten 56'ya çıkınca kat edilen mesafe de aynı oranda (~2,3×) arttı, ama `animation-duration`
+(22s) sabit bırakılmıştı — yani aynı sürede 2,3× daha fazla mesafe kat ediliyordu, göze çarpıcı
+şekilde hızlanmış görünüyordu. Süre de aynı oranda büyütüldü: `22s × (56/24) ≈ 51s`. 1440px ve
+2560px'de ölçülen piksel/saniye hızının (~168px/s) artık tutarlı olduğu doğrulandı.
+
+**h) Yeşil şeridin kendisinde ince bir "kesik"/çatlak göründü (metinde değil, renkli bantta).**
+Kullanıcı çok yakın bir kırpma ile bunu gösterdi; kendi Playwright/Chromium testlerimde (yazılım
+tabanlı headless render) hiçbir şekilde tekrarlanamadı — bu genellikle donanım hızlandırmalı
+(GPU) tarayıcılarda çok büyük, döndürülmüş, TEK RENK dolgulu katmanların bazen "tile seam"
+(kompozisyon karosu dikişi) adı verilen bir artefaktla karşılaşmasıyla açıklanır. Kök neden
+analizi: `ribbon` genişliği `145vw` idi, ama -8° döndürülmüş bir dikdörtgenin kırpma penceresini
+(`ribbon-wrap`, en fazla 340px yükseklik) her noktada tam viewport genişliğinde kapsaması için
+GEREKEN fazlalık trigonometriyle hesaplanınca sadece `Wt × (1 + (Hc/Wt) × tan(8°)) / cos(8°)`
+yani ~%103-106 - `145vw` (%45 fazlalık) gereğinden ~8-10 kat daha büyüktü. Genişlik `120vw`'a
+düşürüldü (hâlâ hesaplanan minimumun rahat üzerinde, 390-3840px arası tüm genişliklerde kenar
+kaplamasının bozulmadığı ölçülerek doğrulandı) — hem daha küçük bir katman GPU dikiş riskini
+azaltıyor hem de kenar kaplaması korunuyor. **Not:** Bu düzeltme sonrası kullanıcıdan henüz kendi
+donanımında (asıl "kesik" burada görülmüştü) teyit beklenmektedir; kendi test ortamımızda sorunu
+hiç gözlemleyemediğimiz için kör bir doğrulama yapılamadı.
+
 ## 4. Diğer düzeltmeler
 
 - **Sayfa kenarlarında beyaz çerçeve:** `(gate)/layout.tsx` `globals.css`'i import etmediği için
