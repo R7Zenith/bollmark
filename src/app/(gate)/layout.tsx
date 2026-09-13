@@ -8,7 +8,10 @@ export const metadata: Metadata = {
 export default function GateLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr">
-      <body>{children}</body>
+      {/* Bu layout globals.css'i import etmiyor, bu yuzden tarayicinin
+          varsayilan `body { margin: 8px }` kurali hic sifirlanmiyordu -
+          sayfanin kenarlarinda gorunen beyaz cerceve buydu. */}
+      <body style={{ margin: 0 }}>{children}</body>
     </html>
   );
 }
