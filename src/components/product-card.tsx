@@ -39,6 +39,11 @@ export type ProductCardData = {
   // ekler (bkz. lib/catalog.ts pickQuickAddVariant) - sayfa yonlendirmesi
   // olmadan. Null ise (stokta varyant yoksa) buton gizlenir.
   quickAddVariant?: QuickAddVariant;
+  // Urunun (bu kart tek bir renge ait olsa bile) TUM renkleri - kartta salt
+  // onizleme amacli swatch satiri icin (bkz. lib/catalog.ts CatalogEntry).
+  // Bir swatch'a tiklamak yalnizca kartin gosterdigi gorseli degistirir;
+  // kartin kendi rengini/hedef linkini (colorLabel/href) etkilemez.
+  colors?: { name: string; hex: string; imageUrl: string | null }[];
 };
 
 export function ProductCard({ product }: { product: ProductCardData }) {
@@ -46,6 +51,25 @@ export function ProductCard({ product }: { product: ProductCardData }) {
   const { addLine } = useCart();
   const isWishlisted = ids.has(product.productId);
   const [justAdded, setJustAdded] = useState(false);
+  const colors = product.colors ?? [];
+  const [selectedColorIndex, setSelectedColorIndex] = useState(0);
+  // Doluysa bir swatch manuel secilmis ve gorseli degistirmis demektir -
+  // mevcut hover-ile-ikinci-fotografa gecis bu sure boyunca duraklar (asagida
+  // previewImage kullanilir, secondImage crossfade'i devre disi kalir).
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  function handleSwatchClick(e: React.MouseEvent, index: number) {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedColorIndex(index);
+    const imageUrl = colors[index]?.imageUrl;
+    if (imageUrl) setPreviewImage(imageUrl);
+  }
+
+  function resetSwatchPreview() {
+    setPreviewImage(null);
+    setSelectedColorIndex(0);
+  }
   const href = product.colorLabel
     ? `/urunler/${product.slug}?renk=${encodeURIComponent(product.colorLabel)}`
     : `/urunler/${product.slug}`;
@@ -83,20 +107,20 @@ export function ProductCard({ product }: { product: ProductCardData }) {
   };
 
   return (
-    <Link href={href} className="group block">
+    <Link href={href} className="group block" onMouseLeave={resetSwatchPreview}>
       <div className="relative aspect-[3/4] overflow-hidden bg-line">
         <Image
-          src={product.image}
+          src={previewImage ?? product.image}
           alt={product.name}
           fill
           sizes="(min-width: 1024px) 25vw, 50vw"
           className={
-            product.secondImage
+            !previewImage && product.secondImage
               ? "object-cover transition duration-700 [transition-timing-function:ease] group-hover:opacity-0"
               : "object-cover transition duration-700 [transition-timing-function:ease] group-hover:scale-105"
           }
         />
-        {product.secondImage && (
+        {!previewImage && product.secondImage && (
           <Image
             src={product.secondImage}
             alt={product.name}
@@ -179,6 +203,28 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           )
         )}
       </div>
+      {colors.length > 1 && (
+        <div className="mt-2 flex items-center gap-1.5 px-2 md:px-0">
+          {colors.slice(0, 4).map((color, index) => (
+            <button
+              key={color.name}
+              type="button"
+              onClick={(e) => handleSwatchClick(e, index)}
+              aria-label={color.name}
+              title={color.name}
+              className="flex h-6 w-6 shrink-0 items-center justify-center"
+            >
+              <span
+                className={`block h-[18px] w-[18px] rounded-full border ${
+                  index === selectedColorIndex ? "ring-2 ring-ink ring-offset-2 ring-offset-cream" : ""
+                }`}
+                style={{ backgroundColor: color.hex, borderColor: "rgba(17,17,17,0.15)" }}
+              />
+            </button>
+          ))}
+          {colors.length > 4 && <span className="text-[10px] text-ink/50">+{colors.length - 4}</span>}
+        </div>
+      )}
     </Link>
   );
 }

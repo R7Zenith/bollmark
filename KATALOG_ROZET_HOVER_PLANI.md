@@ -168,5 +168,13 @@ Değişiklikleri yapmadan önce hangi ürünlerde/renklerde ikinci fotoğraf zat
 
 ---
 
+## Sonradan eklenen: Katalog kartında renk swatch önizlemesi
+
+Katalog kartlarına (Release'deki gibi) renk daireleri eklendi — ama mevcut kart mimarisi korundu: `getCatalogEntries()` hâlâ ürünün her rengi için AYRI bir kart üretiyor (grid'de N renk = N kart), bu değiştirilmedi. Swatch satırı bu her bir karta, ürünün TÜM renklerini gösteren salt-önizleme amaçlı eklendi:
+
+- `lib/catalog.ts`: `CatalogEntry.colors: { name, hex, imageUrl }[]` eklendi — ürünün (bu kartın kendi rengi değil, ürünün tamamının) hex kodu tanımlı tüm renkleri, her biri için `ProductOptionImage` galerisindeki ilk fotoğraf (`imageUrl`, yoksa `null`). Not: görev tanımında "ProductVariant.imageUrl" diye bir alan varsayılmıştı ama şemada böyle bir alan yok — mevcut renk-bazlı görsel galerisi `ProductOptionImage` kullanıldı.
+- `product-card.tsx`: `colors.length > 1` ise başlık/fiyatın altına en fazla 4 daire (18px, 6px aralık, 1px açık gri kenarlık) + fazlası için "+N" metni eklendi. Bir daireye tıklamak (sepete ekleme "+" butonunu tetiklemeden) sadece o kartın gösterdiği görseli değiştirir ve daireye 2px halka (ring) ekler; kartın kendi rengi/linki (`colorLabel`/`href`) değişmez. Fare karttan tamamen çıkınca (Link'in `onMouseLeave`'i) seçim ilk renge ve görsel orijinaline sıfırlanır, mevcut hover-ile-2.-fotoğraf çapraz-solması bu sıfırlamaya kadar duraklamış sayılır (seçili bir renk varken bu efekt devre dışı kalır).
+- `colors` alanı opsiyonel bırakıldı; sadece `/urunler` sayfası (`getCatalogEntries` kullanan) dolduruyor — ana sayfa/benzer ürünler (`getPublishedProducts`/`getRelatedProducts`) kapsam dışı bırakıldı, oralarda swatch satırı hiç görünmez.
+
 ## İlgili notlar
 [[bollmark_release_theme_referans]], [[bollmark_release_birebir_plan]]

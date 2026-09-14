@@ -113,6 +113,11 @@ export type CatalogEntry = {
   // product-card.tsx) - urunun/rengin galerisindeki 2. fotograf.
   secondImage: string | null;
   quickAddVariant: QuickAddVariant;
+  // Urunun (bu kart tek bir renge ait olsa bile) TUM renkleri - katalog
+  // kartindaki renk swatch onizlemesi icin (bkz. product-card.tsx). imageUrl
+  // o rengin galerisindeki ilk fotograf (ProductOptionImage), yoksa null -
+  // swatch'a tiklaninca gorsel degismez, sadece aktif olarak isaretlenir.
+  colors: { name: string; hex: string; imageUrl: string | null }[];
 };
 
 export async function getCatalogEntries(
@@ -146,12 +151,24 @@ export async function getCatalogEntries(
   const entries: CatalogEntry[] = [];
   for (const p of products) {
     // Urunun varyantlarinda gercekten var olan renkler (Renk ekseni, isColor:true).
-    const colorLabelByValueId = new Map<string, string>();
+    const colorLabelByValueId = new Map<string, { label: string; hex: string | null }>();
     for (const v of p.variants) {
       for (const o of v.options) {
-        if (o.value.attribute.isColor) colorLabelByValueId.set(o.valueId, o.value.value);
+        if (o.value.attribute.isColor) {
+          colorLabelByValueId.set(o.valueId, { label: o.value.value, hex: o.value.hexColor });
+        }
       }
     }
+
+    // Kartin renk swatch onizlemesi icin - hex kodu tanimsiz renkler (havuzda
+    // hex girilmemis) swatch'ta gosterilemeyecegi icin disarida birakilir.
+    const colors = [...colorLabelByValueId.entries()]
+      .filter(([, { hex }]) => hex)
+      .map(([valueId, { label, hex }]) => ({
+        name: label,
+        hex: hex as string,
+        imageUrl: p.optionImages.find((img) => img.valueId === valueId)?.url ?? null
+      }));
 
     if (colorLabelByValueId.size <= 1) {
       const outOfStock = isOutOfStock(p.variants);
@@ -169,12 +186,13 @@ export async function getCatalogEntries(
         brandId: p.brandId,
         outOfStock,
         lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,
-        quickAddVariant: pickQuickAddVariant(p.variants)
+        quickAddVariant: pickQuickAddVariant(p.variants),
+        colors
       });
       continue;
     }
 
-    for (const [valueId, label] of colorLabelByValueId) {
+    for (const [valueId, { label }] of colorLabelByValueId) {
       const colorImages = p.optionImages.filter((img) => img.valueId === valueId);
       const colorVariants = p.variants.filter((v) => v.options.some((o) => o.valueId === valueId));
       const outOfStock = isOutOfStock(colorVariants);
@@ -190,6 +208,7 @@ export async function getCatalogEntries(
         colorLabel: label,
         categoryId: p.categoryId,
         brandId: p.brandId,
+        colors,
         outOfStock,
         lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,
         quickAddVariant: pickQuickAddVariant(colorVariants)
