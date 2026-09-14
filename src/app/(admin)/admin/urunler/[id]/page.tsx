@@ -19,6 +19,14 @@ import { buildCategoryOptions } from "@/lib/category-tree";
 import { GENDER_OPTIONS } from "@/lib/product-options";
 import { snapshotStockAlerts, carryOverOrQueueRestock, sendRestockNotifications } from "@/lib/stock-alerts";
 
+// Bircok renk/varyanti olan urunlerde updateProduct'in transaction'i (sirayla
+// urun/gorsel/varyant/renk-gorseli sorgulari) varsayilan 5sn'lik Prisma
+// interactive transaction limitini asip P2028 hatasiyla basarisiz oluyordu -
+// bu da kullaniciya yanlislikla "siparise bagli olabilir" mesaji olarak
+// gorunuyordu (catch blogu jenerikti). maxDuration, Vercel fonksiyon suresini;
+// $transaction'daki timeout ise Prisma'nin kendi ic limitini genisletiyor.
+export const maxDuration = 30;
+
 function parseVariantsJson(raw: string): SerializedVariant[] {
   let parsed: unknown;
   try {
@@ -257,18 +265,18 @@ async function updateProduct(id: string, formData: FormData) {
         }
       }
       await tx.productOptionImage.deleteMany({ where: { productId: id } });
-      for (const c of colorImages) {
-        await tx.productOptionImage.createMany({
-          data: c.images.map((img, i) => ({
+      await tx.productOptionImage.createMany({
+        data: colorImages.flatMap((c) =>
+          c.images.map((img, i) => ({
             productId: id,
             valueId: c.valueId,
             url: img.url,
             alt: img.alt,
             position: i
           }))
-        });
-      }
-    });
+        )
+      });
+    }, { timeout: 20000 });
   } catch (error) {
     console.error(`Urun kaydedilemedi (${id}):`, error);
     redirect(`/admin/urunler/${id}?hata=kaydedilemedi`);
