@@ -340,22 +340,51 @@ Kod incelemesi (`product-viewer.tsx` satır ~692-775):
   tarafından sınırlanıyor, yükseklikte fazla boş yer kalıyor. Mobilde dış `p-4`'ü azalt (`p-2 sm:p-4`),
   `max-w-3xl`'i mobilde gevşet (`max-w-full`, sadece `md:max-w-3xl`) — `object-contain` zaten kırpmayı
   engelliyor, bu sadece kullanılabilir alanı büyütür.
-- **Zoomlu halde kaydırma/pan yok:** Şu an sabit `scale(2)` + tıklanan noktaya `transform-origin`, pan
-  (parmakla zoomlu görüntüde gezinme) hiç yok.
+- **Zoomlu halde kaydırma/pan yok (kullanıcı özellikle bunu istiyor):** Şu an sabit `scale(2)` + tıklanan
+  noktaya `transform-origin`, zoomluyken İKİ ayrı davranış da eksik: (1) parmakla zoomlu görüntünün
+  içinde gezinme (pan/sürükleme) hiç yok — sadece nereye dokunduğuna göre sabit bir 2x büyütme yapıyor,
+  parmağı hareket ettirince görüntü kaymıyor; (2) zoomluyken sağa/sola kaydırınca bir sonraki/önceki
+  fotoğrafa geçiş de yok, sadece küçük ok butonları var (ki onlar da z-index hatasından tıklanamıyordu).
+  İkisi birden bir "premium" galeri deneyiminin parçası — iPhone Fotoğraflar/Instagram'da da böyle çalışır:
+  zoomluyken parmakla gezinebiliyorsun, pan sınırına gelince (görüntünün kenarına dayanınca) devam eden
+  bir yatay swipe bir sonraki fotoğrafa geçiriyor.
 
-**Öneri (kullanıcının kütüphane/skill sorusuna cevap):** Lightbox'ı da hazır bir kütüphaneyle değiştir —
-üç sorunu (büyüklük, swipe, pinch-zoom+pan) tek seferde, test edilmiş bir çözümle kapatır:
+**GÜNCELLEME — kullanıcı "Embla'yı zaten kurmuşken zoomlu halde de onu kullanamaz mıyız" diye sordu,
+araştırıldı:** Embla Carousel'in kendisinde **pinch-zoom/pan desteği YOK** — bu, kütüphanenin kendi GitHub
+deposunda açık bir özellik isteği olarak duruyor, henüz eklenmemiş
+([Discussion #828 "Add robust pinch zoom support"](https://github.com/davidjerleke/embla-carousel/discussions/828),
+ayrıca [Discussion #269 "Embla lightbox"](https://github.com/davidjerleke/embla-carousel/discussions/269)
+de aynı şekilde "henüz yok, resmi bir lightbox çözümü de yok" diyor). Yani Embla'yı SADECE zoom için
+kullanmak mümkün değil — ama zoomlu ekranda "sonraki/önceki fotoğrafa geçiş" (swipe) kısmı için Embla
+zaten birebir uygun (bu, ana galeride yaptığı işin aynısı) — o yüzden tam kütüphane değişimi yerine daha
+hafif bir hibrit öneriliyor:
 
-**[Yet Another React Lightbox](https://yet-another-react-lightbox.com/) (`yet-another-react-lightbox`,
-npm'de güncel)** — resmi [Zoom eklentisi](https://yet-another-react-lightbox.com/plugins/zoom)
-(pinch-to-zoom + sürükleyerek pan, dokunmatik dahil) ve [Thumbnails eklentisi](https://yet-another-react-lightbox.com/plugins/thumbnails)
-var, resmi [Next.js örneği](https://yet-another-react-lightbox.com/examples/nextjs) mevcut. Kaydırma, ok
-butonları, ekrana maksimum sığdırma, pinch-zoom hepsi kütüphanenin kendi mantığıyla geliyor.
-Kaynaklar: [ana sayfa](https://yet-another-react-lightbox.com/), [npm](https://www.npmjs.com/package/yet-another-react-lightbox), [GitHub](https://github.com/igordanchenko/yet-another-react-lightbox)
+**Önerilen (daha hafif, Embla'yı tekrar kullanan) yaklaşım:**
+1. Lightbox'taki görsel geçişini (sonraki/önceki) AYRI bir Embla instance'ı ile yap — ana galeride
+   kurulan aynı deseni burada da kullan (istersen aktif index'i ana galeri ile senkron tut).
+2. SADECE pinch-zoom + pan (görüntünün içinde parmakla gezinme) için küçük, bu işe özel bir kütüphane
+   ekle: **[react-zoom-pan-pinch](https://github.com/BetterTyped/react-zoom-pan-pinch)**
+   (`npm install react-zoom-pan-pinch`, aktif geliştiriliyor, `<TransformWrapper>`/`<TransformComponent>`
+   ile herhangi bir görseli pinch/pan/wheel-zoom yapılabilir hale getiriyor, React'e özel, hafif).
+   Kaynaklar: [npm](https://www.npmjs.com/package/react-zoom-pan-pinch), [GitHub](https://github.com/BetterTyped/react-zoom-pan-pinch)
+3. Davranış: görsel zoom seviyesi 1x (varsayılan) iken Embla'nın kendi swipe'ı aktif olsun (sonraki/önceki
+   fotoğrafa geçer); kullanıcı 1x'ten büyük zoom yaptığı an (`react-zoom-pan-pinch`'in `onZoomChange` gibi
+   bir callback'i) Embla'nın swipe'ını GEÇİCİ olarak devre dışı bırak (Embla'nın `reInit`/`plugins`
+   API'siyle ya da basitçe zoom>1 iken dokunma olaylarını `react-zoom-pan-pinch`'e bırak) — kullanıcı pan
+   sınırına dayanıp zoom'u 1x'e geri döndürünce (double-tap veya pinch-out ile) Embla swipe'ı tekrar aktif
+   olsun. Bu, "zoomluyken pan, zoom'dan çıkınca yine fotoğraflar arası swipe" davranışını, tam otomatik
+   swipe-to-next-while-zoomed kadar "sihirli" olmasa da, çok daha az entegrasyon riskiyle verir.
 
-Claude Code'a: mevcut lightbox bloğunu (satır ~692-775) `yet-another-react-lightbox` + Zoom + Thumbnails
-eklentileriyle değiştir, sitenin siyah/cream renk paletine (`bg-ink/95` arka plan vb.) uyacak şekilde
-`styles`/`render` prop'larıyla temalandır.
+**Alternatif (daha az entegrasyon işi ama Embla'yı YİNE DE kullanmayan, ayrı bir hazır lightbox):**
+**[Yet Another React Lightbox](https://yet-another-react-lightbox.com/)** — [Zoom eklentisi](https://yet-another-react-lightbox.com/plugins/zoom)
+zoomluyken hem pan hem sonraki/önceki görsele swipe geçişini TEK PAKET içinde, hazır/test edilmiş olarak
+veriyor (kullanıcının orijinal "swipe zoomluyken de çalışsın" isteğine en pürüzsüz cevap budur), ama
+Embla'dan ayrı bir ikinci carousel motoru eklemiş olursun. Kaynaklar: [ana sayfa](https://yet-another-react-lightbox.com/), [npm](https://www.npmjs.com/package/yet-another-react-lightbox), [GitHub](https://github.com/igordanchenko/yet-another-react-lightbox)
+
+**Benim önerim:** Kullanıcı hafiflik/tek kütüphane istiyorsa 1. seçenek (Embla + react-zoom-pan-pinch
+hibrit); "zoomluyken swipe-to-next" davranışının kusursuz/native-app-gibi çalışması en önemliyse 2.
+seçenek (Yet Another React Lightbox). Claude Code'a hangisini istediğimi netleştirip ona göre kurmasını
+söylemek en doğrusu.
 
 ### Not — yeni bağımlılık eklemeden önce onay al
 

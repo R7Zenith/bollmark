@@ -3289,3 +3289,39 @@ serit/translateX mantiginin TAMAMI silindi, yerine Embla'nin resmi
   de tek dokunus lightbox'i dogru actı.
 
 **Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
+
+## 4d - Lightbox `yet-another-react-lightbox` + Zoom eklentisine tasindi (2026-09-14, ayni gun devami)
+
+Kullanici acikca "yet another react kullan zoomlayinca kaydirmak icin" dedi - plan'in 4d maddesindeki iki
+secenekten (Embla + react-zoom-pan-pinch hibrit VEYA Yet Another React Lightbox) ikincisi secildi.
+
+**Kurulum**: `npm install yet-another-react-lightbox@3.32.2`.
+
+**Degisiklik** (`src/components/product-viewer.tsx`): Elle yazilmis lightbox'in TAMAMI (sabit overlay div,
+X/ok butonlari, klavye (Escape/ArrowLeft/ArrowRight) `useEffect`'i, `body.style.overflow` kilidi, sabit
+`scale(2)` + tiklanan noktaya `transform-origin` zoom mantigi, `zoomed`/`zoomOrigin` state'leri) silindi,
+yerine tek bir `<Lightbox open={...} plugins={[Zoom]} .../>` geldi:
+- `open`/`close`/`index` prop'lari mevcut `lightboxIndex` state'ine bagli - acilis noktasi (mobil ana
+  gorsele veya masaustu 2 sutunlu grid'e tiklama) DEGISMEDI.
+- `on.view` callback'i: lightbox icinde gezinilince (ok/swipe/pinch-zoom sonrasi) hem `activeImage`
+  state'ini hem alttaki Embla ana galerisini VE kucuk resim seridini (`emblaMainApi.scrollTo`,
+  `emblaThumbApi.scrollTo`) senkron tutuyor - lightbox kapaninca kullanici en son baktigi fotografi
+  ana galeride de gormeye devam ediyor.
+- `zoom={{ maxZoomPixelRatio: 3, doubleTapDelay: 300, doubleClickDelay: 300 }}` - pinch-to-zoom (dokunmatik
+  dahil), cift tiklama/dokunma ile zoom, zoomluyken PARMAKLA GEZINME (pan) VE zoomluyken bile sonraki/
+  onceki fotografa GECIS hepsi kutuphanenin kendi ic mantigiyla geliyor - elle kod yazilmadi.
+- `styles`: arka plan `rgba(17,17,17,0.95)` (siteninkiyle ayni `ink` tonu, oncekiyle ayni gorunum), buton
+  rengi cream - sitenin siyah/cream paletine uydurmak icin.
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Yerel `npm run dev` + Playwright (iPhone 13
+cihaz emulasyonu + masaustu 1440px) ile:
+- Mobilde gercek touch (`touchscreen.tap`) ile lightbox acildi (`.yarl__root` DOM'da).
+- Zoom-in/zoom-out toolbar butonlarina tiklandi, ekran goruntusuyle gercek pinch-zoom benzeri buyutme
+  (kumas dokusunun yakinlastigi) GORSEL OLARAK dogrulandi (DOM `transform` stili farkli bir ic sarmalayicida
+  oldugu icin `getComputedStyle` degil ekran goruntusu kullanildi).
+- Zoomluyken fare suruklemesiyle (pan) goruntunun kaydigi ekran goruntusuyle dogrulandi (bel/kalca
+  bolgesi -> kol/cep bolgesine kaydi).
+- Masaustunde (1440px) 2 sutunlu galeri gorseline tiklayinca lightbox ayni sekilde acildi, sayfa yatayda
+  tasmadi.
+
+**Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**

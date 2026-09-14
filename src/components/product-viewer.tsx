@@ -4,20 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import useEmblaCarousel from "embla-carousel-react";
 import { useRouter } from "next/navigation";
-import {
-  Heart,
-  Minus,
-  Plus,
-  Truck,
-  RotateCcw,
-  ShieldCheck,
-  Check,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  ZoomIn,
-  Clock
-} from "lucide-react";
+import { Heart, Minus, Plus, Truck, RotateCcw, ShieldCheck, Check, ZoomIn, Clock } from "lucide-react";
+import Lightbox from "yet-another-react-lightbox";
+import Zoom from "yet-another-react-lightbox/plugins/zoom";
+import "yet-another-react-lightbox/styles.css";
 import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { formatPrice } from "@/lib/format";
@@ -192,12 +182,12 @@ export function ProductViewer({
 
   // Release'de urun gorselleri PhotoSwipe ile tiklaninca tam ekran bir
   // lightbox'ta aciliyor (zoom="click", bkz. product-media-gallery.js).
-  // Bizde tiklama hicbir sey yapmiyordu - burada ayni davranisin sade bir
-  // karsiligi: index null degilse tam ekran overlay, icinde tekrar tiklayinca
-  // 2x yakinlastirma (imlec pozisyonuna gore transform-origin).
+  // Bizde `yet-another-react-lightbox` + Zoom eklentisi kullaniliyor (bkz.
+  // MOBIL_KATALOG..._PLANI.md 4d) - pinch-zoom, zoomlu halde parmakla pan
+  // (gezinme) VE zoomlu haldeyken bile sonraki/onceki gorsele swipe hepsi
+  // kutuphanenin kendi mantigiyla geliyor; elle yazilmis sabit 2x zoom +
+  // tiklanan noktaya transform-origin kodu bunun icin yetersizdi.
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
-  const [zoomed, setZoomed] = useState(false);
-  const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
   const [activeImage, setActiveImage] = useState(0);
   // Mobil ana gorsel + kucuk resim seridi icin Embla Carousel (bkz.
   // MOBIL_KATALOG..._PLANI.md 4c) - elle yazilmis touchstart/touchmove/
@@ -272,33 +262,6 @@ export function ProductViewer({
     };
   }, [emblaMainApi, emblaThumbApi]);
 
-  // Release'de urun gorselleri PhotoSwipe ile tiklaninca tam ekran bir
-  // lightbox'ta aciliyor (zoom="click", bkz. product-media-gallery.js).
-  // Bizde tiklama hicbir sey yapmiyordu - burada ayni davranisin sade bir
-  // karsiligi: index null degilse tam ekran overlay, icinde tekrar
-  // tiklayinca 2x yakinlastirma (imlec pozisyonuna gore transform-origin).
-  useEffect(() => {
-    if (lightboxIndex === null) return;
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setLightboxIndex(null);
-      if (e.key === "ArrowRight") {
-        setZoomed(false);
-        setLightboxIndex((i) => (i === null ? i : (i + 1) % galleryImages.length));
-      }
-      if (e.key === "ArrowLeft") {
-        setZoomed(false);
-        setLightboxIndex((i) => (i === null ? i : (i - 1 + galleryImages.length) % galleryImages.length));
-      }
-    };
-    document.addEventListener("keydown", onKeyDown);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [lightboxIndex, galleryImages.length]);
-
   const handleAdd = () => {
     if (!selected || outOfStock) return;
     addLine({
@@ -326,7 +289,6 @@ export function ProductViewer({
   // bastiriyor - onceki elle yazilmis "wasSwipe" ref hilesine gerek kalmadi,
   // buraya sadece normal bir tiklama isleyicisi yeterli.
   const handleSlideClick = (index: number) => {
-    setZoomed(false);
     setLightboxIndex(index);
   };
 
@@ -407,10 +369,7 @@ export function ProductViewer({
           <button
             key={`${img.url}-${i}`}
             type="button"
-            onClick={() => {
-              setZoomed(false);
-              setLightboxIndex(i);
-            }}
+            onClick={() => setLightboxIndex(i)}
             className="group relative aspect-[3/4] cursor-zoom-in overflow-hidden bg-line"
           >
             <Image src={img.url} alt={img.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
@@ -747,95 +706,33 @@ export function ProductViewer({
       </div>
     </div>
 
-    {/* Zoom lightbox: Release'in PhotoSwipe ile actigi tam ekran gorunumun
-        sade bir karsiligi. Arka plana/X'e tiklamak kapatir, gorselin
-        kendisine tiklamak 2x yakinlastirir (imlec konumuna gore
-        transform-origin), sol/sag oklar + <- -> tuslari galeri icinde
-        gezdirir. */}
-    {lightboxIndex !== null && (
-      <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-ink/95 p-2 sm:p-4"
-        onClick={() => setLightboxIndex(null)}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${productName} - görsel önizleme`}
-      >
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            setLightboxIndex(null);
-          }}
-          className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-cream/30 text-cream transition duration-300 hover:bg-cream/10"
-          aria-label="Kapat"
-        >
-          <X size={20} />
-        </button>
-
-        {galleryImages.length > 1 && (
-          <>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setZoomed(false);
-                setLightboxIndex((i) => (i === null ? i : (i - 1 + galleryImages.length) % galleryImages.length));
-              }}
-              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-cream/30 text-cream transition duration-300 hover:bg-cream/10 md:left-4"
-              aria-label="Önceki görsel"
-            >
-              <ChevronLeft size={22} />
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setZoomed(false);
-                setLightboxIndex((i) => (i === null ? i : (i + 1) % galleryImages.length));
-              }}
-              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-cream/30 text-cream transition duration-300 hover:bg-cream/10 md:right-4"
-              aria-label="Sonraki görsel"
-            >
-              <ChevronRight size={22} />
-            </button>
-          </>
-        )}
-
-        <div
-          className={`relative h-full max-h-[85vh] w-full max-w-full overflow-hidden md:max-w-3xl ${zoomed ? "cursor-zoom-out" : "cursor-zoom-in"}`}
-          onClick={(e) => {
-            e.stopPropagation();
-            setZoomed((z) => !z);
-          }}
-          onMouseMove={(e) => {
-            if (!zoomed) return;
-            const rect = e.currentTarget.getBoundingClientRect();
-            setZoomOrigin({
-              x: ((e.clientX - rect.left) / rect.width) * 100,
-              y: ((e.clientY - rect.top) / rect.height) * 100
-            });
-          }}
-        >
-          <Image
-            src={galleryImages[lightboxIndex].url}
-            alt={galleryImages[lightboxIndex].alt}
-            fill
-            sizes="100vw"
-            className="object-contain transition-transform duration-200 ease-out"
-            style={{
-              transform: zoomed ? "scale(2)" : "scale(1)",
-              transformOrigin: `${zoomOrigin.x}% ${zoomOrigin.y}%`
-            }}
-          />
-        </div>
-
-        {galleryImages.length > 1 && (
-          <p className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs uppercase tracking-widest text-cream/60">
-            {lightboxIndex + 1} / {galleryImages.length}
-          </p>
-        )}
-      </div>
-    )}
+    {/* Zoom lightbox: `yet-another-react-lightbox` + Zoom eklentisi (bkz.
+        MOBIL_KATALOG..._PLANI.md 4d). Elle yazilmis sabit 2x zoom + tiklanan
+        noktaya transform-origin'in yerini aldi - kutuphane pinch-zoom, zoomlu
+        halde parmakla pan (gezinme) VE zoomluyken bile sonraki/onceki
+        gorsele swipe'i kendi ic mantigiyla veriyor. Kapat/Escape/ok
+        tuslari, klavye navigasyonu ve body scroll-lock de kutuphanenin
+        kendisinden geliyor - ayrica kod yazmaya gerek yok. */}
+    <Lightbox
+      open={lightboxIndex !== null}
+      close={() => setLightboxIndex(null)}
+      index={lightboxIndex ?? 0}
+      on={{
+        view: ({ index }) => {
+          setActiveImage(index);
+          emblaMainApi?.scrollTo(index, true);
+          emblaThumbApi?.scrollTo(index, true);
+        }
+      }}
+      slides={galleryImages.map((img) => ({ src: img.url, alt: img.alt }))}
+      plugins={[Zoom]}
+      zoom={{ maxZoomPixelRatio: 3, doubleTapDelay: 300, doubleClickDelay: 300 }}
+      carousel={{ finite: galleryImages.length <= 1 }}
+      styles={{
+        container: { backgroundColor: "rgba(17,17,17,0.95)" },
+        button: { filter: "none", color: "#fffdf9" }
+      }}
+    />
     </>
   );
 }
