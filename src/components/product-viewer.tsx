@@ -736,7 +736,23 @@ export function ProductViewer({
       carousel={{ finite: galleryImages.length <= 1 }}
       styles={{
         container: { backgroundColor: "rgba(17,17,17,0.95)" },
-        button: { filter: "none", color: "#fffdf9" }
+        button: { filter: "none", color: "#fffdf9" },
+        // Beyaz/acik renkli urun fotograflarinda (kirik beyaz zemin gibi)
+        // sadece beyaz renkli oklar arka planla neredeyse hic kontrast
+        // olusturmuyor, gorunmez hale geliyordu - kullanicinin bildirdigi
+        // sorun buydu. Ok butonlarina (zoom in/out/kapat degil, sadece
+        // sol/sag navigasyon) koyu, yari saydam dairesel bir arka plan
+        // eklendi - hangi fotografin uzerinde olursa olsun okunakli kalir.
+        navigationPrev: {
+          backgroundColor: "rgba(17,17,17,0.55)",
+          borderRadius: "9999px",
+          padding: 8
+        },
+        navigationNext: {
+          backgroundColor: "rgba(17,17,17,0.55)",
+          borderRadius: "9999px",
+          padding: 8
+        }
       }}
     />
     </>

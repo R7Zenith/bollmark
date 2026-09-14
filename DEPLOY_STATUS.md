@@ -3367,3 +3367,19 @@ emulasyonu, CDP `Input.dispatchTouchEvent` ile GERCEK touch swipe - mouse simula
   senkron kaliyor.
 
 **Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
+
+## Lightbox ok butonlari beyaz zeminde gorunmuyordu (2026-09-14, ayni gun devami)
+
+Kullanici, zoomluyken beyaz/acik renkli bir urun fotografinda sol/sag ok butonlarinin (cream renkli,
+`#fffdf9`) arka planla neredeyse ayni renk oldugu icin gorunmez hale geldigini bildirdi.
+
+**Duzeltme** (`src/components/product-viewer.tsx`): YARL'in `styles` prop'una `navigationPrev` ve
+`navigationNext` anahtarlari eklendi - SADECE sol/sag navigasyon butonlarina (zoom in/out/kapat butonlarina
+degil) koyu, yari saydam (`rgba(17,17,17,0.55)`) dairesel (`borderRadius: 9999px`) bir arka plan verildi.
+Boylece ok her zaman (fotograf beyaz da olsa, koyu da olsa) okunakli kaliyor.
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Yerel `npm run dev` + Playwright ile
+zoom yapilip beyaz/krem renkli bir tisortun uzerine odaklanildi, ekran goruntusuyle ok butonlarinin artik
+koyu daire icinde net gorundugu dogrulandi.
+
+**Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
