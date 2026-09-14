@@ -3325,3 +3325,45 @@ cihaz emulasyonu + masaustu 1440px) ile:
   tasmadi.
 
 **Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
+
+## Lightbox'ta navigasyon (sonraki/onceki) hicbir sekilde calismiyordu - kritik hata duzeltmesi (2026-09-14, ayni gun devami)
+
+Kullanici "zoomlu haldeyken kaydırınca sürekli aynı fotoğrafta takılı kalıyor sonrakine geçmiyor"
+bildirdi.
+
+**Kok neden (test edilerek dogrulandi, tahmin degil):** `<Lightbox index={lightboxIndex ?? 0} .../>`
+`index` prop'u KONTROLLU (controlled) veriliyordu, ama `on.view` callback'i (kullanici lightbox icinde
+gezindiginde tetiklenen olay) sadece `activeImage`'i ve Embla instance'larini guncelliyordu,
+`lightboxIndex` state'ini HIC guncellemiyordu. Sonuc: kullanici ok butonuna/klavyeye/swipe'a basip
+YARL kendi icinde bir sonraki gorsele gecse bile, bir sonraki render'da `index={lightboxIndex ?? 0}`
+hala ESKI degeri tasidigi icin YARL kontrollu bilesen olarak eski indekse "geri senkronlaniyordu" -
+kullaniciya "aynı fotografta takili kaliyor" gibi gorunuyordu. Bu, ZOOM'a ozel bir hata degildi - Playwright
+ile test edilince ZOOM OLMADAN da (`Next` butonu, gercek touch swipe) ayni sekilde bozuk oldugu
+dogrulandi; kullanici bunu zoom'la denerken fark etmis.
+
+**Duzeltme**: `on.view` callback'ine `setLightboxIndex(index)` eklendi (`src/components/
+product-viewer.tsx`) - artik YARL'in kendi ic navigasyon state'i ile bizim kontrollu `index` prop'umuz
+senkron.
+
+**Ayrica arastirildi ve dogrulandi (kutuphane siniri, hata degil)**: Zoom eklentisinin pan (surukleme)
+mantigi kaynak kodundan okundu (`plugins/zoom/index.js` satir ~330-332) - `offsetX`,
+`Math.min(..., maxOffsetX)` ile SERT sekilde kenarda kilitleniyor, siniri astiktan sonra swipe'a
+"devretme" (handoff) mantigi YOK - yani zoomluyken PARMAKLA suruklemek/kaydirmak hicbir zaman sonraki
+fotografa gecirmeyecek (bu, kutuphanenin v3 stabil surumunde tasarim geregi boyle, "pinchZoomV4"
+deneysel bayragi da bunu degistirmiyor, sadece pinch olcekleme formulunu degistiriyor). Zoomluyken
+sonraki/onceki fotografa gecis SADECE ok butonlari/klavye ile calisiyor (yukaridaki duzeltmeyle bu da
+artik dogru calisiyor).
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Yerel `npm run dev` + Playwright (iPhone 13
+emulasyonu, CDP `Input.dispatchTouchEvent` ile GERCEK touch swipe - mouse simulasyonu degil) ile:
+- Zoom YOKKEN: Next butonu VE gercek touch swipe artik gorseli DEGISTIRIYOR (once her ikisi de sabit
+  kaliyordu).
+- Zoom in yapilip Next butonuna basildiginda: gorsel DEGISIYOR (once sabit kaliyordu - kullanicinin
+  bildirdigi senaryo).
+- Zoomluyken gercek touch swipe: hala gorseli degistirmiyor (kutuphane siniri, yukarida aciklandi) -
+  kullaniciya bu net sekilde bildirildi, isterse ozel bir "pan sinirinda swipe'a devret" ozelligi ayrica
+  gelistirilebilir (ek is, henuz istenmedi).
+- Lightbox kapatilinca en son bakilan gorsel hem ana galeri (Embla) hem kucuk resim seridinde dogru
+  senkron kaliyor.
+
+**Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**

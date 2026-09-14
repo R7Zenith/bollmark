@@ -718,7 +718,13 @@ export function ProductViewer({
       close={() => setLightboxIndex(null)}
       index={lightboxIndex ?? 0}
       on={{
+        // `index` prop kontrollu (controlled) verildigi icin lightboxIndex
+        // burada guncellenmezse YARL'in kendi ic navigasyonu (ok tuslari,
+        // swipe, zoomluyken pan siniri asilinca gecis) her render'da eski
+        // index'e "geri senkronlaniyor" gibi davranip aynı fotografta
+        // takili kaliyordu - kullanicinin bildirdigi hata buydu.
         view: ({ index }) => {
+          setLightboxIndex(index);
           setActiveImage(index);
           emblaMainApi?.scrollTo(index, true);
           emblaThumbApi?.scrollTo(index, true);
