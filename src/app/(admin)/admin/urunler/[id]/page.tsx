@@ -56,7 +56,7 @@ function parseVariantsJson(raw: string): SerializedVariant[] {
     }));
 }
 
-type ImageWithAlt = { url: string; alt: string };
+type ImageWithAlt = { url: string; alt: string; isCover?: boolean };
 
 function parseImagesWithAlt(raw: unknown): ImageWithAlt[] {
   if (!Array.isArray(raw)) return [];
@@ -64,7 +64,8 @@ function parseImagesWithAlt(raw: unknown): ImageWithAlt[] {
     .filter((v): v is Record<string, unknown> => typeof v === "object" && v !== null)
     .map((v) => ({
       url: typeof v.url === "string" ? v.url.trim() : "",
-      alt: typeof v.alt === "string" ? v.alt.trim() : ""
+      alt: typeof v.alt === "string" ? v.alt.trim() : "",
+      isCover: v.isCover === true
     }))
     .filter((v) => v.url);
 }
@@ -272,7 +273,8 @@ async function updateProduct(id: string, formData: FormData) {
             valueId: c.valueId,
             url: img.url,
             alt: img.alt,
-            position: i
+            position: i,
+            isCover: img.isCover === true
           }))
         )
       });
@@ -350,9 +352,9 @@ export default async function EditProductPage({
   const updateWithId = updateProduct.bind(null, product.id);
   const deleteWithId = deleteProduct.bind(null, product.id);
   const initialImages: InitialProductImage[] = product.images.map((i) => ({ url: i.url, alt: i.alt }));
-  const initialColorImages: Record<string, { url: string; alt: string }[]> = {};
+  const initialColorImages: Record<string, { url: string; alt: string; isCover?: boolean }[]> = {};
   for (const img of product.optionImages) {
-    (initialColorImages[img.valueId] ??= []).push({ url: img.url, alt: img.alt });
+    (initialColorImages[img.valueId] ??= []).push({ url: img.url, alt: img.alt, isCover: img.isCover });
   }
   const initialTagIds = product.tags.map((t) => t.id);
   const variantRows: VariantRow[] = product.variants.map((v) => ({

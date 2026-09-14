@@ -202,6 +202,9 @@ model ProductOptionImage {
   url       String
   alt       String                 @default("")
   position  Int                    @default(0)
+  // Katalog kartinda o renk icin ilk gosterilecek fotograf - position'dan
+  // bagimsiz, sadece bunu isaretler (bkz. lib/catalog.ts pickCoverImage).
+  isCover   Boolean                @default(false)
   createdAt DateTime               @default(now())
 
   @@index([productId, valueId])

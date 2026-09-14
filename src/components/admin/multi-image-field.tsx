@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus, Star, Trash2 } from "lucide-react";
 import { ImageField } from "@/components/admin/image-field";
 import { Button } from "@/components/admin/button";
 
-export type ImageEntry = { url: string; alt?: string };
+export type ImageEntry = { url: string; alt?: string; isCover?: boolean };
 
 // Birden cok gorselden olusan bir listeyi yonetir: her satirda ImageField,
 // yukari/asagi siralama, silme, "Gorsel Ekle" butonu.
@@ -43,9 +43,15 @@ export function MultiImageField({
     onChange([...images, { url: "", alt: "" }]);
   }
 
+  function makeCover(index: number) {
+    onChange(images.map((img, i) => ({ ...img, isCover: i === index })));
+  }
+
   return (
     <div className="space-y-2">
-      {images.map((img, i) => (
+      {images.map((img, i) => {
+        const isCover = img.isCover === true || (!images.some((im) => im.isCover === true) && i === 0);
+        return (
         <div key={i} className="flex items-center gap-2 rounded border border-admin-border bg-admin-surface p-2">
           <ImageField
             value={img.url}
@@ -54,6 +60,15 @@ export function MultiImageField({
             onAltChange={(alt) => updateAltAt(i, alt)}
             uploadEndpoint={uploadEndpoint}
           />
+          <button
+            type="button"
+            onClick={() => makeCover(i)}
+            className={`shrink-0 ${isCover ? "text-amber-500" : "text-admin-text-muted hover:text-amber-500"}`}
+            aria-label="Vitrin Fotoğrafı Yap"
+            title="Vitrin Fotoğrafı Yap"
+          >
+            <Star size={16} fill={isCover ? "currentColor" : "none"} />
+          </button>
           <div className="flex shrink-0 flex-col gap-0.5">
             <button
               type="button"
@@ -83,7 +98,8 @@ export function MultiImageField({
             <Trash2 size={16} />
           </button>
         </div>
-      ))}
+        );
+      })}
       <Button type="button" variant="secondary" size="sm" onClick={add}>
         <Plus size={14} /> {addLabel}
       </Button>

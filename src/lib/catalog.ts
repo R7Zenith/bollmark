@@ -27,6 +27,13 @@ export function firstImageUrl(product: { images: { url: string }[]; optionImages
   return product.images[0]?.url ?? product.optionImages[0]?.url ?? null;
 }
 
+// Bir renk galerisinde admin "Vitrin Fotoğrafı Yap" ile isaretlediği gorsel
+// varsa onu, yoksa mevcut position sirasindaki ilk gorseli katalog karti icin
+// dondurur - dizinin sirasi (position) bu secimden bagimsiz kalir.
+export function pickCoverImage<T extends { isCover: boolean }>(images: T[]): T | null {
+  return images.find((img) => img.isCover) ?? images[0] ?? null;
+}
+
 export function isOutOfStock(variants: { stock: number }[]): boolean {
   return variants.length > 0 && variants.every((v) => v.stock <= 0);
 }
@@ -173,14 +180,16 @@ export async function getCatalogEntries(
     if (colorLabelByValueId.size <= 1) {
       const outOfStock = isOutOfStock(p.variants);
       const stock = totalStock(p.variants);
+      const cover = pickCoverImage(p.optionImages);
+      const secondOptionImage = p.optionImages.find((img) => img !== cover);
       entries.push({
         productId: p.id,
         slug: p.slug,
         name: p.name,
         priceCents: p.priceCents,
         compareAtCents: p.compareAtCents,
-        image: p.images[0]?.url ?? p.optionImages[0]?.url ?? null,
-        secondImage: p.images[1]?.url ?? p.optionImages[1]?.url ?? null,
+        image: p.images[0]?.url ?? cover?.url ?? null,
+        secondImage: p.images[1]?.url ?? secondOptionImage?.url ?? null,
         colorLabel: null,
         categoryId: p.categoryId,
         brandId: p.brandId,
@@ -197,14 +206,16 @@ export async function getCatalogEntries(
       const colorVariants = p.variants.filter((v) => v.options.some((o) => o.valueId === valueId));
       const outOfStock = isOutOfStock(colorVariants);
       const stock = totalStock(colorVariants);
+      const cover = pickCoverImage(colorImages);
+      const secondColorImage = colorImages.find((img) => img !== cover);
       entries.push({
         productId: p.id,
         slug: p.slug,
         name: p.name,
         priceCents: p.priceCents,
         compareAtCents: p.compareAtCents,
-        image: colorImages[0]?.url ?? p.images[0]?.url ?? null,
-        secondImage: colorImages[1]?.url ?? p.images[1]?.url ?? null,
+        image: cover?.url ?? p.images[0]?.url ?? null,
+        secondImage: secondColorImage?.url ?? p.images[1]?.url ?? null,
         colorLabel: label,
         categoryId: p.categoryId,
         brandId: p.brandId,

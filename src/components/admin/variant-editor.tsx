@@ -380,7 +380,7 @@ export function VariantEditor({
     activeColorValueIds.map((valueId) => ({
       valueId,
       images: (colorImages[valueId] ?? [])
-        .map((i) => ({ url: i.url.trim(), alt: (i.alt ?? "").trim() }))
+        .map((i) => ({ url: i.url.trim(), alt: (i.alt ?? "").trim(), isCover: i.isCover === true }))
         .filter((i) => i.url)
     }))
   );
