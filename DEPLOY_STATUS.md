@@ -3140,3 +3140,60 @@ Yerel `npm run dev` + Playwright (`preview=onizleme2026!` cookie'siyle
   yanlislikla acilmadi (guard dogrulandi).
 
 **Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
+
+## Ayni plana sonradan eklenen 4a/4b maddeleri (2026-09-14, ayni gun devami)
+
+Yukaridaki galeri swipe isinden sonra plan dosyasina kullanicinin yeni ekran
+goruntusuyle dogruladigi iki ek madde eklenmisti (4a, 4b) - bunlar da
+uygulandi.
+
+**4a - aktif kucuk resmin cercevesi (ring) sadece sagda/solda gorunuyordu**:
+Kok neden koddaki analizle dogrulandi: kucuk resim seridinin sarmalayicisi
+(`overflow-x-auto`) sadece yatay eksende tasmaya izin veriyordu, CSS kurali
+geregi digger eksen de otomatik olarak kirpiyordu - aktif kucuk resmin
+`ring-1 ring-ink ring-offset-1` cercevesi (kutu disina tasan ince golge)
+dikeyde kirpiliyordu. Duzeltme: `src/components/product-viewer.tsx`'teki
+serit konteynerine `py-1` eklendi (`mt-3 flex min-w-0 gap-2 overflow-x-auto
+py-1`) - Playwright ile `getComputedStyle` uzerinden `paddingTop`/
+`paddingBottom` degerlerinin `4px` oldugu ve ekran goruntusunde cercevenin
+4 kenarda da esit gorundugu dogrulandi.
+
+**4b - ana gorsele parmagi gercek zamanli takip eden (iPhone/Instagram tarzi)
+swipe**: Onceki basit `touchstart`/`touchend` (anlik index degistirme)
+kullanicinin istedigi deneyimi karsilamiyordu. `product-viewer.tsx`'e
+eklenenler:
+- Aktif gorselin onceki/kendisi/sonraki 3 kopyasi yan yana bir `flex`
+  seridinde (`translateX(calc(-100% + surukleme_px))`) render ediliyor -
+  galeri dongusel oldugu icin (prev/next `% galleryImages.length` ile
+  hesaplaniyor) bir "kenar" yok, rubber-band gerekmedi.
+  - `touchmove`: `dragOffsetPx` state'i (gorsel transform icin) VE
+    `dragOffsetRef` (senkron okuma icin) ayni anda guncelleniyor -
+    `touchend`'in ayni senkron olay dizisi icinde React'in henuz render'a
+    yansitmadigi bayat bir state okumasi riskini (`dragOffsetPx` kapanmasi)
+    onlemek icin esik hesabi ref'ten yapiliyor.
+  - `touchend`: surukleme mesafesi konteyner genisliginin %20'sini asarsa
+    once serit tamamen (`±width`) kaydiriliyor (`transition` acik, 250ms),
+    250ms sonra `setTimeout` ile aktif index degisip offset gecissiz
+    (`isDragging=true` -> hemen `false`) sifirlaniyor - boylece yeni gorsel
+    "zaten oradaymis" gibi kesintisiz merkeze oturuyor. Esik asilmazsa
+    sadece `transition` acik sekilde 0'a geri donuluyor (rubber-band geri
+    sicramasi).
+  - Aktif kucuk resmin gorunur alanda kalmasi icin yeni bir `useEffect`,
+    `activeImage` degisince ilgili thumbnail'i `scrollIntoView` ile
+    kaydiriyor.
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Yerel
+`npm run dev` + Playwright (`hasTouch`/`isMobile` context, sentetik
+`Touch`/`TouchEvent` dispatch'leri) ile:
+- Esigi asan bir surukleme (3 `touchmove` adimi, ~140px) aktif gorseli
+  gercekten degistirdi (`img src` once/sonra farkli) ve lightbox
+  ACILMADI (`wasSwipe` guard'i hala calisiyor).
+- Aktif kucuk resim vurgusu (`ring-1`) dogru indexe (1) gecti.
+- Esigin ALTINDA kucuk bir surukleme (~20px, konteyner genisliginin
+  %20'sinden az) aktif gorseli DEGISTIRMEDI, transform olcumu
+  (`matrix(1,0,0,1,-358,0)`) seridin tam merkeze (`-100%`, konteyner
+  genisligi 358px) geri sicradigini dogruladi.
+- Ekran goruntusunde aktif kucuk resmin siyah cercevesinin artik 4 kenarda
+  da esit gorundugu teyit edildi.
+
+**Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**

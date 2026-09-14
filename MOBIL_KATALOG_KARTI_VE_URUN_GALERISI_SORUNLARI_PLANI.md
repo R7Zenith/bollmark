@@ -160,6 +160,36 @@ telefon boyutunda) davranışı bizzat görsün, sonra yerel koddaki mobil galer
   sadece küçük resme dokununca değişiyor, ana görselde swipe yok).
 - Eğer yerel blok production'da yoksa: Adım 0'da zaten netleşmiş olacak (pull/deploy gerekiyor demektir).
 
+### 4a. Kullanıcının ekran görüntüsüyle DOĞRULANAN ek bulgu — aktif küçük resmin çerçevesi tek taraflı kesiliyor
+
+Kullanıcının paylaştığı ekran görüntüsünde (ürün detay sayfası, mobil, 5 fotoğraflı bir ürün) aktif küçük
+resmin etrafındaki siyah çerçeve (`ring-1 ring-ink ring-offset-1`, satır ~332) SADECE sağda ve solda
+görünüyor, üstte/altta görünmüyor — gözle "sanki fotoğrafın üstü/altı kesiliyormuş" izlenimi veriyor ama
+kesilen aslında fotoğraf değil, göstergenin (ring) kendisi.
+
+**Kök neden (kodda doğrulandı, tahmin değil):** Küçük resim şeridinin sarmalayıcısı
+(`mt-3 flex gap-2 overflow-x-auto`, satır ~325) sadece yatay eksende `overflow-x-auto` tanımlıyor, DİKEY
+boşluk (padding) yok. CSS'in bir kuralı gereği, bir eksen `overflow: visible` DEĞİLSE diğer eksen de
+otomatik olarak taşmayı kırpan bir moda geçer — yani bu konteyner dikeyde de fiilen "kırpan" davranıyor.
+Aktif küçük resmin `ring-offset-1` + `ring-1` çerçevesi kutunun dışına ince bir gölge olarak taşıyor:
+yatayda öğeler arası `gap-2` (8px) sayesinde bu taşan gölgeye yer var (görünüyor), dikeyde ise konteynerin
+yüksekliği tam thumbnail yüksekliğine (`aspect-square`, 64px) eşit olduğu için taşan kısım kırpılıyor
+(görünmüyor) — asimetrik çerçeve buradan geliyor.
+
+**Çözüm:** `overflow-x-auto` olan konteynere dikey boşluk ekle (`py-1` veya `py-1.5`), ring'in üstte/altta
+da taşacak yeri olsun. Tek satırlık, düşük riskli bir düzeltme.
+
+### 4b. Kullanıcının istediği ek özellik — iPhone tarzı parmağı takip eden swipe animasyonu
+
+Şu an ana görselde swipe/touch event'i hiç yok (madde 4'te zaten belirtilmişti), sadece küçük resme
+dokununca anında (`setActiveImage`) değişiyor. Kullanıcı özellikle **parmağı gerçek zamanlı takip eden**
+bir sürükleme deneyimi istiyor (iPhone Fotoğraflar/Instagram tarzı: parmak hareket ettikçe görsel de
+canlı kayıyor, bırakınca yumuşak `transition` ile bir sonraki/önceki görsele tam oturuyor ya da yetmezse
+geri tepiyor) — bu, basit bir `touchstart`/`touchend` ile index değiştirmekten daha kapsamlı bir iş:
+`touchmove` sırasında elle bir `translateX` state'i güncellenmeli (CSS transition KAPALI, anlık takip
+için), `touchend`'de eşik (örn. genişliğin %20'si) aşıldıysa komşu görsele `transition` AÇIK şekilde
+snap olunmalı, aşılmadıysa mevcut görsele geri dönülmeli.
+
 ---
 
 ## Claude Code'a verilecek prompt
@@ -227,9 +257,35 @@ taşıyor mu, küçük resim şeridi kaydırılabiliyor mu, ana görsel swipe il
 (varsayma). Yerel `product-viewer.tsx`'teki `md:hidden` mobil galeri bloğu (tek büyük görsel + üstteki
 overflow-x-auto thumbnail şeridi) senkron sonrası hâlâ mevcutsa ve production'da bu sorun gözlemleniyorsa:
 - `md:hidden` sarmalayıcıya ve thumbnail şeridine güvenlik payı olarak `min-w-0` ekle.
-- Ana görsele native `touchstart`/`touchend` tabanlı basit bir swipe handler ekle (harici kütüphane
-  ekleme, ~20-30 satırlık bir handler yeterli; sınırları aşmasın, swipe sonrası thumbnail'daki aktif
-  vurgu senkron kalsın).
+
+### 4a. Aktif küçük resmin çerçevesi (ring) sadece sağda/solda görünüyor, üstte/altta kesiliyor
+
+Kullanıcının ekran görüntüsüyle doğrulandı. Sebep: küçük resim şeridinin sarmalayıcısı
+(`mt-3 flex gap-2 overflow-x-auto`, satır ~325) sadece yatayda `overflow-x-auto` tanımlıyor, dikey boşluk
+yok — CSS kuralı gereği bir eksen `visible` değilse diğer eksen de otomatik kırpan moda geçiyor, aktif
+küçük resmin `ring-1 ring-ink ring-offset-1` çerçevesi (kutunun dışına taşan ince bir gölge) yatayda
+`gap-2` sayesinde görünüyor ama dikeyde konteyner yüksekliği tam `aspect-square` thumbnail yüksekliğine
+eşit olduğu için kırpılıyor. Düzeltme: o konteynere dikey boşluk ekle, `overflow-x-auto`'nun yanına
+`py-1` (veya `py-1.5`) koy — ring'in üstte/altta da taşacak yeri olsun. Düzeltme sonrası aktif küçük
+resmin çerçevesinin 4 kenarda da eşit göründüğünü ekran görüntüsüyle doğrula.
+
+### 4b. Ana görsele iPhone tarzı, parmağı gerçek zamanlı takip eden swipe ekle
+
+Şu an ana görselde touch/swipe event'i hiç yok, sadece küçük resme dokununca anında değişiyor. Kullanıcı
+özellikle parmağı CANLI takip eden bir davranış istiyor (basit touchstart/touchend ile index değiştirmek
+YETERLİ DEĞİL). Şunu uygula:
+- `touchstart`: başlangıç X koordinatını ve o an aktif görselin index'ini kaydet, CSS transition'ı kapat.
+- `touchmove`: parmağın X farkına göre görselin `transform: translateX(...)` değerini anlık güncelle
+  (görsel parmağı gerçek zamanlı takip etsin) — ilk/son görseldeyken sınırın ötesine taşmasın veya hafif
+  bir direnç/rubber-band efektiyle taşsın.
+- `touchend`: sürüklenen mesafe genişliğin belirli bir eşiğini (örn. %20) aşmışsa `transition` açık
+  şekilde bir sonraki/önceki görsele `setActiveImage` ile geçiş yap (yumuşak snap), aşmamışsa mevcut
+  görsele `transition`'lı şekilde geri dön.
+- Swipe sonrası küçük resim şeridindeki aktif vurgunun (ring) doğru thumbnail'a geçtiğini ve gerekiyorsa
+  şeridin o thumbnail'ı görünür alana kaydırdığını (`scrollIntoView`, kodda zaten satır 211'de böyle bir
+  kullanım var, aynı desenden yararlanılabilir) doğrula.
+- Harici bir carousel/swipe kütüphanesi EKLEME (proje şu an kullanmıyor), native touch event'lerle ~40-60
+  satırlık bir handler yeterli olmalı.
 
 ### Genel
 

@@ -204,6 +204,21 @@ export function ProductViewer({
   // Swipe sonrasi tarayicinin sentezledigi "click" olayinin lightbox'i
   // yanlislikla acmasini engellemek icin.
   const wasSwipe = useRef(false);
+  // Parmagi CANLI takip eden swipe icin (basit touchstart/touchend index
+  // degistirmenin yerine, kullanicinin istedigi iPhone/Instagram tarzi
+  // davranis): surukleme sirasindaki anlik yatay offset (px) ve gecis
+  // (transition) acik/kapali durumu - surukleme sirasinda kapali (anlik
+  // takip), birakinca acik (yumusak snap).
+  const [dragOffsetPx, setDragOffsetPx] = useState(0);
+  // touchend, ayni senkron olay dizisi icinde State henuz render'a
+  // yansimamis (bayat) dragOffsetPx okuyabilir - esik hesabi bu yuzden
+  // her zaman guncel olan bu ref'ten yapilir, state sadece gorsel
+  // (transform) icin kullanilir.
+  const dragOffsetRef = useRef(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const mainImageRef = useRef<HTMLButtonElement>(null);
+  const thumbStripRef = useRef<HTMLDivElement>(null);
+  const SWIPE_SNAP_MS = 250;
 
   // release-main.myshopify.com/products/top-8 canli DOM'unda "Size guide"
   // linki BEDEN etiketinin hemen yaninda duruyor (`group "Size XS Size
@@ -236,6 +251,17 @@ export function ProductViewer({
   useEffect(() => {
     setActiveImage(0);
   }, [galleryImages]);
+
+  // Ana gorsel swipe ile (veya kucuk resme dokununca) degisince, kucuk resim
+  // seridindeki aktif vurgunun (ring) gorunur alanda kalmasi icin seridi
+  // gerektiginde kaydirir.
+  useEffect(() => {
+    const strip = thumbStripRef.current;
+    const activeThumb = strip?.children[activeImage];
+    if (activeThumb instanceof HTMLElement) {
+      activeThumb.scrollIntoView({ behavior: "smooth", inline: "nearest", block: "nearest" });
+    }
+  }, [activeImage]);
 
   // Release'de urun gorselleri PhotoSwipe ile tiklaninca tam ekran bir
   // lightbox'ta aciliyor (zoom="click", bkz. product-media-gallery.js).
@@ -286,6 +312,55 @@ export function ProductViewer({
     router.push("/odeme");
   };
 
+  // Mobil ana gorselde parmagi canli takip eden swipe - onceki basit
+  // touchstart/touchend ile "index degistirmek" yerine, surukleme sirasinda
+  // gorsel gercekten parmakla birlikte kayiyor (bkz. asagidaki 3'lu
+  // onceki/aktif/sonraki serit ve translateX). Galeri dongusel oldugu icin
+  // (prevIndex/nextIndex modulo ile hesaplaniyor) bir "kenar" yok, rubber-band
+  // gerekmiyor.
+  const handleMainTouchStart = (e: React.TouchEvent) => {
+    if (galleryImages.length < 2) return;
+    touchStartX.current = e.touches[0].clientX;
+    dragOffsetRef.current = 0;
+    setIsDragging(true);
+  };
+
+  const handleMainTouchMove = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const offset = e.touches[0].clientX - touchStartX.current;
+    dragOffsetRef.current = offset;
+    setDragOffsetPx(offset);
+  };
+
+  const handleMainTouchEnd = () => {
+    if (touchStartX.current === null) return;
+    touchStartX.current = null;
+    const width = mainImageRef.current?.clientWidth ?? 1;
+    const threshold = width * 0.2;
+    const finalOffset = dragOffsetRef.current;
+    dragOffsetRef.current = 0;
+    setIsDragging(false);
+
+    if (Math.abs(finalOffset) > threshold) {
+      wasSwipe.current = true;
+      const goingNext = finalOffset < 0;
+      // Once mevcut gorseli tamamen ekran disina kaydir (yumusak gecis acik),
+      // gecis bitince aktif index'i degistirip anlik (gecissiz) sifirla -
+      // boylece yeni gorsel "zaten oradaymis" gibi merkezde belirir.
+      setDragOffsetPx(goingNext ? -width : width);
+      setTimeout(() => {
+        setActiveImage((i) =>
+          goingNext ? (i + 1) % galleryImages.length : (i - 1 + galleryImages.length) % galleryImages.length
+        );
+        setIsDragging(true);
+        setDragOffsetPx(0);
+        requestAnimationFrame(() => setIsDragging(false));
+      }, SWIPE_SNAP_MS);
+    } else {
+      setDragOffsetPx(0);
+    }
+  };
+
   // release-main.myshopify.com/products/top-8'de her genislikte SAYFA
   // YENIDEN YUKLENEREK olculdu (resize yetmiyor, tema grid genisliklerini
   // JS ile sayfa yuklenirken hesapliyor): bilgi paneli ~586-590px civarinda
@@ -312,6 +387,7 @@ export function ProductViewer({
           yapma" hatasiydi, burada ayri bir mobil duzen olarak ayristirildi. */}
       <div className="min-w-0 md:hidden">
         <button
+          ref={mainImageRef}
           type="button"
           onClick={() => {
             if (wasSwipe.current) {
@@ -321,33 +397,42 @@ export function ProductViewer({
             setZoomed(false);
             setLightboxIndex(activeImage);
           }}
-          onTouchStart={(e) => {
-            touchStartX.current = e.touches[0].clientX;
-          }}
-          onTouchEnd={(e) => {
-            if (touchStartX.current === null) return;
-            const deltaX = e.changedTouches[0].clientX - touchStartX.current;
-            touchStartX.current = null;
-            // Kucuk kaydirmalari (tiklama titremesi) yok say, sadece
-            // belirgin bir yatay swipe'ta gorseli degistir.
-            if (Math.abs(deltaX) < 40) return;
-            wasSwipe.current = true;
-            setActiveImage((i) =>
-              deltaX < 0 ? (i + 1) % galleryImages.length : (i - 1 + galleryImages.length) % galleryImages.length
-            );
-          }}
+          onTouchStart={handleMainTouchStart}
+          onTouchMove={handleMainTouchMove}
+          onTouchEnd={handleMainTouchEnd}
           className="relative block aspect-[3/4] w-full cursor-zoom-in touch-pan-y overflow-hidden bg-line"
         >
-          <Image
-            src={galleryImages[activeImage].url}
-            alt={galleryImages[activeImage].alt}
-            fill
-            className="object-cover"
-            priority
-          />
+          {/* Parmagi canli takip eden swipe: onceki/aktif/sonraki 3 gorsel
+              yan yana bir seritte, `translateX(-100% + surukleme)` ile aktif
+              olan ortada goruntuleniyor - surukleme bittiginde esik asilirsa
+              seridin tamami kayip yeni gorsel merkeze oturuyor (galeri
+              dongusel oldugu icin prev/next modulo ile hep gecerli). */}
+          <div
+            className="flex h-full w-full"
+            style={{
+              transform: `translateX(calc(-100% + ${dragOffsetPx}px))`,
+              transition: isDragging ? "none" : `transform ${SWIPE_SNAP_MS}ms ease`
+            }}
+          >
+            {[
+              (activeImage - 1 + galleryImages.length) % galleryImages.length,
+              activeImage,
+              (activeImage + 1) % galleryImages.length
+            ].map((imgIndex, slot) => (
+              <div key={`${slot}-${galleryImages[imgIndex].url}`} className="relative h-full w-full shrink-0">
+                <Image
+                  src={galleryImages[imgIndex].url}
+                  alt={galleryImages[imgIndex].alt}
+                  fill
+                  className="object-cover"
+                  priority={slot === 1}
+                />
+              </div>
+            ))}
+          </div>
         </button>
         {galleryImages.length > 1 && (
-          <div className="mt-3 flex min-w-0 gap-2 overflow-x-auto">
+          <div ref={thumbStripRef} className="mt-3 flex min-w-0 gap-2 overflow-x-auto py-1">
             {galleryImages.map((img, i) => (
               <button
                 key={`${img.url}-${i}`}
