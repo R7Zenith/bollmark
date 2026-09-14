@@ -3419,3 +3419,38 @@ ortamlarina `2026-10-14T00:00:00` degeriyle eklenmeli:
 **Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz tamamlandi, `/yapim-asamasinda` hala statik (`○`).
 
 **Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
+
+## Mobil katalog gorsel bosluklari - Koton karsilastirmasi (2026-09-14, ayni gun devami)
+
+Kullanici, mobilde `/urunler` sayfasindaki urun fotograflarinin Koton'un mobil sitesine kiyasla kucuk
+gorundugunu bildirdi (Koton ekran goruntusu paylasildi): orada gorseller ekran kenarina neredeyse yapisik ve
+iki sutun arasinda sadece ince bir cizgi kadar bosluk var. Kok neden onceden
+`MOBIL_KATALOG_GORSEL_BOSLUK_PLANI.md` dosyasinda tespit edilmisti.
+
+**Kok neden**: `src/app/(site)/urunler/page.tsx` icindeki sayfa konteynerinde mobilde `px-4` (16px) kenar
+bosluğu var (hem basliga hem grid'e uygulaniyor), grid ise `grid-cols-2 gap-4` (16px kart arasi bosluk
+mobilde) kullaniyordu - Koton'da bu bosluklar neredeyse sifir.
+
+**Duzeltme**: Sadece urun grid'i (baslik/toolbar metninin kenar bosluguna dokunmadan) mobilde negatif margin
+ile ust konteynerin `px-4`'unu iptal edip kenara yapistirildi, sutunlar arasi bosluk daraltildi:
+
+```tsx
+<div className="mt-8 -mx-4 grid grid-cols-2 gap-x-0.5 gap-y-3 md:mx-0 md:grid-cols-4 md:gap-6">
+```
+
+- `-mx-4` mobilde ust konteynerin `px-4`'unu iptal ediyor, gorseller ekran kenarina yapisiyor.
+- `gap-x-0.5` (2px) sutunlar arasi bosluğu Koton'daki ince cizgiye yaklastiriyor.
+- `gap-y-3` (12px) satirlar arasi bosluğu ayri tutuyor - kart metni (baslik/fiyat) bir alt satirdaki gorsele
+  yapismasin diye yatay bosluktan belirgin sekilde fazla.
+- `md:mx-0 md:grid-cols-4 md:gap-6` ile masaustu davranisi birebir korundu.
+
+**Dogrulama**:
+- `npx tsc --noEmit` ve `npm run build` hatasiz tamamlandi.
+- Playwright ile yerel `npm run dev` uzerinde `?preview=` sifresiyle (PREVIEW_PASSWORD, "yapim asamasinda"
+  gate'ini asmak icin) 390px ve 1600px genislikte ekran goruntusu alindi:
+  - 390px: gorseller kenara yapisik, sutunlar arasi bosluk ince, kart basligi/fiyati okunabilir kaldi,
+    alt satirdaki gorsele yapismadi. `document.documentElement.scrollWidth === clientWidth` (390) - yatay
+    tasma yok.
+  - 1600px: grid eskisi gibi 4 sutun + ~24px bosluk, degismedi. `scrollWidth === clientWidth` (1600).
+
+**Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**

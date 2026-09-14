@@ -146,10 +146,13 @@ export default async function ProductsPage({
       {entries.length === 0 ? (
         <p className="mt-10 text-ink/60">{emptyMessage}</p>
       ) : (
-        // Kartlar arasi bosluk Release'de olculmus gercek deger: mobilde 16px,
-        // masaustunde 24px (bkz. KATALOG_ROZET_HOVER_PLANI.md 3.4 - 32px'lik
-        // onceki not hataliymis).
-        <div className="mt-8 grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6">
+        // Mobilde gorseller ekran kenarina yapisik olsun diye grid ust
+        // konteynerin px-4'unu -mx-4 ile iptal ediyor (bkz.
+        // MOBIL_KATALOG_GORSEL_BOSLUK_PLANI.md); masaustunde mx-0 ile eski
+        // hale donuyor. Sutunlar arasi bosluk mobilde ince (gap-x-0.5),
+        // satirlar arasi kart metni icin daha genis (gap-y-3); masaustunde
+        // Release'de olculmus gercek deger olan gap-6 korunuyor.
+        <div className="mt-8 -mx-4 grid grid-cols-2 gap-x-0.5 gap-y-3 md:mx-0 md:grid-cols-4 md:gap-6">
           {entries.map((entry) => (
             <ProductCard
               key={`${entry.productId}-${entry.colorLabel ?? "tek"}`}
