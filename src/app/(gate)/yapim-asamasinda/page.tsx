@@ -28,9 +28,11 @@ export const metadata: Metadata = {
     "Yeni sitemizi sizin için hazırlıyoruz. Bollmark, gündelik giyimde sade ve kendine has bir alışveriş deneyimiyle yakında burada."
 };
 
-// NEXT_PUBLIC_LAUNCH_DATE tanimli degilse (ör. yerel gelistirme) bugunden
-// 30 gun sonrasina duser - kullanicinin belirledigi varsayilan.
-const DEFAULT_LAUNCH_DATE = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+// NEXT_PUBLIC_LAUNCH_DATE tanimli degilse (ör. yerel gelistirme ya da env var
+// eksik/silinmis bir deploy) SABIT bu tarihe duser. "simdi + 30 gun" gibi
+// hareketli bir varsayilan KULLANILMAMALI - aksi halde her build'de farkli
+// bir tarih uretilir ve sayac her deploy'da basa sarar.
+const DEFAULT_LAUNCH_DATE = "2026-10-14T00:00:00";
 
 export default function YapimAsamasindaPage() {
   const launchDateIso = process.env.NEXT_PUBLIC_LAUNCH_DATE || DEFAULT_LAUNCH_DATE;

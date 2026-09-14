@@ -3383,3 +3383,39 @@ zoom yapilip beyaz/krem renkli bir tisortun uzerine odaklanildi, ekran goruntusu
 koyu daire icinde net gorundugu dogrulandi.
 
 **Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
+
+## Lansman sayaci her deploy'da sifirlaniyordu - duzeltildi (2026-09-14, ayni gun devami)
+
+Kullanici, "yapim asamasinda" (Cok Yakinda) sayfasindaki geri sayimin her deploy'da basa (30 gun) sardigini
+bildirdi. Onceden `FONT_BOYUTU_KOK_NEDEN_PLANI.md` benzeri bir arastirma dosyasi (`LANSMAN_SAYACI_DEPLOY_SIFIRLAMA_PLANI.md`)
+kok nedeni tespit etmisti.
+
+**Kok neden**: `src/app/(gate)/yapim-asamasinda/page.tsx` icindeki `DEFAULT_LAUNCH_DATE`, `NEXT_PUBLIC_LAUNCH_DATE`
+ortam degiskeni tanimsizken `new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)` ile HAREKETLI (her build aninda
+degisen) bir varsayilana dusuyordu. Bu degisken hicbir yerde (.env, .env.local, muhtemelen Vercel) tanimli
+degildi, bu yuzden her deploy'da (build zamaninda) sayfa yeniden derlenirken farkli bir tarih uretiliyor ve
+sayac deploy anina gore sifirlaniyordu.
+
+**Duzeltme**:
+1. `src/app/(gate)/yapim-asamasinda/page.tsx`: `DEFAULT_LAUNCH_DATE` artik SABIT bir ISO tarih string'i
+   (`"2026-10-14T00:00:00"`, kullaniciyla teyit edildi) - `NEXT_PUBLIC_LAUNCH_DATE` eksik olsa bile artik her
+   build ayni sonucu uretiyor, sayac deploy'dan etkilenmiyor.
+2. Yerel `.env.local` dosyasi olusturuldu, `NEXT_PUBLIC_LAUNCH_DATE="2026-10-14T00:00:00"` eklendi
+   (`.gitignore`'da, repoya gitmiyor).
+3. `.env.example`'da zaten ayni deger (`NEXT_PUBLIC_LAUNCH_DATE="2026-10-14T00:00:00"`) tanimliydi, dokunulmadi.
+
+**Kullanicinin yapmasi gereken (Claude tarafindan yapilamaz)**: Vercel proje ayarlarinda
+(**Settings -> Environment Variables**) `NEXT_PUBLIC_LAUNCH_DATE` degiskeni **hem Production hem Preview**
+ortamlarina `2026-10-14T00:00:00` degeriyle eklenmeli:
+1. https://vercel.com/bollmark/bollmark/settings/environment-variables adresine git (ya da proje ->
+   Settings -> Environment Variables).
+2. "Add New" ile Key: `NEXT_PUBLIC_LAUNCH_DATE`, Value: `2026-10-14T00:00:00`, Environments: Production +
+   Preview isaretli olarak ekle.
+3. Kaydettikten sonra bir **Redeploy** tetiklenmeli (env degisikligi mevcut deployment'a otomatik yansimaz) -
+   Deployments sekmesinden en son deployment'in "..." menusunden "Redeploy" secilebilir.
+4. Env var eklenmese bile artik kod SABIT tarihe dustugu icin sayac tutarli kalacak (yanlis olsa da her
+   deploy'da sabit) - ama gercek lansman tarihinin dogru yansimasi icin env var eklenmesi onerilir.
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz tamamlandi, `/yapim-asamasinda` hala statik (`○`).
+
+**Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
