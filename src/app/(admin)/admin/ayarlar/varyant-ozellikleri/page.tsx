@@ -8,7 +8,8 @@ import { VariantAttributeCard } from "@/components/admin/variant-attribute-card"
 import { VariantAttributesToggleAll } from "@/components/admin/variant-attributes-toggle-all";
 import { VariantAttributesFeedback } from "@/components/admin/variant-attributes-feedback";
 import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
-import { ColorAutoSubmitInput } from "@/components/admin/color-auto-submit-input";
+import { VariantValueHexField } from "@/components/admin/variant-value-hex-field";
+import { VariantValueCreateFields } from "@/components/admin/variant-value-create-fields";
 
 const PATH = "/admin/ayarlar/varyant-ozellikleri";
 
@@ -250,11 +251,11 @@ export default async function VariantAttributesPage({
                           <span className="text-xs text-admin-text-muted">{usageCount} varyantta kullanılıyor</span>
                         )}
                         {isColorAttribute && (
-                          <form action={updateHex} className="flex items-center gap-1.5">
-                            <ColorAutoSubmitInput
+                          <form action={updateHex}>
+                            <VariantValueHexField
                               name="hexColor"
+                              colorName={value.value}
                               defaultValue={value.hexColor || "#000000"}
-                              className="h-7 w-9 cursor-pointer rounded border border-admin-border p-0.5"
                             />
                           </form>
                         )}
@@ -291,16 +292,8 @@ export default async function VariantAttributesPage({
                   })
                 )}
 
-                <form action={createVal} className="flex gap-2 pt-1">
-                  <input name="value" placeholder="Yeni değer" required className={inputClass} />
-                  {isColorAttribute && (
-                    <input
-                      type="color"
-                      name="hexColor"
-                      defaultValue="#000000"
-                      className="h-9 w-11 cursor-pointer rounded border border-admin-border p-0.5"
-                    />
-                  )}
+                <form action={createVal} className="flex items-center gap-2 pt-1">
+                  <VariantValueCreateFields isColorAttribute={isColorAttribute} />
                   <button className="flex shrink-0 items-center gap-1.5 rounded-md border border-admin-border px-3 py-2 text-sm font-medium text-admin-text hover:bg-admin-bg">
                     <Plus size={14} /> Değer Ekle
                   </button>
