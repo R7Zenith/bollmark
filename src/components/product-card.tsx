@@ -52,7 +52,19 @@ export function ProductCard({ product }: { product: ProductCardData }) {
   const isWishlisted = ids.has(product.productId);
   const [justAdded, setJustAdded] = useState(false);
   const colors = product.colors ?? [];
-  const [selectedColorIndex, setSelectedColorIndex] = useState(0);
+  // Kartin ana gorseli hangi renge aitse (colorLabel - bkz. lib/catalog.ts
+  // getCatalogEntries, her CatalogEntry zaten tek bir renge ait) swatch
+  // halkasi o renkle baslamali, dizinin ilk elemaniyla degil - aksi halde
+  // ana gorsel ör. "Lacivert" gosterirken halka hep ilk renk olan
+  // "Siyah"i isaretli gosterirdi. colorLabel eslesen bir renk bulamazsa
+  // (ör. tek renkli urun, colorLabel null) ilk renge geri dusuluyor.
+  const defaultColorIndex = product.colorLabel
+    ? Math.max(
+        0,
+        colors.findIndex((c) => c.name === product.colorLabel)
+      )
+    : 0;
+  const [selectedColorIndex, setSelectedColorIndex] = useState(defaultColorIndex);
   // Doluysa bir swatch manuel secilmis ve gorseli degistirmis demektir -
   // mevcut hover-ile-ikinci-fotografa gecis bu sure boyunca duraklar (asagida
   // previewImage kullanilir, secondImage crossfade'i devre disi kalir).
@@ -68,7 +80,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
 
   function resetSwatchPreview() {
     setPreviewImage(null);
-    setSelectedColorIndex(0);
+    setSelectedColorIndex(defaultColorIndex);
   }
   const href = product.colorLabel
     ? `/urunler/${product.slug}?renk=${encodeURIComponent(product.colorLabel)}`
