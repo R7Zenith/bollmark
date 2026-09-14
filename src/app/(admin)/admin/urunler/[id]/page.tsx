@@ -269,7 +269,8 @@ async function updateProduct(id: string, formData: FormData) {
         });
       }
     });
-  } catch {
+  } catch (error) {
+    console.error(`Urun kaydedilemedi (${id}):`, error);
     redirect(`/admin/urunler/${id}?hata=kaydedilemedi`);
   }
 
