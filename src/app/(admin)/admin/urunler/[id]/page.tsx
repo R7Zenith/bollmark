@@ -161,6 +161,25 @@ async function updateProduct(id: string, formData: FormData) {
   const stockAlertSnapshot = await snapshotStockAlerts(id);
   const restockQueue: { email: string; productName: string; productSlug: string }[] = [];
 
+  // Varyantlar eskiden HER kaydetmede silinip yeni id'yle yeniden
+  // olusturuluyordu - bu, o varyanta ait bir siparis (OrderItem.variantId)
+  // varsa foreign key ihlaliyle TUM kaydin (fotograf/aciklama degisikligi
+  // dahil) geri alinmasina yol aciyordu. Artik istemciden gelen `v.id` ile
+  // eslesen varyantlar YERINDE guncelleniyor (id korunur, siparis baglantisi
+  // bozulmaz) - sadece istemcinin artik gondermedigi (kullanicinin sildigi)
+  // varyantlar silinir.
+  const existingVariants = await prisma.productVariant.findMany({
+    where: { productId: id },
+    select: {
+      id: true,
+      stock: true,
+      stockAlerts: { where: { notifiedAt: null }, select: { id: true, email: true } }
+    }
+  });
+  const existingVariantById = new Map(existingVariants.map((v) => [v.id, v]));
+  const incomingVariantIds = new Set(variants.filter((v) => v.id).map((v) => v.id as string));
+  const variantIdsToDelete = existingVariants.map((v) => v.id).filter((vid) => !incomingVariantIds.has(vid));
+
   try {
     await prisma.$transaction(async (tx) => {
       await tx.product.update({
@@ -188,26 +207,54 @@ async function updateProduct(id: string, formData: FormData) {
       await tx.productImage.createMany({
         data: images.map((img, i) => ({ productId: id, url: img.url, alt: img.alt, position: i }))
       });
-      await tx.productVariant.deleteMany({ where: { productId: id } });
+      if (variantIdsToDelete.length > 0) {
+        await tx.productVariant.deleteMany({ where: { id: { in: variantIdsToDelete } } });
+      }
       for (const v of variants) {
-        const created = await tx.productVariant.create({
-          data: {
-            productId: id,
-            sku: v.sku || `${slug}-${Math.random().toString(36).slice(2, 8)}`,
-            barcode: v.barcode,
-            stock: v.stock,
-            priceCents: v.priceCents,
-            compareAtCents: v.compareAtCents,
-            options: { create: v.optionValueIds.map((valueId) => ({ valueId })) }
+        const sku = v.sku || `${slug}-${Math.random().toString(36).slice(2, 8)}`;
+        const existingVariant = v.id ? existingVariantById.get(v.id) : undefined;
+        if (v.id && existingVariant) {
+          await tx.productVariantOption.deleteMany({ where: { variantId: v.id } });
+          await tx.productVariant.update({
+            where: { id: v.id },
+            data: {
+              sku,
+              barcode: v.barcode,
+              stock: v.stock,
+              priceCents: v.priceCents,
+              compareAtCents: v.compareAtCents,
+              options: { create: v.optionValueIds.map((valueId) => ({ valueId })) }
+            }
+          });
+          if (existingVariant.stock === 0 && v.stock > 0 && existingVariant.stockAlerts.length > 0) {
+            for (const alert of existingVariant.stockAlerts) {
+              restockQueue.push({ email: alert.email, productName: name, productSlug: slug });
+            }
+            await tx.stockAlert.updateMany({
+              where: { id: { in: existingVariant.stockAlerts.map((a) => a.id) } },
+              data: { notifiedAt: new Date() }
+            });
           }
-        });
-        await carryOverOrQueueRestock(
-          tx,
-          stockAlertSnapshot,
-          { id: created.id, sku: created.sku, stock: created.stock },
-          { name, slug },
-          restockQueue
-        );
+        } else {
+          const created = await tx.productVariant.create({
+            data: {
+              productId: id,
+              sku,
+              barcode: v.barcode,
+              stock: v.stock,
+              priceCents: v.priceCents,
+              compareAtCents: v.compareAtCents,
+              options: { create: v.optionValueIds.map((valueId) => ({ valueId })) }
+            }
+          });
+          await carryOverOrQueueRestock(
+            tx,
+            stockAlertSnapshot,
+            { id: created.id, sku: created.sku, stock: created.stock },
+            { name, slug },
+            restockQueue
+          );
+        }
       }
       await tx.productOptionImage.deleteMany({ where: { productId: id } });
       for (const c of colorImages) {
