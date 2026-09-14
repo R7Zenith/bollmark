@@ -52,3 +52,6 @@ bollmark.zip
 
 # Vega koprulu Worker'in yerel wrangler durumu
 /vega-bridge-worker/.wrangler/
+
+# Playwright MCP debug ciktilari (screenshot, console log, page snapshot)
+/.playwright-mcp/
