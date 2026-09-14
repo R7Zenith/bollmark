@@ -20,7 +20,8 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   const product = await prisma.product.findUnique({
     where: { id },
     include: {
-      variants: { include: { options: { include: { value: { include: { attribute: true } } } } } }
+      variants: { include: { options: { include: { value: { include: { attribute: true } } } } } },
+      optionImages: { select: { valueId: true } }
     }
   });
   if (!product) return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
@@ -32,13 +33,27 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     return NextResponse.json({ error: "Bu ürünün barkodlu bir varyantı yok." }, { status: 400 });
   }
 
+  // Sadece hic gorseli olmayan renkler icin arama yapiliyor - aksi halde zaten
+  // fotografi olan renkler icin de Koton'dan ayni gorseller tekrar cekilip
+  // ustune eklenir (duplike gorsel), bkz. kullanicidan gelen geri bildirim.
+  const valueIdsWithImage = new Set(product.optionImages.map((img) => img.valueId));
   const colorValueIdByLabel: Record<string, string> = {};
   for (const variant of product.variants) {
     for (const opt of variant.options) {
-      if (opt.value.attribute.name === "Renk") {
+      if (opt.value.attribute.name === "Renk" && !valueIdsWithImage.has(opt.value.id)) {
         colorValueIdByLabel[opt.value.value] = opt.value.id;
       }
     }
+  }
+  if (Object.keys(colorValueIdByLabel).length === 0) {
+    return NextResponse.json({
+      productId: product.id,
+      productCode: product.code,
+      found: true,
+      imagesAdded: 0,
+      descriptionUpdated: false,
+      missingColors: []
+    });
   }
 
   const result = await enrichOne(

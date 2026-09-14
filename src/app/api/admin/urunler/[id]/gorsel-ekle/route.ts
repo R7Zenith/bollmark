@@ -27,23 +27,36 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   const product = await prisma.product.findUnique({
     where: { id },
-    include: { variants: { include: { options: { include: { value: { include: { attribute: true } } } } } } }
+    include: {
+      variants: { include: { options: { include: { value: { include: { attribute: true } } } } } },
+      optionImages: { select: { valueId: true } }
+    }
   });
   if (!product) return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
   if (!product.code) {
     return NextResponse.json({ error: "Bu ürünün ürün kodu kayıtlı değil." }, { status: 400 });
   }
 
+  // Sadece hic gorseli olmayan renkler icin eslestirme yapiliyor - aksi halde
+  // zaten fotografi olan renkler icin de ayni gorseller tekrar eklenir (duplike).
+  const valueIdsWithImage = new Set(product.optionImages.map((img) => img.valueId));
   const colorValueIdByLabel: Record<string, string> = {};
   for (const variant of product.variants) {
     for (const opt of variant.options) {
-      if (opt.value.attribute.name === "Renk") {
+      if (opt.value.attribute.name === "Renk" && !valueIdsWithImage.has(opt.value.id)) {
         colorValueIdByLabel[opt.value.value] = opt.value.id;
       }
     }
   }
   if (Object.keys(colorValueIdByLabel).length === 0) {
-    return NextResponse.json({ error: "Bu ürünün renk varyantı yok, otomatik eşleştirme yapılamıyor." }, { status: 400 });
+    return NextResponse.json({
+      productId: product.id,
+      productCode: product.code,
+      found: true,
+      imagesAdded: 0,
+      descriptionUpdated: false,
+      missingColors: []
+    });
   }
 
   const result = await enrichFromUrl(
