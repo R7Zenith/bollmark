@@ -392,6 +392,7 @@ export default async function EditProductPage({
             attributes={attributeOptions}
             defaultPriceLabel={defaultPriceLabel}
             defaultCompareAtLabel={defaultCompareAtLabel}
+            productId={product.id}
           />
         </Card>
 

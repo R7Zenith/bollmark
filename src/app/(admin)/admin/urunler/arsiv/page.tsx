@@ -43,19 +43,25 @@ export default async function ArchivedProductsPage({
     },
     include: {
       images: { take: 1, orderBy: { position: "asc" } },
-      optionImages: { take: 1, orderBy: { position: "asc" } },
+      optionImages: { select: { url: true, valueId: true }, orderBy: { position: "asc" } },
       variants: { include: variantOptionsInclude }
     },
     orderBy: { updatedAt: "desc" }
   });
 
   const rows: ProductRow[] = products.map((p) => {
+    const colorValueIds = new Set<string>();
     const colorSet = new Set<string>();
     for (const v of p.variants) {
       for (const o of v.options) {
-        if (o.value.attribute.isColor) colorSet.add(o.value.value);
+        if (o.value.attribute.isColor) {
+          colorValueIds.add(o.valueId);
+          colorSet.add(o.value.value);
+        }
       }
     }
+    const valueIdsWithImage = new Set(p.optionImages.map((img) => img.valueId));
+    const missingColorCount = Array.from(colorValueIds).filter((id) => !valueIdsWithImage.has(id)).length;
     return {
       id: p.id,
       name: p.name,
@@ -66,7 +72,8 @@ export default async function ArchivedProductsPage({
       stock: p.variants.reduce((sum, v) => sum + v.stock, 0),
       createdAt: p.createdAt.toISOString(),
       imageUrl: p.images[0]?.url ?? p.optionImages[0]?.url ?? null,
-      colors: Array.from(colorSet)
+      colors: Array.from(colorSet),
+      missingColorCount
     };
   });
 

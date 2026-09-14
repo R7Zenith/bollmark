@@ -24,6 +24,10 @@ export interface ProductRow {
   // Urunun varyantlarinda gercekten var olan renkler (Renk ekseni,
   // isColor:true) - bos ise renk varyasyonu yok.
   colors: string[];
+  // Renklerden kacinin optionImages tablosunda hic gorseli yok - urun genelinde
+  // (imageUrl) bir gorsel bulunsa bile, cok renkli bir urunde bazi renkler hala
+  // fotografsiz olabilir. Buton gorunurlugu ve "N renk fotografsiz" rozeti icin.
+  missingColorCount: number;
 }
 
 const statusLabel: Record<string, string> = { DRAFT: "Taslak", PUBLISHED: "Yayında", ARCHIVED: "Arşiv" };
@@ -109,8 +113,14 @@ export function ProductsTable({
         showToast(data.error ?? "Görsel eklenemedi.", "error");
         return;
       }
+      const missingColors: string[] = Array.isArray(data.missingColors) ? data.missingColors : [];
       if (data.found && data.imagesAdded > 0) {
-        showToast(`${data.imagesAdded} görsel eklendi.`, "success");
+        showToast(
+          missingColors.length > 0
+            ? `${data.imagesAdded} görsel eklendi, ama şu renkler hâlâ fotoğrafsız: ${missingColors.join(", ")}`
+            : `${data.imagesAdded} görsel eklendi.`,
+          missingColors.length > 0 ? "error" : "success"
+        );
         router.refresh();
       } else if (data.found) {
         showToast("Sayfa bulundu ama bu renkler için görsel bulunamadı.", "error");
@@ -137,8 +147,14 @@ export function ProductsTable({
         showToast(data.error ?? "Görsel arama başarısız oldu.", "error");
         return;
       }
+      const missingColors: string[] = Array.isArray(data.missingColors) ? data.missingColors : [];
       if (data.found && data.imagesAdded > 0) {
-        showToast(`${data.imagesAdded} görsel eklendi.`, "success");
+        showToast(
+          missingColors.length > 0
+            ? `${data.imagesAdded} görsel eklendi, ama şu renkler hâlâ fotoğrafsız: ${missingColors.join(", ")}`
+            : `${data.imagesAdded} görsel eklendi.`,
+          missingColors.length > 0 ? "error" : "success"
+        );
         router.refresh();
       } else if (data.found) {
         showToast("Ürün Koton'da bulundu ama bu renkler için görsel bulunamadı.", "error");
@@ -243,16 +259,22 @@ export function ProductsTable({
     {
       key: "colors",
       header: "Renkler",
-      render: (row) =>
-        row.colors.length > 1 ? (
-          <span title={row.colors.join(", ")}>
-            <Badge tone="blue">{row.colors.length} Renk</Badge>
-          </span>
-        ) : row.colors.length === 1 ? (
-          <span className="text-sm text-admin-text-muted">{row.colors[0]}</span>
-        ) : (
-          <span className="text-admin-text-muted">—</span>
-        )
+      render: (row) => (
+        <div className="flex flex-col items-start gap-1">
+          {row.colors.length > 1 ? (
+            <span title={row.colors.join(", ")}>
+              <Badge tone="blue">{row.colors.length} Renk</Badge>
+            </span>
+          ) : row.colors.length === 1 ? (
+            <span className="text-sm text-admin-text-muted">{row.colors[0]}</span>
+          ) : (
+            <span className="text-admin-text-muted">—</span>
+          )}
+          {row.missingColorCount > 0 && (
+            <Badge tone="red">{row.missingColorCount} renk fotoğrafsız</Badge>
+          )}
+        </div>
+      )
     },
     {
       key: "price",
@@ -328,7 +350,7 @@ export function ProductsTable({
           >
             <Tag size={15} />
           </IconButton>
-          {!row.imageUrl && (
+          {(!row.imageUrl || row.missingColorCount > 0) && (
             <IconButton
               title="Fotoğrafları Yeniden Ara"
               onClick={() => handleGorselYenile(row.id)}
@@ -342,7 +364,7 @@ export function ProductsTable({
               )}
             </IconButton>
           )}
-          {!row.imageUrl && (
+          {(!row.imageUrl || row.missingColorCount > 0) && (
             <IconButton
               title="Koton Linkiyle Ekle"
               onClick={() => handleGorselEkle(row.id)}

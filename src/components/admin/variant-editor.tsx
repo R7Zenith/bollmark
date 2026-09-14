@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Search, Loader2 } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { Button } from "@/components/admin/button";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
 import { MultiImageField, type ImageEntry } from "@/components/admin/multi-image-field";
 import { SearchableMultiSelect } from "@/components/admin/searchable-multi-select";
 import { useDirtySignal } from "@/components/admin/use-dirty-signal";
+import { useToast } from "@/components/admin/toast";
 
 export type AttributeOption = {
   id: string;
@@ -134,7 +135,8 @@ export function VariantEditor({
   initialColorImages,
   attributes,
   defaultPriceLabel,
-  defaultCompareAtLabel
+  defaultCompareAtLabel,
+  productId
 }: {
   fieldName: string;
   colorImagesFieldName: string;
@@ -143,12 +145,17 @@ export function VariantEditor({
   attributes: AttributeOption[];
   defaultPriceLabel: string;
   defaultCompareAtLabel: string;
+  // Sadece mevcut (kaydedilmis) urunlerde dolu - "Bu renk için Koton'da ara"
+  // butonu icin gerekli, yeni urun olusturma sayfasinda henuz productId yok.
+  productId?: string;
 }) {
   const [rows, setRows] = useState<VariantRow[]>(
     initialRows.length > 0 ? initialRows : [emptyVariantRow()]
   );
   const [selected, setSelected] = useState<Record<string, Set<string>>>({});
   const [colorImages, setColorImages] = useState<Record<string, ImageEntry[]>>(initialColorImages);
+  const [searchingColorIds, setSearchingColorIds] = useState<Set<string>>(new Set());
+  const { showToast } = useToast();
 
   const colorAttribute = attributes.find((a) => a.isColor);
   const activeColorValueIds = colorAttribute
@@ -161,6 +168,38 @@ export function VariantEditor({
 
   function setColorImagesFor(valueId: string, images: ImageEntry[]) {
     setColorImages((prev) => ({ ...prev, [valueId]: images }));
+  }
+
+  async function handleRenkGorseliAra(valueId: string, label: string) {
+    if (!productId) return;
+    setSearchingColorIds((prev) => new Set(prev).add(valueId));
+    try {
+      const res = await fetch(`/api/admin/urunler/${productId}/gorsel-renk-ara`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ valueId })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        showToast(data.error ?? "Görsel arama başarısız oldu.", "error");
+        return;
+      }
+      if (data.found && data.imagesAdded > 0) {
+        showToast(`${label} için ${data.imagesAdded} görsel eklendi. Sayfayı yenileyin.`, "success");
+      } else if (data.found) {
+        showToast(`Ürün Koton'da bulundu ama "${label}" için görsel bulunamadı.`, "error");
+      } else {
+        showToast("Koton'da bulunamadı.", "error");
+      }
+    } catch {
+      showToast("Görsel arama sırasında bir hata oluştu.", "error");
+    } finally {
+      setSearchingColorIds((prev) => {
+        const next = new Set(prev);
+        next.delete(valueId);
+        return next;
+      });
+    }
   }
 
   function updateRow(clientId: string, patch: Partial<VariantRow>) {
@@ -410,11 +449,24 @@ export function VariantEditor({
           activeColorValueIds.map((valueId) => {
             const val = colorAttribute.values.find((v) => v.id === valueId);
             if (!val) return null;
+            const isEmpty = (colorImages[valueId] ?? []).length === 0;
+            const isSearching = searchingColorIds.has(valueId);
             return (
               <div key={valueId} className="space-y-2">
                 <p className="flex items-center gap-1.5 text-sm font-medium text-admin-text">
                   {val.hexColor && <ColorDot hexColor={val.hexColor} />}
                   {val.value}
+                  {isEmpty && productId && (
+                    <button
+                      type="button"
+                      onClick={() => handleRenkGorseliAra(valueId, val.value)}
+                      disabled={isSearching}
+                      className="ml-1 inline-flex items-center gap-1 rounded border border-admin-border px-1.5 py-0.5 text-xs text-admin-text-muted hover:bg-admin-bg disabled:opacity-50"
+                    >
+                      {isSearching ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
+                      Bu renk için Koton&apos;da ara
+                    </button>
+                  )}
                 </p>
                 <MultiImageField
                   images={colorImages[valueId] ?? []}

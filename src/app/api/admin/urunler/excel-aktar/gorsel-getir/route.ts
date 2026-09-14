@@ -40,7 +40,14 @@ export async function POST(request: NextRequest) {
     result = await enrichOne(target);
   } catch (error) {
     console.error(`Koton görsel eşleştirme başarısız (ürün kodu: ${target.productCode}):`, error);
-    result = { productId: target.productId, productCode: target.productCode, found: false, imagesAdded: 0, descriptionUpdated: false };
+    result = {
+      productId: target.productId,
+      productCode: target.productCode,
+      found: false,
+      imagesAdded: 0,
+      descriptionUpdated: false,
+      missingColors: Object.keys(target.colorValueIdByLabel)
+    };
   }
   return NextResponse.json(result);
 }

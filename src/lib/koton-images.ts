@@ -229,6 +229,10 @@ export interface KotonEnrichmentResult {
   found: boolean;
   imagesAdded: number;
   descriptionUpdated: boolean;
+  // Hedef renklerden (colorValueIdByLabel) Koton tarafinda hic bulunamayan ya da
+  // gorsel seti bos gelenlerin etiket listesi - admin panelinde hangi renklerin
+  // hala fotografsiz kaldigini gostermek icin.
+  missingColors: string[];
 }
 
 // `findKotonProductData` (arama ile) veya dogrudan verilen bir URL (`enrichFromUrl`)
@@ -245,7 +249,8 @@ async function applyKotonProductData(
     productCode: target.productCode,
     found: true,
     imagesAdded: 0,
-    descriptionUpdated: false
+    descriptionUpdated: false,
+    missingColors: []
   };
 
   if (data.description && overwriteDescription) {
@@ -262,8 +267,16 @@ async function applyKotonProductData(
   const useFallback = data.colorImageUrls.size === 0 && targetColors.length === 1 && data.fallbackImageUrls.length > 0;
 
   for (const [label, valueId] of targetColors) {
-    const urls = useFallback ? data.fallbackImageUrls : data.colorImageUrls.get(normalizeColorLabel(label));
-    if (!urls || urls.length === 0) continue;
+    const normalizedLabel = normalizeColorLabel(label);
+    const found = useFallback ? true : data.colorImageUrls.has(normalizedLabel);
+    const urls = useFallback ? data.fallbackImageUrls : data.colorImageUrls.get(normalizedLabel);
+    console.log(
+      `Koton renk eşleştirme (${target.productCode}): "${label}" arandı, Koton'da bulundu: ${found}, gelen görsel sayısı: ${urls?.length ?? 0}`
+    );
+    if (!urls || urls.length === 0) {
+      result.missingColors.push(label);
+      continue;
+    }
 
     const uploaded: string[] = [];
     for (const sourceUrl of urls.slice(0, MAX_IMAGES_PER_COLOR)) {
@@ -281,6 +294,8 @@ async function applyKotonProductData(
         }))
       });
       result.imagesAdded += uploaded.length;
+    } else {
+      result.missingColors.push(label);
     }
   }
 
@@ -306,7 +321,8 @@ export async function enrichOne(
       productCode: target.productCode,
       found: false,
       imagesAdded: 0,
-      descriptionUpdated: false
+      descriptionUpdated: false,
+      missingColors: Object.keys(target.colorValueIdByLabel)
     };
   }
   return applyKotonProductData(target, data, options?.overwriteDescription ?? true);
@@ -325,7 +341,8 @@ export async function enrichFromUrl(
     productCode: target.productCode,
     found: false,
     imagesAdded: 0,
-    descriptionUpdated: false
+    descriptionUpdated: false,
+    missingColors: Object.keys(target.colorValueIdByLabel)
   };
   let data: KotonProductData | null;
   try {
@@ -355,7 +372,8 @@ export async function enrichProductsFromKoton(
         productCode: targets[i].productCode,
         found: false,
         imagesAdded: 0,
-        descriptionUpdated: false
+        descriptionUpdated: false,
+        missingColors: Object.keys(targets[i].colorValueIdByLabel)
       });
     }
   }
