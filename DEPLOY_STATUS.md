@@ -3476,4 +3476,27 @@ ve `urunler/page.tsx`'teki grid satirina dokunulmadi.
     degmiyor, kisa ve uzun urun isimlerinde okunabilir kaldi.
   - 1600px: hicbir gorsel degisiklik yok (metin zaten gorselle hizali kaliyor, masaustunde `gap-6` yeterli).
 
+## Urun karti - baslik ile fiyat arasi bosluk fazlaydi (2026-09-14, ayni gun devami)
+
+Kullanici ekran goruntusuyle, urun kartinda basligin altindaki renk etiketi ve fiyat satiri arasinda
+gereginden fazla bosluk oldugunu bildirdi. Kok neden ve cozum onceden
+`URUN_KARTI_BASLIK_FIYAT_BOSLUGU_PLANI.md` dosyasinda tespit edilmisti.
+
+**Duzeltme**: `src/components/product-card.tsx` icinde SADECE iki saf margin degeri kucultuldu, hizalama
+icin kullanilan `min-h-[30px]` (baslik) ve `min-h-[15px]` (renk etiketi) degerlerine dokunulmadi:
+- Renk etiketi `<p>`: `mt-1` -> `mt-0.5`.
+- Fiyat satirinin sarmalayici `<div>`'i: `mt-2` -> `mt-1`.
+
+Bu degisiklik responsive degil (tek deger), hem masaustunu hem mobili ayni sekilde etkiliyor.
+
+**Dogrulama**:
+- `npx tsc --noEmit` ve `npm run build` hatasiz tamamlandi.
+- Playwright ile canli ekran goruntusu/hizalama olcumu bu oturumda ALINAMADI: `playwright` MCP sunucusu
+  baglanti zaman asimina ugradi (CONNECT_TIMEOUT). Degisiklik sadece iki `mt-*` degerini kucultuyor,
+  hizalamayi saglayan `min-h` degerlerine dokunmuyor; yine de bir sonraki oturumda Playwright
+  calisiyorken 375-390px ve 1280px genislikte tek satirlik/iki satirlik baslikli urunlerin fiyat
+  satirlarinin hizali kaldigi `getBoundingClientRect()` ile dogrulanmali.
+
+**Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
+
 **Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
