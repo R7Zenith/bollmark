@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Plus, Trash2, Search, Loader2 } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { Button } from "@/components/admin/button";
@@ -153,6 +153,7 @@ export function VariantEditor({
     initialRows.length > 0 ? initialRows : [emptyVariantRow()]
   );
   const [selected, setSelected] = useState<Record<string, Set<string>>>({});
+  const [sort, setSort] = useState<{ attrId: string; direction: "asc" | "desc" } | null>(null);
   const [colorImages, setColorImages] = useState<Record<string, ImageEntry[]>>(initialColorImages);
   const [searchingColorIds, setSearchingColorIds] = useState<Set<string>>(new Set());
   const { showToast } = useToast();
@@ -276,6 +277,7 @@ export function VariantEditor({
   const attributeColumns: DataTableColumn<VariantRow>[] = attributes.map((attr) => ({
     key: `attr-${attr.id}`,
     header: attr.name,
+    sortable: true,
     render: (row) => {
       const val = attr.values.find((v) => row.optionValueIds.includes(v.id));
       if (!val) return <span className="text-admin-text-muted">—</span>;
@@ -375,6 +377,32 @@ export function VariantEditor({
     }
   ];
 
+  function handleSortChange(key: string, direction: "asc" | "desc") {
+    const attrId = key.startsWith("attr-") ? key.slice("attr-".length) : null;
+    if (!attrId) return;
+    setSort({ attrId, direction });
+  }
+
+  const sortedRows = useMemo(() => {
+    if (!sort) return rows;
+    const attr = attributes.find((a) => a.id === sort.attrId);
+    if (!attr) return rows;
+
+    function positionOf(row: VariantRow): number {
+      const valueId = row.optionValueIds.find((id) => attr!.values.some((v) => v.id === id));
+      if (!valueId) return -1;
+      return attr!.values.findIndex((v) => v.id === valueId);
+    }
+
+    const withValue = rows.filter((r) => positionOf(r) !== -1);
+    const withoutValue = rows.filter((r) => positionOf(r) === -1);
+
+    withValue.sort((a, b) => positionOf(a) - positionOf(b));
+    if (sort.direction === "desc") withValue.reverse();
+
+    return [...withValue, ...withoutValue];
+  }, [rows, sort, attributes]);
+
   const variantsValue = JSON.stringify(serializeVariantRows(rows));
   const colorImagesValue = JSON.stringify(
     activeColorValueIds.map((valueId) => ({
@@ -425,10 +453,11 @@ export function VariantEditor({
 
       <DataTable
         columns={columns}
-        data={rows}
+        data={sortedRows}
         getRowId={(r) => r.clientId}
         selectable
         bulkActions={bulkActions}
+        onSortChange={handleSortChange}
         emptyTitle="Henüz varyant yok"
       />
       <Button type="button" variant="secondary" size="sm" onClick={addRow}>
