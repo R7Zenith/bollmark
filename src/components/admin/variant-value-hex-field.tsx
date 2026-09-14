@@ -27,7 +27,9 @@ export function VariantValueHexField({
       <HexSuggestButton
         getName={() => colorName}
         onSuggest={(hex) => {
-          if (inputRef.current) inputRef.current.value = hex;
+          if (!inputRef.current) return;
+          inputRef.current.value = hex;
+          inputRef.current.form?.requestSubmit();
         }}
       />
     </div>
