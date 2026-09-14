@@ -149,18 +149,18 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           </button>
         )}
       </div>
-      <div className="mt-4 flex items-baseline justify-between">
+      <div className="mt-4 flex items-baseline justify-between px-2 md:px-0">
         <h3 className="line-clamp-2 min-h-[30px] text-[12px] font-semibold uppercase leading-[15px] tracking-[0.48px] text-ink">
           {product.name}
         </h3>
       </div>
       <p
-        className={`mt-1 min-h-[15px] text-[12px] leading-[15px] text-ink/50 ${product.colorLabel ? "" : "invisible"}`}
+        className={`mt-1 min-h-[15px] px-2 text-[12px] leading-[15px] text-ink/50 md:px-0 ${product.colorLabel ? "" : "invisible"}`}
         aria-hidden={product.colorLabel ? undefined : true}
       >
         {product.colorLabel || " "}
       </p>
-      <div className="mt-2 flex items-center gap-2">
+      <div className="mt-2 flex items-center gap-2 px-2 md:px-0">
         <span
           className={`text-[12px] tracking-[0.48px] ${discountPercent ? "text-[rgb(194,81,81)]" : "text-ink"}`}
         >

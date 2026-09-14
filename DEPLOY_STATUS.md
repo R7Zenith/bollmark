@@ -3454,3 +3454,26 @@ ile ust konteynerin `px-4`'unu iptal edip kenara yapistirildi, sutunlar arasi bo
   - 1600px: grid eskisi gibi 4 sutun + ~24px bosluk, degismedi. `scrollWidth === clientWidth` (1600).
 
 **Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
+
+## Mobil katalog - baslik/fiyat kenara cok yaslaniyordu, takip duzeltmesi (2026-09-14, ayni gun devami)
+
+Bir onceki degisiklik (`-mx-4 gap-x-0.5 gap-y-3`, yukaridaki "Mobil katalog gorsel bosluklari" bolumu)
+gorselleri dogru bicimde kenara yapistirdi, ama negatif margin tum grid hucresini (gorsel + altindaki
+baslik/fiyat metnini) birlikte kaydirdigindan urun basligi ve fiyati da ekranin tam kenarina/aradaki dar
+sutun bosluguna yapisti - kullanici yeni bir ekran goruntusuyle bunun rahatsiz edici durdugunu bildirdi.
+Kok neden ve cozum onceden `MOBIL_KATALOG_METIN_BOSLUGU_DUZELTME_PLANI.md` dosyasinda tespit edilmisti.
+
+**Duzeltme**: `src/components/product-card.tsx` icinde gorsel `div`'inden sonra gelen uc metin blogunun
+(baslik satiri, renk etiketi, fiyat satiri) her birine mobilde `px-2` (8px) yatay ic bosluk, masaustunde
+`md:px-0` (degisiklik yok) eklendi. Gorsel `div`'ine (rozetler, kalp butonu, hizli sepete ekle butonu dahil)
+ve `urunler/page.tsx`'teki grid satirina dokunulmadi.
+
+**Dogrulama**:
+- `npx tsc --noEmit` ve `npm run build` hatasiz tamamlandi.
+- Playwright ile yerel `npm run dev` uzerinde (onizleme sifresiyle gate asilarak) 390px ve 1600px genislikte
+  ekran goruntusu alindi:
+  - 390px: gorseller hala kenara yapisik, baslik/fiyat metni artik ekran kenarina/komsu karttaki metne
+    degmiyor, kisa ve uzun urun isimlerinde okunabilir kaldi.
+  - 1600px: hicbir gorsel degisiklik yok (metin zaten gorselle hizali kaliyor, masaustunde `gap-6` yeterli).
+
+**Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
