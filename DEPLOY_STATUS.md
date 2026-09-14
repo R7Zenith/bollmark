@@ -3084,3 +3084,59 @@ Bilgi paneli 1920px'te de 590px'te sabit kaldi (buyumedi), tum ekstra
 genislik galeriye gitti - Release'in davranisiyla birebir eslesti.
 
 **Commit onerilir, ama kullanicinin onayi olmadan push edilmeyecek.**
+
+## Mobil katalog karti ve urun galerisi sorunlari (2026-09-14)
+
+`MOBIL_KATALOG_KARTI_VE_URUN_GALERISI_SORUNLARI_PLANI.md` uygulandi.
+
+**Adim 0 (senkron kontrolu)**: Plan, bu bilgisayarin yerel `product-card.tsx`
+dosyasinda "Son N Adet" rozetinin hic bulunmadigindan ve yerel/canli kodun
+birebir ayni olmayabilecegiden supheleniyordu. Once `git pull` calistirildi:
+yerel `main`, `origin/main`'in 1 commit gerisindeydi (fast-forward, push
+edilmemis yerel degisiklik yoktu). Pull sonrasi `product-card.tsx` GERCEKTEN
+"Son N Adet" rozetini ve `%X Indirim` rozetini iceriyordu - yani sorunun kaynagi
+sadece senkron eksikligiymis, ek bir merge/conflict riski cikmadi.
+
+**Kok neden ve duzeltmeler** (`src/components/product-card.tsx`):
+- Rozetler (`indirim` + `Son N Adet`) yan yana `flex-wrap` yerine dikey
+  `flex-col` dizildi, dar ekranda (< `sm`) daha kucuk padding/font
+  (`px-1.5 py-1 text-[9px]`, `sm:` ustunde eski boyuta donuyor) - kalp
+  butonuyla çakışma ve görselin kapanmasi azaltildi.
+- Indirim rozetinin rengi `bg-[rgb(239,45,45)]` (ozel, tutarsiz bir kirmizi)
+  yerine `bg-sale` (`#c0392b`, urun detay sayfasindaki ayni rozetle ayni token)
+  yapildi.
+- "+" hizli sepete ekle butonu mobilde `h-8 w-8` (32px), `md:h-9 md:w-9`
+  (36px) - eskiden mobilde de `md:opacity-0` sadece masaustu hover'i icin
+  oldugundan taban `opacity-100` ile her zaman buyuk gorunuyordu. Ikon boyutu
+  `size` prop'u yerine `className="h-3.5 w-3.5 md:h-4 md:w-4"` ile responsive
+  yapildi.
+- Baslik (`h3`) `line-clamp-2 min-h-[30px]` aldi, renk etiketi (`colorLabel`)
+  artik hep render ediliyor (yoksa `invisible` + ` ` bosluk) - boylece
+  komsu kartlarda baslik/renk etiketi satir sayisi degisse de fiyat satiri
+  ayni yukseklikte kaliyor.
+
+**Urun detay sayfasi mobil galerisi** (`src/components/product-viewer.tsx`):
+Mobil `md:hidden` blogu ve thumbnail seridi zaten production'da/yerelde
+mevcuttu; ana gorsele swipe (parmak kaydirma) ekli degildi. Eklenenler:
+- `md:hidden` sarmalayicisina ve thumbnail seridine `min-w-0` (flex/grid
+  blowout guvenlik payi).
+- Ana gorsele native `touchstart`/`touchend` tabanli basit bir swipe handler
+  (harici kutuphane yok, ~15 satir): yatay hareket 40px'i gecerse aktif
+  gorseli degistiriyor, `wasSwipe` ref'i ile swipe sonrasi tarayicinin
+  sentezledigi "click" olayinin lightbox'i yanlislikla acmasi engellendi.
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz (67 sayfa).
+Yerel `npm run dev` + Playwright (`preview=onizleme2026!` cookie'siyle
+`/yapim-asamasinda` gate'i asilarak) ile:
+- Mobil (390px) `/urunler`: rozetler kuculdu, kalp butonuyla cakismiyor, "+"
+  butonu 32px, fiyat satirlari ayni satirdaki kartlarda birebir hizali
+  (`getBoundingClientRect().top` ölçümü: 648/648 ve 983/983).
+- Masaustu (1440px) `/urunler`: 4 kartin fiyat satiri hepsi 852px'te,
+  rozetler eski (buyuk) boyutunda, "+" butonu hover disinda gizli - bu
+  degisiklikler masaustunu etkilemedi.
+- Urun detay sayfasi (`beli-lastikli-baglamali-genis-paca-pantolon`, 6
+  gorsel), 390px: sayfa yatayda tasmiyor (`scrollWidth === clientWidth`),
+  sentetik `touchstart`/`touchend` ile ana gorseli degistirdi ve lightbox
+  yanlislikla acilmadi (guard dogrulandi).
+
+**Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**

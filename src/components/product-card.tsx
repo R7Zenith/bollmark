@@ -124,14 +124,14 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />
         </button>
         {(discountPercent || product.lowStockCount != null) && (
-          <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+          <div className="absolute left-2 top-2 flex flex-col items-start gap-1 sm:left-3 sm:top-3 sm:gap-1.5">
             {discountPercent && (
-              <span className="rounded bg-[rgb(239,45,45)] px-2 py-1.5 text-[10px] font-medium uppercase leading-[12.5px] tracking-[1.4px] text-white">
+              <span className="whitespace-nowrap rounded bg-sale px-1.5 py-1 text-[9px] font-medium uppercase leading-[11px] tracking-[1.2px] text-white sm:px-2 sm:py-1.5 sm:text-[10px] sm:leading-[12.5px] sm:tracking-[1.4px]">
                 %{discountPercent} İndirim
               </span>
             )}
             {product.lowStockCount != null && (
-              <span className="rounded bg-white px-2 py-1.5 text-[10px] font-medium uppercase leading-[12.5px] tracking-[1.4px] text-ink">
+              <span className="whitespace-nowrap rounded bg-white px-1.5 py-1 text-[9px] font-medium uppercase leading-[11px] tracking-[1.2px] text-ink sm:px-2 sm:py-1.5 sm:text-[10px] sm:leading-[12.5px] sm:tracking-[1.4px]">
                 Son {product.lowStockCount} Adet
               </span>
             )}
@@ -143,18 +143,23 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             onClick={handleQuickAdd}
             title="Hızlı sepete ekle"
             aria-label="Sepete ekle"
-            className="absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-ink text-cream opacity-100 transition hover:bg-clay md:opacity-0 md:group-hover:opacity-100"
+            className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full bg-ink text-cream opacity-100 transition hover:bg-clay sm:bottom-3 sm:right-3 md:h-9 md:w-9 md:opacity-0 md:group-hover:opacity-100"
           >
-            {justAdded ? <Check size={16} /> : <Plus size={16} />}
+            {justAdded ? <Check className="h-3.5 w-3.5 md:h-4 md:w-4" /> : <Plus className="h-3.5 w-3.5 md:h-4 md:w-4" />}
           </button>
         )}
       </div>
       <div className="mt-4 flex items-baseline justify-between">
-        <h3 className="text-[12px] font-semibold uppercase leading-[15px] tracking-[0.48px] text-ink">
+        <h3 className="line-clamp-2 min-h-[30px] text-[12px] font-semibold uppercase leading-[15px] tracking-[0.48px] text-ink">
           {product.name}
         </h3>
       </div>
-      {product.colorLabel && <p className="mt-1 text-[12px] text-ink/50">{product.colorLabel}</p>}
+      <p
+        className={`mt-1 min-h-[15px] text-[12px] leading-[15px] text-ink/50 ${product.colorLabel ? "" : "invisible"}`}
+        aria-hidden={product.colorLabel ? undefined : true}
+      >
+        {product.colorLabel || " "}
+      </p>
       <div className="mt-2 flex items-center gap-2">
         <span
           className={`text-[12px] tracking-[0.48px] ${discountPercent ? "text-[rgb(194,81,81)]" : "text-ink"}`}

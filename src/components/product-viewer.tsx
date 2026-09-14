@@ -198,6 +198,12 @@ export function ProductViewer({
   const [zoomed, setZoomed] = useState(false);
   const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
   const [activeImage, setActiveImage] = useState(0);
+  // Mobil ana gorselde parmak kaydirmasini (swipe) yakalamak icin - dokunus
+  // basladigi noktanin x koordinati, bitince delta hesaplanip resetlenir.
+  const touchStartX = useRef<number | null>(null);
+  // Swipe sonrasi tarayicinin sentezledigi "click" olayinin lightbox'i
+  // yanlislikla acmasini engellemek icin.
+  const wasSwipe = useRef(false);
 
   // release-main.myshopify.com/products/top-8 canli DOM'unda "Size guide"
   // linki BEDEN etiketinin hemen yaninda duruyor (`group "Size XS Size
@@ -304,14 +310,33 @@ export function ProductViewer({
           12 Eylul 2026). Eskiden mobilde de masaustundeki 2 sutunlu grid
           aynen kullanilyordu - bu, "desktop tasarimini kuculterek mobil
           yapma" hatasiydi, burada ayri bir mobil duzen olarak ayristirildi. */}
-      <div className="md:hidden">
+      <div className="min-w-0 md:hidden">
         <button
           type="button"
           onClick={() => {
+            if (wasSwipe.current) {
+              wasSwipe.current = false;
+              return;
+            }
             setZoomed(false);
             setLightboxIndex(activeImage);
           }}
-          className="relative block aspect-[3/4] w-full cursor-zoom-in overflow-hidden bg-line"
+          onTouchStart={(e) => {
+            touchStartX.current = e.touches[0].clientX;
+          }}
+          onTouchEnd={(e) => {
+            if (touchStartX.current === null) return;
+            const deltaX = e.changedTouches[0].clientX - touchStartX.current;
+            touchStartX.current = null;
+            // Kucuk kaydirmalari (tiklama titremesi) yok say, sadece
+            // belirgin bir yatay swipe'ta gorseli degistir.
+            if (Math.abs(deltaX) < 40) return;
+            wasSwipe.current = true;
+            setActiveImage((i) =>
+              deltaX < 0 ? (i + 1) % galleryImages.length : (i - 1 + galleryImages.length) % galleryImages.length
+            );
+          }}
+          className="relative block aspect-[3/4] w-full cursor-zoom-in touch-pan-y overflow-hidden bg-line"
         >
           <Image
             src={galleryImages[activeImage].url}
@@ -322,7 +347,7 @@ export function ProductViewer({
           />
         </button>
         {galleryImages.length > 1 && (
-          <div className="mt-3 flex gap-2 overflow-x-auto">
+          <div className="mt-3 flex min-w-0 gap-2 overflow-x-auto">
             {galleryImages.map((img, i) => (
               <button
                 key={`${img.url}-${i}`}
