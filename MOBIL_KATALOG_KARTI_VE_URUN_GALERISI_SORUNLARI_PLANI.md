@@ -179,6 +179,34 @@ yüksekliği tam thumbnail yüksekliğine (`aspect-square`, 64px) eşit olduğu 
 **Çözüm:** `overflow-x-auto` olan konteynere dikey boşluk ekle (`py-1` veya `py-1.5`), ring'in üstte/altta
 da taşacak yeri olsun. Tek satırlık, düşük riskli bir düzeltme.
 
+**GÜNCELLEME (2. ekran görüntüsüyle doğrulandı):** py-1 eklenince dikey kesilme muhtemelen düzeldi ama
+şimdi EN SOLDAKİ (ilk) küçük resimde ring'in SOL kenarı görünmüyor — aynı mantık yatay eksende de geçerli:
+konteynerin scroll alanı ilk öğenin sol kenarına tam yapışık başlıyor, taşan ring solda absorbe edilecek
+boşluk bulamıyor (öğeler arası `gap-2` sadece komşu öğeler ARASINDA boşluk sağlıyor, ilk öğenin SOLUNDA ve
+son öğenin SAĞINDA değil). **Çözüm:** aynı konteynere yatayda da biraz iç boşluk ekle — `overflow-x-auto`
+yanına `px-1` de ekle (`py-1 px-1`, yani kısaca `p-1` de yazılabilir) — böylece ilk/son öğenin ring'i de
+kırpılmadan görünür.
+
+### 4c. Küçük resimlerde fotoğrafın kafası/üst kısmı kırpılıyor (kullanıcı ekran görüntüsüyle bildirdi)
+
+Küçük resim kutuları `aspect-square` (satır ~331: `relative aspect-square w-16 shrink-0 overflow-hidden`)
++ `<Image ... className="object-cover" />` kullanıyor. Ürün fotoğrafları dikey/portre oranlı (3:4) olduğu
+için kareye `object-cover` ile sığdırılırken üst (kafa) ve alt (ayaklar) kısmı otomatik kırpılıyor — bu
+TÜM küçük resimlerde geçerli, tek bir öğeye özel bir hata değil, `aspect-square` + `object-cover`
+kombinasyonunun doğal sonucu. Kullanıcı fotoğrafın TAMAMININ görünmesini istiyor.
+
+**Çözüm (iki seçenek, kullanıcıya sorulmalı ya da varsayılan olarak 1. seçenek uygulanmalı):**
+1. **Önerilen:** Küçük resim kutusunu ana görselle aynı orana çevir (`aspect-[3/4]`), `object-cover` kalsın
+   — kutu artık fotoğrafın gerçek oranıyla eşleştiği için kırpma pratikte ortadan kalkar (kutu biraz daha
+   dar/uzun görünür, `w-16` yerine `w-14` gibi biraz daraltılması gerekebilir ki şerit fazla yer kaplamasın).
+2. **Alternatif:** Kutuyu kare bırak ama `object-cover` yerine `object-contain` + hafif bir arka plan
+   (`bg-line`, zaten var) kullan — fotoğraf küçültülüp kutunun içine TAMAMEN sığar (üstte/altta boşluk
+   kalır, "letterbox" görünümü), hiçbir şey kırpılmaz ama kare kutunun içi tam dolmaz.
+
+Release referans sitesinin (release-main.myshopify.com) kendi küçük resimlerinin hangi yaklaşımı
+kullandığına bakıp (kare mi, dikey mi) ona göre karar vermek en tutarlı sonucu verir — Claude Code bunu
+kontrol edip hangisinin görsel olarak daha iyi durduğuna (ekran görüntüsüyle) karar versin.
+
 ### 4b. Kullanıcının istediği ek özellik — iPhone tarzı parmağı takip eden swipe animasyonu
 
 Şu an ana görselde swipe/touch event'i hiç yok (madde 4'te zaten belirtilmişti), sadece küçük resme
@@ -258,34 +286,82 @@ taşıyor mu, küçük resim şeridi kaydırılabiliyor mu, ana görsel swipe il
 overflow-x-auto thumbnail şeridi) senkron sonrası hâlâ mevcutsa ve production'da bu sorun gözlemleniyorsa:
 - `md:hidden` sarmalayıcıya ve thumbnail şeridine güvenlik payı olarak `min-w-0` ekle.
 
-### 4a. Aktif küçük resmin çerçevesi (ring) sadece sağda/solda görünüyor, üstte/altta kesiliyor
+### 4a. Aktif küçük resmin çerçevesi (ring) kırpılıyor (dikey + yatay)
 
-Kullanıcının ekran görüntüsüyle doğrulandı. Sebep: küçük resim şeridinin sarmalayıcısı
-(`mt-3 flex gap-2 overflow-x-auto`, satır ~325) sadece yatayda `overflow-x-auto` tanımlıyor, dikey boşluk
-yok — CSS kuralı gereği bir eksen `visible` değilse diğer eksen de otomatik kırpan moda geçiyor, aktif
-küçük resmin `ring-1 ring-ink ring-offset-1` çerçevesi (kutunun dışına taşan ince bir gölge) yatayda
-`gap-2` sayesinde görünüyor ama dikeyde konteyner yüksekliği tam `aspect-square` thumbnail yüksekliğine
-eşit olduğu için kırpılıyor. Düzeltme: o konteynere dikey boşluk ekle, `overflow-x-auto`'nun yanına
-`py-1` (veya `py-1.5`) koy — ring'in üstte/altta da taşacak yeri olsun. Düzeltme sonrası aktif küçük
-resmin çerçevesinin 4 kenarda da eşit göründüğünü ekran görüntüsüyle doğrula.
+Kullanıcının iki ekran görüntüsüyle doğrulandı. Sebep: küçük resim şeridinin sarmalayıcısı
+(`mt-3 flex gap-2 overflow-x-auto`, satır ~325) hiç iç boşluk (padding) tanımlamıyor — `overflow-x-auto`
+CSS kuralı gereği dikey ekseni de otomatik kırpan moda sokuyor (aktif küçük resmin `ring-1 ring-ink
+ring-offset-1` çerçevesi kutunun dışına taşan ince bir gölge, üstte/altta bu yüzden kırpılıyor), AYRICA
+ilk öğenin SOLUNDA ve son öğenin SAĞINDA da taşan ring'i absorbe edecek boşluk yok (`gap-2` sadece
+öğeler ARASI boşluk sağlıyor). Düzeltme: konteynere hem dikey hem yatay iç boşluk ekle —
+`overflow-x-auto` yanına `p-1` koy (kısaca `py-1 px-1` yerine). Düzeltme sonrası TÜM küçük resimlerin
+(ilk ve son dahil) çerçevesinin 4 kenarda da eşit göründüğünü ekran görüntüsüyle doğrula.
 
-### 4b. Ana görsele iPhone tarzı, parmağı gerçek zamanlı takip eden swipe ekle
+### 4b. Küçük resimlerde fotoğrafın kafası/üst kısmı kırpılıyor
 
-Şu an ana görselde touch/swipe event'i hiç yok, sadece küçük resme dokununca anında değişiyor. Kullanıcı
-özellikle parmağı CANLI takip eden bir davranış istiyor (basit touchstart/touchend ile index değiştirmek
-YETERLİ DEĞİL). Şunu uygula:
-- `touchstart`: başlangıç X koordinatını ve o an aktif görselin index'ini kaydet, CSS transition'ı kapat.
-- `touchmove`: parmağın X farkına göre görselin `transform: translateX(...)` değerini anlık güncelle
-  (görsel parmağı gerçek zamanlı takip etsin) — ilk/son görseldeyken sınırın ötesine taşmasın veya hafif
-  bir direnç/rubber-band efektiyle taşsın.
-- `touchend`: sürüklenen mesafe genişliğin belirli bir eşiğini (örn. %20) aşmışsa `transition` açık
-  şekilde bir sonraki/önceki görsele `setActiveImage` ile geçiş yap (yumuşak snap), aşmamışsa mevcut
-  görsele `transition`'lı şekilde geri dön.
-- Swipe sonrası küçük resim şeridindeki aktif vurgunun (ring) doğru thumbnail'a geçtiğini ve gerekiyorsa
-  şeridin o thumbnail'ı görünür alana kaydırdığını (`scrollIntoView`, kodda zaten satır 211'de böyle bir
-  kullanım var, aynı desenden yararlanılabilir) doğrula.
-- Harici bir carousel/swipe kütüphanesi EKLEME (proje şu an kullanmıyor), native touch event'lerle ~40-60
-  satırlık bir handler yeterli olmalı.
+Küçük resim kutuları `aspect-square` (satır ~331) + `object-cover` kullanıyor; ürün fotoğrafları dikey
+(3:4) olduğu için kareye sığdırılırken üst (kafa) ve alt (ayak) kısmı otomatik kırpılıyor — TÜM küçük
+resimlerde geçerli, tek bir hataya özel değil. Kullanıcı fotoğrafın tamamının görünmesini istiyor.
+Önerilen çözüm: kutuyu `aspect-square` yerine `aspect-[3/4]` yap (ana görselle aynı oran, `object-cover`
+kalsın — kutu artık fotoğrafın gerçek oranıyla eşleştiği için kırpma büyük ölçüde ortadan kalkar,
+gerektiğinde `w-16`'yı biraz daraltmak (`w-14`) şeridin toplam genişliğini dengeler). Uygulamadan önce
+release-main.myshopify.com'un kendi küçük resimlerinin hangi oranı kullandığına bakıp ona göre karar ver,
+ekran görüntüsüyle bana göster.
+
+### 4c. Ana galeri kaydırması — hazır kütüphaneye geçiş (ÖNEMLİ, önce onay iste)
+
+İlk denemede native `touchstart`/`touchmove`/`touchend` ile yazılan swipe, kullanıcıda "bazen bug
+oluşuyor, bir anda geri atıyor, akışkan değil, kasıyormuş gibi" izlenimi bıraktı — elle yazılmış
+momentum/snap fiziği ince ayar gerektiren zor bir problem. Bunun yerine, tam bu iş için yazılmış, aktif
+geliştirilen bir kütüphaneye geç:
+
+**[Embla Carousel](https://www.embla-carousel.com/) (`embla-carousel-react`, npm'de güncel sürüm 8.6.0)**
+— React/Next.js için headless (kendi CSS'ini dayatmıyor, mevcut Tailwind tasarımını koruyabilirsin),
+~6kb, akıcı momentum/sürükleme + kesin snap noktaları. Resmi "Thumbnail Sync" örneği ("main image + alt
+thumbnail şeridi senkron kayar") tam bu senaryo için hazır referans.
+Kaynaklar: [embla-carousel.com](https://www.embla-carousel.com/), [embla-carousel-react npm](https://www.npmjs.com/package/embla-carousel-react), [GitHub](https://github.com/davidjerleke/embla-carousel), [React kurulumu](https://www.embla-carousel.com/docs/get-started/react)
+
+`npm install embla-carousel-react` kur, mevcut native touch handler kodunu SİL, ana görsel için bir Embla
+instance + küçük resim şeridi için "thumbnail sync" deseniyle ikinci bir Embla instance bağla (resmi
+örnekten uyarla). `md:hidden` mobil bloğun GÖRSEL tasarımını (boyutlar, ring, boşluklar, 4a/4b'deki
+düzeltmeler) KORU, sadece kaydırma/senkron mantığını Embla'ya devret. tsc/build hatasız geçmeli.
+
+### 4d. Zoom (lightbox) — büyümüyor, kaydırma yok, ok butonları tıklanamıyor
+
+Kod incelemesi (`product-viewer.tsx` satır ~692-775):
+
+- **Ok butonları neden tıklanmıyor (kök neden bulundu):** Sol/sağ ok butonları (satır ~714-737) ile
+  görsel kutusu (satır ~741-767) kardeş elemanlar, hiçbirinde `z-index` yok; görsel kutusu DOM'da
+  butonlardan SONRA geldiği için üstte render ediliyor ve mobilde neredeyse ekranın tamamını kapladığı
+  için buton alanlarının üzerine biniyor, tıklamaları yutuyor. Düzeltme: ok butonlarına (ve kapat
+  butonuna) `z-10` ekle.
+- **Yeterince büyümüyor:** Görsel kutusu `h-full max-h-[85vh] w-full max-w-3xl` ile genişlik/yükseklik
+  BAĞIMSIZ sınırlanıyor, dış sarmalayıcıda da `p-4` boşluk var; dikey 3:4 fotoğraf mobilde genişlik
+  tarafından sınırlanıyor, yükseklikte fazla boş yer kalıyor. Mobilde dış `p-4`'ü azalt (`p-2 sm:p-4`),
+  `max-w-3xl`'i mobilde gevşet (`max-w-full`, sadece `md:max-w-3xl`) — `object-contain` zaten kırpmayı
+  engelliyor, bu sadece kullanılabilir alanı büyütür.
+- **Zoomlu halde kaydırma/pan yok:** Şu an sabit `scale(2)` + tıklanan noktaya `transform-origin`, pan
+  (parmakla zoomlu görüntüde gezinme) hiç yok.
+
+**Öneri (kullanıcının kütüphane/skill sorusuna cevap):** Lightbox'ı da hazır bir kütüphaneyle değiştir —
+üç sorunu (büyüklük, swipe, pinch-zoom+pan) tek seferde, test edilmiş bir çözümle kapatır:
+
+**[Yet Another React Lightbox](https://yet-another-react-lightbox.com/) (`yet-another-react-lightbox`,
+npm'de güncel)** — resmi [Zoom eklentisi](https://yet-another-react-lightbox.com/plugins/zoom)
+(pinch-to-zoom + sürükleyerek pan, dokunmatik dahil) ve [Thumbnails eklentisi](https://yet-another-react-lightbox.com/plugins/thumbnails)
+var, resmi [Next.js örneği](https://yet-another-react-lightbox.com/examples/nextjs) mevcut. Kaydırma, ok
+butonları, ekrana maksimum sığdırma, pinch-zoom hepsi kütüphanenin kendi mantığıyla geliyor.
+Kaynaklar: [ana sayfa](https://yet-another-react-lightbox.com/), [npm](https://www.npmjs.com/package/yet-another-react-lightbox), [GitHub](https://github.com/igordanchenko/yet-another-react-lightbox)
+
+Claude Code'a: mevcut lightbox bloğunu (satır ~692-775) `yet-another-react-lightbox` + Zoom + Thumbnails
+eklentileriyle değiştir, sitenin siyah/cream renk paletine (`bg-ink/95` arka plan vb.) uyacak şekilde
+`styles`/`render` prop'larıyla temalandır.
+
+### Not — yeni bağımlılık eklemeden önce onay al
+
+4c ve 4d yeni npm paketleri (`embla-carousel-react`, `yet-another-react-lightbox`) eklemeyi öneriyor —
+Claude Code kuruluma geçmeden önce bunu bana bir kez daha teyit ettirsin (ikisini de mi istiyorum, yoksa
+sadece biri mi), sonra kurup uygulasın.
 
 ### Genel
 

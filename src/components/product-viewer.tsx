@@ -432,13 +432,20 @@ export function ProductViewer({
           </div>
         </button>
         {galleryImages.length > 1 && (
-          <div ref={thumbStripRef} className="mt-3 flex min-w-0 gap-2 overflow-x-auto py-1">
+          <div ref={thumbStripRef} className="mt-3 flex min-w-0 gap-2 overflow-x-auto p-1">
             {galleryImages.map((img, i) => (
               <button
                 key={`${img.url}-${i}`}
                 type="button"
                 onClick={() => setActiveImage(i)}
-                className={`relative aspect-square w-16 shrink-0 overflow-hidden bg-line ${
+                // release-main.myshopify.com/products/top-8'in kendi kucuk
+                // resimleri 64x85px (3:4, object-fit: cover) - eskiden
+                // aspect-square (kare) kullaniliyordu, dikey (3:4) urun
+                // fotograflari karede object-cover ile ustten/alttan
+                // kirpiliyordu (bkz. MOBIL_KATALOG..._PLANI.md 4b). Genislik
+                // (w-16=64px) ayni kaldi, sadece oran ana gorselle
+                // eslesecek sekilde duzeltildi.
+                className={`relative aspect-[3/4] w-16 shrink-0 overflow-hidden bg-line ${
                   i === activeImage ? "ring-1 ring-ink ring-offset-1" : "opacity-70"
                 }`}
               >
@@ -801,7 +808,7 @@ export function ProductViewer({
         gezdirir. */}
     {lightboxIndex !== null && (
       <div
-        className="fixed inset-0 z-50 flex items-center justify-center bg-ink/95 p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-ink/95 p-2 sm:p-4"
         onClick={() => setLightboxIndex(null)}
         role="dialog"
         aria-modal="true"
@@ -813,7 +820,7 @@ export function ProductViewer({
             e.stopPropagation();
             setLightboxIndex(null);
           }}
-          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-cream/30 text-cream transition duration-300 hover:bg-cream/10"
+          className="absolute right-4 top-4 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-cream/30 text-cream transition duration-300 hover:bg-cream/10"
           aria-label="Kapat"
         >
           <X size={20} />
@@ -828,7 +835,7 @@ export function ProductViewer({
                 setZoomed(false);
                 setLightboxIndex((i) => (i === null ? i : (i - 1 + galleryImages.length) % galleryImages.length));
               }}
-              className="absolute left-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-cream/30 text-cream transition duration-300 hover:bg-cream/10 md:left-4"
+              className="absolute left-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-cream/30 text-cream transition duration-300 hover:bg-cream/10 md:left-4"
               aria-label="Önceki görsel"
             >
               <ChevronLeft size={22} />
@@ -840,7 +847,7 @@ export function ProductViewer({
                 setZoomed(false);
                 setLightboxIndex((i) => (i === null ? i : (i + 1) % galleryImages.length));
               }}
-              className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-cream/30 text-cream transition duration-300 hover:bg-cream/10 md:right-4"
+              className="absolute right-2 top-1/2 z-10 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-cream/30 text-cream transition duration-300 hover:bg-cream/10 md:right-4"
               aria-label="Sonraki görsel"
             >
               <ChevronRight size={22} />
@@ -849,7 +856,7 @@ export function ProductViewer({
         )}
 
         <div
-          className={`relative h-full max-h-[85vh] w-full max-w-3xl overflow-hidden ${zoomed ? "cursor-zoom-out" : "cursor-zoom-in"}`}
+          className={`relative h-full max-h-[85vh] w-full max-w-full overflow-hidden md:max-w-3xl ${zoomed ? "cursor-zoom-out" : "cursor-zoom-in"}`}
           onClick={(e) => {
             e.stopPropagation();
             setZoomed((z) => !z);

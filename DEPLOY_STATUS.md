@@ -3197,3 +3197,46 @@ eklenenler:
   da esit gorundugu teyit edildi.
 
 **Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
+
+## Plana sonradan eklenen 4a/4b/4d maddeleri - kutuphane gerektirmeyen kisim (2026-09-14, ayni gun devami)
+
+Kullanici plana yeni ekran goruntuleriyle dogruladigi ek maddeler eklemisti - bunlardan **yeni npm
+paketi gerektirmeyenler** uygulandi, kutuphane onerilen 4c (Embla Carousel) ve 4d'nin lightbox kutuphane
+degisikligi (yet-another-react-lightbox) kismi plan'in kendi notu geregi ("yeni bagimlilik eklemeden once
+onay al") kullaniciya soruldu, henuz uygulanmadi.
+
+**4a (guncellenmis) - kucuk resim cercevesi (ring) hem dikeyde hem YATAYDA kirpiliyordu**: Onceki oturumda
+sadece `py-1` eklenmisti, kullanici ikinci ekran goruntusuyle ilk/son kucuk resmin ring'inin yanlarda da
+kirpildigini gosterdi (konteynerin scroll alani ilk/son ogeye tam yapisik basliyor, `gap-2` sadece ogeler
+ARASI bosluk birakiyor). Duzeltme: `py-1` -> `p-1` (hem dikey hem yatay ic bosluk).
+
+**4b - kucuk resimlerde fotografin kafasi/ayagi kirpiliyordu**: Kok neden `aspect-square` (kare) kutu +
+dikey (3:4) urun fotograflari + `object-cover` kombinasyonuydu. Once release-main.myshopify.com/products/
+top-8'in KENDI kucuk resimleri Playwright ile olculdu (varsayim degil): tam **64x85.33px, oran 0.750 =
+3:4, object-fit: cover** - yani Release de ayni w-16 (64px) genislikte ama KARE degil 3:4 oranli kutu
+kullaniyor. `src/components/product-viewer.tsx`'teki kucuk resim kutusu `aspect-square` -> `aspect-[3/4]`
+yapildi (genislik `w-16` ayni kaldi, plan'in "gerekirse w-14'e daralt" notu geregi yoktu - 64x85.33
+zaten Release'le birebir eslesiyor).
+
+**4d (kismen) - lightbox'ta ok butonlari tiklanamiyordu + kucuk kaliyordu**: Kod incelemesiyle kok neden
+dogrulandi - gorsel kutusu (`relative h-full max-h-[85vh] w-full max-w-3xl`) DOM'da ok butonlarindan
+SONRA geliyor, hicbirinde `z-index` yoktu, gorsel kutusu ekranin cogunu kapladigi icin buton alanlarinin
+UZERINE binip tiklamalari yutuyordu. Duzeltme: kapat + sol/sag ok butonlarina `z-10` eklendi. Ayrica
+mobilde dis bosluk `p-4` -> `p-2 sm:p-4`, `max-w-3xl` -> `max-w-full md:max-w-3xl` yapilarak kullanilabilir
+alan buyutuldu (zoomlu halde pan/kaydirma eksikligi ise 4d'nin kutuphane onerisiyle cozulecek, henuz
+yapilmadi - asagiya bkz).
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Yerel `npm run dev` + Playwright (390px,
+`preview=onizleme2026!`) ile:
+- Kucuk resim seridi konteyner padding'i 4 kenarda da `4px` (`p-1`).
+- Kucuk resim kutusu tam `64 x 85.33px` (oran `0.750`) - Release'in olcumuyle birebir.
+- Lightbox acildi, "Sonraki gorsel" ok butonuna tiklandi, sayac `1/5` -> `2/5` degisti (ok butonu artik
+  gercekten calisiyor), gorsel kutusu genisligi `374px` (390px viewport - 2*8px `p-2` = 374, oncesine
+  gore daha genis).
+
+**Kullaniciya soruldu, henuz karar bekleniyor / uygulanmadi**: Plan, 4c (ana galeri kaydirmasini
+`embla-carousel-react`'e tasima) ve 4d'nin geri kalani (lightbox'i `yet-another-react-lightbox` + Zoom +
+Thumbnails eklentileriyle degistirme) icin iki yeni npm bagimliligi ekliyor - plan'in kendi notu geregi
+("Not - yeni bagimlilik eklemeden once onay al") bu ikisi kuruluma gecilmeden once kullaniciya soruldu.
+
+**Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
