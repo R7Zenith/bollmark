@@ -3240,3 +3240,52 @@ Thumbnails eklentileriyle degistirme) icin iki yeni npm bagimliligi ekliyor - pl
 ("Not - yeni bagimlilik eklemeden once onay al") bu ikisi kuruluma gecilmeden once kullaniciya soruldu.
 
 **Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
+
+## 4c - Ana galeri kaydirmasi Embla Carousel'e tasindi (2026-09-14, ayni gun devami)
+
+Kullaniciya soruldu, sadece **Embla Carousel** (galeri swipe) icin onay verildi -
+`yet-another-react-lightbox` (4d'nin kutuphane kismi) istenmedi, o kisim
+uygulanmadi.
+
+**Kurulum**: `npm install embla-carousel-react@8.6.0` (5 yuksek seviyeli
+guvenlik uyarisi projede onceden var, bu paketten kaynaklanmiyor).
+
+**Degisiklik** (`src/components/product-viewer.tsx`): Onceki elle yazilmis
+`touchstart`/`touchmove`/`touchend` + manuel 3'lu (onceki/aktif/sonraki)
+serit/translateX mantiginin TAMAMI silindi, yerine Embla'nin resmi
+"Thumbnail Sync" deseni geldi:
+- Ana gorsel icin `useEmblaCarousel({ loop: true })`, kucuk resim seridi
+  icin `useEmblaCarousel({ containScroll: "keepSnaps", dragFree: true })` -
+  iki ayri Embla instance'i.
+- Ana carousel'in `select` olayi aktif index'i gunceller ve kucuk resim
+  carousel'ini o indexe `scrollTo` ile senkronlar; kucuk resme tiklamak
+  ana carousel'i `scrollTo` ile o indexe kaydirir (resmi ornekten uyarlandi).
+- Renk degisince (`galleryImages` degisince) her iki carousel de anlik
+  (`scrollTo(0, true)`) basa donuyor.
+- Tiklayip lightbox acma: onceki elle yazilan "wasSwipe" ref hilesinin
+  yerini Embla'nin KENDI ic mekanizmasi aldi - kod incelemesiyle dogrulandi
+  (`embla-carousel.esm.js` satir ~302-393): Embla, gercek bir surukleme
+  sonrasi (esik asilirsa) rootNode'a yakalama (capture) asamasinda eklenen
+  bir `click` listener'i ile `stopPropagation()` + `preventDefault()`
+  cagirarak native click'i DAHA REACT'e ULASMADAN bastiriyor - ayri bir
+  guard yazmaya gerek kalmadi.
+- `md:hidden` mobil bloğun GORSEL tasarimi (boyutlar, ring, 4a/4b'deki
+  duzeltmeler, boşluklar) AYNEN korundu, sadece kaydirma/senkron mantigi
+  Embla'ya devredildi.
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Yerel
+`npm run dev` + Playwright ile (390px):
+- Sayfa yatayda tasmiyor (`scrollWidth === clientWidth`).
+- Gercek fare suruklemesi (`page.mouse.down/move/up`, Embla mouse ve touch
+  olaylarini ayni mantikla dinliyor) aktif gorseli VE kucuk resim vurgusunu
+  degistirdi, lightbox YANLISLIKLA ACILMADI.
+- Suruklemeden SONRA yapilan ayri, duz bir tiklama lightbox'i DOGRU sekilde
+  actı (ilk denemede test viewport koordinati yanlis secildigi icin false-
+  negative alindi - `loop: true` oldugunda Embla DOM'daki ilk slaydi CSS
+  transform'la yer degistirebiliyor, gercek sorun degil, test hatasiydi;
+  duzeltilince dogrulandi).
+- Bir kucuk resme tiklamak ana carousel'i dogru indexe kaydirdi.
+- **Gercek touch (CDP `touchscreen.tap`, iPhone 13 cihaz emulasyonu) ile**
+  de tek dokunus lightbox'i dogru actı.
+
+**Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**

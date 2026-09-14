@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import useEmblaCarousel from "embla-carousel-react";
 import { useRouter } from "next/navigation";
 import {
   Heart,
@@ -198,27 +199,18 @@ export function ProductViewer({
   const [zoomed, setZoomed] = useState(false);
   const [zoomOrigin, setZoomOrigin] = useState({ x: 50, y: 50 });
   const [activeImage, setActiveImage] = useState(0);
-  // Mobil ana gorselde parmak kaydirmasini (swipe) yakalamak icin - dokunus
-  // basladigi noktanin x koordinati, bitince delta hesaplanip resetlenir.
-  const touchStartX = useRef<number | null>(null);
-  // Swipe sonrasi tarayicinin sentezledigi "click" olayinin lightbox'i
-  // yanlislikla acmasini engellemek icin.
-  const wasSwipe = useRef(false);
-  // Parmagi CANLI takip eden swipe icin (basit touchstart/touchend index
-  // degistirmenin yerine, kullanicinin istedigi iPhone/Instagram tarzi
-  // davranis): surukleme sirasindaki anlik yatay offset (px) ve gecis
-  // (transition) acik/kapali durumu - surukleme sirasinda kapali (anlik
-  // takip), birakinca acik (yumusak snap).
-  const [dragOffsetPx, setDragOffsetPx] = useState(0);
-  // touchend, ayni senkron olay dizisi icinde State henuz render'a
-  // yansimamis (bayat) dragOffsetPx okuyabilir - esik hesabi bu yuzden
-  // her zaman guncel olan bu ref'ten yapilir, state sadece gorsel
-  // (transform) icin kullanilir.
-  const dragOffsetRef = useRef(0);
-  const [isDragging, setIsDragging] = useState(false);
-  const mainImageRef = useRef<HTMLButtonElement>(null);
-  const thumbStripRef = useRef<HTMLDivElement>(null);
-  const SWIPE_SNAP_MS = 250;
+  // Mobil ana gorsel + kucuk resim seridi icin Embla Carousel (bkz.
+  // MOBIL_KATALOG..._PLANI.md 4c) - elle yazilmis touchstart/touchmove/
+  // touchend swipe'i degistirdi: kullanici gercek cihazda elle yazilan
+  // swipe'in "bazen bug oluyor, kasiyor" hissi verdigini bildirmisti. Embla
+  // headless (kendi CSS'ini dayatmiyor, mevcut Tailwind gorunumu korundu),
+  // resmi "Thumbnail Sync" deseni: iki ayri Embla instance'i (ana + kucuk
+  // resim), select olayiyla birbirine baglaniyor.
+  const [emblaMainRef, emblaMainApi] = useEmblaCarousel({ loop: true });
+  const [emblaThumbRef, emblaThumbApi] = useEmblaCarousel({
+    containScroll: "keepSnaps",
+    dragFree: true
+  });
 
   // release-main.myshopify.com/products/top-8 canli DOM'unda "Size guide"
   // linki BEDEN etiketinin hemen yaninda duruyor (`group "Size XS Size
@@ -250,18 +242,35 @@ export function ProductViewer({
   // eski bir index'te takili kalmasin diye basa donuyor.
   useEffect(() => {
     setActiveImage(0);
-  }, [galleryImages]);
+    emblaMainApi?.scrollTo(0, true);
+    emblaThumbApi?.scrollTo(0, true);
+  }, [galleryImages, emblaMainApi, emblaThumbApi]);
 
-  // Ana gorsel swipe ile (veya kucuk resme dokununca) degisince, kucuk resim
-  // seridindeki aktif vurgunun (ring) gorunur alanda kalmasi icin seridi
-  // gerektiginde kaydirir.
+  // Embla'nin resmi "Thumbnail Sync" deseni: kucuk resme tiklaninca ana
+  // carousel'i o index'e kaydirir.
+  const onThumbClick = useCallback(
+    (index: number) => {
+      emblaMainApi?.scrollTo(index);
+    },
+    [emblaMainApi]
+  );
+
+  // Ana carousel kaydirilinca (swipe veya kucuk resme tiklayarak) aktif
+  // index'i gunceller ve kucuk resim seridini (gorunur alanda kalacak
+  // sekilde) senkron kaydirir.
   useEffect(() => {
-    const strip = thumbStripRef.current;
-    const activeThumb = strip?.children[activeImage];
-    if (activeThumb instanceof HTMLElement) {
-      activeThumb.scrollIntoView({ behavior: "smooth", inline: "nearest", block: "nearest" });
-    }
-  }, [activeImage]);
+    if (!emblaMainApi) return;
+    const onSelect = () => {
+      const index = emblaMainApi.selectedScrollSnap();
+      setActiveImage(index);
+      emblaThumbApi?.scrollTo(index);
+    };
+    onSelect();
+    emblaMainApi.on("select", onSelect).on("reInit", onSelect);
+    return () => {
+      emblaMainApi.off("select", onSelect).off("reInit", onSelect);
+    };
+  }, [emblaMainApi, emblaThumbApi]);
 
   // Release'de urun gorselleri PhotoSwipe ile tiklaninca tam ekran bir
   // lightbox'ta aciliyor (zoom="click", bkz. product-media-gallery.js).
@@ -312,53 +321,13 @@ export function ProductViewer({
     router.push("/odeme");
   };
 
-  // Mobil ana gorselde parmagi canli takip eden swipe - onceki basit
-  // touchstart/touchend ile "index degistirmek" yerine, surukleme sirasinda
-  // gorsel gercekten parmakla birlikte kayiyor (bkz. asagidaki 3'lu
-  // onceki/aktif/sonraki serit ve translateX). Galeri dongusel oldugu icin
-  // (prevIndex/nextIndex modulo ile hesaplaniyor) bir "kenar" yok, rubber-band
-  // gerekmiyor.
-  const handleMainTouchStart = (e: React.TouchEvent) => {
-    if (galleryImages.length < 2) return;
-    touchStartX.current = e.touches[0].clientX;
-    dragOffsetRef.current = 0;
-    setIsDragging(true);
-  };
-
-  const handleMainTouchMove = (e: React.TouchEvent) => {
-    if (touchStartX.current === null) return;
-    const offset = e.touches[0].clientX - touchStartX.current;
-    dragOffsetRef.current = offset;
-    setDragOffsetPx(offset);
-  };
-
-  const handleMainTouchEnd = () => {
-    if (touchStartX.current === null) return;
-    touchStartX.current = null;
-    const width = mainImageRef.current?.clientWidth ?? 1;
-    const threshold = width * 0.2;
-    const finalOffset = dragOffsetRef.current;
-    dragOffsetRef.current = 0;
-    setIsDragging(false);
-
-    if (Math.abs(finalOffset) > threshold) {
-      wasSwipe.current = true;
-      const goingNext = finalOffset < 0;
-      // Once mevcut gorseli tamamen ekran disina kaydir (yumusak gecis acik),
-      // gecis bitince aktif index'i degistirip anlik (gecissiz) sifirla -
-      // boylece yeni gorsel "zaten oradaymis" gibi merkezde belirir.
-      setDragOffsetPx(goingNext ? -width : width);
-      setTimeout(() => {
-        setActiveImage((i) =>
-          goingNext ? (i + 1) % galleryImages.length : (i - 1 + galleryImages.length) % galleryImages.length
-        );
-        setIsDragging(true);
-        setDragOffsetPx(0);
-        requestAnimationFrame(() => setIsDragging(false));
-      }, SWIPE_SNAP_MS);
-    } else {
-      setDragOffsetPx(0);
-    }
+  // Embla, gercek bir surukleme sonrasi tarayicinin sentezledigi "click"
+  // olayini kendi ic mantigiyla (yakalama asamasinda stopPropagation)
+  // bastiriyor - onceki elle yazilmis "wasSwipe" ref hilesine gerek kalmadi,
+  // buraya sadece normal bir tiklama isleyicisi yeterli.
+  const handleSlideClick = (index: number) => {
+    setZoomed(false);
+    setLightboxIndex(index);
   };
 
   // release-main.myshopify.com/products/top-8'de her genislikte SAYFA
@@ -386,72 +355,49 @@ export function ProductViewer({
           aynen kullanilyordu - bu, "desktop tasarimini kuculterek mobil
           yapma" hatasiydi, burada ayri bir mobil duzen olarak ayristirildi. */}
       <div className="min-w-0 md:hidden">
-        <button
-          ref={mainImageRef}
-          type="button"
-          onClick={() => {
-            if (wasSwipe.current) {
-              wasSwipe.current = false;
-              return;
-            }
-            setZoomed(false);
-            setLightboxIndex(activeImage);
-          }}
-          onTouchStart={handleMainTouchStart}
-          onTouchMove={handleMainTouchMove}
-          onTouchEnd={handleMainTouchEnd}
-          className="relative block aspect-[3/4] w-full cursor-zoom-in touch-pan-y overflow-hidden bg-line"
-        >
-          {/* Parmagi canli takip eden swipe: onceki/aktif/sonraki 3 gorsel
-              yan yana bir seritte, `translateX(-100% + surukleme)` ile aktif
-              olan ortada goruntuleniyor - surukleme bittiginde esik asilirsa
-              seridin tamami kayip yeni gorsel merkeze oturuyor (galeri
-              dongusel oldugu icin prev/next modulo ile hep gecerli). */}
-          <div
-            className="flex h-full w-full"
-            style={{
-              transform: `translateX(calc(-100% + ${dragOffsetPx}px))`,
-              transition: isDragging ? "none" : `transform ${SWIPE_SNAP_MS}ms ease`
-            }}
-          >
-            {[
-              (activeImage - 1 + galleryImages.length) % galleryImages.length,
-              activeImage,
-              (activeImage + 1) % galleryImages.length
-            ].map((imgIndex, slot) => (
-              <div key={`${slot}-${galleryImages[imgIndex].url}`} className="relative h-full w-full shrink-0">
-                <Image
-                  src={galleryImages[imgIndex].url}
-                  alt={galleryImages[imgIndex].alt}
-                  fill
-                  className="object-cover"
-                  priority={slot === 1}
-                />
+        {/* Embla ana carousel: `overflow-hidden` sarmalayici Embla'nin
+            "viewport" referansini tutuyor, icindeki `flex` satir gercek
+            slaytlari barindiriyor - momentum/surukleme/snap fizigi tamamen
+            Embla tarafindan yonetiliyor (bkz. yukaridaki emblaMainApi
+            state'i). */}
+        <div className="overflow-hidden" ref={emblaMainRef}>
+          <div className="flex touch-pan-y">
+            {galleryImages.map((img, i) => (
+              <div key={`${img.url}-${i}`} className="relative min-w-0 flex-[0_0_100%]">
+                <button
+                  type="button"
+                  onClick={() => handleSlideClick(i)}
+                  className="relative block aspect-[3/4] w-full cursor-zoom-in overflow-hidden bg-line"
+                >
+                  <Image src={img.url} alt={img.alt} fill className="object-cover" priority={i === 0} />
+                </button>
               </div>
             ))}
           </div>
-        </button>
+        </div>
         {galleryImages.length > 1 && (
-          <div ref={thumbStripRef} className="mt-3 flex min-w-0 gap-2 overflow-x-auto p-1">
-            {galleryImages.map((img, i) => (
-              <button
-                key={`${img.url}-${i}`}
-                type="button"
-                onClick={() => setActiveImage(i)}
-                // release-main.myshopify.com/products/top-8'in kendi kucuk
-                // resimleri 64x85px (3:4, object-fit: cover) - eskiden
-                // aspect-square (kare) kullaniliyordu, dikey (3:4) urun
-                // fotograflari karede object-cover ile ustten/alttan
-                // kirpiliyordu (bkz. MOBIL_KATALOG..._PLANI.md 4b). Genislik
-                // (w-16=64px) ayni kaldi, sadece oran ana gorselle
-                // eslesecek sekilde duzeltildi.
-                className={`relative aspect-[3/4] w-16 shrink-0 overflow-hidden bg-line ${
-                  i === activeImage ? "ring-1 ring-ink ring-offset-1" : "opacity-70"
-                }`}
-              >
-                <Image src={img.url} alt={img.alt} fill className="object-cover" />
-              </button>
-            ))}
+          <div className="mt-3 overflow-hidden" ref={emblaThumbRef}>
+            <div className="flex min-w-0 gap-2 p-1">
+              {galleryImages.map((img, i) => (
+                <button
+                  key={`${img.url}-${i}`}
+                  type="button"
+                  onClick={() => onThumbClick(i)}
+                  // release-main.myshopify.com/products/top-8'in kendi kucuk
+                  // resimleri 64x85px (3:4, object-fit: cover) - eskiden
+                  // aspect-square (kare) kullaniliyordu, dikey (3:4) urun
+                  // fotograflari karede object-cover ile ustten/alttan
+                  // kirpiliyordu (bkz. MOBIL_KATALOG..._PLANI.md 4b). Genislik
+                  // (w-16=64px) ayni kaldi, sadece oran ana gorselle
+                  // eslesecek sekilde duzeltildi.
+                  className={`relative aspect-[3/4] w-16 shrink-0 overflow-hidden bg-line ${
+                    i === activeImage ? "ring-1 ring-ink ring-offset-1" : "opacity-70"
+                  }`}
+                >
+                  <Image src={img.url} alt={img.alt} fill className="object-cover" />
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
