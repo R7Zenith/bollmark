@@ -1,5 +1,11 @@
+import Image from "next/image";
 import Link from "next/link";
 import { FooterNewsletterForm } from "./footer-newsletter-form";
+
+// logo-white.png'nin gercek en-boy orani (bkz. site-header.tsx LOGO_ASPECT_RATIO,
+// 1400x273px).
+const LOGO_ASPECT_RATIO = 1400 / 273;
+const LOGO_HEIGHT = 96;
 
 // Alışveriş sütunu: UST_MENU_MEGA_MENU_PLANI.md'de listelenen 9 ortak ürün
 // tipinden ilk 6'sı. Slug'lar DB'deki gerçek Category.slug değerleriyle
@@ -37,7 +43,7 @@ function TikTokIcon() {
 export function SiteFooter() {
   return (
     <footer className="mt-section bg-ink text-cream">
-      <div className="mx-auto max-w-7xl px-6 py-16 xl:px-9">
+      <div className="w-full px-6 py-16 xl:px-9">
         {/* Üst blok: bülten + link sütunları */}
         <div className="grid gap-12 md:grid-cols-2 md:gap-16">
           <div>
@@ -116,12 +122,16 @@ export function SiteFooter() {
           </div>
         </div>
 
-        {/* Orta blok: dev wordmark */}
+        {/* Orta blok: dev logo */}
         <div className="mt-16 flex flex-col gap-6 border-t border-cream/10 pt-16 md:flex-row md:items-end md:justify-between">
           <div className="min-w-0">
-            <p className="break-words font-display text-4xl uppercase leading-none tracking-wide sm:text-6xl sm:tracking-widest2 md:text-8xl xl:text-9xl">
-              Bollmark
-            </p>
+            <Image
+              src="/logo-white.png"
+              alt="Bollmark"
+              width={Math.round(LOGO_HEIGHT * LOGO_ASPECT_RATIO)}
+              height={LOGO_HEIGHT}
+              className="h-12 w-auto sm:h-16 md:h-24 lg:h-32 xl:h-40"
+            />
             <p className="mt-4 max-w-md text-sm text-cream/60">
               Özenle seçilmiş kumaşlar ve zamansız kesimlerle tasarlanan modern giyim markası.
             </p>
@@ -140,7 +150,7 @@ export function SiteFooter() {
 
       {/* Alt bar */}
       <div className="border-t border-cream/10 px-6 py-6 xl:px-9">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 text-xs text-cream/40">
+        <div className="flex w-full flex-wrap items-center gap-2 text-xs text-cream/40">
           © {new Date().getFullYear()} Bollmark. Tüm hakları saklıdır.
         </div>
       </div>
