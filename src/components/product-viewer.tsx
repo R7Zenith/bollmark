@@ -26,7 +26,7 @@ const LOW_STOCK_THRESHOLD = 3;
 //    `@keyframes textSwap`'inden alindi: 5.9s, -100%/-200%). Iki ticker
 //    ayni 2 mesaji FARKLI sirada gosteriyor (biri "kargo" ile, digeri
 //    "odeme" ile basliyor) - kucuk bir gorsel kayma/stagger hissi icin.
-const TICKER_MESSAGES = ["Ücretsiz kargo ve teslimat", "Güvenli online ödeme"];
+const TICKER_MESSAGES = ["1500TL ve Üzerine Ücretsiz Kargo ve Teslimat", "Güvenli Online Ödeme"];
 // 2) `.product__content-grid`: kenarlikli, kose yuvarlatilmis (1.4rem) 3
 //    kutudan olusan STATIK bir izgara (ikon ustte, etiket altta) - sadece
 //    orta+genis ekranlarda gorunur (`small-hide`).
