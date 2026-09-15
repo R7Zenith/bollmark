@@ -31,15 +31,6 @@ function InstagramIcon() {
   );
 }
 
-function TikTokIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M14 4v10.5a3.5 3.5 0 1 1-3.5-3.5" />
-      <path d="M14 4c.4 2.2 2 4 4.5 4.3" />
-    </svg>
-  );
-}
-
 export function SiteFooter() {
   return (
     <footer className="mt-section bg-ink text-cream">
@@ -136,13 +127,15 @@ export function SiteFooter() {
               Özenle seçilmiş kumaşlar ve zamansız kesimlerle tasarlanan modern giyim markası.
             </p>
           </div>
-          {/* Gerçek sosyal medya hesap linkleri girilene kadar placeholder. */}
           <div className="flex shrink-0 items-center gap-4">
-            <a href="#" aria-label="Instagram" className="text-cream">
+            <a
+              href="https://www.instagram.com/koton.karacabey/"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Instagram"
+              className="text-cream"
+            >
               <InstagramIcon />
-            </a>
-            <a href="#" aria-label="TikTok" className="text-cream">
-              <TikTokIcon />
             </a>
           </div>
         </div>
