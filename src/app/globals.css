@@ -103,17 +103,20 @@ body {
    `.product__text--body{animation:textSwap 5.9s ease-in-out infinite}`,
    `@keyframes textSwap{0%{translateY(0)}32%{translateY(0)}50%{translateY(-100%)}
    82%{translateY(-100%)}100%{translateY(-200%)}}`. Bizde 2 mesaj var, yigin
-   2 mesaj + sona eklenen 1. mesajin kopyasi = 3 satir - Release'deki gibi
-   translateY yuzdeleri SATIR YUKSEKLIGINE (tek satir = %100) gore, yigina
-   gore degil, bu yuzden -100%/-200% degerleri degistirilmeden kullanilabildi
-   (eskiden 4 mesajli surumde yigina gore hesaplanan farkli bir yuzde
-   sistemi vardi). */
+   2 mesaj + sona eklenen 1. mesajin kopyasi = 3 satir. ONEMLI: CSS'te
+   translateY yuzdesi, kaydirilan ELEMANIN KENDI YUKSEKLIGINE gore
+   hesaplanir (yigindaki tek bir satira gore degil). `.trust-ticker__rows`'a
+   `height: 22px` (tek satir yuksekligi) verilmezse eleman auto-height ile
+   3 satirin toplami (66px) yuksekliginde olur ve `-100%` aslinda -66px
+   (3 satir birden) anlamina gelir - bu da hizli bir kayma + pencerenin
+   tamamen bos kalmasi + ani sifirlanma seklinde bozuk gorunuyordu. */
 .trust-ticker {
   height: 22px;
   overflow: hidden;
 }
 
 .trust-ticker__rows {
+  height: 22px;
   animation: trustTickerSwap 5.9s ease-in-out infinite;
 }
 

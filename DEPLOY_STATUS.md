@@ -3553,3 +3553,30 @@ client eskiydi).
 sayfasinda hem `reducedMotion: 'reduce'` hem `'no-preference'` emulasyonunda
 `getAnimations()` -> `{playState: "running", duration: 5900}` donuyor -
 ticker artik her iki durumda da surekli akiyor.
+
+**Guncelleme 2 (ayni oturum, ikinci geri bildirim - asil kok neden bu)**:
+Yukaridaki duzeltmeden sonra kullanici "her satir iki kere kayiyor, sonra
+direkt kayboluyor, cok hizli hem de kayip gidiyor" seklinde bildirdi. Gercek
+kok neden bulundu: `.trust-ticker__rows`'a hic `height` tanimlanmamisti.
+CSS'te `translateY(-100%)` gibi yuzdeler, kaydirilan ELEMANIN KENDI
+YUKSEKLIGINE gore hesaplanir - yigindaki tek bir satira gore degil.
+`.trust-ticker__rows` icinde 3 satir (mesaj1+mesaj2+mesaj1 kopyasi) alt alta
+durdugu icin auto-height ile elemanin kendi yuksekligi 66px (3x22px)
+oluyordu; bu da `-100%`'un aslinda -66px (3 satir birden) anlamina geldigi,
+`-200%`'un -132px anlamina geldigi bir duruma yol aciyordu. Sonuc: %32-50
+araliginda 3 satir birden hizlica kayiyor (kullanicinin "iki kere kayiyor"
+dedigi budur), %50-82 araliginda kayan blok pencerenin tamamen disina
+cikmis oluyor (pencere bos gorunuyor = "kayboluyor"), sonra donguyu
+sonunda transform sifirlanip mesaj1 aniden geri geliyordu.
+
+**Duzeltme**: `globals.css` -> `.trust-ticker__rows` kuraline
+`height: 22px` (tek satir yuksekligi, `.trust-ticker` ve `.trust-ticker__row`
+ile ayni) eklendi. Bu, elemanin kendi yuksekligini tek satira sabitliyor
+(icerik tasmasi `.trust-ticker` uzerindeki `overflow:hidden` ile zaten
+gizleniyor), boylece `-100%` = -22px (tam olarak bir satir) oluyor.
+
+**Dogrulama**: `npx tsc --noEmit` hatasiz. Playwright ile
+`.trust-ticker__rows`'un `getBoundingClientRect().height` degeri 22
+oldugu ve animasyonun `currentTime`'i degistirilerek orneklendiginde
+transform degerlerinin beklendigi gibi `0px -> -22px (sabit) -> -44px`
+(bir sonraki donguye kusursuz gecis) seklinde ilerledigi dogrulandi.
