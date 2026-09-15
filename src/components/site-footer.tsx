@@ -43,9 +43,9 @@ function TikTokIcon() {
 export function SiteFooter() {
   return (
     <footer className="mt-section bg-ink text-cream">
-      <div className="w-full px-6 py-16 xl:px-9">
+      <div className="w-full px-6 py-10 md:py-12 xl:px-9">
         {/* Üst blok: bülten + link sütunları */}
-        <div className="grid gap-12 md:grid-cols-2 md:gap-16">
+        <div className="grid gap-10 md:grid-cols-2 md:gap-12">
           <div>
             <p className="text-sm uppercase tracking-wide text-cream/50">Bültenimize katılın</p>
             <p className="mt-4 max-w-sm text-sm text-cream/60">
@@ -123,14 +123,14 @@ export function SiteFooter() {
         </div>
 
         {/* Orta blok: dev logo */}
-        <div className="mt-16 flex flex-col gap-6 border-t border-cream/10 pt-16 md:flex-row md:items-end md:justify-between">
+        <div className="mt-10 flex flex-col gap-6 border-t border-cream/10 pt-10 md:flex-row md:items-end md:justify-between">
           <div className="min-w-0">
             <Image
               src="/logo-white.png"
               alt="Bollmark"
               width={Math.round(LOGO_HEIGHT * LOGO_ASPECT_RATIO)}
               height={LOGO_HEIGHT}
-              className="h-12 w-auto sm:h-16 md:h-24 lg:h-32 xl:h-40"
+              className="h-9 w-auto sm:h-12 md:h-16 lg:h-20 xl:h-24"
             />
             <p className="mt-4 max-w-md text-sm text-cream/60">
               Özenle seçilmiş kumaşlar ve zamansız kesimlerle tasarlanan modern giyim markası.
