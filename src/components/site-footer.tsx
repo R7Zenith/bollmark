@@ -34,21 +34,21 @@ function InstagramIcon() {
 export function SiteFooter() {
   return (
     <footer className="mt-section bg-ink text-cream">
-      <div className="w-full px-6 py-8 xl:px-9">
+      <div className="w-full px-6 py-6 xl:px-9">
         {/* Üst blok: bülten + link sütunları */}
-        <div className="grid gap-8 md:grid-cols-2 md:gap-12">
+        <div className="grid gap-6 md:grid-cols-2 md:gap-10">
           <div>
             <p className="text-sm uppercase tracking-wide text-cream">Bültenimize katılın</p>
-            <p className="mt-4 max-w-sm text-sm text-cream">
+            <p className="mt-3 max-w-sm text-sm text-cream">
               Yeni koleksiyonlardan ve fırsatlardan ilk siz haberdar olun.
             </p>
             <FooterNewsletterForm />
           </div>
 
-          <div className="grid gap-10 sm:grid-cols-3">
+          <div className="grid gap-8 sm:grid-cols-3">
             <div>
               <p className="text-sm uppercase tracking-wide text-cream">Kurumsal</p>
-              <ul className="mt-4 space-y-3 text-sm">
+              <ul className="mt-3 space-y-2 text-sm">
                 <li>
                   <Link href="/sayfa/hakkimizda" className={FOOTER_LINK_CLASS}>
                     Hakkımızda
@@ -79,7 +79,7 @@ export function SiteFooter() {
 
             <div>
               <p className="text-sm uppercase tracking-wide text-cream">İletişim</p>
-              <ul className="mt-4 space-y-3 text-sm">
+              <ul className="mt-3 space-y-2 text-sm">
                 <li>
                   <a href="mailto:destek@bollmark.com" className={FOOTER_LINK_CLASS}>
                     destek@bollmark.com
@@ -95,7 +95,7 @@ export function SiteFooter() {
 
             <div>
               <p className="text-sm uppercase tracking-wide text-cream">Alışveriş</p>
-              <ul className="mt-4 space-y-3 text-sm">
+              <ul className="mt-3 space-y-2 text-sm">
                 {SHOP_LINKS.map((item) => (
                   <li key={item.slug}>
                     <Link href={`/urunler?kategori=${item.slug}`} className={FOOTER_LINK_CLASS}>
@@ -114,16 +114,16 @@ export function SiteFooter() {
         </div>
 
         {/* Orta blok: dev logo */}
-        <div className="mt-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <div className="mt-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div className="min-w-0">
             <Image
               src="/logo-white.png"
               alt="Bollmark"
               width={Math.round(LOGO_HEIGHT * LOGO_ASPECT_RATIO)}
               height={LOGO_HEIGHT}
-              className="h-9 w-auto sm:h-12 md:h-16 lg:h-20 xl:h-24"
+              className="h-8 w-auto sm:h-10 md:h-14 lg:h-16 xl:h-20"
             />
-            <p className="mt-4 max-w-md text-sm text-cream">
+            <p className="mt-3 max-w-md text-sm text-cream">
               Özenle seçilmiş kumaşlar ve zamansız kesimlerle tasarlanan modern giyim markası.
             </p>
           </div>
@@ -142,7 +142,7 @@ export function SiteFooter() {
       </div>
 
       {/* Alt bar */}
-      <div className="px-6 py-5 xl:px-9">
+      <div className="px-6 py-4 xl:px-9">
         <div className="flex w-full flex-wrap items-center gap-2 text-xs text-cream">
           © {new Date().getFullYear()} Bollmark. Tüm hakları saklıdır.
         </div>
