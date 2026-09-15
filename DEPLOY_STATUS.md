@@ -3580,3 +3580,25 @@ gizleniyor), boylece `-100%` = -22px (tam olarak bir satir) oluyor.
 oldugu ve animasyonun `currentTime`'i degistirilerek orneklendiginde
 transform degerlerinin beklendigi gibi `0px -> -22px (sabit) -> -44px`
 (bir sonraki donguye kusursuz gecis) seklinde ilerledigi dogrulandi.
+
+## Footer yeniden tasarimi (Release temasi duzeni, bu oturum)
+
+`src/components/site-footer.tsx` uc yatay bloklu (Release referansli) yeni
+duzene gecirildi (bkz. `FOOTER_RELEASE_TARZI_YENIDEN_TASARIM_PLANI.md`):
+ust blokta bulten formu (yeni `src/components/footer-newsletter-form.tsx`
+client component'i, gonderim su an no-op) + Kurumsal/Iletisim/Alisveris
+sutunlari (Alisveris'teki 6 kategori linki DB'deki gercek `Category.slug`
+degerleriyle dogrulandi: tisort, gomlek, pantolon, sweatshirt, ceket,
+mont-kaban), orta blokta dev "BOLLMARK" wordmark + sosyal medya ikon
+placeholder'lari (href="#"), alt barda mevcut telif hakki satiri.
+
+Bulten formu ilk halde `site-footer.tsx` (server component) icinde inline
+`onSubmit` ile yazilmisti, bu Next.js build'inde "Event handlers cannot be
+passed to Client Component props" hatasina yol acti (`/odeme` ve
+`/hesap/giris` sayfalarinin prerender'ini kirdi) - form ayri bir client
+component'e (`footer-newsletter-form.tsx`) tasinarak duzeltildi.
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Playwright ile
+1440px ve 375px genisliklerde footer'in gorunumu ve yatay tasma olmadigi
+(`scrollWidth === clientWidth`) dogrulandi; mobilde wordmark tek satirda
+sigsin diye `text-5xl` yerine `text-4xl`/`sm:text-6xl` kademesi kullanildi.
