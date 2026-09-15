@@ -123,7 +123,7 @@ export function SiteFooter() {
               height={LOGO_HEIGHT}
               className="h-8 w-auto sm:h-10 md:h-14 lg:h-16 xl:h-20"
             />
-            <p className="mt-3 max-w-md text-sm text-cream">
+            <p className="mt-3 max-w-md text-sm text-cream md:max-w-none md:whitespace-nowrap">
               Özenle seçilmiş kumaşlar ve zamansız kesimlerle tasarlanan modern giyim markası.
             </p>
           </div>
