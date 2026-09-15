@@ -19,7 +19,7 @@ const SHOP_LINKS = [
   { slug: "mont-kaban", label: "Mont & Kaban" }
 ];
 
-const FOOTER_LINK_CLASS = "nav-underline inline-block text-cream/70 hover:text-cream";
+const FOOTER_LINK_CLASS = "nav-underline inline-block text-cream";
 
 function InstagramIcon() {
   return (
@@ -43,12 +43,12 @@ function TikTokIcon() {
 export function SiteFooter() {
   return (
     <footer className="mt-section bg-ink text-cream">
-      <div className="w-full px-6 py-10 md:py-12 xl:px-9">
+      <div className="w-full px-6 py-8 xl:px-9">
         {/* Üst blok: bülten + link sütunları */}
-        <div className="grid gap-10 md:grid-cols-2 md:gap-12">
+        <div className="grid gap-8 md:grid-cols-2 md:gap-12">
           <div>
-            <p className="text-sm uppercase tracking-wide text-cream/50">Bültenimize katılın</p>
-            <p className="mt-4 max-w-sm text-sm text-cream/60">
+            <p className="text-sm uppercase tracking-wide text-cream">Bültenimize katılın</p>
+            <p className="mt-4 max-w-sm text-sm text-cream">
               Yeni koleksiyonlardan ve fırsatlardan ilk siz haberdar olun.
             </p>
             <FooterNewsletterForm />
@@ -56,7 +56,7 @@ export function SiteFooter() {
 
           <div className="grid gap-10 sm:grid-cols-3">
             <div>
-              <p className="text-sm uppercase tracking-wide text-cream/50">Kurumsal</p>
+              <p className="text-sm uppercase tracking-wide text-cream">Kurumsal</p>
               <ul className="mt-4 space-y-3 text-sm">
                 <li>
                   <Link href="/sayfa/hakkimizda" className={FOOTER_LINK_CLASS}>
@@ -87,7 +87,7 @@ export function SiteFooter() {
             </div>
 
             <div>
-              <p className="text-sm uppercase tracking-wide text-cream/50">İletişim</p>
+              <p className="text-sm uppercase tracking-wide text-cream">İletişim</p>
               <ul className="mt-4 space-y-3 text-sm">
                 <li>
                   <a href="mailto:destek@bollmark.com" className={FOOTER_LINK_CLASS}>
@@ -103,7 +103,7 @@ export function SiteFooter() {
             </div>
 
             <div>
-              <p className="text-sm uppercase tracking-wide text-cream/50">Alışveriş</p>
+              <p className="text-sm uppercase tracking-wide text-cream">Alışveriş</p>
               <ul className="mt-4 space-y-3 text-sm">
                 {SHOP_LINKS.map((item) => (
                   <li key={item.slug}>
@@ -123,7 +123,7 @@ export function SiteFooter() {
         </div>
 
         {/* Orta blok: dev logo */}
-        <div className="mt-10 flex flex-col gap-6 border-t border-cream/10 pt-10 md:flex-row md:items-end md:justify-between">
+        <div className="mt-8 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="min-w-0">
             <Image
               src="/logo-white.png"
@@ -132,16 +132,16 @@ export function SiteFooter() {
               height={LOGO_HEIGHT}
               className="h-9 w-auto sm:h-12 md:h-16 lg:h-20 xl:h-24"
             />
-            <p className="mt-4 max-w-md text-sm text-cream/60">
+            <p className="mt-4 max-w-md text-sm text-cream">
               Özenle seçilmiş kumaşlar ve zamansız kesimlerle tasarlanan modern giyim markası.
             </p>
           </div>
           {/* Gerçek sosyal medya hesap linkleri girilene kadar placeholder. */}
           <div className="flex shrink-0 items-center gap-4">
-            <a href="#" aria-label="Instagram" className="text-cream/70 hover:text-cream">
+            <a href="#" aria-label="Instagram" className="text-cream">
               <InstagramIcon />
             </a>
-            <a href="#" aria-label="TikTok" className="text-cream/70 hover:text-cream">
+            <a href="#" aria-label="TikTok" className="text-cream">
               <TikTokIcon />
             </a>
           </div>
@@ -149,8 +149,8 @@ export function SiteFooter() {
       </div>
 
       {/* Alt bar */}
-      <div className="border-t border-cream/10 px-6 py-6 xl:px-9">
-        <div className="flex w-full flex-wrap items-center gap-2 text-xs text-cream/40">
+      <div className="px-6 py-5 xl:px-9">
+        <div className="flex w-full flex-wrap items-center gap-2 text-xs text-cream">
           © {new Date().getFullYear()} Bollmark. Tüm hakları saklıdır.
         </div>
       </div>

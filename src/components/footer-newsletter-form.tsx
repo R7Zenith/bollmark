@@ -7,7 +7,7 @@ export function FooterNewsletterForm() {
         event.preventDefault();
         // TODO: gerçek bir bülten kayıt endpoint'ine bağla (henüz yok).
       }}
-      className="mt-6 flex max-w-sm gap-2"
+      className="mt-6 flex max-w-sm items-stretch bg-cream"
     >
       <label htmlFor="footer-newsletter-email" className="sr-only">
         E-posta adresiniz
@@ -17,11 +17,11 @@ export function FooterNewsletterForm() {
         type="email"
         required
         placeholder="E-posta adresiniz"
-        className="w-full border border-cream/30 bg-transparent px-4 py-3 text-sm text-cream placeholder:text-cream/40 focus:border-cream focus:outline-none"
+        className="w-full bg-transparent px-4 py-3 text-sm text-ink placeholder:text-ink/50 focus:outline-none"
       />
       <button
         type="submit"
-        className="shrink-0 bg-cream px-5 py-3 text-sm uppercase tracking-widest2 text-ink hover:bg-clay hover:text-cream"
+        className="shrink-0 border-l border-ink/10 px-5 py-3 text-sm uppercase tracking-widest2 text-ink hover:bg-ink hover:text-cream"
       >
         Abone Ol
       </button>
