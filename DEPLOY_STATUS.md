@@ -3500,3 +3500,31 @@ Bu degisiklik responsive degil (tek deger), hem masaustunu hem mobili ayni sekil
 **Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
 
 **Commit onerilir, kullanicinin onayi olmadan push edilmeyecek.**
+
+## Guven rozeti ticker animasyonu - dongu hatasi duzeltildi (bu oturum)
+
+Kullanici, urun sayfasindaki "Ucretsiz kargo ve teslimat / Guvenli online odeme"
+ticker'inin "iki kez oynuyor, sonra kayboluyor, uzun sure sonra tekrar geliyor"
+seklinde bozuk davrandigini bildirdi. Kok neden onceden
+`GUVEN_TICKER_ANIMASYON_DONGUSU_PLANI.md` dosyasinda tespit edilmisti:
+`src/app/globals.css` icinde `@media (prefers-reduced-motion: reduce)` blogu
+`.trust-ticker__rows` animasyonunun suresini 5.9s'den 20s'ye cikariyordu.
+Keyframe yuzdeleri (`32%/50%/82%`) sabit kaldigi icin 20s'de her mesaj ~6.4
+saniye hareketsiz kaliyor, bu da "donmus/kaybolmus" hissi veriyordu. Test
+ortaminda ve muhtemelen kullanicinin kendi makinesinde (Windows "Show
+animations" kapali) bu medya sorgusu true donuyordu.
+
+**Duzeltme**: `globals.css` icindeki `animation-duration: 20s` kurali
+kaldirildi, yerine ticker'i tamamen durdurup ilk mesajda sabitleyen
+`animation: none` kurali kondu. `.trust-ticker` uzerindeki
+`overflow: hidden; height: 22px` kuraline dokunulmadi.
+
+**Dogrulama** (Playwright ile `/urunler/slim-fit-dik-yaka-kolsuz-asimetrik-uzun-elbise` sayfasinda):
+- `npx tsc --noEmit` hatasiz tamamlandi.
+- Normal durumda (`reducedMotion: 'no-preference'`): `getAnimations()` ->
+  `duration: 5900`, `playState: "running"` - sorunsuz akiyor.
+- `prefers-reduced-motion: reduce` emule edildiginde: `getAnimations()` bos
+  dizi donuyor (`animCount: 0`), `computedAnimationName: "none"`,
+  `transform: "none"` - ticker ilk mesajda sabit duruyor, hareket etmiyor.
+- `.trust-ticker` her iki durumda da `overflow: hidden; height: 22px` olarak
+  kaliyor - fazla satirlarin ust uste gorunme riski yok.

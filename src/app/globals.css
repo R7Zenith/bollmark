@@ -130,18 +130,20 @@ body {
 }
 
 /* Hareketi azaltmayi tercih eden kullanicida (Windows "Show animations"
-   kapali, macOS "Reduce motion" acik vb.) animasyon TAMAMEN durdurulmuyor -
-   onceki surumde `animation:none` + kopya satir gizleme yapiliyordu, bu da
-   pencereyi (`overflow:hidden`) da kaldirdigi icin 2 mesajin HER IKISI de
-   ayni anda, sabit/hareketsiz listelenmis halde goruluyordu (kullanicinin
-   ekran goruntusunde yakaladigi tam olarak buydu - Release'deki gibi
-   TEK satirlik kayan bir ticker degil, dort satirlik sabit bir liste).
-   Bunun yerine animasyon sadece YAVASLATILIYOR (5.9s -> 20s): pencere/
-   kirpma korunuyor, ticker gene Release'deki gibi tek satir gosterip kayarak
-   degisiyor, sadece dusuk hareket duyarliligi olan kullanicilar icin daha
-   yumusak/agir bir gecis oluyor. */
+   kapali, macOS "Reduce motion" acik vb.) animasyon TAMAMEN durduruluyor.
+   Onceki surumde animasyon 5.9s -> 20s'ye yavaslatiliyordu, ama keyframe
+   yuzdeleri (32%/50%/82%) sabit kaldigi icin her mesaj 20s'nin ~%32'si
+   kadar (~6.4s) hareketsiz kaliyor, sonra hizla kayiyordu - kullaniciya
+   "iki kez oynuyor, sonra kayboluyor, uzun sure sonra tekrar geliyor" gibi
+   bozukmus hissi veriyordu. `animation:none` burada `.trust-ticker`
+   uzerindeki `overflow:hidden; height:22px` kuralina dokunmuyor, sadece
+   `.trust-ticker__rows`'un transform'unu kaldiriyor; eleman transform'suz
+   (ilk satir/ilk mesaj) halinde sabit kalir, sonraki satirlar zaten
+   overflow:hidden ile gizlidir - eski `animation:none` denemesindeki
+   "4 satir ust uste gorunme" sorunu ayri bir denemede overflow kuralinin
+   da kaldirilmasindan kaynaklaniyordu, burada overflow korunuyor. */
 @media (prefers-reduced-motion: reduce) {
   .trust-ticker__rows {
-    animation-duration: 20s;
+    animation: none;
   }
 }
