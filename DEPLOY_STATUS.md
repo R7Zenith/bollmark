@@ -3528,3 +3528,28 @@ kaldirildi, yerine ticker'i tamamen durdurup ilk mesajda sabitleyen
   `transform: "none"` - ticker ilk mesajda sabit duruyor, hareket etmiyor.
 - `.trust-ticker` her iki durumda da `overflow: hidden; height: 22px` olarak
   kaliyor - fazla satirlarin ust uste gorunme riski yok.
+
+**Guncelleme (ayni oturum, kullanicinin geri bildirimi sonrasi)**: Yukaridaki
+`animation: none` duzeltmesi canliya alindiktan sonra kullanici kendi
+makinesinde ticker'in artik "hic oynamadigini" bildirdi - beklenen sonuc,
+cunku kullanicinin Windows'unda "Show animations" kapali oldugu icin
+`prefers-reduced-motion: reduce` true donuyor ve ticker kasitli olarak
+duruyordu. Kullanicaya soruldu: "herkeste her zaman animasyonlu kalsin
+(Release gibi)" mi yoksa "kendi Windows ayarini acip kodu degistirmeden mi
+test etsin" - kullanici birincisini secti. Sonuc olarak
+`@media (prefers-reduced-motion: reduce)` blogu tamamen kaldirildi,
+`.trust-ticker__rows` artik OS ayarindan bagimsiz her zaman
+`trustTickerSwap 5.9s ease-in-out infinite` ile calisiyor (Release'in
+kendi davranisiyla birebir ayni).
+
+Ayrica bu oturumda rebase edilen dunku commit'lerden (`isCover` alani)
+`npx prisma generate` calistirilmamis oldugu ortaya cikti, bu yuzden
+`npx tsc --noEmit` `src/lib/catalog.ts` ve urun admin sayfasinda
+`isCover` ile ilgili tip hatalari veriyordu; `npx prisma generate`
+calistirilarak duzeltildi (sema zaten dogruydu, sadece generate edilmis
+client eskiydi).
+
+**Dogrulama**: `npx tsc --noEmit` hatasiz. Playwright ile ayni urun
+sayfasinda hem `reducedMotion: 'reduce'` hem `'no-preference'` emulasyonunda
+`getAnimations()` -> `{playState: "running", duration: 5900}` donuyor -
+ticker artik her iki durumda da surekli akiyor.

@@ -129,21 +129,9 @@ body {
   100% { transform: translateY(-200%); }
 }
 
-/* Hareketi azaltmayi tercih eden kullanicida (Windows "Show animations"
-   kapali, macOS "Reduce motion" acik vb.) animasyon TAMAMEN durduruluyor.
-   Onceki surumde animasyon 5.9s -> 20s'ye yavaslatiliyordu, ama keyframe
-   yuzdeleri (32%/50%/82%) sabit kaldigi icin her mesaj 20s'nin ~%32'si
-   kadar (~6.4s) hareketsiz kaliyor, sonra hizla kayiyordu - kullaniciya
-   "iki kez oynuyor, sonra kayboluyor, uzun sure sonra tekrar geliyor" gibi
-   bozukmus hissi veriyordu. `animation:none` burada `.trust-ticker`
-   uzerindeki `overflow:hidden; height:22px` kuralina dokunmuyor, sadece
-   `.trust-ticker__rows`'un transform'unu kaldiriyor; eleman transform'suz
-   (ilk satir/ilk mesaj) halinde sabit kalir, sonraki satirlar zaten
-   overflow:hidden ile gizlidir - eski `animation:none` denemesindeki
-   "4 satir ust uste gorunme" sorunu ayri bir denemede overflow kuralinin
-   da kaldirilmasindan kaynaklaniyordu, burada overflow korunuyor. */
-@media (prefers-reduced-motion: reduce) {
-  .trust-ticker__rows {
-    animation: none;
-  }
-}
+/* prefers-reduced-motion kontrolu bilerek yok: Referans Release temasi
+   (release-main.myshopify.com) da ticker'i bu ayardan bagimsiz her zaman
+   5.9s'de aksin diye tasarlamis. Once "20s'ye yavaslat" sonra "durdur"
+   denendi, ikisi de OS'te "Show animations" kapali kullanicilar icin
+   ticker'in beklenenden farkli/bozukmus gorunmesine yol acti - kullanici
+   herkeste ayni, surekli akan animasyonu istedi. */
