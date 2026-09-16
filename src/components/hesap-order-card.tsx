@@ -92,7 +92,7 @@ export function HesapOrderCard({ order }: { order: HesapOrderView }) {
   }
 
   return (
-    <div className="border border-line bg-white p-6">
+    <div className="rounded-lg border border-line bg-white p-6">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <p className="font-medium">{order.orderNumber}</p>
@@ -137,7 +137,11 @@ export function HesapOrderCard({ order }: { order: HesapOrderView }) {
       {order.eligibleForReturn && selectableItems.length > 0 && (
         <div className="mt-4 border-t border-line pt-4">
           {!formOpen ? (
-            <button type="button" onClick={() => setFormOpen(true)} className="text-sm underline hover:text-clay">
+            <button
+              type="button"
+              onClick={() => setFormOpen(true)}
+              className="text-[10px] uppercase tracking-[1px] underline hover:text-clay"
+            >
               İade/Değişim Talebi Oluştur
             </button>
           ) : (
@@ -167,7 +171,7 @@ export function HesapOrderCard({ order }: { order: HesapOrderView }) {
               <select
                 value={reason}
                 onChange={(e) => setReason(e.target.value as (typeof returnReasons)[number])}
-                className="w-full border border-line px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-line px-3 py-2 text-sm"
               >
                 {returnReasons.map((r) => (
                   <option key={r} value={r}>
@@ -180,7 +184,7 @@ export function HesapOrderCard({ order }: { order: HesapOrderView }) {
                 onChange={(e) => setNote(e.target.value)}
                 placeholder="Ek not (opsiyonel)"
                 rows={2}
-                className="w-full border border-line px-3 py-2 text-sm"
+                className="w-full rounded-lg border border-line px-3 py-2 text-sm"
               />
               {formError && <p className="text-sm text-red-600">{formError}</p>}
               {formSuccess && <p className="text-sm text-ink/70">Talebiniz alındı.</p>}
@@ -188,14 +192,14 @@ export function HesapOrderCard({ order }: { order: HesapOrderView }) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="bg-ink px-5 py-2 text-sm uppercase tracking-wide text-cream hover:bg-clay disabled:opacity-50"
+                  className="rounded-full bg-ink px-6 py-4 text-[10px] uppercase tracking-[1px] text-white hover:bg-ink/90 disabled:opacity-50"
                 >
                   {submitting ? "Gönderiliyor..." : "Talebi Gönder"}
                 </button>
                 <button
                   type="button"
                   onClick={() => setFormOpen(false)}
-                  className="border border-line px-5 py-2 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
+                  className="rounded-full border border-ink px-6 py-4 text-[10px] uppercase tracking-[1px] text-ink hover:bg-ink hover:text-white"
                 >
                   Vazgeç
                 </button>

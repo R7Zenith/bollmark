@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/require-customer";
-import { HesapNav } from "@/components/hesap-nav";
 import { FavorilerimGrid } from "@/components/favorilerim-grid";
 import type { ProductCardData } from "@/components/product-card";
 import { firstImageUrl } from "@/lib/catalog";
@@ -32,16 +31,15 @@ export default async function HesapFavorilerimPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-16">
-      <h1 className="font-display text-3xl">Favorilerim</h1>
-      <div className="mt-8">
-        <HesapNav />
-      </div>
+    <div>
+      <h2 className="font-display text-xl">Favorilerim</h2>
 
       {products.length === 0 ? (
-        <p className="mt-10 text-sm text-ink/60">Henüz favori ürününüz yok.</p>
+        <p className="mt-6 text-sm text-ink/60">Henüz favori ürününüz yok.</p>
       ) : (
-        <FavorilerimGrid products={products} />
+        <div className="mt-6">
+          <FavorilerimGrid products={products} />
+        </div>
       )}
     </div>
   );

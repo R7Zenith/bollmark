@@ -1,6 +1,5 @@
 import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/require-customer";
-import { HesapNav } from "@/components/hesap-nav";
 
 const reasonLabel: Record<string, string> = {
   SIPARIS_KAZANC: "Sipariş Kazancı",
@@ -18,18 +17,15 @@ export default async function HesapPuanlarimPage() {
   ]);
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16">
-      <h1 className="font-display text-3xl">Puanlarım</h1>
-      <div className="mt-8">
-        <HesapNav />
-      </div>
+    <div>
+      <h2 className="font-display text-xl">Puanlarım</h2>
 
-      <div className="mt-8 border border-line bg-white p-6">
+      <div className="mt-6 rounded-lg border border-line bg-white p-6">
         <p className="text-xs uppercase tracking-wide text-ink/50">Mevcut Bakiye</p>
         <p className="mt-2 font-display text-3xl">{customer?.loyaltyPoints ?? 0} puan</p>
       </div>
 
-      <div className="mt-6 border border-line bg-white">
+      <div className="mt-6 rounded-lg border border-line bg-white">
         {transactions.length === 0 ? (
           <p className="p-6 text-sm text-ink/50">Henüz puan hareketi yok.</p>
         ) : (

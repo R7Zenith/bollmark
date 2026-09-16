@@ -2,7 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/require-customer";
 import { formatPrice } from "@/lib/format";
 import { orderStatusLabel, returnStatuses, type OrderStatus } from "@/lib/status";
-import { HesapNav } from "@/components/hesap-nav";
 import { HesapOrderCard, type HesapOrderView } from "@/components/hesap-order-card";
 
 interface ReturnItemSnapshot {
@@ -72,13 +71,10 @@ export default async function HesapSiparislerimPage() {
   });
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16">
-      <h1 className="font-display text-3xl">Siparişlerim</h1>
-      <div className="mt-8">
-        <HesapNav />
-      </div>
+    <div>
+      <h2 className="font-display text-xl">Siparişlerim</h2>
 
-      <div className="mt-8 space-y-6">
+      <div className="mt-6 space-y-6">
         {views.length === 0 ? (
           <p className="text-sm text-ink/60">Henüz siparişiniz yok.</p>
         ) : (

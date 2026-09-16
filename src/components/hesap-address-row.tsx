@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Pencil, Trash2, X, Check, Star } from "lucide-react";
 
-const inputClass = "rounded-md border border-line px-3 py-2 text-sm focus:border-ink focus:outline-none";
+const inputClass = "rounded-lg border border-line px-3 py-2 text-sm focus:border-ink focus:outline-none";
+const actionLinkClass = "text-[10px] uppercase tracking-[1px] underline text-ink/60 hover:text-ink";
 
 export interface HesapAddress {
   id: string;
@@ -41,12 +41,12 @@ export function HesapAddressRow({
           <input name="address" defaultValue={address.address} required placeholder="Adres" className={`col-span-2 ${inputClass}`} />
           <input name="city" defaultValue={address.city} required placeholder="İl" className={inputClass} />
           <input name="district" defaultValue={address.district} required placeholder="İlçe" className={inputClass} />
-          <div className="col-span-2 flex justify-end gap-2">
-            <button type="button" onClick={() => setEditing(false)} className="rounded-md p-1.5 text-ink/50 hover:bg-ink/5" title="Vazgeç">
-              <X size={16} />
+          <div className="col-span-2 flex justify-end gap-4">
+            <button type="button" onClick={() => setEditing(false)} className={actionLinkClass}>
+              Vazgeç
             </button>
-            <button type="submit" className="rounded-md p-1.5 text-green-600 hover:bg-green-50" title="Kaydet">
-              <Check size={16} />
+            <button type="submit" className={actionLinkClass}>
+              Kaydet
             </button>
           </div>
         </form>
@@ -65,16 +65,16 @@ export function HesapAddressRow({
           {address.address}, {address.district} / {address.city} {address.postalCode}
         </p>
       </div>
-      <div className="flex items-center gap-1">
+      <div className="flex items-center gap-4">
         {!address.isDefault && (
           <form action={setDefaultAction}>
-            <button type="submit" className="rounded-md p-1.5 text-ink/50 hover:bg-ink/5" title="Varsayılan Yap">
-              <Star size={15} />
+            <button type="submit" className={actionLinkClass}>
+              Varsayılan Yap
             </button>
           </form>
         )}
-        <button type="button" onClick={() => setEditing(true)} className="rounded-md p-1.5 text-ink/50 hover:bg-ink/5" title="Düzenle">
-          <Pencil size={15} />
+        <button type="button" onClick={() => setEditing(true)} className={actionLinkClass}>
+          Düzenle
         </button>
         <form
           action={deleteAction}
@@ -82,8 +82,8 @@ export function HesapAddressRow({
             if (!window.confirm("Bu adres silinsin mi?")) e.preventDefault();
           }}
         >
-          <button type="submit" className="rounded-md p-1.5 text-ink/50 hover:bg-red-50 hover:text-red-600" title="Sil">
-            <Trash2 size={15} />
+          <button type="submit" className={actionLinkClass}>
+            Sil
           </button>
         </form>
       </div>

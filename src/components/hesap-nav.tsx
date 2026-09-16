@@ -16,25 +16,34 @@ export function HesapNav() {
   const pathname = usePathname();
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-4 border-b border-line pb-4">
-      <nav className="flex flex-wrap gap-6 text-sm uppercase tracking-wide">
-        {navItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={pathname === item.href ? "text-ink" : "text-ink/50 hover:text-ink"}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
-      <button
-        type="button"
-        onClick={() => signOut({ callbackUrl: "/" })}
-        className="text-sm uppercase tracking-wide text-ink/50 hover:text-ink"
-      >
-        Çıkış Yap
-      </button>
+    <div>
+      <ul className="divide-y divide-line">
+        {navItems.map((item) => {
+          const active = pathname === item.href;
+          return (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                className={`flex items-center justify-between px-9 py-8 text-xl font-normal text-ink hover:bg-ink/[0.024] ${
+                  active ? "bg-ink/[0.024]" : ""
+                }`}
+              >
+                {item.label}
+                <span aria-hidden="true">›</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      <div className="px-9 py-6">
+        <button
+          type="button"
+          onClick={() => signOut({ callbackUrl: "/" })}
+          className="text-[10px] uppercase tracking-[1px] underline text-ink/60 hover:text-ink"
+        >
+          Çıkış Yap
+        </button>
+      </div>
     </div>
   );
 }

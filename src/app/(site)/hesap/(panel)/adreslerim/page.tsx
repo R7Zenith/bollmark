@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/require-customer";
-import { HesapNav } from "@/components/hesap-nav";
 import { HesapAddressRow } from "@/components/hesap-address-row";
 
 const PATH = "/hesap/adreslerim";
@@ -83,12 +82,11 @@ export default async function HesapAdreslerimPage({
 
   const addresses = await prisma.customerAddress.findMany({ where: { customerId }, orderBy: { createdAt: "asc" } });
 
+  const addressInputClass = "rounded-lg border border-line px-3 py-2 text-sm";
+
   return (
-    <div className="mx-auto max-w-3xl px-6 py-16">
-      <h1 className="font-display text-3xl">Adreslerim</h1>
-      <div className="mt-8">
-        <HesapNav />
-      </div>
+    <div>
+      <h2 className="font-display text-xl">Adreslerim</h2>
 
       {(basarili || hata) && (
         <p className={`mt-4 text-sm ${hata ? "text-red-600" : "text-ink/70"}`}>
@@ -96,23 +94,23 @@ export default async function HesapAdreslerimPage({
         </p>
       )}
 
-      <div className="mt-8 border border-line bg-white p-6">
-        <h2 className="font-display text-lg">Yeni Adres Ekle</h2>
+      <div className="mt-6 rounded-lg border border-line bg-white p-6">
+        <h3 className="font-display text-lg">Yeni Adres Ekle</h3>
         <form action={addAddress.bind(null, customerId)} className="mt-4 grid grid-cols-2 gap-3">
-          <input name="label" required placeholder="Etiket (Ev, İş...)" className="border border-line px-3 py-2 text-sm" />
-          <input name="name" required placeholder="Ad Soyad" className="border border-line px-3 py-2 text-sm" />
-          <input name="phone" required placeholder="Telefon" className="border border-line px-3 py-2 text-sm" />
-          <input name="postalCode" placeholder="Posta Kodu" className="border border-line px-3 py-2 text-sm" />
-          <input name="address" required placeholder="Adres" className="col-span-2 border border-line px-3 py-2 text-sm" />
-          <input name="city" required placeholder="İl" className="border border-line px-3 py-2 text-sm" />
-          <input name="district" required placeholder="İlçe" className="border border-line px-3 py-2 text-sm" />
-          <button className="col-span-2 bg-ink py-2.5 text-sm uppercase tracking-wide text-cream hover:bg-clay">
+          <input name="label" required placeholder="Etiket (Ev, İş...)" className={addressInputClass} />
+          <input name="name" required placeholder="Ad Soyad" className={addressInputClass} />
+          <input name="phone" required placeholder="Telefon" className={addressInputClass} />
+          <input name="postalCode" placeholder="Posta Kodu" className={addressInputClass} />
+          <input name="address" required placeholder="Adres" className={`col-span-2 ${addressInputClass}`} />
+          <input name="city" required placeholder="İl" className={addressInputClass} />
+          <input name="district" required placeholder="İlçe" className={addressInputClass} />
+          <button className="col-span-2 rounded-full bg-ink py-4 text-[10px] uppercase tracking-[1px] text-white hover:bg-ink/90">
             Adres Ekle
           </button>
         </form>
       </div>
 
-      <ul className="mt-6 divide-y divide-line border border-line bg-white">
+      <ul className="mt-6 divide-y divide-line rounded-lg border border-line bg-white">
         {addresses.map((a) => (
           <HesapAddressRow
             key={a.id}
