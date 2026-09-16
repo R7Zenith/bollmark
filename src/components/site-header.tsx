@@ -52,22 +52,19 @@ function PromoCard({
   );
 }
 
-function HamburgerIcon() {
+// Hamburger <-> X arasinda geçiş animasyonlu tek ikon: 3 çizgi, açılınca üst
+// ve alt çizgi merkeze gelip ±45° dönerek X'i oluşturuyor, orta çizgi
+// solukluyor. Hem header'daki ac butonu hem drawer'in kendi kapat butonu
+// AYNI bileseni kullanir (bkz. kullanim yerleri) - kullanicinin "sağ üstteki
+// menü ikonu" olarak tek bir ikon algilamasi bu tutarlilikla saglaniyor.
+function AnimatedMenuIcon({ open }: { open: boolean }) {
+  const bar = "absolute left-0 h-[1.75px] w-6 origin-center bg-current transition-all duration-300 ease-in-out";
   return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="18" x2="21" y2="18" />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-      <line x1="5" y1="5" x2="19" y2="19" />
-      <line x1="19" y1="5" x2="5" y2="19" />
-    </svg>
+    <span className="relative block h-6 w-6" aria-hidden="true">
+      <span className={`${bar} ${open ? "top-[11px] rotate-45" : "top-[6px] rotate-0"}`} />
+      <span className={`${bar} top-[11px] ${open ? "opacity-0" : "opacity-100"}`} />
+      <span className={`${bar} ${open ? "top-[11px] -rotate-45" : "top-[16px] rotate-0"}`} />
+    </span>
   );
 }
 
@@ -352,6 +349,20 @@ function MobileMenu({
   // (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1.2).
   const [screenStack, setScreenStack] = useState<MobileScreen[]>(["root"]);
   const [mounted, setMounted] = useState(false);
+  // Panel eskiden `open` false olur olmaz aninda DOM'dan kalkiyordu - X'in
+  // hamburger'a donus animasyonunu (ve panelin kendisini) gormeye firsat
+  // kalmiyordu. Simdi `open` false oldugunda hemen kaldirmiyoruz, CSS
+  // gecisinin suresi kadar (300ms) bekleyip ondan sonra unmount ediyoruz -
+  // bu sure boyunca panel opacity/scale ile solarak kapanir, arkasindaki
+  // header butonu de ayni anda X'ten hamburger'a donuyor.
+  const [shouldRender, setShouldRender] = useState(false);
+  // `shouldRender` DOM'a girer girmez CSS siniflari zaten "acik" hedef
+  // degerinde olursa tarayici geciş yapacak bir onceki kareyi hic gormez
+  // (mount + hedef durum ayni frame'de olursa transition tetiklenmez).
+  // `visible` bir sonraki animasyon karesinde true'ya cekilerek gercek bir
+  // "kapali -> acik" sinif degisikligi olusturuyor, boylece opacity/scale
+  // gecisi gercekten animasyonlu oynuyor.
+  const [visible, setVisible] = useState(false);
   const currentScreen = screenStack[screenStack.length - 1];
 
   useEffect(() => {
@@ -360,19 +371,31 @@ function MobileMenu({
 
   useEffect(() => {
     if (open) {
+      setShouldRender(true);
       document.body.style.overflow = "hidden";
     } else {
+      setVisible(false);
       document.body.style.overflow = "";
-      // Menu kapaninca yigin sifirlanir - bir dahaki acilista hep kok ekrandan
-      // baslanir, kullanicinin kaldigi alt ekranda kalmaz.
-      setScreenStack(["root"]);
+      const timeout = setTimeout(() => {
+        setShouldRender(false);
+        // Menu kapaninca yigin sifirlanir - bir dahaki acilista hep kok ekrandan
+        // baslanir, kullanicinin kaldigi alt ekranda kalmaz.
+        setScreenStack(["root"]);
+      }, 300);
+      return () => clearTimeout(timeout);
     }
     return () => {
       document.body.style.overflow = "";
     };
   }, [open]);
 
-  if (!open || !mounted) return null;
+  useEffect(() => {
+    if (!shouldRender) return;
+    const raf = requestAnimationFrame(() => setVisible(true));
+    return () => cancelAnimationFrame(raf);
+  }, [shouldRender]);
+
+  if (!shouldRender || !mounted) return null;
 
   const pushScreen = (screen: MobileScreen) => setScreenStack((s) => [...s, screen]);
   const popScreen = () => setScreenStack((s) => (s.length > 1 ? s.slice(0, -1) : s));
@@ -381,7 +404,11 @@ function MobileMenu({
   // CSS'te fixed konumlanmayi ata elemente gore sinirlar), bu overlay body'ye
   // portal ile tasinir - aksi halde tam ekran degil header yuksekliginde kirpilir.
   return createPortal(
-    <div className="fixed inset-0 z-50 xl:hidden">
+    <div
+      className={`fixed inset-0 z-50 xl:hidden transition-opacity duration-300 ease-in-out ${
+        visible ? "opacity-100" : "opacity-0"
+      }`}
+    >
       <button
         type="button"
         aria-label="Menüyü kapat"
@@ -389,8 +416,14 @@ function MobileMenu({
         onClick={onClose}
       />
       {/* Release'de oldugu gibi tam ekran, kosesiz panel (eskiden %85 genislik +
-          yuvarlak sol kose - artik degil, bkz. 1.2). */}
-      <div className="absolute inset-0 flex w-full flex-col bg-cream">
+          yuvarlak sol kose - artik degil, bkz. 1.2). Panel ayrica hafif bir
+          olcek gecisiyle (scale-95 -> 100) aciliyor - opacity'ye ek "iceri
+          giriyor" hissi katmak icin. */}
+      <div
+        className={`absolute inset-0 flex w-full flex-col bg-cream transition-transform duration-300 ease-in-out ${
+          visible ? "scale-100" : "scale-95"
+        }`}
+      >
         <div className="flex items-center justify-between border-b border-line px-6 py-5">
           {currentScreen === "root" ? (
             <Image
@@ -411,7 +444,7 @@ function MobileMenu({
             </button>
           )}
           <button type="button" aria-label="Kapat" onClick={onClose} className="p-1">
-            <CloseIcon />
+            <AnimatedMenuIcon open />
           </button>
         </div>
 
@@ -585,11 +618,12 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
             </Link>
             <button
               type="button"
-              aria-label="Menüyü aç"
+              aria-label={mobileOpen ? "Menüyü kapat" : "Menüyü aç"}
+              aria-expanded={mobileOpen}
               className="p-1 xl:hidden"
-              onClick={() => setMobileOpen(true)}
+              onClick={() => setMobileOpen((v) => !v)}
             >
-              <HamburgerIcon />
+              <AnimatedMenuIcon open={mobileOpen} />
             </button>
           </div>
         </div>
