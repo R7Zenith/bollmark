@@ -113,6 +113,18 @@ export default async function ProductPage({
         productName={product.name}
         categoryName={product.category?.name ?? null}
         brandName={product.brand?.name ?? null}
+        breadcrumb={[
+          { label: "Anasayfa", href: "/" },
+          ...(product.gender ? [{ label: product.gender, href: `/urunler?cinsiyet=${encodeURIComponent(product.gender)}` }] : []),
+          ...(product.category
+            ? [
+                {
+                  label: product.category.name,
+                  href: `/urunler?kategori=${encodeURIComponent(product.category.slug)}${product.gender ? `&cinsiyet=${encodeURIComponent(product.gender)}` : ""}`
+                }
+              ]
+            : [])
+        ]}
         descriptionHtml={sanitizeDescriptionHtml(product.description)}
         material={product.material}
         origin={product.origin}

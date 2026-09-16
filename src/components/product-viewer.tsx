@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
 import { useRouter } from "next/navigation";
 import { Heart, Minus, Plus, Truck, RotateCcw, ShieldCheck, Check, ZoomIn, Clock } from "lucide-react";
@@ -119,6 +120,7 @@ export function ProductViewer({
   productName,
   categoryName,
   brandName,
+  breadcrumb,
   descriptionHtml,
   material,
   origin,
@@ -137,6 +139,10 @@ export function ProductViewer({
   productName: string;
   categoryName: string | null;
   brandName: string | null;
+  // Mobilde fotografin ustunde gosterilen "Anasayfa / Kadin / Elbise" gibi
+  // gezinme yolu (bkz. urunler/[slug]/page.tsx) - Koton'un urun sayfasindaki
+  // konum bildirimiyle birebir ayni yerde.
+  breadcrumb?: { label: string; href: string }[];
   descriptionHtml: string;
   material: string | null;
   origin: string | null;
@@ -189,18 +195,14 @@ export function ProductViewer({
   // tiklanan noktaya transform-origin kodu bunun icin yetersizdi.
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [activeImage, setActiveImage] = useState(0);
-  // Mobil ana gorsel + kucuk resim seridi icin Embla Carousel (bkz.
-  // MOBIL_KATALOG..._PLANI.md 4c) - elle yazilmis touchstart/touchmove/
-  // touchend swipe'i degistirdi: kullanici gercek cihazda elle yazilan
-  // swipe'in "bazen bug oluyor, kasiyor" hissi verdigini bildirmisti. Embla
-  // headless (kendi CSS'ini dayatmiyor, mevcut Tailwind gorunumu korundu),
-  // resmi "Thumbnail Sync" deseni: iki ayri Embla instance'i (ana + kucuk
-  // resim), select olayiyla birbirine baglaniyor.
+  // Mobil ana gorsel icin Embla Carousel (bkz. MOBIL_KATALOG..._PLANI.md 4c)
+  // - elle yazilmis touchstart/touchmove/touchend swipe'i degistirdi:
+  // kullanici gercek cihazda elle yazilan swipe'in "bazen bug oluyor,
+  // kasiyor" hissi verdigini bildirmisti. Embla headless (kendi CSS'ini
+  // dayatmiyor, mevcut Tailwind gorunumu korundu). Kucuk resim seridi
+  // Koton'un tasarimina uyum icin kaldirildi (bkz. asagida `activeImage`
+  // ile senkron ilerleme cizgileri) - artik tek Embla instance'i yeterli.
   const [emblaMainRef, emblaMainApi] = useEmblaCarousel({ loop: true });
-  const [emblaThumbRef, emblaThumbApi] = useEmblaCarousel({
-    containScroll: "keepSnaps",
-    dragFree: true
-  });
 
   // release-main.myshopify.com/products/top-8 canli DOM'unda "Size guide"
   // linki BEDEN etiketinin hemen yaninda duruyor (`group "Size XS Size
@@ -233,11 +235,12 @@ export function ProductViewer({
   useEffect(() => {
     setActiveImage(0);
     emblaMainApi?.scrollTo(0, true);
-    emblaThumbApi?.scrollTo(0, true);
-  }, [galleryImages, emblaMainApi, emblaThumbApi]);
+  }, [galleryImages, emblaMainApi]);
 
-  // Embla'nin resmi "Thumbnail Sync" deseni: kucuk resme tiklaninca ana
-  // carousel'i o index'e kaydirir.
+  // Ilerleme cizgisine (veya lightbox'a) tiklaninca ana carousel'i o
+  // index'e kaydirir - eskiden kucuk resim seridine tiklamak icindi,
+  // Koton'daki gibi ilerleme cizgilerine gecildikten sonra ayni islevi
+  // koruyor.
   const onThumbClick = useCallback(
     (index: number) => {
       emblaMainApi?.scrollTo(index);
@@ -245,22 +248,19 @@ export function ProductViewer({
     [emblaMainApi]
   );
 
-  // Ana carousel kaydirilinca (swipe veya kucuk resme tiklayarak) aktif
-  // index'i gunceller ve kucuk resim seridini (gorunur alanda kalacak
-  // sekilde) senkron kaydirir.
+  // Ana carousel kaydirilinca (swipe veya ilerleme cizgisine tiklayarak)
+  // aktif index'i gunceller.
   useEffect(() => {
     if (!emblaMainApi) return;
     const onSelect = () => {
-      const index = emblaMainApi.selectedScrollSnap();
-      setActiveImage(index);
-      emblaThumbApi?.scrollTo(index);
+      setActiveImage(emblaMainApi.selectedScrollSnap());
     };
     onSelect();
     emblaMainApi.on("select", onSelect).on("reInit", onSelect);
     return () => {
       emblaMainApi.off("select", onSelect).off("reInit", onSelect);
     };
-  }, [emblaMainApi, emblaThumbApi]);
+  }, [emblaMainApi]);
 
   const handleAdd = () => {
     if (!selected || outOfStock) return;
@@ -317,12 +317,32 @@ export function ProductViewer({
           aynen kullanilyordu - bu, "desktop tasarimini kuculterek mobil
           yapma" hatasiydi, burada ayri bir mobil duzen olarak ayristirildi. */}
       <div className="min-w-0 md:hidden">
-        {/* Embla ana carousel: `overflow-hidden` sarmalayici Embla'nin
-            "viewport" referansini tutuyor, icindeki `flex` satir gercek
-            slaytlari barindiriyor - momentum/surukleme/snap fizigi tamamen
-            Embla tarafindan yonetiliyor (bkz. yukaridaki emblaMainApi
-            state'i). */}
-        <div className="overflow-hidden" ref={emblaMainRef}>
+        {/* Koton'un urun sayfasinda fotografin UZERINDE, sayfa kenar
+            bosluklarindan bagimsiz kucuk bir gezinme yolu var ("Anasayfa /
+            Kadin / Elbise" gibi) - konum bilgisi 17 Eylul 2026'da
+            koton.com/.../4212827 mobil gorunumunde (390px, Playwright)
+            olculdu. Sayfa konteynerinin px-4'u burada da gecerli. */}
+        {breadcrumb && breadcrumb.length > 0 && (
+          <nav aria-label="Konum" className="mb-3 flex flex-wrap items-center gap-x-1 text-[11px] text-ink/50">
+            {breadcrumb.map((item, i) => (
+              <span key={item.href} className="flex items-center gap-x-1">
+                {i > 0 && <span className="text-ink/30">/</span>}
+                <Link href={item.href} className="hover:text-ink/80">
+                  {item.label}
+                </Link>
+              </span>
+            ))}
+          </nav>
+        )}
+        {/* Fotograf Koton'da sayfanin kenar bosluklarini tamamen yok sayip
+            tam viewport genisliginde goruniyor (ayni olcumde dogrulandi) -
+            konteynerin px-4'unu (16px) -mx-4 ile iptal ediyoruz, sadece bu
+            blok icin. Embla ana carousel: `overflow-hidden` sarmalayici
+            Embla'nin "viewport" referansini tutuyor, icindeki `flex` satir
+            gercek slaytlari barindiriyor - momentum/surukleme/snap fizigi
+            tamamen Embla tarafindan yonetiliyor (bkz. yukaridaki
+            emblaMainApi state'i). */}
+        <div className="relative -mx-4 overflow-hidden" ref={emblaMainRef}>
           <div className="flex touch-pan-y">
             {galleryImages.map((img, i) => (
               <div key={`${img.url}-${i}`} className="relative min-w-0 flex-[0_0_100%]">
@@ -331,37 +351,47 @@ export function ProductViewer({
                   onClick={() => handleSlideClick(i)}
                   className="relative block aspect-[3/4] w-full cursor-zoom-in overflow-hidden bg-line"
                 >
-                  <Image src={img.url} alt={img.alt} fill className="object-cover" priority={i === 0} />
+                  <Image src={img.url} alt={img.alt} fill sizes="100vw" className="object-cover" priority={i === 0} />
                 </button>
               </div>
             ))}
           </div>
-        </div>
-        {galleryImages.length > 1 && (
-          <div className="mt-3 overflow-hidden" ref={emblaThumbRef}>
-            <div className="flex min-w-0 gap-2 p-1">
+          {/* Koton'un kucuk resim seridi yerine fotografin ALT KENARINA
+              bindirilmis ince, yari saydam beyaz cizgiler kullaniyoruz -
+              hangi sirada oldugumuzu gosteren, aktif olan tam beyaz/opak
+              geri kalani ~%40 opak (Instagram hikaye ilerleme cubugu
+              deseniyle ayni mantik). Onceki kare kucukresim seridinin
+              yerini aldi - Koton'da kucuk resim yok, sadece bu cizgiler var. */}
+          {galleryImages.length > 1 && (
+            <div className="pointer-events-none absolute inset-x-3 bottom-3 flex gap-1">
               {galleryImages.map((img, i) => (
                 <button
                   key={`${img.url}-${i}`}
                   type="button"
                   onClick={() => onThumbClick(i)}
-                  // release-main.myshopify.com/products/top-8'in kendi kucuk
-                  // resimleri 64x85px (3:4, object-fit: cover) - eskiden
-                  // aspect-square (kare) kullaniliyordu, dikey (3:4) urun
-                  // fotograflari karede object-cover ile ustten/alttan
-                  // kirpiliyordu (bkz. MOBIL_KATALOG..._PLANI.md 4b). Genislik
-                  // (w-16=64px) ayni kaldi, sadece oran ana gorselle
-                  // eslesecek sekilde duzeltildi.
-                  className={`relative aspect-[3/4] w-16 shrink-0 overflow-hidden bg-line ${
-                    i === activeImage ? "ring-1 ring-ink ring-offset-1" : "opacity-70"
+                  aria-label={`${i + 1}. fotoğrafı göster`}
+                  aria-current={i === activeImage}
+                  className={`pointer-events-auto h-[2px] flex-1 rounded-full transition-colors duration-300 ${
+                    i === activeImage ? "bg-white" : "bg-white/40"
                   }`}
-                >
-                  <Image src={img.url} alt={img.alt} fill className="object-cover" />
-                </button>
+                />
               ))}
             </div>
-          </div>
-        )}
+          )}
+          {/* Favori kalbi Koton'da fotografin sag ust kosesine bindirilmis -
+              masaustundeki basligin yanindaki kalp butonuyla ayni
+              toggleWishlist islevini paylasiyor, sadece mobilde konumu
+              degisiyor (bkz. asagida bilgi panelindeki `hidden md:flex`
+              kalp). */}
+          <button
+            type="button"
+            onClick={() => toggleWishlist(productId)}
+            className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-cream/90 shadow"
+            title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
+          >
+            <Heart size={17} fill={isWishlisted ? "currentColor" : "none"} />
+          </button>
+        </div>
       </div>
 
       <div className="hidden md:grid md:grid-cols-2 md:gap-[8px]">
@@ -381,8 +411,12 @@ export function ProductViewer({
       </div>
 
       <div className="md:sticky md:top-24 md:h-fit">
+        {/* Mobilde bu satir yerine fotografin ustundeki breadcrumb (Anasayfa
+            / Kadin / Elbise) gosteriliyor - Koton'da urun basliginin
+            ustunde ayrica kategori/marka satiri yok, tek konum bilgisi
+            fotografin uzerindeki gezinme yolu. */}
         {(categoryName || brandName) && (
-          <p className="text-xs uppercase tracking-widest2 text-clay">
+          <p className="hidden text-xs uppercase tracking-widest2 text-clay md:block">
             {[categoryName, brandName].filter(Boolean).join(" · ")}
           </p>
         )}
@@ -400,46 +434,53 @@ export function ProductViewer({
             </span>
           </div>
         )}
-        <div className="mt-2 flex items-start justify-between gap-3">
+        <div className="mt-2 flex items-start justify-center gap-3 text-center md:justify-between md:text-left">
           {/* release-main.myshopify.com/products/top-8 urun basligi `h6`
               sinifini kullanir: --font-size-static-h6: 2.1rem,
               --font-heading-letter-spacing: -0.04em (bkz. canli tema CSS
               degiskenleri, 13 Eylul 2026 olculdu) - eskiden genel text-4xl
               (2.25rem, sitenin geneldeki acik/ferah baslik dilinde) idi,
-              bu sayfaya ozel birebir olcuye cekildi. */}
+              bu sayfaya ozel birebir olcuye cekildi. Koton'un mobil urun
+              sayfasinda baslik fotografin altinda TAM ORTALI - kalp butonu
+              orada fotografin uzerine tasindi (bkz. yukarida mobil galeri
+              bloğu), bu yuzden mobilde bu satirda artik kalp yok. */}
           <h1 className="font-display text-[21px] leading-[1.15] tracking-[-0.84px]">{productName}</h1>
           <button
             type="button"
             onClick={() => toggleWishlist(productId)}
-            className="mt-1 flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line hover:border-ink"
+            className="mt-1 hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line hover:border-ink md:flex"
             title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
           >
             <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
           </button>
         </div>
         {!isAuthenticated && (
-          <p className="mt-1 text-xs text-ink/50">
+          <p className="mt-1 text-center text-xs text-ink/50 md:text-left">
             Favorileriniz bu cihazda saklanıyor, kalıcı olması için giriş yapın.
           </p>
         )}
         {/* Fiyat: Release'de `.product__price .price{font-size:
             var(--font-size-static-md)}` = 1.4rem - eskiden genel text-xl
-            (1.25rem) kullaniliyordu. */}
+            (1.25rem) kullaniliyordu. Koton'un mobil urun sayfasinda fiyat
+            basligin altinda, tam ortali ve kalin puntolu (bkz. urun-detay-
+            390.png) - eskiden masaustuyle ayni ince/sola yasli goruntuydu. */}
         {/* Release'de "Taxes included." notu fiyatla AYNI SATIRDA, hemen
             yaninda duruyor - eskiden fiyatin ALTINA ayri bir satir olarak
             konmustu, kullanicinin paylastigi ekran goruntusunde bu fark
             acikca goruluyordu. */}
-        <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+        <div className="mt-2 flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1 md:mt-4 md:justify-start">
           {automaticDiscount ? (
             <>
-              <span className="text-[14px] font-medium text-sale">
+              <span className="text-[16px] font-semibold text-sale md:text-[14px] md:font-medium">
                 {formatPrice(Math.round((selectedPriceCents * (100 - automaticDiscount.percent)) / 100))}
               </span>
               <span className="text-ink/40 line-through">{formatPrice(selectedPriceCents)}</span>
             </>
           ) : (
             <>
-              <span className={`text-[14px] ${compareAtCents && compareAtCents > selectedPriceCents ? "font-medium text-sale" : ""}`}>
+              <span
+                className={`text-[16px] font-semibold md:text-[14px] ${compareAtCents && compareAtCents > selectedPriceCents ? "text-sale md:font-medium" : "md:font-normal"}`}
+              >
                 {formatPrice(selectedPriceCents)}
               </span>
               {compareAtCents && compareAtCents > selectedPriceCents && (
@@ -727,7 +768,6 @@ export function ProductViewer({
           setLightboxIndex(index);
           setActiveImage(index);
           emblaMainApi?.scrollTo(index, true);
-          emblaThumbApi?.scrollTo(index, true);
         }
       }}
       slides={galleryImages.map((img) => ({ src: img.url, alt: img.alt }))}
