@@ -9,7 +9,7 @@ export default async function HesapLayout({ children }: { children: React.ReactN
   const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: { name: true } });
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-16">
+    <div className="mx-auto max-w-[1600px] px-9 py-16">
       <nav className="flex items-center gap-2 text-[10px] uppercase tracking-[1px] text-ink/50">
         <Link href="/" className="hover:text-ink">
           Ana Sayfa
