@@ -80,8 +80,12 @@ export default async function HomePage() {
 
       {/* 2) Yeni Gelenler / Öne Çıkanlar - Release temasindaki "just arrived"
           slider'i: masaustunde 4'lu, tek urun adimlarla kayan carousel
-          (bkz. featured-carousel.tsx), mobilde sabit 2 sutunlu grid. */}
-      <section className="mx-auto max-w-7xl px-6 py-section">
+          (bkz. featured-carousel.tsx), mobilde sabit 2 sutunlu grid. Katalog
+          sayfasiyla (bkz. urunler/page.tsx) BIREBIR ayni olcude olmasi icin
+          max-w-7xl yerine ayni tam-genislik gutter'i (px-4 md:px-6 xl:px-9)
+          kullaniyor - aksi halde genis ekranlarda kartlar katalogdakinden
+          kucuk gorunuyordu. */}
+      <section className="px-4 py-section md:px-6 xl:px-9">
         {products.length === 0 ? (
           <>
             <div className="mb-12 flex items-end justify-between">
