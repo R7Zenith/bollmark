@@ -79,7 +79,7 @@ export default function HesapGirisPage() {
     "w-full rounded-full bg-ink text-white text-[10px] tracking-[1px] uppercase px-6 py-4 hover:bg-ink/90 disabled:opacity-50";
 
   return (
-    <div className="flex flex-col lg:flex-row">
+    <div className="flex min-h-[calc(100vh-72px)] flex-col lg:flex-row">
       <div className="hidden lg:block lg:flex-1">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
@@ -89,8 +89,8 @@ export default function HesapGirisPage() {
         />
       </div>
 
-      <div className="flex flex-1 items-center justify-center px-9 py-16">
-        <div className="w-full max-w-[432px] mx-auto lg:mx-0">
+      <div className="flex flex-1 items-start justify-start px-9 py-16 lg:py-24">
+        <div className="w-full max-w-[432px]">
           <h1 className="font-display text-[47px] leading-[47px] tracking-[-1.88px] font-normal">
             {tab === "giris" ? "Tekrar hoş geldin!" : "Hoş geldin!"}
           </h1>
