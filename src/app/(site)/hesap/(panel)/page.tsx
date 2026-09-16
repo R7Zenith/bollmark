@@ -18,7 +18,7 @@ export default async function HesapPage() {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0">
-      <div>
+      <div className="w-full max-w-[480px] mx-auto">
         <h2 className="font-display text-xl">Hesap Özeti</h2>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -62,29 +62,31 @@ export default async function HesapPage() {
         </div>
       </div>
 
-      <div className="lg:border-l lg:border-line lg:pl-16">
-        <h2 className="font-display text-xl">Adres Bilgileri</h2>
+      <div className="lg:border-l lg:border-line">
+        <div className="w-full max-w-[480px] mx-auto">
+          <h2 className="font-display text-xl">Adres Bilgileri</h2>
 
-        {defaultAddress ? (
-          <div className="mt-6 rounded-lg border border-line bg-white p-6 text-sm">
-            <p className="font-medium">{defaultAddress.label}</p>
-            <p className="mt-1 text-ink/70">
-              {defaultAddress.name} · {defaultAddress.phone}
-            </p>
-            <p className="mt-1 text-ink/50">
-              {defaultAddress.address}, {defaultAddress.district} / {defaultAddress.city} {defaultAddress.postalCode}
-            </p>
-          </div>
-        ) : (
-          <p className="mt-4 text-sm text-ink/60">Henüz kayıtlı adresiniz yok.</p>
-        )}
+          {defaultAddress ? (
+            <div className="mt-6 rounded-lg border border-line bg-white p-6 text-sm">
+              <p className="font-medium">{defaultAddress.label}</p>
+              <p className="mt-1 text-ink/70">
+                {defaultAddress.name} · {defaultAddress.phone}
+              </p>
+              <p className="mt-1 text-ink/50">
+                {defaultAddress.address}, {defaultAddress.district} / {defaultAddress.city} {defaultAddress.postalCode}
+              </p>
+            </div>
+          ) : (
+            <p className="mt-4 text-sm text-ink/60">Henüz kayıtlı adresiniz yok.</p>
+          )}
 
-        <Link
-          href="/hesap/adreslerim"
-          className="mt-6 inline-block rounded-full border border-ink px-6 py-4 text-[10px] uppercase tracking-[1px] text-ink hover:bg-ink hover:text-white"
-        >
-          Adreslerimi Gör
-        </Link>
+          <Link
+            href="/hesap/adreslerim"
+            className="mt-6 inline-block rounded-full border border-ink px-6 py-4 text-[10px] uppercase tracking-[1px] text-ink hover:bg-ink hover:text-white"
+          >
+            Adreslerimi Gör
+          </Link>
+        </div>
       </div>
     </div>
   );
