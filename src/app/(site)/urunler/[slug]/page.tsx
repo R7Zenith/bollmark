@@ -105,7 +105,10 @@ export default async function ProductPage({
     // 1595px'lik bir konteynerde olculdu (bkz.
     // RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 3), yani konteyner neredeyse tam
     // viewport. Katalog ve header ile ayni yan bosluk kullaniliyor.
-    <div className="w-full px-4 py-16 md:px-6 xl:px-9">
+    // Ust bosluk (py-16=64px) masaustunde korunuyor ama mobilde header ile
+    // breadcrumb arasinda gereksiz buyuk bir bosluk birakiyordu - mobilde
+    // py-4'e dusuruldu.
+    <div className="w-full px-4 py-4 md:px-6 md:py-16 xl:px-9">
       {/* eslint-disable-next-line react/no-danger */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
       <ProductViewer

@@ -301,7 +301,7 @@ export function ProductViewer({
   // paneli sisip galeriyi daraltiyordu (1920px'te 720px/1081px).
   return (
     <>
-    <div className="grid gap-x-8 gap-y-12 md:grid-cols-[1fr_minmax(320px,590px)]">
+    <div className="grid gap-x-8 gap-y-4 md:grid-cols-[1fr_minmax(320px,590px)] md:gap-y-12">
       {/* Release'in `.main-product__media--grid`'inde kutular arasi bosluk
           `gallery-gap/2` = 0.8rem (~13px, bizde eskiden 16px'ti) - buna
           cekildi. aspect-[3/4] + object-cover korunuyor: Release'de
@@ -465,29 +465,32 @@ export function ProductViewer({
             basligin altinda, tam ortali ve kalin puntolu (bkz. urun-detay-
             390.png) - eskiden masaustuyle ayni ince/sola yasli goruntuydu. */}
         {/* Release'de "Taxes included." notu fiyatla AYNI SATIRDA, hemen
-            yaninda duruyor - eskiden fiyatin ALTINA ayri bir satir olarak
-            konmustu, kullanicinin paylastigi ekran goruntusunde bu fark
-            acikca goruluyordu. */}
-        <div className="mt-2 flex flex-wrap items-baseline justify-center gap-x-3 gap-y-1 md:mt-4 md:justify-start">
-          {automaticDiscount ? (
-            <>
-              <span className="text-[16px] font-semibold text-sale md:text-[14px] md:font-medium">
-                {formatPrice(Math.round((selectedPriceCents * (100 - automaticDiscount.percent)) / 100))}
-              </span>
-              <span className="text-ink/40 line-through">{formatPrice(selectedPriceCents)}</span>
-            </>
-          ) : (
-            <>
-              <span
-                className={`text-[16px] font-semibold md:text-[14px] ${compareAtCents && compareAtCents > selectedPriceCents ? "text-sale md:font-medium" : "md:font-normal"}`}
-              >
-                {formatPrice(selectedPriceCents)}
-              </span>
-              {compareAtCents && compareAtCents > selectedPriceCents && (
-                <span className="text-ink/40 line-through">{formatPrice(compareAtCents)}</span>
-              )}
-            </>
-          )}
+            yaninda duruyor - masaustunde bu korunuyor. Koton'un mobil urun
+            sayfasinda ise "KDV dahildir" fiyatin ALTINDA, ayri bir satirda
+            ve ikisi de tam ortali - mobilde bu yuzden dikey (flex-col)
+            diziliyor, md'de tekrar ayni satira donuyor. */}
+        <div className="mt-2 flex flex-col items-center gap-y-0.5 md:mt-4 md:flex-row md:flex-wrap md:items-baseline md:justify-start md:gap-x-3 md:gap-y-1">
+          <div className="flex flex-wrap items-baseline justify-center gap-x-3 md:contents">
+            {automaticDiscount ? (
+              <>
+                <span className="text-[16px] font-semibold text-sale md:text-[14px] md:font-medium">
+                  {formatPrice(Math.round((selectedPriceCents * (100 - automaticDiscount.percent)) / 100))}
+                </span>
+                <span className="text-ink/40 line-through">{formatPrice(selectedPriceCents)}</span>
+              </>
+            ) : (
+              <>
+                <span
+                  className={`text-[16px] font-semibold md:text-[14px] ${compareAtCents && compareAtCents > selectedPriceCents ? "text-sale md:font-medium" : "md:font-normal"}`}
+                >
+                  {formatPrice(selectedPriceCents)}
+                </span>
+                {compareAtCents && compareAtCents > selectedPriceCents && (
+                  <span className="text-ink/40 line-through">{formatPrice(compareAtCents)}</span>
+                )}
+              </>
+            )}
+          </div>
           <span className="text-[10px] uppercase tracking-wide text-ink/40">KDV dahildir.</span>
         </div>
         {bundleInfo && bundleInfo.otherProductNames.length > 0 && (
