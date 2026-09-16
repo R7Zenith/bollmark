@@ -54,12 +54,14 @@ export default async function HomePage() {
           hap-buton (Shopify "Release" temasi referansi). */}
       <section className="relative flex min-h-screen items-center overflow-hidden bg-ink text-cream">
         <Image
-          src="https://images.unsplash.com/photo-1490114538077-0a7f8cb49891?w=1800"
+          src="/hero-model.jpg"
           alt="Bollmark kampanya görseli"
           fill
           priority
-          className="object-cover opacity-60"
+          className="object-cover"
+          style={{ objectPosition: "50% 18%" }}
         />
+        <div className="absolute inset-0 bg-gradient-to-r from-ink/70 via-ink/20 to-transparent" />
         <div className="relative z-10 mx-auto w-full max-w-7xl px-6">
           <p className="text-xs uppercase tracking-widest2 text-cream/70">2026 Sonbahar / Kış</p>
           <h1 className="mt-6 max-w-3xl font-display text-6xl font-light leading-[0.95] md:text-8xl">
