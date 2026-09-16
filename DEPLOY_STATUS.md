@@ -3602,3 +3602,69 @@ component'e (`footer-newsletter-form.tsx`) tasinarak duzeltildi.
 1440px ve 375px genisliklerde footer'in gorunumu ve yatay tasma olmadigi
 (`scrollWidth === clientWidth`) dogrulandi; mobilde wordmark tek satirda
 sigsin diye `text-5xl` yerine `text-4xl`/`sm:text-6xl` kademesi kullanildi.
+
+## Hesap bolumu (giris/kayit + dashboard) Release temasiyla birebir uyum (bu oturum)
+
+Plan `HESAP_SAYFASI_RELEASE_BIREBIR_PROMPT.md` dosyasinda cikarildi (Release'in
+canli demosunda `getComputedStyle` ile olculen layout/pill-buton/radius
+degerleri). Uygulanan degisiklikler:
+
+1. **Giris/Kayit** (`src/app/(site)/hesap/giris/page.tsx` -> tasindi, bkz.
+   madde 2): iki kolonlu `flex` layout (sol Unsplash moda gorseli
+   `object-cover`, sag form `max-w-[432px]`), pill tab switcher (Giris
+   Yap/Hesap Olustur), `rounded-lg` input'lar (48px yukseklik), pill
+   birincil buton, "Sifremi Unuttum" linki (route yok, TODO placeholder).
+2. **Sidebar mimarisi**: `requireCustomer()` oturumsuzsa `/hesap/giris`'e
+   redirect ettigi icin, layout'u dogrudan `hesap/` altina koymak sonsuz
+   donguye girerdi - route'lar **route groups** ile ayrildi:
+   `hesap/(auth)/giris/page.tsx` (layout'suz, herkese acik) ve
+   `hesap/(panel)/{page,siparislerim,adreslerim,puanlarim,favorilerim}/page.tsx`
+   (yeni `hesap/(panel)/layout.tsx` sarmaliyor - `requireCustomer()` +
+   breadcrumb + `h1` "Merhaba, {isim}!" + sol sidebar (`HesapNav`) + sag
+   panel `{children}`). Alt sayfalardan kendi `max-w-3xl` wrapper'lari ve
+   `h1`'leri kaldirildi, sadece panel ici baslik (`h2`) birakildi.
+3. **Ozet sayfasi** (`hesap/(panel)/page.tsx`): Release'in "Account details |
+   Address details" iki sutunlu duzenine gecti (`grid-cols-2`, sag sutun
+   `lg:border-l`), sag sutuna varsayilan adres ozeti + "Adreslerimi Gor"
+   outline pill link eklendi.
+4. **`hesap-nav.tsx`** dikey sidebar listesine donusturuldu (`divide-y`,
+   aktif sayfada `bg-ink/[0.024]`, "Cikis Yap" ayri alt blok).
+5. **Kart/buton tutarliligi**: tum istatistik/icerik kutularina `rounded-lg`,
+   birincil aksiyon butonlari `rounded-full` pill, satir ici aksiyonlar
+   (`hesap-address-row.tsx`'teki Duzenle/Sil/Varsayilan Yap ikonlari,
+   `hesap-order-card.tsx`'teki iade talebi) `text-[10px] uppercase
+   tracking-[1px] underline` link stiline cevrildi.
+
+**Sonraki turlerde kullanici geri bildirimiyle 3 ek duzeltme yapildi**
+(hepsi ayni oturumda, `commit b264f93`/`2ea55fd`/`ccd6068`/`107ddad`):
+
+- **Giris sayfasi gorsel/form hizalamasi**: gorsel once `min-h-[calc(100vh-72px)]`
+  ile denendi ama kayit formu gibi daha uzun icerik geldiginde satir
+  viewport'un altina tasip footer oncesi ekstra scroll yaratiyordu -
+  `min-h` yerine sabit `lg:h-[calc(100vh-72px)]` + `lg:overflow-hidden`
+  (form sutunu kendi icinde `lg:overflow-y-auto` ile tasar) kullanildi.
+  Form da dikeyde ortalanmak yerine ust/sola hizalandi (`items-start
+  justify-start`, `lg:pt-28 lg:pl-16`).
+- **Footer oncesi kalan bosluk**: gorsel tam viewport'a sigdiktan sonra
+  bile footer ile arasinda 96px'lik beyaz bosluk kaliyordu - kok neden
+  `site-footer.tsx`'teki site geneli sabit `mt-section` (6rem/96px, bkz.
+  `tailwind.config.ts` `spacing.section`) idi. Sadece bu sayfada, lg
+  ekranlarda esit `lg:-mb-24` negatif margin ile iptal edildi.
+- **Dashboard container genisligi**: `max-w-6xl` (1152px) Release'in canli
+  demosunda olculen orana (~%63 container/viewport) gore cok dardi,
+  ortadaki dar bir suetuna sikismis gorunuyordu - `max-w-[1600px]` + `px-9`
+  (header ile ayni 36px gutter) yapildi.
+- **Ozet sayfasi ic ortalama**: dashboard genisletildikten sonra "Hesap
+  Ozeti"/"Adres Bilgileri" bloklari kendi sutunlarinda sola/saga yaslanmis
+  gorunuyordu - kullaniciya 3 secenek sunuldu (blok olarak ortala / sutun
+  oranini degistir / panel padding'i artir), "blok olarak ortala" secildi:
+  her iki blok `max-w-[480px] mx-auto` ile kendi sutununda ortalandi.
+
+**Dogrulama**: her adimda `npx tsc --noEmit` ve `npx eslint` hatasiz.
+Playwright ile (yerel `npm run dev` + `.env`'deki `PREVIEW_PASSWORD` ile
+onizleme kapisi bypass edilerek) 1440-1728-2546px ve 390px genisliklerde
+giris/kayit/ozet/siparislerim/adreslerim/puanlarim/favorilerim sayfalari
+ekran goruntusuyle dogrulandi; giris sayfasinda `getBoundingClientRect()`
+ile gorsel-footer arasinda piksel bosluk kalmadigi teyit edildi. Tum
+degisiklikler commit'lenip GitHub'a push edildi - Vercel git baglantisi
+sayesinde otomatik deploy tetiklendi.
