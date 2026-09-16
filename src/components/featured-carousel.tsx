@@ -21,7 +21,7 @@ export function FeaturedCarousel({ products }: { products: ProductCardData[] }) 
   return (
     <>
       <div className="mb-12 flex items-end justify-between">
-        <h2 className="font-display text-3xl font-light">Öne Çıkanlar</h2>
+        <h2 className="font-display text-4xl font-medium tracking-tight">Yeni Gelenler</h2>
         <div className="flex items-center gap-6">
           {total > VISIBLE_DESKTOP && (
             <div className="hidden items-center gap-2 md:flex">
@@ -61,7 +61,7 @@ export function FeaturedCarousel({ products }: { products: ProductCardData[] }) 
           2 sutunlu sabit grid'e geri dusuluyor. */}
       <div className="hidden overflow-hidden md:block">
         <div
-          className="flex transition-transform duration-500 ease-out"
+          className="-mx-3 flex transition-transform duration-500 ease-out"
           style={{
             width: `${(total / VISIBLE_DESKTOP) * 100}%`,
             transform: `translateX(-${index * (100 / total)}%)`

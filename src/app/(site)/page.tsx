@@ -84,8 +84,10 @@ export default async function HomePage() {
           sayfasiyla (bkz. urunler/page.tsx) BIREBIR ayni olcude olmasi icin
           max-w-7xl yerine ayni tam-genislik gutter'i (px-4 md:px-6 xl:px-9)
           kullaniyor - aksi halde genis ekranlarda kartlar katalogdakinden
-          kucuk gorunuyordu. */}
-      <section className="px-4 py-section md:px-6 xl:px-9">
+          kucuk gorunuyordu. Ust bosluk hero'nun hemen altinda fazla bosluk
+          birakmasin diye pt-section yerine dar tutuldu, alt bosluk bir
+          sonraki bolumle ayni ritmi korumasi icin pb-section'da birakildi. */}
+      <section className="px-4 pb-section pt-10 md:px-6 md:pt-14 xl:px-9">
         {products.length === 0 ? (
           <>
             <div className="mb-12 flex items-end justify-between">
