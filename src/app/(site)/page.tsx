@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
 import { getPublishedProducts, firstImageUrl, isOutOfStock } from "@/lib/catalog";
-import { ProductCard } from "@/components/product-card";
+import { FeaturedCarousel } from "@/components/featured-carousel";
 import { prisma } from "@/lib/prisma";
 import { getActiveAutomaticPercentCampaigns, matchAutomaticDiscount } from "@/lib/coupons";
 
@@ -26,6 +26,8 @@ export default async function HomePage() {
       }
     })
   ]);
+
+  const featuredProducts = products.slice(0, 8);
 
   const collections = [
     {
@@ -76,38 +78,36 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* 2) Yeni Gelenler / Öne Çıkanlar - 4 sutunlu urun grid'i, her kartta
-          hover'da beliren "+" hizli sepete ekle butonu (bkz. product-card.tsx). */}
+      {/* 2) Yeni Gelenler / Öne Çıkanlar - Release temasindaki "just arrived"
+          slider'i: masaustunde 4'lu, tek urun adimlarla kayan carousel
+          (bkz. featured-carousel.tsx), mobilde sabit 2 sutunlu grid. */}
       <section className="mx-auto max-w-7xl px-6 py-section">
-        <div className="mb-12 flex items-end justify-between">
-          <h2 className="font-display text-3xl font-light">Öne Çıkanlar</h2>
-          <Link href="/urunler" className="text-sm uppercase tracking-wide hover:text-clay">
-            Tümünü Gör →
-          </Link>
-        </div>
         {products.length === 0 ? (
-          <p className="text-ink/60">
-            Henüz yayınlanmış ürün yok. Admin panelinden ilk ürününüzü ekleyin.
-          </p>
+          <>
+            <div className="mb-12 flex items-end justify-between">
+              <h2 className="font-display text-3xl font-light">Öne Çıkanlar</h2>
+              <Link href="/urunler" className="text-sm uppercase tracking-wide hover:text-clay">
+                Tümünü Gör →
+              </Link>
+            </div>
+            <p className="text-ink/60">
+              Henüz yayınlanmış ürün yok. Admin panelinden ilk ürününüzü ekleyin.
+            </p>
+          </>
         ) : (
-          <div className="grid grid-cols-2 gap-x-3 gap-y-10 md:grid-cols-4">
-            {products.map((p) => (
-              <ProductCard
-                key={p.id}
-                product={{
-                  productId: p.id,
-                  slug: p.slug,
-                  name: p.name,
-                  priceCents: p.priceCents,
-                  compareAtCents: p.compareAtCents,
-                  image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800",
-                  automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, p)?.percent ?? null,
-                  outOfStock: isOutOfStock(p.variants),
-                  quickAddVariant: p.quickAddVariant
-                }}
-              />
-            ))}
-          </div>
+          <FeaturedCarousel
+            products={featuredProducts.map((p) => ({
+              productId: p.id,
+              slug: p.slug,
+              name: p.name,
+              priceCents: p.priceCents,
+              compareAtCents: p.compareAtCents,
+              image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800",
+              automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, p)?.percent ?? null,
+              outOfStock: isOutOfStock(p.variants),
+              quickAddVariant: p.quickAddVariant
+            }))}
+          />
         )}
       </section>
 
