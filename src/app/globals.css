@@ -26,6 +26,28 @@ html {
   scroll-behavior: smooth;
 }
 
+/* Shopify "Release" temasindaki ".button--text" link davranisi (bkz.
+   base.css: varsayilanda TAM GENISLIKTE, ortalanmis alt cizgi; hover'da
+   400ms'de %30 genisligine kuculuyor). "Tumunu Gor" gibi linklerde kullan. */
+.link-shrink-underline {
+  position: relative;
+}
+.link-shrink-underline::after {
+  content: "";
+  position: absolute;
+  inset-block-end: -2px;
+  inset-inline-start: 50%;
+  display: block;
+  width: 100%;
+  height: 1px;
+  background-color: currentColor;
+  transform: translateX(-50%);
+  transition: width 400ms, background-color 400ms;
+}
+.link-shrink-underline:hover::after {
+  width: 30%;
+}
+
 /* BUG (13 Eylul 2026): tailwind.config.ts'teki ink/cream token'lari Release
    paletine (siyah/beyaz) cekilmisti ama burasi ham hex ile yaziliydi -
    Tailwind token'indan tamamen bagimsiz oldugu icin o degisiklik body'ye hic
