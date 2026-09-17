@@ -303,6 +303,7 @@ export function ProductViewer({
       size,
       color,
       priceCents: selectedPriceCents,
+      compareAtCents: compareAtCents && compareAtCents > selectedPriceCents ? compareAtCents : null,
       image: galleryImages[0].url,
       quantity
     });

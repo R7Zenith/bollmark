@@ -3901,3 +3901,42 @@ sayac artik totalCount 0 iken de gosteriliyor (Release'deki gibi).
 **Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Playwright ile
 1280px'te hem bos hem dolu sepet durumu ekran goruntusuyle Release'in canli
 olculen degerleriyle karsilastirilarak dogrulandi.
+
+## Sepette indirimli urunlerde eski/yeni fiyat gosterimi (ayni oturum)
+
+Kullanici indirimli bir urunu sepete ekleyince (orn. "Modal Kumaş ... Pantolon",
+%34 indirim, 1.490 TL -> 990 TL) sepet ekranlarinda (hem cart-drawer hem
+`/sepet` sayfasi) sadece indirimli fiyatin gorundugunu, eski fiyatin
+gorunmedigini bildirdi.
+
+Kok neden: `CartLine` tipinde (`src/lib/cart.tsx`) sadece `priceCents`
+tutuluyordu, urunun "Karsilastirma fiyati" (`compareAtCents`) sepete
+tasinmiyordu.
+
+- `CartLine`'a opsiyonel `compareAtCents?: number | null` eklendi.
+- `product-viewer.tsx` (urun detay sayfasi "Sepete Ekle"): `addToCart`
+  cagrisina, sadece gercek bir indirim varsa (`compareAtCents >
+  selectedPriceCents`, ayni kosul fiyat gosteriminde zaten kullaniliyordu)
+  `compareAtCents` eklendi.
+- `product-card.tsx` (katalog karti hizli "Sepete ekle"): ayni mantik - ya
+  otomatik kampanya indirimliyse orijinal `product.priceCents`, ya da
+  "Karsilastirma fiyati" indirimliyse `product.compareAtCents`
+  `compareAtCents` olarak addLine'a geçiliyor.
+- `cart-drawer.tsx` ve `sepet/page.tsx`: satir toplami artik `compareAtCents`
+  varsa kirmizi (`text-sale`, urun sayfasindaki indirim rengiyle ayni) +
+  altinda ust cizili eski toplam (`compareAtCents * quantity`) gosteriyor;
+  indirimsiz urunlerde eskisi gibi tek fiyat.
+
+Not: Urun detay sayfasindaki AYRI bir "otomatik kampanya indirimi"
+(`automaticDiscount` prop'u) `product-viewer.tsx`'te sepete eklenirken
+HALA fiyata yansitilmiyor (`priceCents: selectedPriceCents` indirimsiz
+fiyati kullaniyor, indirim sadece ekranda gosteriliyor) - bu, bu oturumdan
+ONCE var olan, kullanicinin sormadigi ayri bir tutarsizlik (product-card.tsx
+bunu dogru hesapliyor, product-viewer.tsx hesaplamiyor). Kapsam disi
+birakildi, sadece not dusuluyor - ileride "kampanyali urunu urun detay
+sayfasindan sepete eklerken fiyat yanlis" sikayeti gelirse buraya bakilmali.
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Playwright ile
+"%34 İndirim" rozetli bir pantolon urun sayfasindan sepete eklenip hem
+cart-drawer'da hem `/sepet` sayfasinda "990 TL" (kirmizi) + ustu cizili
+"1.490 TL" birlikte gorundugu ekran goruntusuyle dogrulandi.

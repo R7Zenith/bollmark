@@ -114,6 +114,11 @@ export function ProductCard({ product }: { product: ProductCardData }) {
       size: product.quickAddVariant.size,
       color: product.quickAddVariant.color,
       priceCents: finalPriceCents,
+      compareAtCents: product.automaticDiscountPercent
+        ? product.priceCents
+        : compareAtDiscountPercent
+          ? product.compareAtCents
+          : null,
       image: product.image,
       quantity: 1
     });

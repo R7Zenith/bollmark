@@ -124,7 +124,16 @@ export function CartDrawer() {
                     </button>
                   </div>
                 </div>
-                <p className="text-sm font-medium">{formatPrice(line.priceCents * line.quantity)}</p>
+                <div className="flex flex-col items-end">
+                  <p className={`text-sm font-medium ${line.compareAtCents ? "text-sale" : ""}`}>
+                    {formatPrice(line.priceCents * line.quantity)}
+                  </p>
+                  {line.compareAtCents && (
+                    <p className="text-xs text-ink/40 line-through">
+                      {formatPrice(line.compareAtCents * line.quantity)}
+                    </p>
+                  )}
+                </div>
               </div>
             ))}
           </div>

@@ -9,6 +9,7 @@ export type CartLine = {
   size: string;
   color: string;
   priceCents: number;
+  compareAtCents?: number | null;
   image: string;
   quantity: number;
 };
