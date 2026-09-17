@@ -3940,3 +3940,56 @@ sayfasindan sepete eklerken fiyat yanlis" sikayeti gelirse buraya bakilmali.
 "%34 İndirim" rozetli bir pantolon urun sayfasindan sepete eklenip hem
 cart-drawer'da hem `/sepet` sayfasinda "990 TL" (kirmizi) + ustu cizili
 "1.490 TL" birlikte gorundugu ekran goruntusuyle dogrulandi.
+
+## Otomatik kampanya indirimi (automaticDiscount) sepete YANSITILMADI - bilincli karar
+
+Bir onceki maddede "urun detay sayfasinda otomatik kampanya indirimi sepete
+yansimiyor" diye not dusulmustu; kullanici bunu da "ayni sekilde" (yani
+compareAtCents gibi satira gomulu indirimli fiyat + ustu cizili eski fiyat)
+gostermemi istedi. Once product-viewer.tsx'te compareAtCents'teki gibi
+`finalPriceCents`/otomatik indirim priceCents'e gomulecek sekilde
+degistirdim, ama uygulamadan once `lib/coupons.ts` + `api/kuponlar/dogrula/
+route.ts` + `coupon-field.tsx` + `sepet/page.tsx`'i inceleyince bunun GERCEK
+BIR PARA HATASI yaratacagini fark ettim, GERI ALDIM:
+
+- `coupon-field.tsx` component'i (sepet/odeme sayfasinda kullaniliyor) kod
+  girilmemis olsa BILE her zaman `/api/kuponlar/dogrula`'yi cagirir - bu
+  endpoint sepetteki urunleri productId/variantId ile DB'den YENIDEN
+  cekip (`effectivePrice(product, variant)`, cart'taki priceCents'e ASLA
+  guvenmez) otomatik kampanyalari `resolveBestDiscount` ile hesaplar ve
+  sonucu `sepet/page.tsx`'te AYRI bir "İndirim (kampanya adı)" satiri
+  olarak `totalCents`'ten dusurur.
+- Yani otomatik kampanya indirimi mimaride zaten dogru sekilde ele
+  aliniyor - ama SATIR bazinda degil, SEPET TOPLAMI bazinda, sunucuda
+  yeniden hesaplanarak.
+- Eger CartLine.priceCents'e otomatik indirimli fiyati gomseydim, sepet
+  sayfasindaki "Ara Toplam" ZATEN indirimli fiyatlarin toplami olurdu, SONRA
+  CouponField'in bulup "İndirim" olarak dustugu tutar bir kez daha
+  dusulurdu - indirim IKI KEZ uygulanmis gorunurdu (gercek siparis tutari
+  `api/orders/route.ts`'te sunucuda dogru hesaplaniyor oldugu icin
+  MUSTERIDEN FAZLA PARA ALINMAZDI, ama sepet/odeme ekraninda gosterilen
+  ARA TOPLAM VE TOPLAM yanlis/eksik gorunurdu).
+- Ayni bug'in DAHA ONCEDEN, bu oturumdan bagimsiz olarak `product-card.tsx`
+  (katalog kartindaki hizli "Sepete ekle") icinde zaten var oldugunu fark
+  ettim - `finalPriceCents` (otomatik indirim dahil) dogrudan
+  `addLine`'a priceCents olarak geciliyordu. Bunu da bu oturumda duzelttim:
+  `addLine`'a artik her zaman `product.priceCents` (indirimsiz temel fiyat)
+  gidiyor, karttaki GORUNEN fiyat/rozet (`finalPriceCents`,
+  `discountPercent`) degismedi - sadece SEPETE NE YAZILDIGI degisti.
+
+**Sonuc**: `compareAtCents` (admin panelinden elle girilen "Karsilastirma
+fiyati") tarzi indirimler hem `product-viewer.tsx` hem `product-card.tsx`da
+dogrudan satira gomuluyor (bir DB gercegi, kampanya sistemiyle ilgisi yok).
+`automaticDiscount`/otomatik kampanya indirimleri ise KASITLI olarak satira
+gomulmuyor - zaten `/sepet` sayfasinda ayri bir "İndirim" satiri olarak
+dogru gosteriliyor. `cart-drawer.tsx` (yeni sepet cekmecesi) bu CouponField
+sorgusunu YAPMIYOR, yani su an bir urun sadece otomatik kampanyayla
+indirimliyse drawer'da hic indirim gorunmuyor (ne satirda ne toplamda) -
+bu, drawer'in kapsaminda olmayan ayri bir eksiklik; istenirse drawer'a da
+`/sepet` sayfasindaki gibi bir CouponField/otomatik-indirim sorgusu
+eklenebilir.
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Kod okuma ile
+dogrulandi (canli DB'de aktif bir otomatik kampanya olmadigi icin uctan uca
+Playwright testi yapilamadi - Neon canli veritabanina yazma izin
+sinifllandiricisi tarafindan engelleniyor, daha once de karsilasilmisti).

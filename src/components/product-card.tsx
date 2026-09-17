@@ -107,18 +107,21 @@ export function ProductCard({ product }: { product: ProductCardData }) {
     e.preventDefault();
     e.stopPropagation();
     if (!product.quickAddVariant || justAdded) return;
+    // Sepete otomatik kampanya indirimi UYGULANMADAN eklenir - kampanya
+    // indirimi sadece bu kartta bilgilendirici bir rozet/fiyat gosterimidir
+    // (bkz. product-viewer.tsx'teki ayni isimli not); gercek indirim sepet
+    // sayfasinda CouponField'in her zaman (kod girilmese bile) sorguladigi
+    // resolveBestDiscount ile ayri bir "Indirim" satiri olarak dusulur. Buraya
+    // indirimli fiyati priceCents olarak yazmak, sepet sayfasindaki toplamdan
+    // indirimi IKI KEZ dusurur (bir kez burada, bir kez o satirda).
     addLine({
       productId: product.productId,
       variantId: product.quickAddVariant.variantId,
       name: product.name,
       size: product.quickAddVariant.size,
       color: product.quickAddVariant.color,
-      priceCents: finalPriceCents,
-      compareAtCents: product.automaticDiscountPercent
-        ? product.priceCents
-        : compareAtDiscountPercent
-          ? product.compareAtCents
-          : null,
+      priceCents: product.priceCents,
+      compareAtCents: compareAtDiscountPercent ? product.compareAtCents : null,
       image: product.image,
       quantity: 1
     });
