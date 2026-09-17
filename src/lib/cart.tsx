@@ -23,6 +23,9 @@ type CartContextValue = {
   totalCount: number;
   couponCode: string | null;
   setCouponCode: (code: string | null) => void;
+  isDrawerOpen: boolean;
+  openDrawer: () => void;
+  closeDrawer: () => void;
 };
 
 const CartContext = createContext<CartContextValue | null>(null);
@@ -32,6 +35,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [lines, setLines] = useState<CartLine[]>([]);
   const [couponCode, setCouponCode] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const openDrawer = () => setIsDrawerOpen(true);
+  const closeDrawer = () => setIsDrawerOpen(false);
 
   useEffect(() => {
     try {
@@ -101,7 +107,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   return (
     <CartContext.Provider
-      value={{ lines, addLine, removeLine, updateQuantity, clear, totalCents, totalCount, couponCode, setCouponCode }}
+      value={{
+        lines,
+        addLine,
+        removeLine,
+        updateQuantity,
+        clear,
+        totalCents,
+        totalCount,
+        couponCode,
+        setCouponCode,
+        isDrawerOpen,
+        openDrawer,
+        closeDrawer
+      }}
     >
       {children}
     </CartContext.Provider>

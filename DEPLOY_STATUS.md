@@ -3805,3 +3805,39 @@ struck-through L bedenine tiklaninca hala secilebiliyor (disabled degil) ve
 "Sepete Ekle" -> "Stokta Yok" + "Haber Ver" formu dogru sekilde tetikleniyor;
 mobilde (390px) cizgi kirilmadan koseden koseye duzgun render ediyor.
 `npx tsc --noEmit` hatasiz.
+
+## Sepet açılır çekmece (cart drawer) + header ikon hover (bu oturum, bkz. SEPET_ACILIR_CEKMECE_VE_HEADER_IKON_HOVER_PLANI.md)
+
+Header'daki sepet ikonuna basinca artik `/sepet` sayfasina yonlendirmiyor,
+Release temasinda (release-main.myshopify.com/products/top-13) olculen
+teknik detaylara birebir uyumlu, sagdan kayarak acilan bir "cart drawer"
+paneli aciyor:
+
+- `src/lib/cart.tsx`: `CartContext`'e `isDrawerOpen`/`openDrawer`/`closeDrawer`
+  eklendi (localStorage'a yazilmiyor, sadece oturum ici state).
+- Yeni `src/components/cart-drawer.tsx`: `site-header.tsx`'teki `MobileMenu`
+  ile ayni mount/visible iki asamali pattern (createPortal + body scroll
+  kilidi). Panel `translate-x-full -> translate-x-0`, `450ms
+  cubic-bezier(0.74,-0.01,0.26,1)`, sadece transform+visibility'de transition
+  (opacity state'e baglanmadi); backdrop `bg-black/50`, kendi transition'i
+  yok, panelle ayni anda gorunur/kayboluyor. Icerik: urun satirlari (gorsel,
+  isim, beden/renk, mevcut `product-viewer.tsx` adet secici deseniyle ayni
+  +/- hap, Kaldir), bos sepet durumu (sepet.page.tsx ile tutarli metin), alt
+  ozet + "Sepeti Goruntule"/"Odemeye Gec" (product-viewer.tsx'teki mevcut
+  pill buton class deseninden birebir kopyalandi).
+- `site-header.tsx`: sepet `<Link>`'in `onClick`'i artik `preventDefault` +
+  `openDrawer()` cagiriyor (href `/sepet` no-JS fallback icin korundu),
+  `<CartDrawer />` header'a eklendi.
+- Ayni oturumda arama/hesap/sepet header ikonlarina da ust menudeki
+  `.nav-underline` hover alt-cizgisi eklendi (ikonu saran ayri bir
+  `<span className="nav-underline inline-block">` ile - sepette rozet
+  span'i bunun disinda birakildi, cizgi rozetin altina uzamiyor).
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Playwright ile
+1280px'te urune "Sepete ekle" basilip header sepet ikonuna tiklaninca
+panelin sagdan kayarak actigi, backdrop'in belirdigi, X'e basinca kapandigi
+ekran goruntusuyle dogrulandi; 390px'te panelin tam genislikte, butonlarin
+altta sabit durdugu dogrulandi. nav-underline hover icin computed style
+kontrolu (`::before` hover'da `scaleX(1)`e geciyor) ve gecici debug
+stiliyle cizginin ikonun tam altinda, rozetin disinda konumlandigi
+dogrulandi.

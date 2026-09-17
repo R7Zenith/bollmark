@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { useSearchParams, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCart } from "@/lib/cart";
+import { CartDrawer } from "@/components/cart-drawer";
 import type { MegaMenuData, MenuCategory } from "@/lib/site-nav";
 
 // logo.png / logo-white.png dosyalarinin gercek en-boy orani (1400x273px).
@@ -509,7 +510,7 @@ function MobileMenu({
 }
 
 export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
-  const { totalCount } = useCart();
+  const { totalCount, openDrawer } = useCart();
   const { data: session } = useSession();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -594,22 +595,38 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
               aria-label="Ürünlerde ara"
               className="hidden hover:text-clay xl:inline-flex"
             >
-              <SearchIcon />
+              <span className="nav-underline inline-block">
+                <SearchIcon />
+              </span>
             </Link>
             <Link
               href={session?.user ? "/hesap" : "/hesap/giris"}
               aria-label="Hesabım"
               className="hidden hover:text-clay xl:inline-flex"
             >
-              <AccountIcon />
+              <span className="nav-underline inline-block">
+                <AccountIcon />
+              </span>
             </Link>
             {/* Sepet ikonu her genislikte gorunur. xl altinda daha once genis
                 bir "SEPET" hap butonu duruyordu; 390px'te sag sutun bu butonla
                 hamburgeri yan yana sigdiramayip logonun ustune biniyordu.
                 Ikon, arama/hesaptan farkli olarak mobilde de gerekli - sepete
-                tek erisim yolu menuyu acmak olmasin diye. */}
-            <Link href="/sepet" aria-label="Sepetim" className="relative inline-flex hover:text-clay">
-              <CartIcon />
+                tek erisim yolu menuyu acmak olmasin diye. Artik tiklaninca
+                /sepet'e gitmiyor, sagdan kayan cart-drawer'i aciyor (href
+                no-JS fallback icin korunuyor). */}
+            <Link
+              href="/sepet"
+              aria-label="Sepetim"
+              className="relative inline-flex hover:text-clay"
+              onClick={(e) => {
+                e.preventDefault();
+                openDrawer();
+              }}
+            >
+              <span className="nav-underline inline-block">
+                <CartIcon />
+              </span>
               {totalCount > 0 && (
                 <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-clay text-[10px] text-cream">
                   {totalCount}
@@ -634,6 +651,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
         )}
 
         <MobileMenu menuData={menuData} open={mobileOpen} onClose={() => setMobileOpen(false)} session={session} />
+        <CartDrawer />
       </header>
       {!isTransparentPage && <div aria-hidden className="h-[72px]" />}
     </>
