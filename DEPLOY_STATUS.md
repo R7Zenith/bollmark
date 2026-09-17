@@ -4024,3 +4024,40 @@ test edilemedi (ayni Neon yazma kisiti); bunun yerine Playwright
 (Test Kampanyası) −150 TL" ve "Toplam 840 TL" satirlarinin dogru
 goruntulendigi, indirim 0 iken (gercek DB durumu) bu satirlarin hic
 gorunmedigi (regresyon yok) ekran goruntusuyle dogrulandi.
+
+## Kampanya indirimi ile urun bazli manuel indirimin cakismasi giderildi (ayni oturum)
+
+`KAMPANYA_MANUEL_INDIRIM_CAKISMA_PLANI.md`'de tarif edilen sorun cozuldu:
+otomatik kampanya (kodsuz Coupon) artik zaten elle indirimli
+(`Product.compareAtCents > priceCents`) bir urunun/satirin ustune bir daha
+indirim uygulamiyor.
+
+- `prisma/schema.prisma`: `Coupon.includeManuallyDiscountedProducts Boolean
+  @default(false)` eklendi, `npm run db:push` ile Neon'a uygulandi (bu
+  projede migration klasoru yok, semanin tek kaynagi `db:push`).
+- `src/lib/coupons.ts`: yeni `resolveProductDisplayPrice(campaigns, product)`
+  fonksiyonu - urun zaten manuel indirimliyse VE eslesen kampanyanin
+  `includeManuallyDiscountedProducts`'i false ise kampanyayi o urun icin hic
+  degerlendirmiyor; true ise kampanya yuzdesini liste fiyati
+  (`compareAtCents ?? priceCents`) uzerinden hesaplayip manuel fiyatla
+  karsilastiriyor, hangisi dusukse (esitlikte manuel) o kullaniliyor. Ayni
+  kural sepet/checkout tarafinda `computeCouponDiscount`e de tasindi
+  (`CouponLine.compareAtCents` yeni alan) - otomatik kampanyalar artik
+  manuel indirimli satirlari (flag kapaliyken) hic hesaba katmiyor.
+- Urun karti (`product-card.tsx`) ve urun detay sayfasi (`product-viewer.tsx`)
+  artik kendi ic hesaplarini atip tek bir `resolveProductDisplayPrice`
+  sonucundan (`finalPriceCents`/`originalPriceCents`/`badgePercent`)
+  besleniyor - iki ayri rozet/eski fiyat gosterimi ihtimali ortadan kalkti.
+  Bunu tuketen tum sayfalar guncellendi: ana sayfa, `/urunler`,
+  `/urunler/[slug]` (hem ana urun hem "Benzer Ürünler"), `/hesap/favorilerim`.
+- Admin kampanya formu (`/admin/kampanyalar`, `coupon-row.tsx`): kategori/
+  marka secimi yaninda "Elle indirim yapılmış ürünlerde de bu kampanya
+  geçerli olsun" onay kutusu eklendi, deger degisince
+  `KAMPANYA_KAPSAM_DEGISTIRILDI` audit log kaydi dusuyor (yeni action tipi,
+  `lib/audit-actions.ts`).
+
+**Dogrulama**: `npm run build` (Next.js + TypeScript) hatasiz gecti.
+Canli DB'de manuel indirimli + kategori kampanyali bir urun kombinasyonu
+olmadigi icin gercek veriyle uctan uca goruntu dogrulanmadi - mantik
+`resolveProductDisplayPrice` icindeki hesaplarla (esas fiyat, esitlikte
+manuel kazanir) elle izlendi.
