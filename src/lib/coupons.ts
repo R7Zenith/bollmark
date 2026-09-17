@@ -116,15 +116,20 @@ function computeCouponDiscount(
     return { discountCents, freeShipping: false, matchingLines, lineDiscounts };
   }
 
-  // FIXED
-  const matchingCents = matchingLines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
-  const discountCents = Math.min(coupon.value, matchingCents);
+  // FIXED - sabit tutar da PERCENT ile ayni kural: esas fiyatlar (compareAtCents
+  // ?? priceCents) TOPLAMINDAN dusuluyor, mevcut manuel toplamdan degil.
+  // Kampanya sonrasi toplam mevcut manuel toplamdan dusuk degilse (musteriye
+  // manuelden daha avantajli bir sey saglamiyorsa) hic indirim uygulanmaz.
+  const esasToplam = matchingLines.reduce((sum, l) => sum + (l.compareAtCents ?? l.priceCents) * l.quantity, 0);
+  const manuelToplam = matchingLines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
+  const kampanyaToplam = Math.max(0, esasToplam - coupon.value);
+  const discountCents = kampanyaToplam < manuelToplam ? manuelToplam - kampanyaToplam : 0;
   const lineDiscounts =
-    matchingCents === 0
+    discountCents === 0 || manuelToplam === 0
       ? []
       : matchingLines.map((l) => ({
           productId: l.productId,
-          discountCents: Math.round((discountCents * (l.priceCents * l.quantity)) / matchingCents)
+          discountCents: Math.round((discountCents * (l.priceCents * l.quantity)) / manuelToplam)
         }));
 
   return { discountCents, freeShipping: false, matchingLines, lineDiscounts };
