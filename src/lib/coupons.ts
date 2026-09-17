@@ -67,7 +67,16 @@ function checkCouponEligibility(coupon: CouponRecord, subtotalCents: number): st
 function computeCouponDiscount(
   coupon: Pick<CouponRecord, "type" | "value" | "categoryId" | "brandId" | "includeManuallyDiscountedProducts">,
   lines: CouponLine[]
-): { discountCents: number; freeShipping: boolean; matchingLines: CouponLine[] } {
+): {
+  discountCents: number;
+  freeShipping: boolean;
+  matchingLines: CouponLine[];
+  // Satir (urun) bazinda bu kampanyanin sagladigi indirim - resolveBestDiscount'un
+  // "her satira en avantajli TEK otomatik kampanyayi ata" mantigi icin (bkz.
+  // asagida). PERCENT'te satir bazinda gercek deger, FIXED'te fiyat payina
+  // gore bolustürülmüş bir yaklasim (matchingCents == 0 ise bos).
+  lineDiscounts: { productId: string; discountCents: number }[];
+} {
   const hasRestriction = coupon.categoryId != null || coupon.brandId != null;
   const matchingLines = lines.filter(
     (l) =>
@@ -84,15 +93,41 @@ function computeCouponDiscount(
     return {
       discountCents: 0,
       freeShipping: matchingLines.length > 0 && (!hasRestriction || matchingLines.length === lines.length),
-      matchingLines
+      matchingLines,
+      lineDiscounts: []
     };
   }
 
-  const matchingCents = matchingLines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
-  const discountCents =
-    coupon.type === "PERCENT" ? Math.round((matchingCents * coupon.value) / 100) : Math.min(coupon.value, matchingCents);
+  if (coupon.type === "PERCENT") {
+    // Yuzde, HER SATIRIN esas fiyati (compareAtCents ?? priceCents) uzerinden
+    // hesaplanir - manuel indirimin ustune binmez. Kampanya fiyati satirin
+    // mevcut (manuel) fiyatindan dusuk degilse (yani kampanya musteriye
+    // manuelden daha avantajli bir sey saglamiyorsa) o satir icin indirim
+    // uygulanmaz, mevcut manuel fiyat aynen kalir.
+    const lineDiscounts = matchingLines
+      .map((l) => {
+        const esasFiyat = l.compareAtCents ?? l.priceCents;
+        const kampanyaBirimFiyati = Math.round((esasFiyat * (100 - coupon.value)) / 100);
+        const birimIndirim = Math.max(0, l.priceCents - kampanyaBirimFiyati);
+        return { productId: l.productId, discountCents: birimIndirim * l.quantity };
+      })
+      .filter((d) => d.discountCents > 0);
+    const discountCents = lineDiscounts.reduce((sum, d) => sum + d.discountCents, 0);
+    return { discountCents, freeShipping: false, matchingLines, lineDiscounts };
+  }
 
-  return { discountCents, freeShipping: false, matchingLines };
+  // FIXED
+  const matchingCents = matchingLines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
+  const discountCents = Math.min(coupon.value, matchingCents);
+  const lineDiscounts =
+    matchingCents === 0
+      ? []
+      : matchingLines.map((l) => ({
+          productId: l.productId,
+          discountCents: Math.round((discountCents * (l.priceCents * l.quantity)) / matchingCents)
+        }));
+
+  return { discountCents, freeShipping: false, matchingLines, lineDiscounts };
 }
 
 // Kupon dogrulama mantigi hem onizleme endpoint'i (/api/kuponlar/dogrula,
@@ -165,17 +200,14 @@ export async function resolveBestDiscount(
   let automaticFreeShipping = false;
 
   for (const coupon of eligibleAutomatic) {
-    const { discountCents, freeShipping, matchingLines } = computeCouponDiscount(coupon, lines);
+    const { freeShipping, lineDiscounts } = computeCouponDiscount(coupon, lines);
     if (freeShipping) automaticFreeShipping = true;
-    if (coupon.type === "FREE_SHIPPING" || matchingLines.length === 0) continue;
+    if (coupon.type === "FREE_SHIPPING") continue;
 
-    const matchingCents = matchingLines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
-    for (const line of matchingLines) {
-      const lineShareCents =
-        matchingCents === 0 ? 0 : Math.round((discountCents * (line.priceCents * line.quantity)) / matchingCents);
-      const current = bestPerLine.get(line.productId);
+    for (const { productId, discountCents: lineShareCents } of lineDiscounts) {
+      const current = bestPerLine.get(productId);
       if (!current || lineShareCents > current.discountCents) {
-        bestPerLine.set(line.productId, { coupon, discountCents: lineShareCents });
+        bestPerLine.set(productId, { coupon, discountCents: lineShareCents });
       }
     }
   }
