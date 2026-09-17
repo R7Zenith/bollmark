@@ -169,7 +169,7 @@ export function ProductViewer({
   // Gecersiz/eslesmeyen bir deger gelirse sessizce ilk renge dusulur.
   initialColor?: string;
 }) {
-  const { addLine } = useCart();
+  const { addLine, openDrawer } = useCart();
   const { ids: wishlistIds, isAuthenticated, toggle: toggleWishlist } = useWishlist();
   const router = useRouter();
   const isWishlisted = wishlistIds.has(productId);
@@ -294,7 +294,7 @@ export function ProductViewer({
     };
   }, [emblaMainApi]);
 
-  const handleAdd = () => {
+  const addToCart = () => {
     if (!selected || outOfStock) return;
     addLine({
       productId,
@@ -310,9 +310,15 @@ export function ProductViewer({
     setTimeout(() => setAdded(false), 1800);
   };
 
+  const handleAdd = () => {
+    if (!selected || outOfStock) return;
+    addToCart();
+    openDrawer();
+  };
+
   const handleBuyNow = () => {
     if (!selected || outOfStock) return;
-    handleAdd();
+    addToCart();
     router.push("/odeme");
   };
 
@@ -773,14 +779,6 @@ export function ProductViewer({
             </p>
           )}
 
-          {added && (
-            <button
-              onClick={() => router.push("/sepet")}
-              className="w-full rounded-full border border-ink py-3 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
-            >
-              Sepete Git
-            </button>
-          )}
 
           {/* release-main.myshopify.com/products/top-8'de IKI AYRI ticker
               satiri var, ikisi de ayni 2 mesaj arasinda geçiş yapiyor ama

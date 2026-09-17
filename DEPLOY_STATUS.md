@@ -3841,3 +3841,32 @@ altta sabit durdugu dogrulandi. nav-underline hover icin computed style
 kontrolu (`::before` hover'da `scaleX(1)`e geciyor) ve gecici debug
 stiliyle cizginin ikonun tam altinda, rozetin disinda konumlandigi
 dogrulandi.
+
+**Ek iyilestirme (ayni oturum, kullanici geri bildirimi)**: Kullanici iki ek
+sey istedi - (1) bos sepet gorunumunu Release'deki "It's a little empty
+here" ekranina birebir uydur, (2) urun sayfasinda "Sepete Ekle"ye basinca
+onceden `product-viewer.tsx`'te kisa sureli goruntulenip kaybolan "Sepete
+Git" butonu yerine artik Release'deki gibi cart-drawer otomatik acilsin.
+
+- `cart-drawer.tsx` bos durum: `sepet.page.tsx`'teki duz metin yerine,
+  anasayfada zaten kullanilan `font-display` + `font-accent italic` (Cormorant)
+  vurgu deseniyle ("Detaylara verdigimiz *onem*" orneginin ayni deseni)
+  "Biraz *bos* gorunuyor" basligi + "Sepetiniz su anda bos." + "Alisverise
+  Basla" pill butonu (mevcut pill buton class deseninden). Baslikta "Sepetim"
+  yaninda Release'deki gibi her zaman gorunen bir sayac (`totalCount`, 0 dahil
+  - eskiden sadece totalCount>0 iken parantez icinde gosteriliyordu).
+- `product-viewer.tsx`: `handleAdd` icindeki sepete ekleme mantigi
+  `addToCart()` adinda ayri bir fonksiyona alindi; `handleAdd` artik
+  `addToCart()` + `useCart().openDrawer()` cagiriyor, `handleBuyNow` ise
+  drawer'i acmadan `addToCart()` + `/odeme`'ye yonlendiriyor (Hemen Al'da
+  drawer acilip hemen ardindan sayfa degismesi gibi bir goruntu kirikligi
+  olmasin diye). Eskiden `added` state'i true olunca 1.8 saniye gorunup
+  kaybolan ayri "Sepete Git" butonu (satir ~776-783) tamamen kaldirildi -
+  `added` state'i sadece "Sepete Ekle" buton metnini "Sepete Eklendi ✓"
+  yapmak icin kaldi.
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Playwright ile
+localStorage temizlenip 1280px'te bos sepet gorunumu (Cormorant italik
+vurgulu baslik + sayac 0) ekran goruntusuyle dogrulandi; urun sayfasinda
+"Sepete Ekle"ye basilinca "Sepete Git" butonu gorunmeden dogrudan
+cart-drawer'in sagdan actigi ve eklenen urunu gosterdigi dogrulandi.
