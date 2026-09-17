@@ -18,6 +18,26 @@ export async function notifyAdminNewOrder(order: Order): Promise<void> {
   });
 }
 
+export async function notifyCustomerOrderReceived(
+  order: Order,
+  items: { productName: string; quantity: number; totalCents: number }[]
+): Promise<void> {
+  const itemsHtml = items
+    .map((item) => `<li>${item.productName} × ${item.quantity} - ${formatPrice(item.totalCents)}</li>`)
+    .join("");
+  await sendMail({
+    to: order.customerEmail,
+    subject: `Siparişiniz alındı - ${order.orderNumber}`,
+    html: `<p>Merhaba ${order.customerName}, ${order.orderNumber} numaralı siparişiniz alındı.</p>
+           <ul>${itemsHtml}</ul>
+           <p>Toplam: ${formatPrice(order.totalCents)}</p>
+           <p>Teslimat Adresi: ${order.shippingAddress}, ${order.district} / ${order.city}${
+             order.postalCode ? ` ${order.postalCode}` : ""
+           }</p>
+           <p>Siparişinizi <a href="https://bollmark.com/siparis-durumu">bollmark.com/siparis-durumu</a> üzerinden takip edebilirsiniz.</p>`
+  });
+}
+
 export async function notifyCustomerStatusChange(order: Order, status: OrderStatus): Promise<void> {
   if (!notifiableStatuses.includes(status)) return;
   await sendMail({

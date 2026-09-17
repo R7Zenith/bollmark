@@ -8,7 +8,7 @@ import { resolveBestDiscount, CouponInvalidError } from "@/lib/coupons";
 import { resolveBundleDiscount } from "@/lib/bundles";
 import { resolveLoyaltyRedemption, LoyaltyInvalidError } from "@/lib/loyalty";
 import { calculateShippingCents } from "@/lib/shipping";
-import { notifyAdminNewOrder } from "@/lib/order-notifications";
+import { notifyAdminNewOrder, notifyCustomerOrderReceived } from "@/lib/order-notifications";
 import { customerAuthOptions } from "@/lib/customer-auth";
 
 const lineSchema = z.object({
@@ -191,6 +191,15 @@ export async function POST(req: NextRequest) {
       .catch((error) => console.error("Terk edilmiş sepet kurtarma işaretlemesi başarısız (yoksayıldı):", error));
 
     notifyAdminNewOrder(order).catch((error) => console.error("Yeni sipariş maili başarısız:", error));
+
+    const orderItemsForMail = resolvedLines.map((l) => ({
+      productName: productById.get(l.productId)?.name ?? "Ürün",
+      quantity: l.quantity,
+      totalCents: l.priceCents * l.quantity
+    }));
+    notifyCustomerOrderReceived(order, orderItemsForMail).catch((error) =>
+      console.error("Sipariş onay maili başarısız:", error)
+    );
 
     return NextResponse.json({ orderNumber: order.orderNumber }, { status: 201 });
   } catch (error) {
