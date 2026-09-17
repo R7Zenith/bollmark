@@ -1,11 +1,16 @@
 // Kargo esigi ve ucreti - hem odeme sayfasindaki (client, sadece gosterim
 // icin) hem orders/route.ts'teki (server, gercek hesap) ozet buradan okur ki
-// iki yerde ayri ayri hardcode edilip birbirinden sapmasin. Esik hala sabit
-// kodda tutuluyor (StoreSettings'e tasima Faz A kapsami disi).
+// iki yerde ayri ayri hardcode edilip birbirinden sapmasin. Ucret artik
+// StoreSettings.defaultShippingCents'ten (panel > Ayarlar) okunup buraya
+// parametre olarak geciriliyor. Esik hala sabit kodda tutuluyor (StoreSettings'e
+// tasima Faz A kapsami disi).
 export const SHIPPING_THRESHOLD_CENTS = 100000; // 1.000 TL uzeri ucretsiz kargo
-export const STANDARD_SHIPPING_CENTS = 4900;
 
-export function calculateShippingCents(payableCents: number, freeShipping: boolean): number {
+export function calculateShippingCents(
+  payableCents: number,
+  freeShipping: boolean,
+  standardShippingCents: number
+): number {
   if (freeShipping) return 0;
-  return payableCents >= SHIPPING_THRESHOLD_CENTS ? 0 : STANDARD_SHIPPING_CENTS;
+  return payableCents >= SHIPPING_THRESHOLD_CENTS ? 0 : standardShippingCents;
 }

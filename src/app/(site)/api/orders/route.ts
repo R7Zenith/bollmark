@@ -89,6 +89,9 @@ export async function POST(req: NextRequest) {
 
   const subtotalCents = resolvedLines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
 
+  const storeSettings = await prisma.storeSettings.findUnique({ where: { id: "singleton" } });
+  const defaultShippingCents = storeSettings?.defaultShippingCents ?? 0;
+
   try {
     const order = await prisma.$transaction(async (tx) => {
       // Uc indirim kalemi de HER ZAMAN sunucuda, sirayla hesaplanir - bundle
@@ -130,7 +133,7 @@ export async function POST(req: NextRequest) {
       // Agresif bir bundle + kisitli kupon kombinasyonu teorik olarak
       // sepet ara toplamini asabilir - toplam indirim asla subtotal'i gecemez.
       const totalDiscountCents = Math.min(subtotalCents, bundleDiscountCents + discountCents + loyaltyDiscountCents);
-      const shippingCents = calculateShippingCents(subtotalCents - totalDiscountCents, freeShipping);
+      const shippingCents = calculateShippingCents(subtotalCents - totalDiscountCents, freeShipping, defaultShippingCents);
       const totalCents = subtotalCents - totalDiscountCents + shippingCents;
 
       const createdOrder = await tx.order.create({
