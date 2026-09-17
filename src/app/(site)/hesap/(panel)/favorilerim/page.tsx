@@ -3,6 +3,7 @@ import { requireCustomer } from "@/lib/require-customer";
 import { FavorilerimGrid } from "@/components/favorilerim-grid";
 import type { ProductCardData } from "@/components/product-card";
 import { firstImageUrl } from "@/lib/catalog";
+import { resolveProductDisplayPrice } from "@/lib/coupons";
 
 export default async function HesapFavorilerimPage() {
   const session = await requireCustomer();
@@ -27,7 +28,11 @@ export default async function HesapFavorilerimPage() {
     name: item.product.name,
     priceCents: item.product.priceCents,
     compareAtCents: item.product.compareAtCents,
-    image: firstImageUrl(item.product) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800"
+    image: firstImageUrl(item.product) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800",
+    // Bu liste otomatik kampanyalari sorgulamiyor - sadece elle indirim
+    // (compareAtCents) varsa yansitilir (bkz. lib/coupons.ts
+    // resolveProductDisplayPrice, product-card.tsx'in tek fiyat kaynagi).
+    priceResolution: resolveProductDisplayPrice([], item.product)
   }));
 
   return (

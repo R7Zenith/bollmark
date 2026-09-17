@@ -21,11 +21,15 @@ export type ProductCardData = {
   // katalog girisidir - urun sayfasina bu renk onceden secili acilir
   // (bkz. lib/catalog.ts getCatalogEntries, product-viewer.tsx initialColor).
   colorLabel?: string | null;
-  // Urunun kategori/markasina uyan aktif bir otomatik kampanya varsa yuzdesi
-  // (bkz. lib/coupons.ts matchAutomaticDiscount) - doluysa fiyatin yaninda
-  // indirimli fiyat + rozet gosterilir. Bos olsa da compareAtCents > priceCents
-  // ise indirim rozeti yine gosterilir (bkz. asagidaki discountPercent hesabi).
-  automaticDiscountPercent?: number | null;
+  // Manuel indirim (compareAtCents) ile kategori/marka bazli otomatik
+  // kampanyadan hangisi musteriye daha avantajliysa onu yansitir - ikisi asla
+  // ust uste uygulanmaz (bkz. lib/coupons.ts resolveProductDisplayPrice, tum
+  // katalog/urun sayfalarinin bu karti besledigi ortak fonksiyon).
+  priceResolution: {
+    finalPriceCents: number;
+    originalPriceCents: number | null;
+    badgePercent: number | null;
+  };
   // Doluysa bu urunun/rengin tum varyantlarinin stogu bitmis, kart soluk bir
   // cam katmaniyla isaretlenir.
   outOfStock?: boolean;
@@ -88,20 +92,14 @@ export function ProductCard({ product }: { product: ProductCardData }) {
   const href = product.colorLabel
     ? `/urunler/${product.slug}?renk=${encodeURIComponent(product.colorLabel)}`
     : `/urunler/${product.slug}`;
-  // Otomatik kampanya indirimi varsa o oncelikli (priceCents uzerinden
-  // yuzde hesaplanip dusuruluyor); yoksa admin panelinden dogrudan girilen
-  // "Karsilastirma fiyati" (compareAtCents) da bir indirim sayilir - bu
-  // durumda priceCents zaten indirimli fiyattir, sadece rozette gosterilecek
-  // yuzde compareAtCents'e gore hesaplanir (bkz. KATALOG_ROZET_HOVER_PLANI.md 2.1).
+  const { finalPriceCents, originalPriceCents, badgePercent: discountPercent } = product.priceResolution;
+  // Sepete elle indirim eklenirken (compareAtCents), otomatik kampanya
+  // kazanmis olsa bile bu satirin "eski fiyati" hala manuel karsilastirma
+  // fiyatidir - kampanya sepete asla gomulmuyor (bkz. asagidaki not).
   const compareAtDiscountPercent =
     product.compareAtCents && product.compareAtCents > product.priceCents
       ? Math.round((1 - product.priceCents / product.compareAtCents) * 100)
       : null;
-  const discountPercent = product.automaticDiscountPercent ?? compareAtDiscountPercent;
-  const discountedPriceCents = product.automaticDiscountPercent
-    ? Math.round((product.priceCents * (100 - product.automaticDiscountPercent)) / 100)
-    : null;
-  const finalPriceCents = discountedPriceCents ?? product.priceCents;
 
   const handleQuickAdd = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -208,17 +206,10 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         >
           {formatPrice(finalPriceCents)}
         </span>
-        {discountedPriceCents != null ? (
+        {originalPriceCents != null && (
           <span className="text-[12px] tracking-[0.48px] text-ink line-through">
-            {formatPrice(product.priceCents)}
+            {formatPrice(originalPriceCents)}
           </span>
-        ) : (
-          product.compareAtCents &&
-          product.compareAtCents > product.priceCents && (
-            <span className="text-[12px] tracking-[0.48px] text-ink line-through">
-              {formatPrice(product.compareAtCents)}
-            </span>
-          )
         )}
       </div>
       {colors.length > 1 && (

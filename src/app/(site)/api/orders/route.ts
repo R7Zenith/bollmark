@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/format";
-import { effectivePrice } from "@/lib/variant";
+import { effectivePrice, effectiveCompareAt } from "@/lib/variant";
 import { resolveBestDiscount, CouponInvalidError } from "@/lib/coupons";
 import { resolveBundleDiscount } from "@/lib/bundles";
 import { resolveLoyaltyRedemption, LoyaltyInvalidError } from "@/lib/loyalty";
@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
     variantId: string;
     quantity: number;
     priceCents: number;
+    compareAtCents: number | null;
     categoryId: string | null;
     brandId: string | null;
   }[] = [];
@@ -82,6 +83,7 @@ export async function POST(req: NextRequest) {
       variantId: line.variantId,
       quantity: line.quantity,
       priceCents: effectivePrice(product, variant),
+      compareAtCents: effectiveCompareAt(product, variant),
       categoryId: product.categoryId,
       brandId: product.brandId
     });

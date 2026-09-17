@@ -33,6 +33,7 @@ export type CouponData = {
   categoryLabel: string | null;
   brandId: string | null;
   brandName: string | null;
+  includeManuallyDiscountedProducts: boolean;
   status: CouponStatus;
   usageOrders: CouponUsageOrder[];
 };
@@ -150,6 +151,21 @@ export function CouponRow({
               <input name="expiresAt" type="date" defaultValue={coupon.expiresAt ?? ""} className={inputClass} />
             </div>
           </div>
+          <div>
+            <label className="flex items-center gap-2 text-sm text-admin-text">
+              <input
+                type="checkbox"
+                name="includeManuallyDiscountedProducts"
+                defaultChecked={coupon.includeManuallyDiscountedProducts}
+                className="h-4 w-4 rounded border-admin-border text-admin-accent focus:ring-admin-accent"
+              />
+              Elle indirim yapılmış ürünlerde de bu kampanya geçerli olsun
+            </label>
+            <p className="mt-1 text-xs text-admin-text-muted">
+              Kapalıyken bu kampanya, üzerinde zaten indirim yaptığınız ürünlere dokunmaz. Açarsanız, ürünün mevcut
+              indirimiyle bu kampanya karşılaştırılır ve müşteriye hangisi daha avantajlıysa o gösterilir.
+            </p>
+          </div>
           <div className="flex items-center justify-between pt-1">
             <label className="flex items-center gap-2 text-sm text-admin-text">
               <input
@@ -198,6 +214,9 @@ export function CouponRow({
           )}
           {coupon.categoryLabel && <Badge tone="gray-muted">Kategori: {coupon.categoryLabel}</Badge>}
           {coupon.brandName && <Badge tone="gray-muted">Marka: {coupon.brandName}</Badge>}
+          {coupon.includeManuallyDiscountedProducts && (
+            <Badge tone="gray-muted">Elle indirimli ürünlerde de geçerli</Badge>
+          )}
           <Badge tone="gray-muted">
             {coupon.usedCount}
             {coupon.usageLimit != null ? ` / ${coupon.usageLimit}` : ""} kullanım

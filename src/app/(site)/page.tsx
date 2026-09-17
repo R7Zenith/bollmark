@@ -4,7 +4,7 @@ import Image from "next/image";
 import { getPublishedProducts, firstImageUrl, isOutOfStock } from "@/lib/catalog";
 import { FeaturedCarousel } from "@/components/featured-carousel";
 import { prisma } from "@/lib/prisma";
-import { getActiveAutomaticPercentCampaigns, matchAutomaticDiscount } from "@/lib/coupons";
+import { getActiveAutomaticPercentCampaigns, resolveProductDisplayPrice } from "@/lib/coupons";
 
 export const metadata: Metadata = {
   title: "Bollmark | Modern Giyim",
@@ -114,7 +114,7 @@ export default async function HomePage() {
               priceCents: p.priceCents,
               compareAtCents: p.compareAtCents,
               image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800",
-              automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, p)?.percent ?? null,
+              priceResolution: resolveProductDisplayPrice(automaticCampaigns, p),
               outOfStock: isOutOfStock(p.variants),
               quickAddVariant: p.quickAddVariant
             }))}

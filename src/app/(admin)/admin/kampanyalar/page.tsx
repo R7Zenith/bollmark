@@ -41,6 +41,7 @@ function readCouponFields(formData: FormData) {
   const isActive = formData.get("isActive") === "on";
   const categoryIdRaw = String(formData.get("categoryId") || "").trim();
   const brandIdRaw = String(formData.get("brandId") || "").trim();
+  const includeManuallyDiscountedProducts = formData.get("includeManuallyDiscountedProducts") === "on";
 
   return {
     code,
@@ -53,7 +54,8 @@ function readCouponFields(formData: FormData) {
     expiresAt: expiresAtRaw ? new Date(expiresAtRaw) : null,
     isActive,
     categoryId: categoryIdRaw || null,
-    brandId: brandIdRaw || null
+    brandId: brandIdRaw || null,
+    includeManuallyDiscountedProducts
   };
 }
 
@@ -88,10 +90,23 @@ async function updateCoupon(id: string, formData: FormData) {
   const fields = readCouponFields(formData);
   if (!fields.code && !fields.name) redirect("/admin/kampanyalar?hata=ad-gerekli");
 
+  const existing = await prisma.coupon.findUnique({ where: { id } });
   try {
     await prisma.coupon.update({ where: { id }, data: fields });
   } catch {
     redirect("/admin/kampanyalar?hata=kod-tekrar");
+  }
+
+  if (existing && existing.includeManuallyDiscountedProducts !== fields.includeManuallyDiscountedProducts) {
+    const session = await getServerSession(authOptions);
+    logAudit({
+      actorEmail: session?.user?.email ?? "bilinmiyor",
+      actorRole: session?.user?.role ?? "ADMIN",
+      action: "KAMPANYA_KAPSAM_DEGISTIRILDI",
+      targetType: "Coupon",
+      targetId: id,
+      detail: `"${fields.name ?? fields.code ?? id}" kampanyası artık elle indirimli ürünlerde ${fields.includeManuallyDiscountedProducts ? "geçerli" : "geçersiz"}.`
+    });
   }
   redirect("/admin/kampanyalar?basarili=guncellendi");
 }
@@ -168,6 +183,7 @@ export default async function AdminCouponsPage({
     categoryLabel: c.categoryId ? categoryLabelById.get(c.categoryId) ?? null : null,
     brandId: c.brandId,
     brandName: c.brandId ? brandNameById.get(c.brandId) ?? null : null,
+    includeManuallyDiscountedProducts: c.includeManuallyDiscountedProducts,
     status: computeCouponStatus(c),
     usageOrders: (usageByCoupon.get(c.id) ?? []).slice(0, 5).map((o) => ({
       orderNumber: o.orderNumber,
@@ -233,6 +249,21 @@ export default async function AdminCouponsPage({
                 ))}
               </select>
             </div>
+          </div>
+          <div>
+            <label className="flex items-center gap-2 text-sm text-admin-text">
+              <input
+                type="checkbox"
+                name="includeManuallyDiscountedProducts"
+                className="h-4 w-4 rounded border-admin-border text-admin-accent focus:ring-admin-accent"
+              />
+              Elle indirim yapılmış ürünlerde de bu kampanya geçerli olsun
+            </label>
+            <p className="mt-1 text-xs text-admin-text-muted">
+              Kapalıyken bu kampanya, üzerinde zaten indirim yaptığınız ürünlere dokunmaz. Açarsanız, ürünün mevcut
+              indirimiyle bu kampanya karşılaştırılır ve müşteriye hangisi daha avantajlıysa o gösterilir (indirimler
+              üst üste eklenmez).
+            </p>
           </div>
           <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
             <div>

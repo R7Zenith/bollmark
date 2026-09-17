@@ -7,6 +7,11 @@ export class CouponInvalidError extends Error {}
 export interface CouponLine {
   productId: string;
   priceCents: number;
+  // Urunun/varyantin manuel indirim karsilastirma fiyati (bkz.
+  // lib/variant.ts effectiveCompareAt) - priceCents'ten buyukse satir zaten
+  // elle indirimli demektir, computeCouponDiscount bu bilgiyi
+  // includeManuallyDiscountedProducts ile birlikte kullanir.
+  compareAtCents: number | null;
   quantity: number;
   categoryId: string | null;
   brandId: string | null;
@@ -30,7 +35,15 @@ type CouponRecord = {
   isActive: boolean;
   categoryId: string | null;
   brandId: string | null;
+  includeManuallyDiscountedProducts: boolean;
 };
+
+// Bir satirin (CouponLine) urunu/varyanti zaten elle indirimli mi -
+// Product.compareAtCents > priceCents ile ayni tanim (bkz. admin urun
+// detayindaki "Karsilastirma fiyati").
+function isManuallyDiscountedLine(line: Pick<CouponLine, "priceCents" | "compareAtCents">): boolean {
+  return line.compareAtCents != null && line.compareAtCents > line.priceCents;
+}
 
 // Bir kampanyanin (kodlu ya da otomatik) genel gecerlilik sartlarini
 // (aktiflik, tarih araligi, kullanim limiti, min. sepet tutari) kontrol eder.
@@ -52,17 +65,20 @@ function checkCouponEligibility(coupon: CouponRecord, subtotalCents: number): st
 // bunlarin uzerinden hesaplanan indirim tutarini dondurur (kisitlama yoksa
 // tum sepet). FREE_SHIPPING'de deger kullanilmadigi icin discountCents 0'dir.
 function computeCouponDiscount(
-  coupon: Pick<CouponRecord, "type" | "value" | "categoryId" | "brandId">,
+  coupon: Pick<CouponRecord, "type" | "value" | "categoryId" | "brandId" | "includeManuallyDiscountedProducts">,
   lines: CouponLine[]
 ): { discountCents: number; freeShipping: boolean; matchingLines: CouponLine[] } {
   const hasRestriction = coupon.categoryId != null || coupon.brandId != null;
-  const matchingLines = hasRestriction
-    ? lines.filter(
-        (l) =>
-          (coupon.categoryId == null || l.categoryId === coupon.categoryId) &&
-          (coupon.brandId == null || l.brandId === coupon.brandId)
-      )
-    : lines;
+  const matchingLines = lines.filter(
+    (l) =>
+      (!hasRestriction ||
+        ((coupon.categoryId == null || l.categoryId === coupon.categoryId) &&
+          (coupon.brandId == null || l.brandId === coupon.brandId))) &&
+      // Varsayilan (false) - kampanya, zaten elle indirimli (compareAtCents
+      // > priceCents) satirlara dokunmaz; admin "elle indirimli urunlerde de
+      // gecerli olsun" kutusunu isaretlerse bu satirlar da dahil edilir.
+      (coupon.includeManuallyDiscountedProducts || !isManuallyDiscountedLine(l))
+  );
 
   if (coupon.type === "FREE_SHIPPING") {
     return {
@@ -234,7 +250,7 @@ export async function resolveBestDiscount(
 
 export type ProductAutomaticDiscount = { percent: number; name: string | null };
 
-type AutomaticPercentCampaign = {
+export type AutomaticPercentCampaign = {
   value: number;
   name: string | null;
   categoryId: string | null;
@@ -243,6 +259,7 @@ type AutomaticPercentCampaign = {
   expiresAt: Date | null;
   usageLimit: number | null;
   usedCount: number;
+  includeManuallyDiscountedProducts: boolean;
 };
 
 // Urun kartlarinin (liste sayfalari, ana sayfa, benzer urunler) her biri icin
@@ -270,6 +287,56 @@ export function matchAutomaticDiscount(
     if (!best || c.value > best.percent) best = { percent: c.value, name: c.name };
   }
   return best;
+}
+
+// Katalog karti / urun detay sayfasinin gosterecegi TEK fiyat bloğunu
+// besler: hem manuel indirim (Product.compareAtCents > priceCents) hem de
+// kategori/marka bazli otomatik kampanya varsa, ikisi ASLA ust uste
+// uygulanmaz - hangisi musteriye daha avantajliysa (esitlikte manuel) o
+// gosterilir. Kampanya, urun zaten elle indirimliyse ve kendi
+// includeManuallyDiscountedProducts alani false ise o urune hic bakmaz.
+export type ProductPriceResolution = {
+  finalPriceCents: number;
+  // Struck-through gosterilecek "eski fiyat" - indirim yoksa null.
+  originalPriceCents: number | null;
+  badgePercent: number | null;
+  source: "MANUEL" | "KAMPANYA" | null;
+};
+
+export function resolveProductDisplayPrice(
+  campaigns: AutomaticPercentCampaign[],
+  product: { priceCents: number; compareAtCents: number | null; categoryId: string | null; brandId: string | null }
+): ProductPriceResolution {
+  const manuallyDiscounted = product.compareAtCents != null && product.compareAtCents > product.priceCents;
+  const eligibleCampaigns = manuallyDiscounted
+    ? campaigns.filter((c) => c.includeManuallyDiscountedProducts)
+    : campaigns;
+  const campaign = matchAutomaticDiscount(eligibleCampaigns, product);
+
+  const manuelResult: ProductPriceResolution = manuallyDiscounted
+    ? {
+        finalPriceCents: product.priceCents,
+        originalPriceCents: product.compareAtCents,
+        badgePercent: Math.round((1 - product.priceCents / (product.compareAtCents as number)) * 100),
+        source: "MANUEL"
+      }
+    : { finalPriceCents: product.priceCents, originalPriceCents: null, badgePercent: null, source: null };
+
+  if (!campaign) return manuelResult;
+
+  // Kampanya yuzdesi, urun manuel indirimliyse indirim ONCESI (compareAtCents)
+  // fiyat uzerinden hesaplanir - manuel indirimin ustune binmez, onunla ayni
+  // taban uzerinden yarisir.
+  const esasFiyat = product.compareAtCents ?? product.priceCents;
+  const kampanyaFiyati = Math.round((esasFiyat * (100 - campaign.percent)) / 100);
+  if (product.priceCents <= kampanyaFiyati) return manuelResult;
+
+  return {
+    finalPriceCents: kampanyaFiyati,
+    originalPriceCents: esasFiyat,
+    badgePercent: campaign.percent,
+    source: "KAMPANYA"
+  };
 }
 
 // Tek bir urun icin (urun detay sayfasi) bilgilendirici rozet - kategori/

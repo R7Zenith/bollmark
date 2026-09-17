@@ -3,7 +3,7 @@ import { getCatalogEntries } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/product-card";
 import { CatalogToolbar } from "@/components/catalog-toolbar";
-import { getActiveAutomaticPercentCampaigns, matchAutomaticDiscount } from "@/lib/coupons";
+import { getActiveAutomaticPercentCampaigns, resolveProductDisplayPrice } from "@/lib/coupons";
 import type { CatalogEntry } from "@/lib/catalog";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800";
@@ -165,7 +165,7 @@ export default async function ProductsPage({
                 image: entry.image ?? FALLBACK_IMAGE,
                 secondImage: entry.secondImage,
                 colorLabel: entry.colorLabel,
-                automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, entry)?.percent ?? null,
+                priceResolution: resolveProductDisplayPrice(automaticCampaigns, entry),
                 outOfStock: entry.outOfStock,
                 lowStockCount: entry.lowStockCount,
                 isNew: entry.isNew,

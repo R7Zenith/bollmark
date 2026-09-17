@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { resolveBestDiscount, type CouponLine } from "@/lib/coupons";
-import { effectivePrice } from "@/lib/variant";
+import { effectivePrice, effectiveCompareAt } from "@/lib/variant";
 
 const lineSchema = z.object({
   productId: z.string(),
@@ -50,6 +50,7 @@ export async function POST(req: NextRequest) {
     lines.push({
       productId: line.productId,
       priceCents: effectivePrice(product, variant),
+      compareAtCents: effectiveCompareAt(product, variant),
       quantity: line.quantity,
       categoryId: product.categoryId,
       brandId: product.brandId

@@ -388,6 +388,9 @@ model Coupon {
   category      Category? @relation(fields: [categoryId], references: [id])
   brandId       String?
   brand         Brand?    @relation(fields: [brandId], references: [id])
+  // false iken bu kampanya, Product.compareAtCents > priceCents olan (zaten
+  // elle indirimli) urunlere/satirlara dokunmaz - bkz. lib/coupons.ts.
+  includeManuallyDiscountedProducts Boolean @default(false)
   orders        Order[]
   createdAt     DateTime  @default(now())
 }

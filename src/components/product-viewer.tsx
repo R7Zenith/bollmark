@@ -13,6 +13,7 @@ import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { formatPrice } from "@/lib/format";
 import { effectivePrice } from "@/lib/variant";
+import { resolveProductDisplayPrice, type AutomaticPercentCampaign } from "@/lib/coupons";
 import { ProductBadge } from "@/components/product-badge";
 
 // Bu esikten dusuk stok "Son N adet" uyarisi gosterir - e-posta gerektirmeyen
@@ -129,11 +130,13 @@ export function ProductViewer({
   sizeGuide,
   priceCents,
   compareAtCents,
+  categoryId,
+  brandId,
   fallbackImages,
   colorGalleries,
   variants,
   bundleInfo,
-  automaticDiscount,
+  automaticCampaigns,
   isNew,
   initialColor
 }: {
@@ -152,15 +155,18 @@ export function ProductViewer({
   sizeGuide: string | null;
   priceCents: number;
   compareAtCents: number | null;
+  categoryId: string | null;
+  brandId: string | null;
   fallbackImages: { url: string; alt: string }[];
   colorGalleries: Record<string, string[]>;
   variants: Variant[];
   bundleInfo?: { discountPercent: number; otherProductNames: string[] } | null;
-  // Urunun kategori/markasina uyan aktif bir otomatik kampanya varsa - bkz.
-  // lib/coupons.ts getApplicableAutomaticDiscountForProduct. Yalnizca
-  // bilgilendirici bir rozet/gorunur fiyat icindir; sepetteki gercek indirim
-  // yine de siparis olusturulurken resolveBestDiscount ile hesaplanir.
-  automaticDiscount?: { percent: number; name: string | null } | null;
+  // Aktif, kodsuz PERCENT kampanyalar (bkz. lib/coupons.ts
+  // getActiveAutomaticPercentCampaigns) - secili varyantin fiyati her
+  // degistiginde resolveProductDisplayPrice ile yeniden eslestirilir. Bu da
+  // sadece bilgilendirici bir rozet/gorunur fiyat icindir; sepetteki gercek
+  // indirim yine de siparis olusturulurken resolveBestDiscount ile hesaplanir.
+  automaticCampaigns?: AutomaticPercentCampaign[];
   // Urun NEW_PRODUCT_DAYS icinde eklenmisse "Yeni" rozeti icin (bkz.
   // lib/catalog.ts isNewProduct).
   isNew?: boolean;
@@ -241,16 +247,16 @@ export function ProductViewer({
   const isColorOutOfStock = (c: string) =>
     !variants.some((v) => v.color === c && v.stock > 0);
 
-  // Basligin ustundeki indirim rozeti eskiden SADECE otomatik kampanya
-  // (automaticDiscount) varsa gosteriliyordu - admin panelinden dogrudan
-  // girilen "Karsilastirma fiyati" (compareAtCents) indirimi rozetsiz
-  // kaliyordu, katalog kartindaki discountPercent mantigiyla (bkz.
-  // product-card.tsx) tutarsizdi. Simdi ikisi de kapsaniyor.
-  const compareAtDiscountPercent =
-    compareAtCents && compareAtCents > selectedPriceCents
-      ? Math.round((1 - selectedPriceCents / compareAtCents) * 100)
-      : null;
-  const discountBadgePercent = automaticDiscount?.percent ?? compareAtDiscountPercent;
+  // Manuel indirim (compareAtCents) ile kategori/marka bazli otomatik
+  // kampanyadan hangisi musteriye daha avantajliysa onu yansitir - ikisi asla
+  // ust uste uygulanmaz (bkz. lib/coupons.ts resolveProductDisplayPrice,
+  // product-card.tsx'in de kullandigi ayni fonksiyon).
+  const priceResolution = resolveProductDisplayPrice(automaticCampaigns ?? [], {
+    priceCents: selectedPriceCents,
+    compareAtCents,
+    categoryId,
+    brandId
+  });
 
   const selectedColorValueId =
     variants.find((v) => v.color === color)?.colorValueId ?? null;
@@ -465,11 +471,11 @@ export function ProductViewer({
             dogrulandi) - Bollmark'ta karsiligi olmadigi icin sadece "Yeni"
             (createdAt bazli, bkz. lib/catalog.ts isNewProduct) ve "Son X Adet"
             (gercek stok) kullaniliyor. */}
-        {(discountBadgePercent || isNew || lowStockBadgeCount != null) && (
+        {(priceResolution.badgePercent || isNew || lowStockBadgeCount != null) && (
           <div className="mb-2 hidden flex-row flex-wrap items-start gap-2 md:flex">
-            {discountBadgePercent && (
+            {priceResolution.badgePercent && (
               <ProductBadge variant="discount" size="lg">
-                %{discountBadgePercent} İndirim
+                %{priceResolution.badgePercent} İndirim
               </ProductBadge>
             )}
             {isNew && <ProductBadge variant="new" size="lg">Yeni</ProductBadge>}
@@ -518,11 +524,11 @@ export function ProductViewer({
             ismi ile fiyat arasinda, yatay ve ortali gosteriliyor (kullanicinin
             acik istegiyle) - masaustu blogu yukarida `md:flex` ile sadece
             orada gorunuyor, bu blok da `md:hidden` ile sadece mobilde. */}
-        {(discountBadgePercent || isNew || lowStockBadgeCount != null) && (
+        {(priceResolution.badgePercent || isNew || lowStockBadgeCount != null) && (
           <div className="mt-2 flex flex-row flex-wrap items-center justify-center gap-2 md:hidden">
-            {discountBadgePercent && (
+            {priceResolution.badgePercent && (
               <ProductBadge variant="discount" size="lg">
-                %{discountBadgePercent} İndirim
+                %{priceResolution.badgePercent} İndirim
               </ProductBadge>
             )}
             {isNew && <ProductBadge variant="new" size="lg">Yeni</ProductBadge>}
@@ -545,24 +551,17 @@ export function ProductViewer({
             diziliyor, md'de tekrar ayni satira donuyor. */}
         <div className="mt-2 flex flex-col items-center gap-y-0.5 md:mt-4 md:flex-row md:flex-wrap md:items-baseline md:justify-start md:gap-x-3 md:gap-y-1">
           <div className="flex flex-wrap items-baseline justify-center gap-x-3 md:contents">
-            {automaticDiscount ? (
+            {priceResolution.originalPriceCents != null ? (
               <>
                 <span className="text-[16px] font-semibold text-sale md:text-[14px] md:font-medium">
-                  {formatPrice(Math.round((selectedPriceCents * (100 - automaticDiscount.percent)) / 100))}
+                  {formatPrice(priceResolution.finalPriceCents)}
                 </span>
-                <span className="text-ink/40 line-through">{formatPrice(selectedPriceCents)}</span>
+                <span className="text-ink/40 line-through">{formatPrice(priceResolution.originalPriceCents)}</span>
               </>
             ) : (
-              <>
-                <span
-                  className={`text-[16px] font-semibold md:text-[14px] ${compareAtCents && compareAtCents > selectedPriceCents ? "text-sale md:font-medium" : "md:font-normal"}`}
-                >
-                  {formatPrice(selectedPriceCents)}
-                </span>
-                {compareAtCents && compareAtCents > selectedPriceCents && (
-                  <span className="text-ink/40 line-through">{formatPrice(compareAtCents)}</span>
-                )}
-              </>
+              <span className="text-[16px] font-semibold md:text-[14px] md:font-normal">
+                {formatPrice(priceResolution.finalPriceCents)}
+              </span>
             )}
           </div>
           <span className="text-[10px] uppercase tracking-wide text-ink/40">KDV dahildir.</span>

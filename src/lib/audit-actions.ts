@@ -9,6 +9,7 @@ export const auditActions = [
   "LOYALTY_ADJUSTED",
   "ABANDONED_CART_REMINDER_SENT",
   "KAMPANYA_OTOMATIK_OLUSTURULDU",
+  "KAMPANYA_KAPSAM_DEGISTIRILDI",
   "ORDER_DELETED",
   "ORDER_RESTORED"
 ] as const;
@@ -21,6 +22,7 @@ export const auditActionLabel: Record<string, string> = {
   LOYALTY_ADJUSTED: "Sadakat Puanı Düzeltildi",
   ABANDONED_CART_REMINDER_SENT: "Sepet Hatırlatması Elle Gönderildi",
   KAMPANYA_OTOMATIK_OLUSTURULDU: "Otomatik Kampanya Oluşturuldu",
+  KAMPANYA_KAPSAM_DEGISTIRILDI: "Kampanya Kapsamı Değiştirildi",
   ORDER_DELETED: "Sipariş Silindi",
   ORDER_RESTORED: "Sipariş Geri Yüklendi"
 };
