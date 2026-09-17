@@ -3993,3 +3993,34 @@ eklenebilir.
 dogrulandi (canli DB'de aktif bir otomatik kampanya olmadigi icin uctan uca
 Playwright testi yapilamadi - Neon canli veritabanina yazma izin
 sinifllandiricisi tarafindan engelleniyor, daha once de karsilasilmisti).
+
+## cart-drawer'a otomatik kampanya indirimi satiri eklendi (ayni oturum)
+
+Kullanici bir onceki maddede bahsedilen eksikligi ("drawer'da otomatik
+kampanya indirimi hic gorunmuyor") gidermemi istedi - "Ara Toplam" alaninin
+oraya, `/sepet` sayfasindaki gibi.
+
+- Yeni `src/lib/use-automatic-discount.ts`: `use-bundle-discount.ts` ile
+  ayni desende bir hook - sepet satirlari degistikce `coupon-field.tsx`nin
+  yaptigi gibi kod GONDERMEDEN (`code: ""`) `/api/kuponlar/dogrula`yi
+  sorgulayip `{discountCents, appliedName}` dondurur. Baglayici degildir,
+  sunucu tarafinda urun/varyant DB'den yeniden okunarak hesaplanir (bkz.
+  bir onceki not) - yani cart-drawer.tsx'e hicbir sekilde CartLine.priceCents
+  guvenilerek yeni bir hesap eklenmedi, sadece MEVCUT sunucu tarafi
+  hesaplama sonucu drawer'da da gosterildi.
+- `cart-drawer.tsx`: "Ara Toplam" satirinin hemen altina, indirim varsa
+  (`automaticDiscountCents > 0`) `/sepet` sayfasindaki ile AYNI stil ve
+  metin deseninde ("İndirim (kampanya adı)", `text-clay`, satir toplamindan
+  cikartilmis) bir "İndirim" satiri ve onun altinda kalin "Toplam" satiri
+  (Ara Toplam - İndirim) eklendi. Indirim yoksa (coğu zaman, otomatik
+  kampanya aktif degilken) hicbir sey degismiyor, sadece "Ara Toplam" +
+  butonlar goruntuleniyor (eski davranis).
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Canli DB'de
+aktif otomatik kampanya olmadigi icin gercek bir kampanyayla uctan uca
+test edilemedi (ayni Neon yazma kisiti); bunun yerine Playwright
+`page.route()` ile `/api/kuponlar/dogrula` yaniti gecici olarak mock'lanip
+(discountCents: 15000, appliedName: "Test Kampanyası") drawer'da "İndirim
+(Test Kampanyası) −150 TL" ve "Toplam 840 TL" satirlarinin dogru
+goruntulendigi, indirim 0 iken (gercek DB durumu) bu satirlarin hic
+gorunmedigi (regresyon yok) ekran goruntusuyle dogrulandi.

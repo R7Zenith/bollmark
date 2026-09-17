@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { Minus, Plus, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
+import { useAutomaticDiscount } from "@/lib/use-automatic-discount";
 
 // MobileMenu'deki (site-header.tsx) ile ayni mount/visible iki asamali
 // pattern - `open` false olur olmaz DOM'dan kaldirmiyoruz, transform
@@ -14,6 +15,7 @@ import { formatPrice } from "@/lib/format";
 // `visible`'i true'ya cekiyoruz.
 export function CartDrawer() {
   const { lines, removeLine, updateQuantity, totalCents, totalCount, isDrawerOpen, closeDrawer } = useCart();
+  const { discountCents: automaticDiscountCents, appliedName } = useAutomaticDiscount(lines);
   const [mounted, setMounted] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -145,6 +147,20 @@ export function CartDrawer() {
               <span>Ara Toplam</span>
               <span className="font-semibold tracking-[0.2px]">{formatPrice(totalCents)}</span>
             </div>
+            {automaticDiscountCents > 0 && (
+              <div className="mt-2 flex items-center justify-between text-sm text-clay">
+                <span>{appliedName ? `İndirim (${appliedName})` : "İndirim"}</span>
+                <span>-{formatPrice(automaticDiscountCents)}</span>
+              </div>
+            )}
+            {automaticDiscountCents > 0 && (
+              <div className="mt-2 flex items-center justify-between text-[21px] tracking-[-0.84px]">
+                <span>Toplam</span>
+                <span className="font-semibold tracking-[0.2px]">
+                  {formatPrice(totalCents - automaticDiscountCents)}
+                </span>
+              </div>
+            )}
             <div className="mt-6 flex gap-3">
               <Link
                 href="/sepet"
