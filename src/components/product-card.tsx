@@ -7,6 +7,7 @@ import { Heart, Plus, Check } from "lucide-react";
 import { formatPrice } from "@/lib/format";
 import { useWishlist } from "@/lib/wishlist";
 import { useCart } from "@/lib/cart";
+import { ProductBadge } from "@/components/product-badge";
 import type { QuickAddVariant } from "@/lib/catalog";
 
 export type ProductCardData = {
@@ -161,15 +162,9 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         </button>
         {(discountPercent || product.lowStockCount != null) && (
           <div className="absolute left-2 top-2 flex flex-col items-start gap-1 sm:left-3 sm:top-3 sm:gap-1.5">
-            {discountPercent && (
-              <span className="whitespace-nowrap rounded bg-sale px-1.5 py-1 text-[9px] font-medium uppercase leading-[11px] tracking-[1.2px] text-white sm:px-2 sm:py-1.5 sm:text-[10px] sm:leading-[12.5px] sm:tracking-[1.4px]">
-                %{discountPercent} İndirim
-              </span>
-            )}
+            {discountPercent && <ProductBadge variant="discount">%{discountPercent} İndirim</ProductBadge>}
             {product.lowStockCount != null && (
-              <span className="whitespace-nowrap rounded bg-white px-1.5 py-1 text-[9px] font-medium uppercase leading-[11px] tracking-[1.2px] text-ink sm:px-2 sm:py-1.5 sm:text-[10px] sm:leading-[12.5px] sm:tracking-[1.4px]">
-                Son {product.lowStockCount} Adet
-              </span>
+              <ProductBadge variant="low-stock">Son {product.lowStockCount} Adet</ProductBadge>
             )}
           </div>
         )}

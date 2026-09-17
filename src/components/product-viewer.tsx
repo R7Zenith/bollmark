@@ -13,6 +13,7 @@ import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { formatPrice } from "@/lib/format";
 import { effectivePrice } from "@/lib/variant";
+import { ProductBadge } from "@/components/product-badge";
 
 // Bu esikten dusuk stok "Son N adet" uyarisi gosterir - e-posta gerektirmeyen
 // salt UI bir isaret. Ileride StoreSettings'e tasinabilir (Faz A'ya dahil degil).
@@ -220,6 +221,16 @@ export function ProductViewer({
   const outOfStock = !selected || selected.stock <= 0;
   const selectedPriceCents = selected ? effectivePrice({ priceCents }, selected) : priceCents;
 
+  // Basligin ustundeki "Son X Adet" rozeti icin katalogla ayni mantik (bkz.
+  // lib/catalog.ts LOW_STOCK_THRESHOLD): tek bir beden degil, secili RENGIN
+  // TUM bedenlerdeki toplam stogu esigin altindaysa gosterilir - butonlarin
+  // altindaki "Son N adet kaldi" satiri (asagida, selected.stock ile) ise
+  // sadece secili bedeni yansitir, bu ikisi kasitli olarak ayri tutuluyor.
+  const colorVariants = variants.filter((v) => v.color === color);
+  const colorStock = colorVariants.reduce((sum, v) => sum + Math.max(v.stock, 0), 0);
+  const colorOutOfStock = colorVariants.length > 0 && colorVariants.every((v) => v.stock <= 0);
+  const lowStockBadgeCount = !colorOutOfStock && colorStock < LOW_STOCK_THRESHOLD ? colorStock : null;
+
   const selectedColorValueId =
     variants.find((v) => v.color === color)?.colorValueId ?? null;
 
@@ -421,17 +432,25 @@ export function ProductViewer({
           </p>
         )}
         {/* Release'de `.product__badges` basligin UZERINDE ayri bir blok -
-            ama bu SADECE indirim/kampanya rozeti icin (bkz. top-8 canli
-            HTML'i, 13 Eylul 2026). Kose yariçapi --badge-border-radius:
-            0.4rem. Dusuk stok uyarisi ORADA DEGIL - accessibility snapshot'i
-            ile dogrulandi (12 Eylul 2026, Playwright): gercek DOM'da "Only N
-            left in stock" satiri butonlarin ALTINDA, saat ikonuyla ayri bir
-            status satiri - asagida o konuma tasindi. */}
-        {automaticDiscount && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-[4px] bg-sale px-2 py-1 text-[10px] font-medium uppercase tracking-[1.4px] text-cream">
-              %{automaticDiscount.percent} İndirim
-            </span>
+            gercek DOM'da bu SADECE indirim/kampanya rozeti icin (bkz. top-8
+            canli HTML'i, 13 Eylul 2026; "Only N left in stock" orada degil,
+            butonlarin altinda ayri bir status satiri - asagida o konuma
+            tasindi). Kullanicinin acik istegiyle, katalog kartindaki gibi
+            "Son X Adet" rozeti de burada BUYUTULMUS/koyu varyantla (size="lg")
+            ayrica gosteriliyor - bu, release'in gercek DOM sirasindan kasitli
+            bir sapma (bkz. URUN_DETAY_HEADER_BOSLUGU_VE_ROZET_PLANI.md). */}
+        {(automaticDiscount || lowStockBadgeCount != null) && (
+          <div className="flex flex-col items-start gap-1.5">
+            {automaticDiscount && (
+              <ProductBadge variant="discount" size="lg">
+                %{automaticDiscount.percent} İndirim
+              </ProductBadge>
+            )}
+            {lowStockBadgeCount != null && (
+              <ProductBadge variant="low-stock" size="lg">
+                Son {lowStockBadgeCount} Adet
+              </ProductBadge>
+            )}
           </div>
         )}
         <div className="mt-2 flex items-start justify-center gap-3 text-center md:justify-between md:text-left">

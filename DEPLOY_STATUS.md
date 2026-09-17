@@ -3668,3 +3668,40 @@ ekran goruntusuyle dogrulandi; giris sayfasinda `getBoundingClientRect()`
 ile gorsel-footer arasinda piksel bosluk kalmadigi teyit edildi. Tum
 degisiklikler commit'lenip GitHub'a push edildi - Vercel git baglantisi
 sayesinde otomatik deploy tetiklendi.
+
+## Urun detay: header-gorsel boslugu ve buyutulmus rozetler (bu oturum,
+bkz. `URUN_DETAY_HEADER_BOSLUGU_VE_ROZET_PLANI.md`)
+
+1. **Header-gorsel arasi bosluk**: `urunler/[slug]/page.tsx`'teki disi sarmalayici
+   masaustunde `py-16` (ustte 64px) kullaniyordu; header zaten `fixed` oldugu
+   icin `site-header.tsx`'teki ayri 72px'lik spacer bunun UZERINE ekleniyor,
+   toplam ~136px'lik asiri bir bosluk olusturuyordu. Ust padding
+   `md:pt-6`'ya indirildi, alt padding (`md:pb-16`) degismedi (mobildeki
+   `py-4` bu oturumdan once, ayri bir duzeltmede zaten kucultulmustu, ona
+   dokunulmadi) - sadece bu route etkilendi.
+2. **Paylasilan rozet bileseni**: Katalog kartindaki (`product-card.tsx`) inline
+   rozet JSX'i `src/components/product-badge.tsx`'e cikarildi (`variant`:
+   "discount" | "low-stock", `size`: "sm" varsayilan/"lg"). Katalog karti
+   `size="sm"` ile eskisiyle AYNEN ayni gorunuyor (regresyon yok, Playwright ile
+   dogrulandi).
+3. **Urun detay sayfasinda buyutulmus rozet**: `product-viewer.tsx`'te basligin
+   ustunde onceden SADECE otomatik kampanya indirimi (`automaticDiscount`)
+   rozeti vardi (kirmizi, `bg-sale`) - bu kasitli olarak Release'in gercek DOM
+   olcumune (`.product__badges` sadece indirim icin) dayaniyordu. Kullanicinin
+   acik istegiyle, katalogdaki "Son X Adet" rozeti de `size="lg"` ile ayrica
+   eklendi; kullanicinin tercihiyle indirim rozeti KIRMIZI birakildi (koyu/siyaha
+   cevrilmedi), sadece dusuk stok rozeti `size="lg"`de koyu (`bg-ink`/`text-cream`)
+   oluyor. Bu, Release'in gercek DOM sirasindan bilincli bir sapma. Dusuk stok
+   sayisi katalogla ayni mantikla hesaplaniyor (secili RENGIN TUM bedenlerindeki
+   toplam stok < 3), tek bir varyantin stogu degil - bu yuzden butonlarin
+   altindaki mevcut "Son N adet kaldi" satiriyla (sadece secili bedeni yansitir)
+   farkli bir sayi gosterebilir; kullanicinin tercihiyle o alt satir da
+   KALDIRILMADI, ikisi ayni anda duruyor.
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Playwright ile
+hem 1440px hem 390px genisliklerde: urun detay sayfasinda header-gorsel
+boslugunun belirgin azaldigi, hem indirimli hem dusuk stoklu bir urunde
+("Modal Kumas Beli Lastikli Cepli Duz Genis Paca Pantolon") "SON 2 ADET"
+rozetinin basligin ustunde buyutulmus/koyu gorundugu; katalog sayfasinda
+ayni urunlerdeki rozetlerin (`%34 INDIRIM` kirmizi, `SON 2 ADET` beyaz)
+eskisiyle AYNEN ayni boyut/renk/konumda oldugu dogrulandi.
