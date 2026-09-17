@@ -28,6 +28,16 @@ const config: Config = {
         // kendi --color-error'una (#C25151) yakin, marka semantik kirmizisi
         // olarak korundu.
         sale: "#c0392b",
+        // release-main.myshopify.com'un CANLI urun sayfasindan Playwright ile
+        // computed style olarak birebir olculdu (17 Eylul 2026): indirim
+        // rozetinin arkaplani (--color-badge-discount-background) fiyat metni
+        // kirmizisindan (yukaridaki "sale") FARKLI, ayri bir tema degiskeni.
+        // "last few"/"New"/"sale" gibi indirim disi rozetlerin urun DETAY
+        // sayfasindaki (PDP) arkaplani da olculdu - katalog kartinda AYNI
+        // rozetler beyaz zeminli (bkz. product-badge.tsx, iki bilincli farkli
+        // baglam Release'in kendisinde de boyle).
+        "badge-sale": "#EF2D2D",
+        "badge-dark": "#5E5A59",
         "admin-bg": "#f6f6f7",
         "admin-surface": "#ffffff",
         "admin-border": "#e3e3e5",

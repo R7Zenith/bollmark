@@ -134,6 +134,7 @@ export function ProductViewer({
   variants,
   bundleInfo,
   automaticDiscount,
+  isNew,
   initialColor
 }: {
   productId: string;
@@ -160,6 +161,9 @@ export function ProductViewer({
   // bilgilendirici bir rozet/gorunur fiyat icindir; sepetteki gercek indirim
   // yine de siparis olusturulurken resolveBestDiscount ile hesaplanir.
   automaticDiscount?: { percent: number; name: string | null } | null;
+  // Urun NEW_PRODUCT_DAYS icinde eklenmisse "Yeni" rozeti icin (bkz.
+  // lib/catalog.ts isNewProduct).
+  isNew?: boolean;
   // Katalogdan "?renk=..." ile gelindiginde o rengin onceden secili acilmasi
   // icin (bkz. urunler/[slug]/page.tsx, lib/catalog.ts getCatalogEntries).
   // Gecersiz/eslesmeyen bir deger gelirse sessizce ilk renge dusulur.
@@ -230,6 +234,17 @@ export function ProductViewer({
   const colorStock = colorVariants.reduce((sum, v) => sum + Math.max(v.stock, 0), 0);
   const colorOutOfStock = colorVariants.length > 0 && colorVariants.every((v) => v.stock <= 0);
   const lowStockBadgeCount = !colorOutOfStock && colorStock < LOW_STOCK_THRESHOLD ? colorStock : null;
+
+  // Basligin ustundeki indirim rozeti eskiden SADECE otomatik kampanya
+  // (automaticDiscount) varsa gosteriliyordu - admin panelinden dogrudan
+  // girilen "Karsilastirma fiyati" (compareAtCents) indirimi rozetsiz
+  // kaliyordu, katalog kartindaki discountPercent mantigiyla (bkz.
+  // product-card.tsx) tutarsizdi. Simdi ikisi de kapsaniyor.
+  const compareAtDiscountPercent =
+    compareAtCents && compareAtCents > selectedPriceCents
+      ? Math.round((1 - selectedPriceCents / compareAtCents) * 100)
+      : null;
+  const discountBadgePercent = automaticDiscount?.percent ?? compareAtDiscountPercent;
 
   const selectedColorValueId =
     variants.find((v) => v.color === color)?.colorValueId ?? null;
@@ -422,6 +437,36 @@ export function ProductViewer({
       </div>
 
       <div className="md:sticky md:top-24 md:h-fit">
+        {/* Release'in canli urun sayfasinda (release-main.myshopify.com/
+            products/top-13, Playwright ile DOM+computed style olculdu, 17
+            Eylul 2026) `.product__badges` sutunun EN BASINDA duruyor - kategori/
+            marka satirindan (bizde asagida) bile once, hicbir eleman ustunde
+            degil. Ayni sayfada 3 rozet turu bulundu: indirim (kirmizi
+            #EF2D2D/beyaz, --color-badge-discount-background), ve tag'e bagli
+            "last few"/"New"/"sale" (PDP baglaminda koyu gri #5E5A59/beyaz -
+            katalog kartinda ayni rozetler beyaz zeminli, Release'in kendisinde
+            de boyle - bkz. product-badge.tsx). Font hepsinde ayni: Poppins
+            10px/500/uppercase, letter-spacing 1.4px, padding 6px 8px,
+            border-radius 4px. "last few"/"New"/"sale" Release'de otomatik
+            degil, elle "badge:..." tag'iyle yonetiliyor (gercek urun verisiyle
+            dogrulandi) - Bollmark'ta karsiligi olmadigi icin sadece "Yeni"
+            (createdAt bazli, bkz. lib/catalog.ts isNewProduct) ve "Son X Adet"
+            (gercek stok) kullaniliyor. */}
+        {(discountBadgePercent || isNew || lowStockBadgeCount != null) && (
+          <div className="mb-2 flex flex-row flex-wrap items-start gap-2">
+            {discountBadgePercent && (
+              <ProductBadge variant="discount" size="lg">
+                %{discountBadgePercent} İndirim
+              </ProductBadge>
+            )}
+            {isNew && <ProductBadge variant="new" size="lg">Yeni</ProductBadge>}
+            {lowStockBadgeCount != null && (
+              <ProductBadge variant="low-stock" size="lg">
+                Son {lowStockBadgeCount} Adet
+              </ProductBadge>
+            )}
+          </div>
+        )}
         {/* Mobilde bu satir yerine fotografin ustundeki breadcrumb (Anasayfa
             / Kadin / Elbise) gosteriliyor - Koton'da urun basliginin
             ustunde ayrica kategori/marka satiri yok, tek konum bilgisi
@@ -430,28 +475,6 @@ export function ProductViewer({
           <p className="hidden text-xs uppercase tracking-widest2 text-clay md:block">
             {[categoryName, brandName].filter(Boolean).join(" · ")}
           </p>
-        )}
-        {/* Release'de `.product__badges` basligin UZERINDE ayri bir blok -
-            gercek DOM'da bu SADECE indirim/kampanya rozeti icin (bkz. top-8
-            canli HTML'i, 13 Eylul 2026; "Only N left in stock" orada degil,
-            butonlarin altinda ayri bir status satiri - asagida o konuma
-            tasindi). Kullanicinin acik istegiyle, katalog kartindaki gibi
-            "Son X Adet" rozeti de burada BUYUTULMUS/koyu varyantla (size="lg")
-            ayrica gosteriliyor - bu, release'in gercek DOM sirasindan kasitli
-            bir sapma (bkz. URUN_DETAY_HEADER_BOSLUGU_VE_ROZET_PLANI.md). */}
-        {(automaticDiscount || lowStockBadgeCount != null) && (
-          <div className="flex flex-col items-start gap-1.5">
-            {automaticDiscount && (
-              <ProductBadge variant="discount" size="lg">
-                %{automaticDiscount.percent} İndirim
-              </ProductBadge>
-            )}
-            {lowStockBadgeCount != null && (
-              <ProductBadge variant="low-stock" size="lg">
-                Son {lowStockBadgeCount} Adet
-              </ProductBadge>
-            )}
-          </div>
         )}
         <div className="mt-2 flex items-start justify-center gap-3 text-center md:justify-between md:text-left">
           {/* release-main.myshopify.com/products/top-8 urun basligi `h6`

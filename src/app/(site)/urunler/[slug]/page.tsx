@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProductBySlug, getRelatedProducts, firstImageUrl } from "@/lib/catalog";
+import { getProductBySlug, getRelatedProducts, firstImageUrl, isNewProduct } from "@/lib/catalog";
 import { getProductReviewSummary } from "@/lib/reviews";
 import { getBundleForProduct } from "@/lib/bundles";
 import { prisma } from "@/lib/prisma";
@@ -154,6 +154,7 @@ export default async function ProductPage({
         }))}
         bundleInfo={bundleInfo}
         automaticDiscount={automaticDiscount}
+        isNew={isNewProduct(product.createdAt)}
       />
       <ProductReviews productId={product.id} avgRating={avgRating} count={count} reviews={reviewViews} />
 

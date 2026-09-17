@@ -1,18 +1,22 @@
-export type ProductBadgeVariant = "discount" | "low-stock";
+export type ProductBadgeVariant = "discount" | "low-stock" | "new";
 export type ProductBadgeSize = "sm" | "lg";
 
-const sizeClasses: Record<ProductBadgeSize, string> = {
-  sm: "px-1.5 py-1 text-[9px] leading-[11px] tracking-[1.2px] sm:px-2 sm:py-1.5 sm:text-[10px] sm:leading-[12.5px] sm:tracking-[1.4px]",
-  lg: "px-2.5 py-1.5 text-[11px] leading-[13px] tracking-[1.4px] sm:text-[12px] sm:leading-[14px]"
-};
+// Release'in canli urun sayfasindan (release-main.myshopify.com/products/top-13)
+// Playwright ile computed style olarak birebir olculdu (17 Eylul 2026):
+// font-size 10px, font-weight 500, letter-spacing 1.4px, uppercase,
+// padding 6px 8px, border-radius 4px, line-height 12.5px - katalog kartinda
+// (collections/all) ve urun detay sayfasinda AYNI, tek fark renk (asagida).
+const baseClasses = "whitespace-nowrap rounded px-2 py-1.5 text-[10px] font-medium uppercase leading-[12.5px] tracking-[1.4px]";
 
-// Indirim rozeti her zaman kirmizi (bg-sale) - katalogdakiyle ayni, kullanicinin
-// tercihiyle koyu/siyaha cevrilmedi. Dusuk stok rozeti ise boyuta gore degisir:
-// "sm" katalog kartindaki mevcut beyaz zeminle ayni kalir, "lg" (urun detay
-// sayfasi) release'deki koyu rozet gorunumune yaklastirmak icin bg-ink kullanir.
-const variantClasses: Record<ProductBadgeVariant, Record<ProductBadgeSize, string>> = {
-  discount: { sm: "bg-sale text-white", lg: "bg-sale text-cream" },
-  "low-stock": { sm: "bg-white text-ink", lg: "bg-ink text-cream" }
+// Indirim rozeti her yerde kirmizi/beyaz (bg-badge-sale). Indirim disi rozetler
+// ("last few"/"New" karsiligi) Release'de baglama gore degisiyor: katalog
+// kartinda (collections/all) beyaz zemin + siyah yazi, urun detay sayfasinda
+// (PDP) koyu gri (#5E5A59) zemin + beyaz yazi - bu ikisi Release'in kendisinde
+// de boyle farkli, tahmin degil olculmus veri.
+const colorClasses: Record<ProductBadgeVariant, Record<ProductBadgeSize, string>> = {
+  discount: { sm: "bg-badge-sale text-white", lg: "bg-badge-sale text-white" },
+  "low-stock": { sm: "bg-white text-ink", lg: "bg-badge-dark text-white" },
+  new: { sm: "bg-white text-ink", lg: "bg-badge-dark text-white" }
 };
 
 export function ProductBadge({
@@ -24,11 +28,5 @@ export function ProductBadge({
   size?: ProductBadgeSize;
   children: React.ReactNode;
 }) {
-  return (
-    <span
-      className={`whitespace-nowrap rounded font-medium uppercase ${sizeClasses[size]} ${variantClasses[variant][size]}`}
-    >
-      {children}
-    </span>
-  );
+  return <span className={`${baseClasses} ${colorClasses[variant][size]}`}>{children}</span>;
 }

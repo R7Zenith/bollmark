@@ -36,6 +36,8 @@ export type ProductCardData = {
   // yaninda "Son X Adet" uyarisi gosterilir. outOfStock true ise bu rozet
   // hic render edilmez (tam ekran "Stokta Yok" katmani zaten oncelikli).
   lowStockCount?: number | null;
+  // Doluysa (bkz. lib/catalog.ts isNewProduct) "Yeni" rozeti gosterilir.
+  isNew?: boolean;
   // Doluysa karttaki "+" hizli sepete ekle butonu bu varyanti dogrudan sepete
   // ekler (bkz. lib/catalog.ts pickQuickAddVariant) - sayfa yonlendirmesi
   // olmadan. Null ise (stokta varyant yoksa) buton gizlenir.
@@ -160,9 +162,10 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         >
           <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />
         </button>
-        {(discountPercent || product.lowStockCount != null) && (
-          <div className="absolute left-2 top-2 flex flex-col items-start gap-1 sm:left-3 sm:top-3 sm:gap-1.5">
+        {(discountPercent || product.isNew || product.lowStockCount != null) && (
+          <div className="absolute left-2 top-2 flex max-w-[calc(100%-3rem)] flex-row flex-wrap items-start gap-1 sm:left-3 sm:top-3 sm:gap-1.5">
             {discountPercent && <ProductBadge variant="discount">%{discountPercent} İndirim</ProductBadge>}
+            {product.isNew && <ProductBadge variant="new">Yeni</ProductBadge>}
             {product.lowStockCount != null && (
               <ProductBadge variant="low-stock">Son {product.lowStockCount} Adet</ProductBadge>
             )}

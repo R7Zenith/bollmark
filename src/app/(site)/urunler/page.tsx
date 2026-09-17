@@ -168,6 +168,7 @@ export default async function ProductsPage({
                 automaticDiscountPercent: matchAutomaticDiscount(automaticCampaigns, entry)?.percent ?? null,
                 outOfStock: entry.outOfStock,
                 lowStockCount: entry.lowStockCount,
+                isNew: entry.isNew,
                 quickAddVariant: entry.quickAddVariant,
                 colors: entry.colors
               }}

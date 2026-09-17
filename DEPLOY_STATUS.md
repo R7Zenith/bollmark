@@ -3705,3 +3705,65 @@ boslugunun belirgin azaldigi, hem indirimli hem dusuk stoklu bir urunde
 rozetinin basligin ustunde buyutulmus/koyu gorundugu; katalog sayfasinda
 ayni urunlerdeki rozetlerin (`%34 INDIRIM` kirmizi, `SON 2 ADET` beyaz)
 eskisiyle AYNEN ayni boyut/renk/konumda oldugu dogrulandi.
+
+## Rozet duzeltmesi: gercek Release verisiyle birebir font/renk/duzen, eksik
+indirim rozeti, "Yeni" rozeti (bu oturum, ayni plan devami)
+
+Kullanici yukaridaki oturumdan sonra 3 sorun bildirdi: (1) indirimli bir
+uründe rozet hic gorunmuyordu, (2) font/arkaplan rengi Release'in kendisiyle
+uyusmuyordu ("bizimki cok koyu"), (3) rozetler her seyin ustunde durmali,
+(4) "Yeni" rozeti hic yok. "Tahmin kullanma, tam olarak Release'ten bilgileri
+al" talebiyle, Playwright ile release-main.myshopify.com'un CANLI urun
+sayfasina (`/products/top-13`, "Natural high neck top" - 3 rozeti birden
+olan tek urun) ve koleksiyon sayfasina gidilip computed style + gercek urun
+JSON'u (`/products/top-13.json`) okundu:
+
+1. **Font/renk gercek olcum**: Poppins, 10px, font-weight 500,
+   letter-spacing 1.4px, uppercase, padding 6px 8px, border-radius 4px,
+   line-height 12.5px - HEM katalog kartinda HEM urun detay sayfasinda ayni.
+   Renk ise BAGLAMA gore degisiyor (Release'in kendisinde de boyle, tahmin
+   degil): indirim rozeti her yerde kirmizi/beyaz
+   (`--color-badge-discount-background:#EF2D2D`, "sale" fiyat renginden
+   FARKLI bir tema degiskeni - `tailwind.config.ts`'e ayri `badge-sale`
+   tokeni eklendi). Indirim disi rozetler ("last few"/"New" karsiligi)
+   katalog kartinda BEYAZ zemin + siyah yazi, urun detay sayfasinda KOYU GRI
+   (`#5E5A59`, yeni `badge-dark` tokeni) + beyaz yazi - onceki oturumda
+   kullanilan `bg-ink` (#111111) TAHMINDI, gercek deger daha acik bir gri.
+2. **Duzen gercek olcum**: rozetler DIKEY degil YATAY diziliyor
+   (`display:flex; flex-direction:row; flex-wrap:nowrap; gap:8px`) - onceki
+   oturumda `flex-col` kullanilmisti, bu da tahmindi ve yanlisti. Hem
+   `product-card.tsx` hem `product-viewer.tsx` `flex-row flex-wrap` (Turkce
+   metinler Release'in kisa Ingilizce etiketlerinden uzun oldugu icin,
+   tasmasin diye `nowrap` yerine `wrap` + kartta `max-w-[calc(100%-3rem)]`
+   kullanildi - kalp butonuyla cakismasin diye).
+3. **Rozetlerin konumu**: gercek DOM'da `.product__badges`,
+   `.product__content` icindeki EN ILK eleman - kategori/marka satirindan
+   bile once. `product-viewer.tsx`'te rozet blogu, kategori/marka
+   paragrafinin UZERINE tasindi.
+4. **Eksik indirim rozeti**: `product-viewer.tsx`'teki rozet blogu SADECE
+   `automaticDiscount` (kampanya) varsa gosteriliyordu; admin panelinden
+   dogrudan girilen "Karsilastirma fiyati" (`compareAtCents`) indirimi
+   rozetsiz kaliyordu - katalog kartindaki `discountPercent` mantigiyla
+   (bkz. `product-card.tsx`) ayni sekilde `compareAtDiscountPercent`
+   hesaplanip eklendi.
+5. **"Yeni" rozeti**: Release'de bu OTOMATIK degil - gercek urun katalogu
+   `/products.json` ile tarandi, ~100 uruncen sadece 2'sinde "badge:new" tag'i
+   var ve olusturulma tarihiyle hicbir korelasyonu yok (manuel, elle
+   yonetiliyor). Bollmark'ta manuel rozet yonetimi olmadigi icin, kullaniciya
+   soruldu ve **14 gunluk** bir esik secildi: `lib/catalog.ts`'e
+   `isNewProduct(createdAt)` eklendi (`NEW_PRODUCT_DAYS = 14`), `CatalogEntry.
+   isNew` katalog kartina, `ProductViewer`'a ayni sekilde `isNew` prop'u
+   olarak (page.tsx'te `product.createdAt` ile hesaplanip) baglandi.
+   `ProductBadge`'e `variant="new"` eklendi (renk mantigi "low-stock" ile
+   ayni: sm=beyaz/siyah, lg=koyu gri/beyaz).
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Playwright ile
+1440px ve 390px genisliklerde ayni pantolon urununde ÜÇ rozetin
+(`%34 İndirim` kirmizi, `Yeni` gri, `Son 2 Adet` gri) basligin ustunde,
+kategori/marka satirinin UZERINDE, yan yana (yatay) ve dogru fontla
+gorundugu; katalog sayfasinda ayni rozetlerin dar mobil kartlarda tasmadan
+2 satira sardigi; "Yeni" rozetinin computed style'inin (`rgb(255,255,255)`
+zemin, `rgb(17,17,17)` yazi) beklenenle eslesip regresyon olmadigi
+dogrulandi. (Not: seed veritabanindaki urunlerin cogu son 14 gun icinde
+eklendigi icin katalogda "Yeni" rozeti simdilik yaygin gorunuyor - bu veri
+karakteristigi, kod hatasi degil.)

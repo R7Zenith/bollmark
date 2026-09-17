@@ -42,6 +42,17 @@ export function isOutOfStock(variants: { stock: number }[]): boolean {
 // altinda (ve stok tamamen bitmemisse) rozet gosterilir (bkz. product-card.tsx).
 const LOW_STOCK_THRESHOLD = 3;
 
+// "Yeni" rozeti icin esik - Release'de bu otomatik degil, elle "badge:new"
+// tag'i ile yonetiliyor (gercek urun verisiyle dogrulandi: release-main.
+// myshopify.com'daki ~100 urunun sadece 2'sinde bu tag var, olusturulma
+// tarihiyle hicbir korelasyonu yok). Bollmark'ta manuel rozet yonetimi
+// olmadigi icin kullanicinin belirledigi 14 gunluk esik kullaniliyor.
+const NEW_PRODUCT_DAYS = 14;
+
+export function isNewProduct(createdAt: Date): boolean {
+  return Date.now() - createdAt.getTime() < NEW_PRODUCT_DAYS * 24 * 60 * 60 * 1000;
+}
+
 function totalStock(variants: { stock: number }[]): number {
   return variants.reduce((sum, v) => sum + Math.max(v.stock, 0), 0);
 }
@@ -116,6 +127,8 @@ export type CatalogEntry = {
   // Doluysa toplam stok LOW_STOCK_THRESHOLD altinda (ama stok tamamen bitmemis)
   // - kartta "Son X Adet" rozeti icin (bkz. product-card.tsx).
   lowStockCount: number | null;
+  // Urun NEW_PRODUCT_DAYS icinde eklenmisse "Yeni" rozeti icin true.
+  isNew: boolean;
   // Doluysa hover'da ana gorselden buna capraz-solma yapilir (bkz.
   // product-card.tsx) - urunun/rengin galerisindeki 2. fotograf.
   secondImage: string | null;
@@ -195,6 +208,7 @@ export async function getCatalogEntries(
         brandId: p.brandId,
         outOfStock,
         lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,
+        isNew: isNewProduct(p.createdAt),
         quickAddVariant: pickQuickAddVariant(p.variants),
         colors
       });
@@ -222,6 +236,7 @@ export async function getCatalogEntries(
         colors,
         outOfStock,
         lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,
+        isNew: isNewProduct(p.createdAt),
         quickAddVariant: pickQuickAddVariant(colorVariants)
       });
     }
