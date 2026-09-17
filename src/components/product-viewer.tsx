@@ -235,6 +235,12 @@ export function ProductViewer({
   const colorOutOfStock = colorVariants.length > 0 && colorVariants.every((v) => v.stock <= 0);
   const lowStockBadgeCount = !colorOutOfStock && colorStock < LOW_STOCK_THRESHOLD ? colorStock : null;
 
+  const isSizeOutOfStock = (s: string) =>
+    !variants.some((v) => v.size === s && v.color === color && v.stock > 0);
+
+  const isColorOutOfStock = (c: string) =>
+    !variants.some((v) => v.color === c && v.stock > 0);
+
   // Basligin ustundeki indirim rozeti eskiden SADECE otomatik kampanya
   // (automaticDiscount) varsa gosteriliyordu - admin panelinden dogrudan
   // girilen "Karsilastirma fiyati" (compareAtCents) indirimi rozetsiz
@@ -636,17 +642,25 @@ export function ProductViewer({
                   (bkz. beden kutucuklarindaki ayni gerekce) genislik sabit
                   degil, min-w-[28px] + px-3 ile yatayda buyuyor. */}
               <div className="mt-2 flex flex-wrap gap-2">
-                {colors.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setColor(c)}
-                    className={`flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-3 text-xs uppercase leading-none tracking-[1px] transition duration-300 ${
-                      color === c ? "bg-ink text-cream" : "bg-transparent text-ink hover:bg-ink/5"
-                    }`}
-                  >
-                    {c}
-                  </button>
-                ))}
+                {colors.map((c) => {
+                  const unavailable = isColorOutOfStock(c);
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => setColor(c)}
+                      className={`relative flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-3 text-xs uppercase leading-none tracking-[1px] transition duration-300 ${
+                        color === c ? "bg-ink text-cream" : "bg-transparent text-ink hover:bg-ink/5"
+                      } ${unavailable ? "opacity-40 cursor-not-allowed" : ""}`}
+                    >
+                      {c}
+                      {unavailable && (
+                        <span className="pointer-events-none absolute inset-0 overflow-hidden">
+                          <span className="absolute left-1/2 top-1/2 h-px w-[141%] -translate-x-1/2 -translate-y-1/2 rotate-45 bg-current" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -672,17 +686,25 @@ export function ProductViewer({
                   (S/M/38) birebir kare kalir, uzun etiket sigmazsa yatayda
                   buyur - metni kirpmak yerine. */}
               <div className="mt-2 flex flex-wrap gap-2">
-                {sizes.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setSize(s)}
-                    className={`flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-1 text-xs leading-none tracking-[1px] transition duration-300 ${
-                      size === s ? "bg-ink text-cream" : "bg-transparent text-ink hover:bg-ink/5"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
+                {sizes.map((s) => {
+                  const unavailable = isSizeOutOfStock(s);
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => setSize(s)}
+                      className={`relative flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-1 text-xs leading-none tracking-[1px] transition duration-300 ${
+                        size === s ? "bg-ink text-cream" : "bg-transparent text-ink hover:bg-ink/5"
+                      } ${unavailable ? "opacity-40 cursor-not-allowed" : ""}`}
+                    >
+                      {s}
+                      {unavailable && (
+                        <span className="pointer-events-none absolute inset-0 overflow-hidden">
+                          <span className="absolute left-1/2 top-1/2 h-px w-[141%] -translate-x-1/2 -translate-y-1/2 rotate-45 bg-current" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}

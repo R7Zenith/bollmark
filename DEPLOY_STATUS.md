@@ -3777,3 +3777,31 @@ basligin ustunde, sola hizali) ve mobil icin yenisi (`flex md:hidden`,
 fiyat blogundan once). Playwright ile 390px'te rozetlerin isim-fiyat
 arasinda ortali/yatay, 1440px'te ise masaustu konumunun (basligin ustunde)
 degismedigi dogrulandi. `npx tsc --noEmit` ve `npm run build` hatasiz.
+
+## Stoğu bitmiş beden/renk seçeneklerinde çapraz çizgi + soluklaştırma (bu oturum, bkz. URUN_DETAY_STOK_YOK_BEDEN_RENK_PLANI.md)
+
+`product-viewer.tsx`'teki `ProductViewer` bileşeninde renk ve beden
+butonlarına, o seçenek stokta yoksa gorsel bir "tukendi" isareti eklendi:
+`opacity-40` + `cursor-not-allowed` + buton icine mutlak konumlu, `rotate-45`
+verilmis koseden koseye bir cizgi (`<span>`, `w-[141%]`). Iki yeni yardimci:
+`isSizeOutOfStock(s)` (secili renkte o beden stokta mi, `colorOutOfStock`
+mantigina benzer ama tek beden icin), `isColorOutOfStock(c)` (o rengin HICBIR
+bedeninde stok kalmamis mi - mevcut `colorOutOfStock` degiskeninin genellenmis
+hali; `colorOutOfStock` degiskenine dokunulmadi, "Son X adet" rozeti onu
+kullanmaya devam ediyor). Tiklama davranisi degismedi (`onClick`/`disabled`
+attribute'a dokunulmadi) - stoksuz bir beden/renk hala tiklanabilir, secildiginde
+"Sepete Ekle" "Stokta Yok" olup `StockAlertForm` ("stok gelince haber ver")
+goruniyor, bu akis bozulmadi.
+
+**Dogrulama**: Canli (Neon) veritabanina yazma islemi izin sinifllandiricisi
+tarafindan "paylasilan kaynak degisikligi" olarak engellendi (hem dogrudan SQL
+hem admin panel UI uzerinden), o yuzden gercek bir urunun stogunu 0 yapip test
+etmek yerine, gecici bir test sayfasi (`src/app/(site)/urunler/test-stok-gorsel`,
+DB'siz, sabit mock `variants` verisiyle) olusturulup Playwright ile 1440px ve
+390px genisliklerde dogrulandi, sonra silindi: PEMBE renginde sadece L bedeni
+stoksuz iken sadece L'de cizgi/soluklasma gorunuyor, digerleri normal; TUM
+bedenleri stoksuz olan KAHVERENGİ renk kendisi de cizgili/soluk gorunuyor;
+struck-through L bedenine tiklaninca hala secilebiliyor (disabled degil) ve
+"Sepete Ekle" -> "Stokta Yok" + "Haber Ver" formu dogru sekilde tetikleniyor;
+mobilde (390px) cizgi kirilmadan koseden koseye duzgun render ediyor.
+`npx tsc --noEmit` hatasiz.
