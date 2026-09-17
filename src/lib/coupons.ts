@@ -45,6 +45,23 @@ function isManuallyDiscountedLine(line: Pick<CouponLine, "priceCents" | "compare
   return line.compareAtCents != null && line.compareAtCents > line.priceCents;
 }
 
+// Bir satirin mevcut manuel indirimi, bu kuponun esas fiyat (compareAtCents ??
+// priceCents) uzerinden saglayacagi indirimden DAHA AVANTAJLI mi (esitlik
+// dahil) - oyleyse kupon bu satirda musteriye ek bir fayda saglamiyor demektir
+// (bkz. validateCoupon'daki aciklayici mesaj).
+function manualDiscountBeatsCoupon(
+  coupon: Pick<CouponRecord, "type" | "value">,
+  line: Pick<CouponLine, "priceCents" | "compareAtCents">
+): boolean {
+  if (!isManuallyDiscountedLine(line)) return false;
+  const esasFiyat = line.compareAtCents ?? line.priceCents;
+  const kampanyaFiyati =
+    coupon.type === "PERCENT"
+      ? Math.round((esasFiyat * (100 - coupon.value)) / 100)
+      : Math.max(0, esasFiyat - coupon.value);
+  return kampanyaFiyati >= line.priceCents;
+}
+
 // Bir kampanyanin (kodlu ya da otomatik) genel gecerlilik sartlarini
 // (aktiflik, tarih araligi, kullanim limiti, min. sepet tutari) kontrol eder.
 // Hem validateCoupon (tek kod) hem de resolveBestDiscount (tum otomatik
@@ -160,10 +177,34 @@ export async function validateCoupon(tx: Tx, rawCode: string, lines: CouponLine[
   const eligibilityError = checkCouponEligibility(coupon, subtotalCents);
   if (eligibilityError) return { valid: false, message: eligibilityError };
 
-  const { discountCents, freeShipping, matchingLines } = computeCouponDiscount(coupon, lines);
+  const { discountCents, freeShipping } = computeCouponDiscount(coupon, lines);
   const hasRestriction = coupon.categoryId != null || coupon.brandId != null;
-  if (hasRestriction && matchingLines.length === 0) {
+  // Kategori/marka kisitina uyan urunler - computeCouponDiscount'un
+  // manuel-indirim filtresinden ONCEKI hali (asagidaki mesaj icin, o
+  // filtreden gecip gecmedigine bakilmaksizin kisitlama eslesmesi lazim).
+  const restrictionMatchingLines = hasRestriction
+    ? lines.filter(
+        (l) =>
+          (coupon.categoryId == null || l.categoryId === coupon.categoryId) &&
+          (coupon.brandId == null || l.brandId === coupon.brandId)
+      )
+    : lines;
+  if (restrictionMatchingLines.length === 0) {
     return { valid: false, message: "Bu kupon sepetinizdeki ürünler için geçerli değil." };
+  }
+
+  // Kisitlamaya uyan urunlerin HEPSINDE zaten kupondan daha avantajli bir
+  // manuel indirim varsa, kupon net bir fayda saglamiyor demektir - "Kupon
+  // uygulandı" gibi yaniltici bir basari mesaji yerine musteriye bunu
+  // aciklayan bir not donduruyoruz (bkz. yukarida manualDiscountBeatsCoupon).
+  if (discountCents === 0 && !freeShipping && restrictionMatchingLines.every((l) => manualDiscountBeatsCoupon(coupon, l))) {
+    return {
+      valid: false,
+      message:
+        restrictionMatchingLines.length === 1
+          ? "Bu üründe zaten kupondan daha yüksek bir indirim uygulanmış, kupon ek bir avantaj sağlamıyor."
+          : "Sepetinizdeki bu kapsamdaki ürünlerde zaten kupondan daha yüksek bir indirim uygulanmış, kupon ek bir avantaj sağlamıyor."
+    };
   }
 
   return { valid: true, couponId: coupon.id, discountCents, freeShipping };
