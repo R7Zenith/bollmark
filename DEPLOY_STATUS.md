@@ -4101,3 +4101,27 @@ dogrulandi. Tarayicida gorsel dogrulama yapilmadi.
 **Bekleyen (plan dosyasinda not edilen, bu oturumun kapsami disinda)**:
 telefon numarasi henuz belirtilmedi (footer'daki `+90 555 000 00 00` ve
 `destek@bollmark.com` hala yer tutucu), kargo firmasi henuz secilmedi.
+
+## 2026-09-18 - Musteriye siparis onay maili (MUSTERI_MAIL_BILDIRIMI_PROMPT.md)
+
+`MUSTERI_MAIL_BILDIRIMI_PROMPT.md` dosyasindaki durum tespiti kontrol edildi:
+- `notifyCustomerStatusChange` ve `notifyReturnStatusChange` prompt'ta "hic
+  cagrilmiyor / kontrol edilmeli" deniyordu ama incelemede ikisinin de zaten
+  bagli oldugu goruldu (`notifyCustomerStatusChange`:
+  `src/app/(admin)/admin/siparisler/[id]/page.tsx` ve
+  `src/app/api/admin/siparisler/bulk/route.ts`; `notifyReturnStatusChange`:
+  `src/app/(admin)/admin/iadeler/page.tsx`). Bu iki madde icin degisiklik
+  yapilmadi.
+- Eksik olan tek parca, siparis olusturulunca musteriye giden onay
+  mailiydi. `src/lib/order-notifications.ts` icine `notifyCustomerOrderReceived`
+  eklendi (urun ozeti, toplam tutar, teslimat adresi, `/siparis-durumu`
+  linki). `src/app/(site)/api/orders/route.ts` icinde `notifyAdminNewOrder`
+  cagrisinin hemen yanina, ayni fire-and-forget + `.catch(console.error)`
+  deseniyle eklendi; ekstra bir DB sorgusu yapilmadi, route'ta zaten var olan
+  `productById`/`resolvedLines` verisinden urun adi/adet/tutar listesi
+  cikarildi.
+
+**Dogrulama**: `npx tsc --noEmit -p tsconfig.json` hatasiz gecti.
+`RESEND_API_KEY` local'de tanimli olmadigi icin gercek mail gonderimi test
+edilemedi (bkz. prompt dosyasindaki not); kod, `notifyAdminNewOrder` ile
+ayni deseni birebir kullaniyor. Commit `23c7012` ile `origin/main`'e pushlandi.
