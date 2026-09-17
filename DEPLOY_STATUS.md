@@ -3870,3 +3870,34 @@ localStorage temizlenip 1280px'te bos sepet gorunumu (Cormorant italik
 vurgulu baslik + sayac 0) ekran goruntusuyle dogrulandi; urun sayfasinda
 "Sepete Ekle"ye basilinca "Sepete Git" butonu gorunmeden dogrudan
 cart-drawer'in sagdan actigi ve eklenen urunu gosterdigi dogrulandi.
+
+**Punto duzeltmesi (ayni oturum, kullanici "tahmin yurutme direkt temadan
+al" dedi)**: Ilk versiyondaki font boyutlari (text-3xl, text-xs vb.) tahminle
+secilmisti. Kullanicinin ilettigi Release ekran goruntuleri uzerine,
+release-main.myshopify.com/products/top-13 canli sayfasinda cart-drawer
+`is-visible` class'i JS ile zorlanip Playwright `getComputedStyle` ile
+GERCEK degerler olculdu (tahmin yok):
+- `.cart-drawer__title` ("Your cart"): 36px, weight 400, line-height 36px,
+  letter-spacing -1.44px, Poppins.
+- `.cart-drawer__title-counter` (sayac span'i, HER ZAMAN gorunur, 0 dahil):
+  21px, line-height 21px, letter-spacing -0.84px; DOM'da `position:absolute`
+  ile metnin saginda duruyor (JS ile hesaplanan px konum - biz bunun yerine
+  basitce `align-top` ile ayni gorsel "yukarida kucuk sayi" hissini verdik).
+- `.cart-drawer__empty-text` ("It's a little empty here"): 61px, line-height
+  61px, Poppins 400; icindeki `<em>` (empty/boş): 73.2px (=61*1.2em),
+  font-style italic, font-family Cormorant.
+- `.cart-drawer__empty-desc` ("Your cart is currently empty"): 14px,
+  line-height 17.5px, letter-spacing 0.28px.
+- `.button--outlined` ("Start Shopping"): 10px, line-height 10px,
+  letter-spacing 1px (bizim buton class deseniyle zaten birebir ayniydi).
+- `.cart-drawer__head`in `border-bottom` degeri `0px none` - yani Release'de
+  "Sepetim" basligi altinda çizgi YOK; bizim ilk versiyondaki
+  `border-b border-line` kaldirildi.
+
+`cart-drawer.tsx`'teki ilgili class'lar bu olculen degerlerle (arbitrary
+Tailwind degerleri, `text-[61px]` gibi) birebir degistirildi. Header'daki
+sayac artik totalCount 0 iken de gosteriliyor (Release'deki gibi).
+
+**Dogrulama**: `npx tsc --noEmit` ve `npm run build` hatasiz. Playwright ile
+1280px'te hem bos hem dolu sepet durumu ekran goruntusuyle Release'in canli
+olculen degerleriyle karsilastirilarak dogrulandi.

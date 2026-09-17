@@ -61,9 +61,9 @@ export function CartDrawer() {
           visible ? "visible translate-x-0" : "invisible translate-x-full"
         }`}
       >
-        <div className="flex items-center justify-between border-b border-line px-6 py-5">
-          <p className="text-[21px] leading-[21px] tracking-[-0.84px]">
-            Sepetim <span className="align-super text-xs text-ink/60">{totalCount}</span>
+        <div className="flex items-center justify-between px-6 py-5">
+          <p className="text-[36px] font-normal leading-[36px] tracking-[-1.44px]">
+            Sepetim <span className="align-top text-[21px] leading-[21px] tracking-[-0.84px]">{totalCount}</span>
           </p>
           <button type="button" aria-label="Kapat" onClick={closeDrawer} className="p-1">
             <X size={20} strokeWidth={1.5} />
@@ -72,14 +72,14 @@ export function CartDrawer() {
 
         {lines.length === 0 ? (
           <div className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-            <p className="font-display text-3xl font-light leading-tight">
-              Biraz <em className="font-accent italic font-normal">boş</em> görünüyor
+            <p className="text-[61px] font-normal leading-[61px]">
+              Biraz <em className="font-accent text-[73.2px] italic font-normal">boş</em> görünüyor
             </p>
-            <p className="mt-3 text-ink/60">Sepetiniz şu anda boş.</p>
+            <p className="mt-3 text-[14px] leading-[17.5px] tracking-[0.28px] text-ink/60">Sepetiniz şu anda boş.</p>
             <Link
               href="/urunler"
               onClick={closeDrawer}
-              className="mt-8 flex h-[44px] items-center justify-center rounded-[50px] border border-ink px-8 text-[10px] uppercase tracking-[1px] text-ink transition duration-300 hover:bg-ink hover:text-cream"
+              className="mt-8 flex h-[44px] items-center justify-center rounded-[50px] border border-ink px-8 text-[10px] leading-[10px] uppercase tracking-[1px] text-ink transition duration-300 hover:bg-ink hover:text-cream"
             >
               Alışverişe Başla
             </Link>
