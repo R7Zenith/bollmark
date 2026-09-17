@@ -3,6 +3,7 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaNeon } from "@prisma/adapter-neon";
 import bcrypt from "bcryptjs";
 import { resolveOptionValueIds } from "../src/lib/variant-attributes";
+import { legalPagesContent } from "./legal-pages-content";
 
 const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
@@ -72,36 +73,11 @@ async function main() {
     }
   }
 
-  // Yasal sayfalar - placeholder icerik, gercek metinler admin panelden
-  // (/admin/yasal-sayfalar) daha sonra girilir.
-  const legalPages: { slug: string; title: string; content: string }[] = [
-    {
-      slug: "hakkimizda",
-      title: "Hakkımızda",
-      content: "Bollmark hakkında bilgiler burada yer alacak. (Yer tutucu içerik - admin panelden düzenleyin.)"
-    },
-    {
-      slug: "kargo-bilgisi",
-      title: "Kargo Bilgisi",
-      content: "Kargo süreleri ve ücretleri hakkında bilgiler burada yer alacak. (Yer tutucu içerik - admin panelden düzenleyin.)"
-    },
-    {
-      slug: "iade-kosullari",
-      title: "İade Koşulları",
-      content: "İade ve değişim koşulları burada yer alacak. (Yer tutucu içerik - admin panelden düzenleyin.)"
-    },
-    {
-      slug: "gizlilik-politikasi",
-      title: "Gizlilik Politikası",
-      content: "Kişisel verilerin işlenmesine dair gizlilik politikası burada yer alacak. (Yer tutucu içerik - admin panelden düzenleyin.)"
-    },
-    {
-      slug: "mesafeli-satis-sozlesmesi",
-      title: "Mesafeli Satış Sözleşmesi",
-      content: "Mesafeli satış sözleşmesi metni burada yer alacak. (Yer tutucu içerik - admin panelden düzenleyin.)"
-    }
-  ];
-  for (const page of legalPages) {
+  // Yasal sayfalar - gercek metinler prisma/legal-pages-content.ts icinde
+  // tutulur (admin panelden /admin/yasal-sayfalar uzerinden daha sonra da
+  // duzenlenebilir). update:{} ile sadece eksik kayitlar olusturulur, admin
+  // panelden yapilmis degisiklikler bu seed tarafindan ezilmez.
+  for (const page of legalPagesContent) {
     await prisma.legalPage.upsert({
       where: { slug: page.slug },
       update: {},

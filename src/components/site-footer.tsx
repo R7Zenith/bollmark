@@ -60,18 +60,32 @@ export function SiteFooter() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/siparis-durumu" className={FOOTER_LINK_CLASS}>
-                    İade &amp; Değişim
-                  </Link>
-                </li>
-                <li>
                   <Link href="/sayfa/kargo-bilgisi" className={FOOTER_LINK_CLASS}>
                     Kargo Bilgisi
                   </Link>
                 </li>
                 <li>
+                  <Link href="/sayfa/iade-kosullari" className={FOOTER_LINK_CLASS}>
+                    İade Koşulları
+                  </Link>
+                </li>
+                {/* /siparis-durumu, iade kosullari metniyle karistirilmasin diye
+                    "İade & Değişim" yerine ne yaptigini soyleyen bir etiketle
+                    ayri tutuluyor - bu sayfa siparis takip + iade/degisim TALEBI
+                    olusturma araci, yukaridaki ise sadece kosullarin metni. */}
+                <li>
+                  <Link href="/siparis-durumu" className={FOOTER_LINK_CLASS}>
+                    Sipariş Takip &amp; İade Talebi
+                  </Link>
+                </li>
+                <li>
                   <Link href="/sayfa/gizlilik-politikasi" className={FOOTER_LINK_CLASS}>
                     Gizlilik Politikası
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/sayfa/mesafeli-satis-sozlesmesi" className={FOOTER_LINK_CLASS}>
+                    Mesafeli Satış Sözleşmesi
                   </Link>
                 </li>
               </ul>

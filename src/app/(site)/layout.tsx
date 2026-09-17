@@ -42,7 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="tr" className={`${poppins.variable} ${cormorant.variable}`}>
-      <body className="storefront font-sans antialiased">
+      <body className="storefront flex min-h-screen flex-col font-sans antialiased">
         <CustomerSessionProvider>
           <CartProvider>
             <WishlistProvider>
@@ -59,7 +59,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <Suspense fallback={<div className="h-[72px]" />}>
                 <SiteHeader menuData={menuData} />
               </Suspense>
-              <main>{children}</main>
+              {/* flex-1: hukuki/yasal sayfalar gibi kisa icerikli sayfalarda
+                  govde viewport'u doldurmuyordu, footer yukari yapisip altta
+                  bosluk birakiyordu - main'i esneterek footer'i her zaman
+                  sayfanin en altina sabitliyoruz. */}
+              <main className="flex-1">{children}</main>
               <SiteFooter />
             </WishlistProvider>
           </CartProvider>

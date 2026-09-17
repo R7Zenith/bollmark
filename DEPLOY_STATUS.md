@@ -4061,3 +4061,43 @@ Canli DB'de manuel indirimli + kategori kampanyali bir urun kombinasyonu
 olmadigi icin gercek veriyle uctan uca goruntu dogrulanmadi - mantik
 `resolveProductDisplayPrice` icindeki hesaplarla (esas fiyat, esitlikte
 manuel kazanir) elle izlendi.
+
+## Oturum: Hukuki sayfalar (iyzico basvurusu icin)
+
+`HUKUKI_SAYFALAR_ICERIK_VE_PLAN.md` icindeki 4 hazir metin (Gizlilik
+Politikasi+KVKK, Mesafeli Satis Sozlesmesi, Teslimat/Iade, Hakkimizda),
+projede zaten var olan dinamik `LegalPage` altyapisina (route:
+`/sayfa/[slug]`, admin: `/admin/yasal-sayfalar`) 5 kayit olarak islendi -
+yeni statik sayfa dosyasi acilmadi, cunku bu altyapi zaten tam olarak bu
+amac icin kuruluydu (bkz. `prisma/schema.prisma` LegalPage modelindeki
+slug yorum satiri). Teslimat+Iade metni, mevcut iki ayri slug'a
+(`kargo-bilgisi`, `iade-kosullari`) bolunerek yerlestirildi.
+
+- Gercek metinler tek kaynaktan (`prisma/legal-pages-content.ts`) hem
+  `prisma/seed.ts` (yeni ortam kurulumu, create-only) hem de tek seferlik
+  `scripts/push-yasal-sayfalar-icerik.ts` (mevcut canli DB'ye yazmak icin,
+  update dahil) tarafindan kullaniliyor. Betik calistirildi, 5 sayfa da
+  Neon'daki canli DB'de guncellendi.
+- "[YAYIN TARİHİ]" placeholder'lari "18 Eylül 2026" ile degistirildi.
+- Footer'a (`site-footer.tsx`) eksik olan `/sayfa/iade-kosullari` ve
+  `/sayfa/mesafeli-satis-sozlesmesi` linkleri eklendi (kargo-bilgisi ve
+  gizlilik-politikasi linkleri zaten vardi).
+- Checkout'ta "Mesafeli Satış Sözleşmesi'ni okudum, onaylıyorum" onay
+  kutusu (`checkout-form.tsx`) ve sunucu tarafi zorunlu dogrulamasi
+  (`api/orders/route.ts`, zod `termsAccepted: z.literal(true)`) zaten
+  mevcuttu; eksik olan tek parca, bu onayin siparis kaydina islenmesiydi.
+  `Order` modeline `termsAcceptedAt DateTime?` alani eklendi (`prisma
+  db push` ile canli DB'ye uygulandi), siparis olusturulurken
+  `new Date()` ile dolduruluyor.
+- `prisma generate` calistirilirken, sema ile checked-in generated client
+  arasinda onceden var olan bir uyumsuzluk da (Coupon modelindeki
+  `includeManuallyDiscountedProducts` alani) fark edilip duzeltildi -
+  `npx tsc --noEmit` bu oturumdan once 8 hata veriyordu, sonrasinda 0.
+
+**Dogrulama**: `npx tsc --noEmit -p .` hatasiz gecti. `scripts/push-yasal-sayfalar-icerik.ts`
+calistirilip 5 sayfanin da canli DB'de guncellendigi konsol ciktisiyla
+dogrulandi. Tarayicida gorsel dogrulama yapilmadi.
+
+**Bekleyen (plan dosyasinda not edilen, bu oturumun kapsami disinda)**:
+telefon numarasi henuz belirtilmedi (footer'daki `+90 555 000 00 00` ve
+`destek@bollmark.com` hala yer tutucu), kargo firmasi henuz secilmedi.

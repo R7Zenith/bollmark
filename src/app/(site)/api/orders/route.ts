@@ -158,6 +158,7 @@ export async function POST(req: NextRequest) {
           loyaltyDiscountCents,
           shippingCents,
           totalCents,
+          termsAcceptedAt: new Date(),
           items: {
             create: resolvedLines.map((l) => ({
               productId: l.productId,

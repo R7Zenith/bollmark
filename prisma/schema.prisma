@@ -292,6 +292,9 @@ model Order {
   // tutulur, "Silinen Siparişler" sayfasinda geri yuklenebilir sekilde durur.
   deletedAt       DateTime?
   deletedByEmail  String?
+  // Mesafeli Satis Sozlesmesi onay kaydi - checkout'ta zorunlu onay kutusunun
+  // isaretlendigi an (KVKK/ispat yukumlulugu icin, bkz. HUKUKI_SAYFALAR_ICERIK_VE_PLAN.md).
+  termsAcceptedAt DateTime?
 
   @@index([deletedAt])
 }
