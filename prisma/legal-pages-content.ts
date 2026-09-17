@@ -31,7 +31,7 @@ Bollmark ailesi olarak, kaliteli ürünü uygun fiyatla ve güvenilir bir alış
 Veri sorumlusu: Oğuzhan Leventoğlu (Bollmark)
 Vergi Dairesi / No: Karacabey Vergi Dairesi – 6080753452
 Adres: Runguçpaşa Mah. 75. Sk. No:6/A Karacabey/Bursa
-E-posta: ozilevent@gmail.com
+E-posta: bilgi@bollmark.com
 
 2. İşlenen Kişisel Veriler
 
@@ -70,7 +70,7 @@ Kişisel verilerinizin güvenliğini sağlamak amacıyla SSL sertifikası ile ş
 
 KVKK'nın 11. maddesi uyarınca; kişisel verinizin işlenip işlenmediğini öğrenme, işlenmişse buna ilişkin bilgi talep etme, işlenme amacını ve amacına uygun kullanılıp kullanılmadığını öğrenme, yurt içinde/dışında aktarıldığı üçüncü kişileri bilme, eksik/yanlış işlenmişse düzeltilmesini isteme, silinmesini/yok edilmesini isteme, bu işlemlerin aktarıldığı üçüncü kişilere bildirilmesini isteme, işlenen verilerin münhasıran otomatik sistemlerle analiz edilmesi suretiyle aleyhinize bir sonucun ortaya çıkmasına itiraz etme ve kanuna aykırı işleme sebebiyle zarara uğramanız halinde zararın giderilmesini talep etme haklarına sahipsiniz.
 
-Bu haklarınızı kullanmak için taleplerinizi ozilevent@gmail.com adresine veya Runguçpaşa Mah. 75. Sk. No:6/A Karacabey/Bursa adresine yazılı olarak iletebilirsiniz.
+Bu haklarınızı kullanmak için taleplerinizi bilgi@bollmark.com adresine veya Runguçpaşa Mah. 75. Sk. No:6/A Karacabey/Bursa adresine yazılı olarak iletebilirsiniz.
 
 10. Çerez Politikası
 
@@ -91,7 +91,7 @@ SATICI
 Unvan: Oğuzhan Leventoğlu (Bollmark)
 Vergi Dairesi / No: Karacabey Vergi Dairesi – 6080753452
 Adres: Runguçpaşa Mah. 75. Sk. No:6/A Karacabey/Bursa
-E-posta: ozilevent@gmail.com
+E-posta: bilgi@bollmark.com
 
 ALICI
 Sipariş sırasında girilen ad-soyad, adres, telefon ve e-posta bilgileri esas alınır; bu bilgiler işbu sözleşmenin ayrılmaz parçasıdır.
@@ -110,7 +110,7 @@ ALICI, sipariş vermeden önce Site'de yer alan Ön Bilgilendirme Formu'nu okudu
 
 Madde 5 – Cayma Hakkı
 
-ALICI, hiçbir hukuki ve cezai sorumluluk üstlenmeksizin ve hiçbir gerekçe göstermeksizin, ürünün kendisine veya gösterdiği adresteki üçüncü kişiye tesliminden itibaren 14 (on dört) gün içinde cayma hakkına sahiptir. Cayma hakkının kullanılması için bu süre içinde SATICI'ya yazılı olarak (ozilevent@gmail.com adresine e-posta ile) bildirimde bulunulması yeterlidir.
+ALICI, hiçbir hukuki ve cezai sorumluluk üstlenmeksizin ve hiçbir gerekçe göstermeksizin, ürünün kendisine veya gösterdiği adresteki üçüncü kişiye tesliminden itibaren 14 (on dört) gün içinde cayma hakkına sahiptir. Cayma hakkının kullanılması için bu süre içinde SATICI'ya yazılı olarak (bilgi@bollmark.com adresine e-posta ile) bildirimde bulunulması yeterlidir.
 
 Cayma hakkının kullanılması halinde:
 - Ürünün faturası, kutusu, ambalajı, varsa standart aksesuarları ile birlikte eksiksiz ve hasarsız olarak iade edilmesi gerekir.
@@ -147,7 +147,7 @@ Teslimat, sipariş sırasında belirttiğiniz adrese anlaşmalı kargo firmamız
 
 Resmi tatiller ve yoğun kampanya dönemlerinde teslimat süresi uzayabilir; böyle bir durumda tarafınıza bilgi verilir.
 
-İade koşulları için "İade Koşulları" sayfamızı inceleyebilirsiniz. Sorularınız için ozilevent@gmail.com adresinden bize ulaşabilirsiniz.
+İade koşulları için "İade Koşulları" sayfamızı inceleyebilirsiniz. Sorularınız için bilgi@bollmark.com adresinden bize ulaşabilirsiniz.
 
 Son güncelleme: ${YAYIN_TARIHI}`
   },
@@ -158,7 +158,7 @@ Son güncelleme: ${YAYIN_TARIHI}`
 
 İade adımları:
 
-1. ozilevent@gmail.com adresine sipariş numaranızla birlikte iade talebinizi iletin.
+1. bilgi@bollmark.com adresine sipariş numaranızla birlikte iade talebinizi iletin.
 2. Ürünü faturası, orijinal kutusu/ambalajı ve etiketleriyle birlikte, kullanılmamış ve hasarsız şekilde paketleyin.
 3. Ürünü Runguçpaşa Mah. 75. Sk. No:6/A Karacabey/Bursa adresine gönderin.
 4. İade kargo ücreti alıcıya aittir.
@@ -166,7 +166,7 @@ Son güncelleme: ${YAYIN_TARIHI}`
 
 İade edilemeyecek ürünler: İç giyim, mayo, bikini gibi hijyen açısından hassas ürünlerde, ambalajı/etiketi açılmış veya kullanılmışsa cayma hakkı kullanılamaz.
 
-Sorularınız için ozilevent@gmail.com adresinden bize ulaşabilirsiniz.
+Sorularınız için bilgi@bollmark.com adresinden bize ulaşabilirsiniz.
 
 Son güncelleme: ${YAYIN_TARIHI}`
   }
