@@ -453,7 +453,7 @@ export function ProductViewer({
             (createdAt bazli, bkz. lib/catalog.ts isNewProduct) ve "Son X Adet"
             (gercek stok) kullaniliyor. */}
         {(discountBadgePercent || isNew || lowStockBadgeCount != null) && (
-          <div className="mb-2 flex flex-row flex-wrap items-start gap-2">
+          <div className="mb-2 hidden flex-row flex-wrap items-start gap-2 md:flex">
             {discountBadgePercent && (
               <ProductBadge variant="discount" size="lg">
                 %{discountBadgePercent} İndirim
@@ -500,6 +500,25 @@ export function ProductViewer({
           <p className="mt-1 text-center text-xs text-ink/50 md:text-left">
             Favorileriniz bu cihazda saklanıyor, kalıcı olması için giriş yapın.
           </p>
+        )}
+        {/* Mobilde rozetler masaustundeki gibi basligin UZERINDE degil, urun
+            ismi ile fiyat arasinda, yatay ve ortali gosteriliyor (kullanicinin
+            acik istegiyle) - masaustu blogu yukarida `md:flex` ile sadece
+            orada gorunuyor, bu blok da `md:hidden` ile sadece mobilde. */}
+        {(discountBadgePercent || isNew || lowStockBadgeCount != null) && (
+          <div className="mt-2 flex flex-row flex-wrap items-center justify-center gap-2 md:hidden">
+            {discountBadgePercent && (
+              <ProductBadge variant="discount" size="lg">
+                %{discountBadgePercent} İndirim
+              </ProductBadge>
+            )}
+            {isNew && <ProductBadge variant="new" size="lg">Yeni</ProductBadge>}
+            {lowStockBadgeCount != null && (
+              <ProductBadge variant="low-stock" size="lg">
+                Son {lowStockBadgeCount} Adet
+              </ProductBadge>
+            )}
+          </div>
         )}
         {/* Fiyat: Release'de `.product__price .price{font-size:
             var(--font-size-static-md)}` = 1.4rem - eskiden genel text-xl

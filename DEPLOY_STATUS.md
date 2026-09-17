@@ -3767,3 +3767,13 @@ zemin, `rgb(17,17,17)` yazi) beklenenle eslesip regresyon olmadigi
 dogrulandi. (Not: seed veritabanindaki urunlerin cogu son 14 gun icinde
 eklendigi icin katalogda "Yeni" rozeti simdilik yaygin gorunuyor - bu veri
 karakteristigi, kod hatasi degil.)
+
+**Mobilde rozet konumu (ayni oturum, ikinci geri bildirim)**: kullanici
+mobilde rozetlerin masaustundeki gibi basligin UZERINDE degil, urun ismi
+ile fiyat arasinda, yatay ve ORTALI olmasini istedi. `product-viewer.tsx`'te
+rozet blogu artik iki kopya: masaustu icin eskisi (`hidden md:flex`,
+basligin ustunde, sola hizali) ve mobil icin yenisi (`flex md:hidden`,
+`justify-center`, baslik/kalp satiri ile "Favorileriniz..." notundan sonra,
+fiyat blogundan once). Playwright ile 390px'te rozetlerin isim-fiyat
+arasinda ortali/yatay, 1440px'te ise masaustu konumunun (basligin ustunde)
+degismedigi dogrulandi. `npx tsc --noEmit` ve `npm run build` hatasiz.
