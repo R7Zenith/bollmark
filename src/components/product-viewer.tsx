@@ -650,7 +650,7 @@ export function ProductViewer({
                       onClick={() => setColor(c)}
                       className={`relative flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-3 text-xs uppercase leading-none tracking-[1px] transition duration-300 ${
                         color === c ? "bg-ink text-cream" : "bg-transparent text-ink hover:bg-ink/5"
-                      } ${unavailable ? "opacity-40 cursor-not-allowed" : ""}`}
+                      } ${unavailable ? "opacity-40" : ""}`}
                     >
                       {c}
                       {unavailable && (
@@ -694,7 +694,7 @@ export function ProductViewer({
                       onClick={() => setSize(s)}
                       className={`relative flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-1 text-xs leading-none tracking-[1px] transition duration-300 ${
                         size === s ? "bg-ink text-cream" : "bg-transparent text-ink hover:bg-ink/5"
-                      } ${unavailable ? "opacity-40 cursor-not-allowed" : ""}`}
+                      } ${unavailable ? "opacity-40" : ""}`}
                     >
                       {s}
                       {unavailable && (
