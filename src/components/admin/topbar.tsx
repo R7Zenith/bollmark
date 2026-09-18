@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { Search, ChevronDown, Package, ShoppingBag, Menu, X } from "lucide-react";
 import { SignOutButton } from "@/components/admin/sign-out-button";
+import { adminRoleLabel } from "@/lib/roles";
 
 interface SearchResults {
   products: { id: string; name: string }[];
@@ -59,7 +60,11 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
     };
   }, [query]);
 
-  const hasResults = results && (results.products.length > 0 || results.orders.length > 0);
+  const displayName = session?.user?.name?.trim() || session?.user?.email?.split("@")[0] || "Yönetici";
+  const role = session?.user?.role;
+  const roleLabel = role ? adminRoleLabel[role] : null;
+
+  const hasResults = results &&(results.products.length > 0 || results.orders.length > 0);
 
   function closeSearch() {
     setOpen(false);
@@ -180,17 +185,34 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
       <div ref={userMenuRef} className="relative">
         <button
           onClick={() => setUserMenuOpen((v) => !v)}
-          className="flex min-h-[40px] items-center gap-2 rounded-md px-2 py-1.5 text-sm text-admin-text hover:bg-admin-bg"
+          aria-haspopup="menu"
+          aria-expanded={userMenuOpen}
+          className="flex min-h-[40px] items-center gap-2.5 rounded-md px-2 py-1.5 text-sm text-admin-text hover:bg-admin-bg focus:outline-none focus-visible:ring-2 focus-visible:ring-admin-accent"
         >
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-admin-accent">
-            {session?.user?.email?.[0]?.toUpperCase() ?? "A"}
+          <span className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-admin-accent">
+            {displayName[0]?.toLocaleUpperCase("tr-TR") ?? "A"}
           </span>
-          <ChevronDown size={14} className="text-admin-text-muted" />
+          <span className="hidden min-w-0 text-left leading-tight sm:block">
+            <span className="block max-w-[10rem] truncate text-sm font-medium text-admin-text">
+              {displayName}
+            </span>
+            {roleLabel && <span className="block text-xs text-admin-text-muted">{roleLabel}</span>}
+          </span>
+          <ChevronDown
+            size={14}
+            className={`flex-shrink-0 text-admin-text-muted transition-transform ${userMenuOpen ? "rotate-180" : ""}`}
+          />
         </button>
         {userMenuOpen && (
-          <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-md border border-admin-border bg-admin-surface shadow-lg">
-            <p className="truncate px-4 py-3 text-xs text-admin-text-muted">{session?.user?.email}</p>
-            <div className="border-t border-admin-border px-4 py-3">
+          <div
+            role="menu"
+            className="absolute right-0 top-full z-20 mt-2 w-64 overflow-hidden rounded-md border border-admin-border bg-admin-surface shadow-lg"
+          >
+            <div className="px-4 py-3">
+              <p className="truncate text-sm font-medium text-admin-text">{displayName}</p>
+              <p className="truncate text-xs text-admin-text-muted">{session?.user?.email}</p>
+            </div>
+            <div className="border-t border-admin-border py-1">
               <SignOutButton />
             </div>
           </div>

@@ -4438,3 +4438,12 @@ Eski sayfanın asıl bug'ı: `bg-paper` Tailwind'de tanımlı bir renk değil, f
 
 Doğrulama: Playwright ile 1440/1024/390px — logo ve buton görünür, yatay taşma yok
 (scrollWidth = genişlik); hata kutusu, yükleniyor durumu ve göz ikonu çalışıyor.
+
+## Oturum: Admin kullanıcı menüsü (19 Eylul 2026)
+
+Topbar sağ üstteki kullanıcı menüsü: "Cikis Yap" -> "Çıkış" (ikonlu, tam satır
+buton, `sign-out-button.tsx`); tetikleyicide artık sadece baş harf değil tam ad
+(`session.user.name`, yoksa e-posta ön eki) ve rol etiketi (`adminRoleLabel`)
+görünüyor, mobilde (<640px) yalnız avatar. Açılır menüde ad + e-posta başlığı.
+Doğrulama: `tsc` temiz; tarayıcıda görsel doğrulama yapılamadı (`.env`'deki
+admin bilgileri DB'deki hesapla eşleşmiyor).
