@@ -15,6 +15,8 @@ import {
 // ayni 450ms + cubic-bezier easing, ayni overlay/z-index - yalnizca soldan
 // gelir. Secimler cekmece icinde gecici (draft) tutulur, "Filtreleri Uygula"
 // ile URL'ye yazilir (bkz. catalog-toolbar.tsx onApply).
+// Animasyonlar prefers-reduced-motion a bakmaz - kullanici istegiyle her zaman
+// oynar (globals.css taki ticker notuyla ayni tercih).
 
 export type FilterDrawerCategory = { name: string; slug: string };
 
@@ -65,7 +67,7 @@ function Label({ children, count }: { children: React.ReactNode; count?: number 
 function Collapse({ open, children }: { open: boolean; children: React.ReactNode }) {
   return (
     <div
-      className={`grid transition-[grid-template-rows] duration-300 ease-out motion-reduce:transition-none ${
+      className={`grid transition-[grid-template-rows] duration-300 ease-out ${
         open ? "grid-rows-[1fr]" : "grid-rows-[0fr]"
       }`}
     >
@@ -102,7 +104,7 @@ function Section({
           <ChevronDown
             size={16}
             strokeWidth={1.25}
-            className={`shrink-0 transition-transform duration-300 motion-reduce:transition-none ${open ? "rotate-180" : ""}`}
+            className={`shrink-0 transition-transform duration-300 ${open ? "rotate-180" : ""}`}
           />
         </button>
       </h3>
@@ -229,7 +231,7 @@ function DrawerPanel({
       role="dialog"
       aria-modal="true"
       aria-label="Filtrele"
-      className={`absolute inset-y-0 left-0 z-[801] flex h-full w-full max-w-full flex-col bg-cream transition-[transform,visibility] duration-[450ms] ease-[cubic-bezier(0.74,-0.01,0.26,1)] motion-reduce:transition-none sm:w-[26rem] lg:w-[30rem] ${
+      className={`absolute inset-y-0 left-0 z-[801] flex h-full w-full max-w-full flex-col bg-cream transition-[transform,visibility] duration-[450ms] ease-[cubic-bezier(0.74,-0.01,0.26,1)] sm:w-[26rem] lg:w-[30rem] ${
         visible ? "visible translate-x-0" : "invisible -translate-x-full"
       }`}
     >

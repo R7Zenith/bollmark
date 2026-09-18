@@ -4389,7 +4389,7 @@ akordeonlu bir çekmeceye dönüştürüldü.
   Ürünler. Seçimler çekmece içinde geçici (draft) tutulur; "Filtreleri Uygula"
   URL'ye yazar, "Temizle" draft'ı sıfırlar. Erişilebilirlik: role=dialog +
   aria-modal, Esc, Tab focus trap, kapanınca odak Filtrele butonuna döner,
-  kapalı akordeonlar `inert`, `motion-reduce` desteği.
+  kapalı akordeonlar `inert`. Animasyonlar `prefers-reduced-motion`a bakmadan her zaman çalışır (kullanıcı isteği; ilk sürümde `motion-reduce` vardı, OS "animasyonları göster" kapalı olunca çekmece animasyonsuz açılıyordu, kaldırıldı).
 - `lib/catalog-filters.ts` (yeni): query param ↔ filtre nesnesi
   (`renk`, `beden`, `fiyat-min`, `fiyat-max`, `stok`, `indirimli`; renk/beden/stok
   tekrarlı param), filtre uygulama ve facet/sayı hesabı. Sunucu ve istemci
