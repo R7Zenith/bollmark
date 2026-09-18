@@ -119,6 +119,27 @@ export function generateVariantCombinations(
 const cellInputClass =
   "w-full min-w-[6rem] rounded border border-admin-border px-2 py-1.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
 
+// Mobil kartta min-w/sabit w yok; text-base (16px) iOS'un odaklanınca zoom yapmasını engeller.
+const mobileInputClass =
+  "w-full rounded border border-admin-border px-2 py-2 text-base focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
+
+function MobileField({
+  label,
+  className = "",
+  children
+}: {
+  label: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <label className={`block min-w-0 ${className}`}>
+      <span className="mb-1 block text-xs text-admin-text-muted">{label}</span>
+      {children}
+    </label>
+  );
+}
+
 function ColorDot({ hexColor }: { hexColor: string }) {
   return (
     <span
@@ -377,6 +398,98 @@ export function VariantEditor({
     }
   ];
 
+  function renderMobileCard(row: VariantRow, { selected, toggle }: { selected: boolean; toggle: () => void }) {
+    const optionValues = attributes.flatMap((attr) => {
+      const val = attr.values.find((v) => row.optionValueIds.includes(v.id));
+      return val ? [val] : [];
+    });
+
+    return (
+      <div className="rounded-lg border border-admin-border bg-admin-surface p-3">
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={toggle}
+            className="h-5 w-5 shrink-0 rounded border-admin-border text-admin-accent focus:ring-admin-accent"
+            aria-label="Varyantı seç"
+          />
+          <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm font-medium text-admin-text">
+            {optionValues.length === 0 ? (
+              <span className="text-admin-text-muted">—</span>
+            ) : (
+              optionValues.map((val, i) => (
+                <span key={val.id} className="inline-flex items-center gap-1.5">
+                  {i > 0 && <span className="text-admin-text-muted">·</span>}
+                  {val.hexColor && <ColorDot hexColor={val.hexColor} />}
+                  {val.value}
+                </span>
+              ))
+            )}
+          </p>
+          <button
+            type="button"
+            onClick={() => removeRows([row.clientId])}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded text-red-600 hover:bg-red-50 hover:text-red-700"
+            aria-label="Varyantı sil"
+          >
+            <Trash2 size={18} />
+          </button>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-3">
+          <MobileField label="SKU" className="col-span-2">
+            <input
+              value={row.sku}
+              onChange={(e) => updateRow(row.clientId, { sku: e.target.value })}
+              placeholder="BLM-001-M-SYH"
+              className={`${mobileInputClass} font-mono`}
+            />
+          </MobileField>
+          <MobileField label="Barkod" className="col-span-2">
+            <input
+              value={row.barcode}
+              onChange={(e) => updateRow(row.clientId, { barcode: e.target.value })}
+              placeholder="opsiyonel"
+              className={`${mobileInputClass} font-mono`}
+            />
+          </MobileField>
+          <MobileField label="Stok">
+            <input
+              type="number"
+              min={0}
+              step={1}
+              value={row.stock}
+              onChange={(e) => updateRow(row.clientId, { stock: e.target.value })}
+              className={mobileInputClass}
+            />
+          </MobileField>
+          <MobileField label="Fiyat (TL)">
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              value={row.price}
+              onChange={(e) => updateRow(row.clientId, { price: e.target.value })}
+              placeholder={defaultPriceLabel}
+              className={mobileInputClass}
+            />
+          </MobileField>
+          <MobileField label="İndirim Öncesi (TL)">
+            <input
+              type="number"
+              min={0}
+              step={0.01}
+              value={row.compareAt}
+              onChange={(e) => updateRow(row.clientId, { compareAt: e.target.value })}
+              placeholder={defaultCompareAtLabel}
+              className={mobileInputClass}
+            />
+          </MobileField>
+        </div>
+      </div>
+    );
+  }
+
   function handleSortChange(key: string, direction: "asc" | "desc") {
     const attrId = key.startsWith("attr-") ? key.slice("attr-".length) : null;
     if (!attrId) return;
@@ -458,6 +571,7 @@ export function VariantEditor({
         selectable
         bulkActions={bulkActions}
         onSortChange={handleSortChange}
+        renderMobileCard={renderMobileCard}
         emptyTitle="Henüz varyant yok"
       />
       <Button type="button" variant="secondary" size="sm" onClick={addRow}>

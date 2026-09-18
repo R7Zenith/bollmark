@@ -237,7 +237,7 @@ export default async function VariantAttributesPage({
                     return (
                       <div
                         key={value.id}
-                        className="flex items-center gap-3 rounded-md border border-admin-border px-3 py-2"
+                        className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-admin-border px-3 py-2"
                       >
                         {isColorAttribute && (
                           <span
@@ -246,7 +246,7 @@ export default async function VariantAttributesPage({
                             title={value.hexColor ?? ""}
                           />
                         )}
-                        <span className="flex-1 text-sm text-admin-text">{value.value}</span>
+                        <span className="min-w-[6rem] flex-1 text-sm text-admin-text">{value.value}</span>
                         {usageCount > 0 && (
                           <span className="text-xs text-admin-text-muted">{usageCount} varyantta kullanılıyor</span>
                         )}
@@ -292,7 +292,7 @@ export default async function VariantAttributesPage({
                   })
                 )}
 
-                <form action={createVal} className="flex items-center gap-2 pt-1">
+                <form action={createVal} className="flex flex-wrap items-center gap-2 pt-1">
                   <VariantValueCreateFields isColorAttribute={isColorAttribute} />
                   <button className="flex shrink-0 items-center gap-1.5 rounded-md border border-admin-border px-3 py-2 text-sm font-medium text-admin-text hover:bg-admin-bg">
                     <Plus size={14} /> Değer Ekle

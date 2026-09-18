@@ -30,6 +30,8 @@ interface DataTableProps<T> {
   emptyAction?: React.ReactNode;
   /** Verilince tabloya "Sütunlar" göster/gizle paneli eklenir, tercih bu anahtarla localStorage'a yazılır. */
   columnVisibilityStorageKey?: string;
+  /** Verilince md altında tablo yerine her satır için bu kart render edilir; tablo yalnızca md ve üstünde görünür. */
+  renderMobileCard?: (row: T, ctx: { selected: boolean; toggle: () => void }) => React.ReactNode;
 }
 
 export function DataTable<T>({
@@ -43,7 +45,8 @@ export function DataTable<T>({
   emptyTitle = "Kayit bulunamadi",
   emptyDescription,
   emptyAction,
-  columnVisibilityStorageKey
+  columnVisibilityStorageKey,
+  renderMobileCard
 }: DataTableProps<T>) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<{ key: string; direction: "asc" | "desc" } | null>(initialSort);
@@ -161,7 +164,17 @@ export function DataTable<T>({
           </div>
         </div>
       )}
-      <div className="relative rounded-lg border border-admin-border bg-admin-surface">
+      {renderMobileCard && (
+        <div className="space-y-3 md:hidden">
+          {data.map((row) => {
+            const id = getRowId(row);
+            return (
+              <div key={id}>{renderMobileCard(row, { selected: selected.has(id), toggle: () => toggleRow(id) })}</div>
+            );
+          })}
+        </div>
+      )}
+      <div className={`relative rounded-lg border border-admin-border bg-admin-surface ${renderMobileCard ? "hidden md:block" : ""}`}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-max border-collapse text-sm">
           <thead>

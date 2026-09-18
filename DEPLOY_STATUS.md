@@ -4297,3 +4297,45 @@ kalan tüm hata/uyarılar bu değişiklikten önce var olan ilgisiz dosyalarda
 (`lib/cart.tsx`, `lib/wishlist.tsx`, `lib/use-automatic-discount.ts`,
 `lib/use-bundle-discount.ts`, `vega-bridge-worker/worker.js`) — değişen
 dosyalarda (`catalog.ts`, `product-card.tsx`) hiç lint hatası yok.
+
+## Admin varyant tablosu mobilde (< md) kart görünümüne alındı (bu oturum)
+
+Ürün düzenleme/yeni ürün sayfasındaki varyant tablosu `min-w-max` olduğu için
+mobilde ~900px genişliyor, yatay kaydırma gerektiriyordu. Tüm alanlar
+düzenlenebilir olduğundan `hideOnMobile` çözüm değildi; mobilde tablo yerine
+kart gösterildi.
+
+- `components/admin/data-table.tsx`: opsiyonel `renderMobileCard(row, { selected, toggle })`
+  prop'u eklendi. Verilirse md altında kartlar (`md:hidden`), tablo ise
+  `hidden md:block` oluyor; seçim state'i ve `BulkActionBar` ortak. Prop
+  verilmeyen diğer tüm tablolar birebir aynı davranıyor.
+- `components/admin/variant-editor.tsx`: mobil kart eklendi — üstte seçim
+  checkbox'ı + "M · Siyah" (renk noktalı) + 40x40 sil butonu; altında
+  `grid-cols-2` ile SKU/Barkod (tam genişlik), Stok/Fiyat/İndirim Öncesi.
+  Input'lar `w-full`, `text-base` (16px, iOS zoom olmasın). Masaüstü tablosu ile
+  aynı `updateRow`/`removeRows` ve aynı state kullanılıyor, `variantsValue`
+  gizli alanı değişmedi. Mobil fiyat placeholder'ı yer darlığı için "Varsayılan: "
+  öneki olmadan gösteriliyor.
+- **Ayrıca bulunan gerçek taşma**: Varyant Özellikleri ayar sayfasında kartlar
+  açıkken sayfa 466px'e taşıyordu (kartlar >6 değerde varsayılan kapalı olduğu
+  için ilk bakışta görünmüyor). Kök neden: Renk değer satırı
+  (nokta + ad + "N varyantta kullanılıyor" + hex alanı + oklar + sil) ve
+  "Yeni değer" formu `flex-wrap`'sizdi. `ayarlar/varyant-ozellikleri/page.tsx`
+  değer satırına ve ekleme formuna `flex-wrap`, ad alanına `min-w-[6rem]`;
+  `variant-value-create-fields.tsx` input'una `min-w-[10rem] flex-1` (eski
+  `w-full` yerine) eklendi. Masaüstü görünümü değişmedi.
+- Kontrol edilip **dokunulmayanlar** (375/390'da taşma yok): SearchableMultiSelect
+  dropdown'ı, Renk Görselleri/MultiImageField, SaveBar (iki buton sığıyor, metin
+  iki satıra kırılıyor), `variant-attribute-card.tsx`.
+- Bilinen sınırlama: mobil kartta özellik sütununa göre sıralama başlığı yok
+  (başlıklar yalnızca tabloda).
+
+**Doğrulama**: Playwright ile 375/390/1280px'te ürün düzenleme, yeni ürün ve
+varyant özellikleri sayfaları açıldı: hepsinde `scrollWidth == innerWidth`;
+mobilde 4 kart görünür/tablo gizli, 1280'de tablo görünür; kartta stok
+düzenlenince `variantsValue` güncelleniyor, seçim + toplu işlem çubuğu ve silme
+çalışıyor (hiçbir şey kaydedilmedi). `npm run build` hatasız geçti
+(önce `npx prisma generate` gerekti: önceki oturumdaki Coupon şema değişikliği
+yerel istemciye yansımamıştı). `npm run lint` toplamı değişiklikten önce ve
+sonra aynı (72 sorun / 28 hata, hepsi ilgisiz eski dosyalarda; `data-table.tsx:61`
+mevcut bir localStorage `useEffect`'i).

@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { HexSuggestButton } from "@/components/admin/hex-suggest-button";
 
 const inputClass =
-  "w-full rounded-md border border-admin-border px-3 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
+  "min-w-[10rem] flex-1 rounded-md border border-admin-border px-3 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
 
 export function VariantValueCreateFields({ isColorAttribute }: { isColorAttribute: boolean }) {
   const nameRef = useRef<HTMLInputElement>(null);
