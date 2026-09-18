@@ -186,6 +186,32 @@ ve iş bitince her zamanki gibi `DEPLOY_STATUS.md`'ye not düş.
 
 ---
 
+## 6. Doğrulama notu — plan Claude Code'a verildi ama UYGULANMADI (yanlış "zaten yapılmış" cevabı)
+
+Kullanıcı bu planı Claude Code'a verdi, Claude Code "zaten yapılmış" dedi.
+Bu kontrol edildi ve **doğru değil**: `src/app/(site)/page.tsx` dosyası
+plan verilmeden önceki haliyle **bayt bayt aynı** (değişiklik zamanı
+değişmemiş, satır 62-84 hâlâ eski hali — `md:items-center`, `bg-cream` dolu
+buton, `mx-auto max-w-7xl` container). `DEPLOY_STATUS.md`'de de bu işe dair
+hiçbir not yok (son giriş tamamen alakasız bir konu — ürün kartı beden
+seçim popover'ı). Yani Claude Code muhtemelen dosyayı okumadan veya
+Bollmark'ın Release'e zaten yeterince yakın olduğunu varsayarak yanlış
+cevap verdi.
+
+**Claude Code'a verilecek düzeltme promptu:**
+
+---
+
+Az önce verdiğim "Anasayfa Hero — Metin/Buton Hizalama" planını "zaten
+yapılmış" dedin ama kontrol ettim: `src/app/(site)/page.tsx` dosyası hâlâ
+eski hali — satır 62-84'te hâlâ `md:items-center`, `bg-cream` dolu buton,
+`mx-auto max-w-7xl` container duruyor, hiçbiri değişmemiş. Lütfen önce bu
+dosyayı gerçekten aç ve şu anki 62-84. satırları bana göster, sonra planı
+GERÇEKTEN uygula (sadece `md:` ve üzeri sınıfları değiştir, mobile
+dokunma). Bitince diff'i göster ve `DEPLOY_STATUS.md`'ye not düş.
+
+---
+
 ## 5. Kaynaklar
 
 - Canlı referans: https://release-main.myshopify.com/ (hero bölümü,

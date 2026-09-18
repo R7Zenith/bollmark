@@ -57,9 +57,12 @@ export default async function HomePage() {
           bloğu eskiden dikey ortalanıyordu ve text-6xl başlık ekranın
           büyük bölümünü kaplayıp fotoğrafı örtüyordu - kullanıcı geri
           bildirimiyle mobilde sol-alta indirildi (items-end) ve daha zarif
-          durması için kücültüldü (text-3xl), masaüstü (md:) ölçüleri
-          değişmedi. */}
-      <section className="relative flex min-h-screen items-end overflow-hidden bg-ink text-cream md:items-center">
+          durması için kücültüldü (text-3xl); mobil bu haliyle kasıtlı
+          olarak dokunulmadan bırakıldı. Masaüstünde (md:) Release'in canlı
+          demosuyla (release-main.myshopify.com) birebir ölçülen hizalamaya
+          getirildi: metin bloğu tam genişlikte ortalı ve alta yaslı,
+          "Keşfet" butonu şeffaf/ince çerçeveli (outline) hap-buton. */}
+      <section className="relative flex min-h-screen items-end overflow-hidden bg-ink text-cream md:items-end">
         <Image
           src="/hero-model.jpg"
           alt="Bollmark kampanya görseli"
@@ -69,14 +72,14 @@ export default async function HomePage() {
           style={{ objectPosition: "50% 18%" }}
         />
         <div className="absolute inset-0 bg-gradient-to-r from-ink/70 via-ink/20 to-transparent" />
-        <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pb-14 md:pb-0">
+        <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pb-14 md:max-w-none md:px-[54px] md:pb-16 md:pt-[97px] md:text-center">
           <p className="text-[10px] uppercase tracking-widest2 text-cream/70 md:text-xs">2026 Sonbahar / Kış</p>
-          <h1 className="mt-2 max-w-[13rem] font-display text-3xl font-light leading-[1.05] md:mt-6 md:max-w-3xl md:text-8xl md:leading-[0.95]">
+          <h1 className="mt-2 max-w-[13rem] font-display text-3xl font-light leading-[1.05] md:mx-auto md:mt-6 md:max-w-3xl md:text-8xl md:leading-[0.95]">
             Her gün için, her parça için
           </h1>
           <Link
             href="/urunler"
-            className="mt-5 inline-flex items-center rounded-full bg-cream px-6 py-2.5 text-xs uppercase tracking-wide text-ink transition hover:bg-clay hover:text-cream md:mt-10 md:px-8 md:py-3.5 md:text-sm"
+            className="mt-5 inline-flex items-center rounded-full bg-cream px-6 py-2.5 text-xs uppercase tracking-wide text-ink transition hover:bg-clay hover:text-cream md:mt-10 md:border md:border-cream md:bg-transparent md:px-8 md:py-3.5 md:text-sm md:text-cream md:hover:bg-cream md:hover:text-ink"
           >
             Keşfet
           </Link>
