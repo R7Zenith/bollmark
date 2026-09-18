@@ -15,6 +15,7 @@ export interface CouponLine {
   quantity: number;
   categoryId: string | null;
   brandId: string | null;
+  gender: string | null;
 }
 
 export type CouponValidation =
@@ -33,8 +34,9 @@ type CouponRecord = {
   startsAt: Date | null;
   expiresAt: Date | null;
   isActive: boolean;
-  categoryId: string | null;
-  brandId: string | null;
+  categoryIds: string[];
+  brandIds: string[];
+  genders: string[];
   includeManuallyDiscountedProducts: boolean;
 };
 
@@ -82,7 +84,7 @@ function checkCouponEligibility(coupon: CouponRecord, subtotalCents: number): st
 // bunlarin uzerinden hesaplanan indirim tutarini dondurur (kisitlama yoksa
 // tum sepet). FREE_SHIPPING'de deger kullanilmadigi icin discountCents 0'dir.
 function computeCouponDiscount(
-  coupon: Pick<CouponRecord, "type" | "value" | "categoryId" | "brandId" | "includeManuallyDiscountedProducts">,
+  coupon: Pick<CouponRecord, "type" | "value" | "categoryIds" | "brandIds" | "genders" | "includeManuallyDiscountedProducts">,
   lines: CouponLine[]
 ): {
   discountCents: number;
@@ -94,12 +96,13 @@ function computeCouponDiscount(
   // gore bolustürülmüş bir yaklasim (matchingCents == 0 ise bos).
   lineDiscounts: { productId: string; discountCents: number }[];
 } {
-  const hasRestriction = coupon.categoryId != null || coupon.brandId != null;
+  const hasRestriction = coupon.categoryIds.length > 0 || coupon.brandIds.length > 0 || coupon.genders.length > 0;
   const matchingLines = lines.filter(
     (l) =>
       (!hasRestriction ||
-        ((coupon.categoryId == null || l.categoryId === coupon.categoryId) &&
-          (coupon.brandId == null || l.brandId === coupon.brandId))) &&
+        ((coupon.categoryIds.length === 0 || (l.categoryId != null && coupon.categoryIds.includes(l.categoryId))) &&
+          (coupon.brandIds.length === 0 || (l.brandId != null && coupon.brandIds.includes(l.brandId))) &&
+          (coupon.genders.length === 0 || (l.gender != null && coupon.genders.includes(l.gender))))) &&
       // Varsayilan (false) - kampanya, zaten elle indirimli (compareAtCents
       // > priceCents) satirlara dokunmaz; admin "elle indirimli urunlerde de
       // gecerli olsun" kutusunu isaretlerse bu satirlar da dahil edilir.
@@ -178,15 +181,16 @@ export async function validateCoupon(tx: Tx, rawCode: string, lines: CouponLine[
   if (eligibilityError) return { valid: false, message: eligibilityError };
 
   const { discountCents, freeShipping } = computeCouponDiscount(coupon, lines);
-  const hasRestriction = coupon.categoryId != null || coupon.brandId != null;
-  // Kategori/marka kisitina uyan urunler - computeCouponDiscount'un
+  const hasRestriction = coupon.categoryIds.length > 0 || coupon.brandIds.length > 0 || coupon.genders.length > 0;
+  // Kategori/marka/cinsiyet kisitina uyan urunler - computeCouponDiscount'un
   // manuel-indirim filtresinden ONCEKI hali (asagidaki mesaj icin, o
   // filtreden gecip gecmedigine bakilmaksizin kisitlama eslesmesi lazim).
   const restrictionMatchingLines = hasRestriction
     ? lines.filter(
         (l) =>
-          (coupon.categoryId == null || l.categoryId === coupon.categoryId) &&
-          (coupon.brandId == null || l.brandId === coupon.brandId)
+          (coupon.categoryIds.length === 0 || (l.categoryId != null && coupon.categoryIds.includes(l.categoryId))) &&
+          (coupon.brandIds.length === 0 || (l.brandId != null && coupon.brandIds.includes(l.brandId))) &&
+          (coupon.genders.length === 0 || (l.gender != null && coupon.genders.includes(l.gender)))
       )
     : lines;
   if (restrictionMatchingLines.length === 0) {
@@ -331,8 +335,9 @@ export type ProductAutomaticDiscount = { percent: number; name: string | null };
 export type AutomaticPercentCampaign = {
   value: number;
   name: string | null;
-  categoryId: string | null;
-  brandId: string | null;
+  categoryIds: string[];
+  brandIds: string[];
+  genders: string[];
   startsAt: Date | null;
   expiresAt: Date | null;
   usageLimit: number | null;
@@ -356,12 +361,13 @@ export async function getActiveAutomaticPercentCampaigns(tx: Tx): Promise<Automa
 
 export function matchAutomaticDiscount(
   campaigns: AutomaticPercentCampaign[],
-  product: { categoryId: string | null; brandId: string | null }
+  product: { categoryId: string | null; brandId: string | null; gender: string | null }
 ): ProductAutomaticDiscount | null {
   let best: ProductAutomaticDiscount | null = null;
   for (const c of campaigns) {
-    if (c.categoryId != null && c.categoryId !== product.categoryId) continue;
-    if (c.brandId != null && c.brandId !== product.brandId) continue;
+    if (c.categoryIds.length > 0 && (product.categoryId == null || !c.categoryIds.includes(product.categoryId))) continue;
+    if (c.brandIds.length > 0 && (product.brandId == null || !c.brandIds.includes(product.brandId))) continue;
+    if (c.genders.length > 0 && (product.gender == null || !c.genders.includes(product.gender))) continue;
     if (!best || c.value > best.percent) best = { percent: c.value, name: c.name };
   }
   return best;
@@ -383,7 +389,13 @@ export type ProductPriceResolution = {
 
 export function resolveProductDisplayPrice(
   campaigns: AutomaticPercentCampaign[],
-  product: { priceCents: number; compareAtCents: number | null; categoryId: string | null; brandId: string | null }
+  product: {
+    priceCents: number;
+    compareAtCents: number | null;
+    categoryId: string | null;
+    brandId: string | null;
+    gender: string | null;
+  }
 ): ProductPriceResolution {
   const manuallyDiscounted = product.compareAtCents != null && product.compareAtCents > product.priceCents;
   const eligibleCampaigns = manuallyDiscounted
@@ -423,7 +435,7 @@ export function resolveProductDisplayPrice(
 // urun bazinda sabit tutar/kargo indirimi gosterilmez).
 export async function getApplicableAutomaticDiscountForProduct(
   tx: Tx,
-  product: { categoryId: string | null; brandId: string | null }
+  product: { categoryId: string | null; brandId: string | null; gender: string | null }
 ): Promise<ProductAutomaticDiscount | null> {
   const campaigns = await getActiveAutomaticPercentCampaigns(tx);
   return matchAutomaticDiscount(campaigns, product);
