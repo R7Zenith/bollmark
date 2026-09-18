@@ -133,6 +133,7 @@ export function ProductViewer({
   compareAtCents,
   categoryId,
   brandId,
+  gender,
   fallbackImages,
   colorGalleries,
   variants,
@@ -157,6 +158,7 @@ export function ProductViewer({
   compareAtCents: number | null;
   categoryId: string | null;
   brandId: string | null;
+  gender: string | null;
   fallbackImages: { url: string; alt: string }[];
   colorGalleries: Record<string, string[]>;
   variants: Variant[];
@@ -251,7 +253,8 @@ export function ProductViewer({
     priceCents: selectedPriceCents,
     compareAtCents,
     categoryId,
-    brandId
+    brandId,
+    gender
   });
 
   const selectedColorValueId =

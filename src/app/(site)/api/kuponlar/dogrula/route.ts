@@ -53,7 +53,8 @@ export async function POST(req: NextRequest) {
       compareAtCents: effectiveCompareAt(product, variant),
       quantity: line.quantity,
       categoryId: product.categoryId,
-      brandId: product.brandId
+      brandId: product.brandId,
+      gender: product.gender
     });
   }
 

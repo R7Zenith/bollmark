@@ -71,6 +71,7 @@ export async function POST(req: NextRequest) {
     compareAtCents: number | null;
     categoryId: string | null;
     brandId: string | null;
+    gender: string | null;
   }[] = [];
   for (const line of data.lines) {
     const product = productById.get(line.productId);
@@ -85,7 +86,8 @@ export async function POST(req: NextRequest) {
       priceCents: effectivePrice(product, variant),
       compareAtCents: effectiveCompareAt(product, variant),
       categoryId: product.categoryId,
-      brandId: product.brandId
+      brandId: product.brandId,
+      gender: product.gender
     });
   }
 

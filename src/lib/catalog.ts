@@ -123,6 +123,7 @@ export type CatalogEntry = {
   colorLabel: string | null; // yalnizca birden fazla rengi olan urunlerde dolu
   categoryId: string | null;
   brandId: string | null;
+  gender: string | null;
   outOfStock: boolean;
   // Doluysa toplam stok LOW_STOCK_THRESHOLD altinda (ama stok tamamen bitmemis)
   // - kartta "Son X Adet" rozeti icin (bkz. product-card.tsx).
@@ -206,6 +207,7 @@ export async function getCatalogEntries(
         colorLabel: null,
         categoryId: p.categoryId,
         brandId: p.brandId,
+        gender: p.gender,
         outOfStock,
         lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,
         isNew: isNewProduct(p.createdAt),
@@ -233,6 +235,7 @@ export async function getCatalogEntries(
         colorLabel: label,
         categoryId: p.categoryId,
         brandId: p.brandId,
+        gender: p.gender,
         colors,
         outOfStock,
         lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,

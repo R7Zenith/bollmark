@@ -123,6 +123,7 @@ export default async function ProductPage({
         compareAtCents={product.compareAtCents}
         categoryId={product.categoryId}
         brandId={product.brandId}
+        gender={product.gender}
         fallbackImages={product.images.map((img) => ({ url: img.url, alt: img.alt || product.name }))}
         colorGalleries={colorGalleries}
         initialColor={renk}
