@@ -1,23 +1,20 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
-import { optionValue, variantOptionsInclude, type VariantOptionInclude } from "@/lib/variant-attributes";
+import { optionPosition, optionValue, variantOptionsInclude, type VariantOptionInclude } from "@/lib/variant-attributes";
 
 // Katalog/kart gorunumunde "+" hizli sepete ekle butonu icin - stokta olan
-// ilk varyanti (ilk beden, secili renk grubu icinde) doner. Stokta hicbir
-// varyant yoksa null - kart zaten "Stokta Yok" gosterdigi icin buton
+// TUM varyantlari (bedenleri, secili renk grubu icinde) doner. Stokta hicbir
+// varyant yoksa bos dizi - kart zaten "Stokta Yok" gosterdigi icin buton
 // gizlenir/devre disi kalir (bkz. product-card.tsx).
-export type QuickAddVariant = { variantId: string; size: string; color: string } | null;
+export type QuickAddVariant = { variantId: string; size: string; color: string };
 
-function pickQuickAddVariant(
+function pickQuickAddVariants(
   variants: (VariantOptionInclude & { id: string; stock: number })[]
-): QuickAddVariant {
-  const inStock = variants.find((v) => v.stock > 0);
-  if (!inStock) return null;
-  return {
-    variantId: inStock.id,
-    size: optionValue(inStock, "Beden"),
-    color: optionValue(inStock, "Renk")
-  };
+): QuickAddVariant[] {
+  return variants
+    .filter((v) => v.stock > 0)
+    .sort((a, b) => optionPosition(a, "Beden") - optionPosition(b, "Beden"))
+    .map((v) => ({ variantId: v.id, size: optionValue(v, "Beden"), color: optionValue(v, "Renk") }));
 }
 
 // Genel urun gorseli (Product.images) yoksa - Excel/Koton aktariminda oldugu
@@ -88,7 +85,7 @@ export async function getPublishedProducts(
   // JS'in stabil sort'una güvenilerek yapılıyor).
   return products
     .sort((a, b) => Number(isOutOfStock(a.variants)) - Number(isOutOfStock(b.variants)))
-    .map((p) => ({ ...p, quickAddVariant: pickQuickAddVariant(p.variants) }));
+    .map((p) => ({ ...p, quickAddVariants: pickQuickAddVariants(p.variants) }));
 }
 
 // React.cache ile sarmalanir - ayni istek icinde hem generateMetadata hem
@@ -133,7 +130,7 @@ export type CatalogEntry = {
   // Doluysa hover'da ana gorselden buna capraz-solma yapilir (bkz.
   // product-card.tsx) - urunun/rengin galerisindeki 2. fotograf.
   secondImage: string | null;
-  quickAddVariant: QuickAddVariant;
+  quickAddVariants: QuickAddVariant[];
   // Urunun (bu kart tek bir renge ait olsa bile) TUM renkleri - katalog
   // kartindaki renk swatch onizlemesi icin (bkz. product-card.tsx). imageUrl
   // o rengin galerisindeki ilk fotograf (ProductOptionImage), yoksa null -
@@ -211,7 +208,7 @@ export async function getCatalogEntries(
         outOfStock,
         lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,
         isNew: isNewProduct(p.createdAt),
-        quickAddVariant: pickQuickAddVariant(p.variants),
+        quickAddVariants: pickQuickAddVariants(p.variants),
         colors
       });
       continue;
@@ -240,7 +237,7 @@ export async function getCatalogEntries(
         outOfStock,
         lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,
         isNew: isNewProduct(p.createdAt),
-        quickAddVariant: pickQuickAddVariant(colorVariants)
+        quickAddVariants: pickQuickAddVariants(colorVariants)
       });
     }
   }
@@ -273,5 +270,5 @@ export async function getRelatedProducts(product: { id: string; categoryId: stri
   });
   return products
     .filter((p) => totalStock(p.variants) > 0)
-    .map((p) => ({ ...p, quickAddVariant: pickQuickAddVariant(p.variants) }));
+    .map((p) => ({ ...p, quickAddVariants: pickQuickAddVariants(p.variants) }));
 }

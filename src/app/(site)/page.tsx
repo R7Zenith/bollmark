@@ -116,7 +116,7 @@ export default async function HomePage() {
               image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800",
               priceResolution: resolveProductDisplayPrice(automaticCampaigns, p),
               outOfStock: isOutOfStock(p.variants),
-              quickAddVariant: p.quickAddVariant
+              quickAddVariants: p.quickAddVariants
             }))}
           />
         )}

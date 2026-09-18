@@ -169,7 +169,7 @@ export default async function ProductsPage({
                 outOfStock: entry.outOfStock,
                 lowStockCount: entry.lowStockCount,
                 isNew: entry.isNew,
-                quickAddVariant: entry.quickAddVariant,
+                quickAddVariants: entry.quickAddVariants,
                 colors: entry.colors
               }}
             />

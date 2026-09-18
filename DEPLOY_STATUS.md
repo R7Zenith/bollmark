@@ -4267,3 +4267,33 @@ bunun da kaldirilmasini istedi:
   bir sonraki ayri bir kararla temizlenebilir.
 
 **Dogrulama**: `npm run build` hatasiz gecti.
+
+## Ürün kartlarındaki "+" hızlı sepete ekle butonuna beden seçim kutusu eklendi
+
+Katalog kartlarındaki `+` butonu artık stoktaki ilk varyantı rastgele
+sepete atmıyor; `URUN_KARTI_BEDEN_SECIM_POPOVER_PLANI.md`'deki plan
+uygulandı:
+
+- `lib/catalog.ts`: `QuickAddVariant` artık `| null` olmayan tekil bir tip;
+  `pickQuickAddVariant` → `pickQuickAddVariants` oldu, stoktaki TÜM
+  varyantları `optionPosition(variant, "Beden")`'e göre sıralı bir dizi
+  olarak döndürüyor (stok yoksa `[]`). `getPublishedProducts`,
+  `getCatalogEntries` (hem tek hem çok renkli dal), `getRelatedProducts` ve
+  `CatalogEntry` tipi `quickAddVariant` → `quickAddVariants` olarak
+  güncellendi.
+- `components/product-card.tsx`: `handleQuickAdd` ikiye ayrıldı —
+  `addVariantToCart` (sepete ekleme + `justAdded` animasyonu) ve
+  `handleQuickAddClick` (tek beden varsa direkt ekler, birden fazlaysa
+  `sizePickerOpen` state'ini açar). Butonun üzerinden yukarı sarkan,
+  `shadow-soft` gölgeli, `product-viewer.tsx`'teki beden kutucuklarıyla
+  aynı dilde bir popover eklendi; dışarı tıklama/`Escape` ile kapanıyor
+  (`useEffect` + `sizePickerRef`), buton ikonu açıkken `X`'e dönüyor.
+- Bu alanı okuyan üç sayfa (`app/(site)/page.tsx`,
+  `app/(site)/urunler/page.tsx`, `app/(site)/urunler/[slug]/page.tsx`)
+  `quickAddVariant` → `quickAddVariants` olarak güncellendi.
+
+**Doğrulama**: `npx tsc --noEmit` hatasız geçti; `npm run lint` çalıştı,
+kalan tüm hata/uyarılar bu değişiklikten önce var olan ilgisiz dosyalarda
+(`lib/cart.tsx`, `lib/wishlist.tsx`, `lib/use-automatic-discount.ts`,
+`lib/use-bundle-discount.ts`, `vega-bridge-worker/worker.js`) — değişen
+dosyalarda (`catalog.ts`, `product-card.tsx`) hiç lint hatası yok.
