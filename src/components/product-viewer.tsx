@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
@@ -59,6 +59,51 @@ function parseSizeGuideTable(text: string): SizeGuideBlock[] {
   flushText();
   flushTable();
   return blocks;
+}
+
+// parseSizeGuideTable'in blok listesini InfoDrawer icinde gosteren ortak
+// render - Beden Tablosu artik accordion degil, diger iki bilgi satiriyla
+// (Iade ve Degisim, Urun Bakim Talimati) ayni InfoDrawer deseniyle acilan
+// ucuncu satir (bkz. URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md).
+function SizeGuideContent({ sizeGuide }: { sizeGuide: string }) {
+  return (
+    <div className="text-sm leading-relaxed text-ink/70">
+      {parseSizeGuideTable(sizeGuide).map((block, i) => {
+        if (block.type === "text") {
+          return (
+            <p key={i} className="whitespace-pre-line first:mt-0 mt-3">
+              {block.content}
+            </p>
+          );
+        }
+        const [head, ...body] = block.rows;
+        return (
+          <table key={i} className="mt-3 w-full border-collapse text-xs first:mt-0">
+            <thead>
+              <tr>
+                {head.map((cell, j) => (
+                  <th key={j} className="border border-line px-2 py-1.5 text-left font-medium text-ink">
+                    {cell}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {body.map((row, r) => (
+                <tr key={r}>
+                  {row.map((cell, c) => (
+                    <td key={c} className="border border-line px-2 py-1.5">
+                      {cell}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        );
+      })}
+    </div>
+  );
 }
 
 // Bu esikten dusuk stok "Son N adet" uyarisi gosterir - e-posta gerektirmeyen
@@ -243,6 +288,7 @@ export function ProductViewer({
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [iadeDrawerOpen, setIadeDrawerOpen] = useState(false);
   const [bakimDrawerOpen, setBakimDrawerOpen] = useState(false);
+  const [bedenDrawerOpen, setBedenDrawerOpen] = useState(false);
 
   // Release'de urun gorselleri PhotoSwipe ile tiklaninca tam ekran bir
   // lightbox'ta aciliyor (zoom="click", bkz. product-media-gallery.js).
@@ -264,15 +310,10 @@ export function ProductViewer({
 
   // release-main.myshopify.com/products/top-8 canli DOM'unda "Size guide"
   // linki BEDEN etiketinin hemen yaninda duruyor (`group "Size XS Size
-  // guide"`), asagidaki ayri "Beden Tablosu" accordion'undan bagimsiz bir
-  // kisayol - tiklaninca ayni accordion'u acip oraya kaydiriyor.
-  const sizeGuideRef = useRef<HTMLDetailsElement>(null);
-  const openSizeGuide = () => {
-    const el = sizeGuideRef.current;
-    if (!el) return;
-    el.open = true;
-    el.scrollIntoView({ behavior: "smooth", block: "center" });
-  };
+  // guide"`), Bollmark'ta bu kisayol Beden Tablosu InfoDrawer'ini acar
+  // (bkz. asagida bedenDrawerOpen - eskiden ayri bir accordion'u acip oraya
+  // kaydiran bir ref kullaniyordu, Beden Tablosu drawer'a tasininca geriye
+  // kaydirilacak bir accordion kalmadi).
 
   const selected = variants.find((v) => v.size === size && v.color === color);
   const outOfStock = !selected || selected.stock <= 0;
@@ -649,48 +690,6 @@ export function ProductViewer({
           </details>
         )}
 
-        {sizeGuide && (
-          <details ref={sizeGuideRef} className="mt-3 border-t border-line pt-6">
-            <summary className="cursor-pointer text-[16px] tracking-[-0.64px] text-ink underline decoration-transparent underline-offset-[5px] transition duration-300 hover:decoration-ink">
-              Beden Tablosu
-            </summary>
-            {parseSizeGuideTable(sizeGuide).map((block, i) => {
-              if (block.type === "text") {
-                return (
-                  <p key={i} className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink/70">
-                    {block.content}
-                  </p>
-                );
-              }
-              const [head, ...body] = block.rows;
-              return (
-                <table key={i} className="mt-3 w-full border-collapse text-xs text-ink/70">
-                  <thead>
-                    <tr>
-                      {head.map((cell, j) => (
-                        <th key={j} className="border border-line px-2 py-1.5 text-left font-medium text-ink">
-                          {cell}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {body.map((row, r) => (
-                      <tr key={r}>
-                        {row.map((cell, c) => (
-                          <td key={c} className="border border-line px-2 py-1.5">
-                            {cell}
-                          </td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              );
-            })}
-          </details>
-        )}
-
         <div className="mt-8 space-y-6">
           {colors.length > 0 && colors.some(Boolean) && (
             <div>
@@ -733,7 +732,7 @@ export function ProductViewer({
                 {sizeGuide && (
                   <button
                     type="button"
-                    onClick={openSizeGuide}
+                    onClick={() => setBedenDrawerOpen(true)}
                     className="text-xs uppercase tracking-wide text-ink underline underline-offset-4 hover:text-ink/70"
                   >
                     Beden Rehberi
@@ -861,11 +860,13 @@ export function ProductViewer({
 
           {/* Koton'un urun sayfasindaki gibi (referans: koton.com/.../4197527)
               urun aciklamasinin hemen altinda, InfoDrawer'i acan ok isaretli
-              iki satir - bunlar accordion degil, cart-drawer.tsx'teki desenle
-              ayni sagdan cekmece (bkz. info-drawer.tsx). v1'de bu satirlar
-              Beden Tablosu accordion'unun altindaydi, kullanicinin istegiyle
-              aciklamanin hemen altina tasindi (bkz.
-              URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md v2). */}
+              satirlar - bunlar accordion degil, cart-drawer.tsx'teki desenle
+              ayni sagdan cekmece (bkz. info-drawer.tsx). Beden Tablosu
+              eskiden Urun Detaylari accordion'unun yaninda ayri bir
+              accordion'du - kullanicinin istegiyle sokulup buraya, ayni
+              stildeki ucuncu satir olarak eklendi (bkz.
+              URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md). Sira: Iade ve
+              Degisim -> Urun Bakim Talimati -> Beden Tablosu. */}
           <div>
             <button
               type="button"
@@ -878,11 +879,21 @@ export function ProductViewer({
             <button
               type="button"
               onClick={() => setBakimDrawerOpen(true)}
-              className="flex w-full items-center justify-between border-t border-b border-line py-4 text-[16px] tracking-[-0.64px] text-ink"
+              className="flex w-full items-center justify-between border-t border-line py-4 text-[16px] tracking-[-0.64px] text-ink"
             >
               Ürün Bakım Talimatı
               <ChevronRight size={18} className="text-ink/40" />
             </button>
+            {sizeGuide && (
+              <button
+                type="button"
+                onClick={() => setBedenDrawerOpen(true)}
+                className="flex w-full items-center justify-between border-t border-b border-line py-4 text-[16px] tracking-[-0.64px] text-ink"
+              >
+                Beden Tablosu
+                <ChevronRight size={18} className="text-ink/40" />
+              </button>
+            )}
           </div>
 
           {/* release-main.myshopify.com/products/top-8'de IKI AYRI ticker
@@ -1181,6 +1192,12 @@ export function ProductViewer({
         </p>
       </div>
     </InfoDrawer>
+
+    {sizeGuide && (
+      <InfoDrawer open={bedenDrawerOpen} onClose={() => setBedenDrawerOpen(false)} title="Beden Tablosu">
+        <SizeGuideContent sizeGuide={sizeGuide} />
+      </InfoDrawer>
+    )}
     </>
   );
 }

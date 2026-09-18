@@ -4181,3 +4181,26 @@ ayni deseni birebir kullaniyor. Commit `23c7012` ile `origin/main`'e pushlandi.
   dogrulama sonrasi `null`'a geri alindi (kalici veri degildi).
 
 **Dogrulama**: `npm run build` hatasiz gecti.
+
+## Beden Tablosu, Urun Detaylari accordion'unun yanindan sokulup ucuncu bilgi satiri olarak tasindi (ayni oturum)
+
+- `product-viewer.tsx`: "Beden Tablosu" artik `<details>` accordion degil -
+  "Iade ve Degisim" ve "Urun Bakim Talimati" ile ayni stildeki (ok isaretli,
+  `border-t`) ucuncu satir olarak, aciklamanin altinda, sirasiyla Iade ve
+  Degisim -> Urun Bakim Talimati -> Beden Tablosu diziliyor, `border-b` artik
+  bu son satirda.
+- Tablo/duz metin render mantigi (`parseSizeGuideTable`) yeni bir
+  `SizeGuideContent` bilesenine tasindi, Beden Tablosu InfoDrawer'i bunu
+  kullaniyor (diger iki drawer ile ayni desen).
+- "Beden" secimi ustundeki "Beden Rehberi" kisayolu ile "Size guide" ref/
+  scroll mantigi (accordion'u acip oraya kaydiran `sizeGuideRef`/
+  `openSizeGuide`) kaldirildi, yerine dogrudan `setBedenDrawerOpen(true)`
+  kondu - artik kaydirilacak bir accordion olmadigi icin gerek kalmadi.
+  Kullanilmayan `useRef` import'u da bu yuzden temizlendi.
+- **Dogrulama**: Bir kategoriye gecici test verisi yazilip `npm run dev`
+  uzerinde ilgili urun sayfasi `curl` ile cekildi; "Devamını Oku" ->
+  "İade ve Değişim" -> "Ürün Bakım Talimatı" -> "Beden Tablosu" ->
+  trust-ticker sirasi HTML'deki byte offset'leriyle dogrulandi. Test verisi
+  sonrasinda `null`'a geri alindi.
+
+**Dogrulama**: `npm run build` hatasiz gecti.
