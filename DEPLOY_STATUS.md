@@ -4151,3 +4151,33 @@ ayni deseni birebir kullaniyor. Commit `23c7012` ile `origin/main`'e pushlandi.
   formuna dokunulmadi, oraya siginmiyordu).
 
 **Dogrulama**: `npm run build` hatasiz gecti.
+
+## Ayni is, v2 guncellemesi: buton konumu tasindi + gercek Koton metinleri + beden tablosu test edildi (bu oturum, bkz. URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md v2)
+
+- `product-viewer.tsx`: "Iade ve Degisim" / "Urun Bakim Talimati" butonlari
+  Beden Tablosu accordion'unun altindan alinip urun aciklamasinin
+  (`descriptionHtml` + "Devamini Oku") hemen altina, guven ticker'indan once
+  tasindi.
+- Iade & Degisim drawer icerigi Koton'un canli sitesindeki metinle
+  degistirildi (kullanicinin bu turdaki acik karariyla, v1'deki "kendi
+  metnimizi yazalim" karari iptal edildi); sadece "tum Turkiye
+  magazalarimizdan" gecen iki cumle Bollmark'in tek magazasi
+  (Karacabey/Bursa) gercegine uyarlandi, geri kalani birebir.
+- Urun Bakim Talimati drawer icerigi Koton'dan HICBIR degisiklik yapilmadan
+  (marka/urun adi gecmiyor) birebir eklendi - 7 maddelik genel oneriler +
+  "3 Ana Islem" (Yikama/Kurutma/Utuleme + Kuru Temizleme) alt bolumleri
+  dahil tamami.
+- `parseSizeGuideTable` yeniden yazildi: eskiden TUM satirlari (aciklama
+  cumlesi dahil) tabloya sokuyordu; artik "|" icermeyen satirlari ayri
+  metin bloklari, "|" iceren ardisik satirlari ayri tablo bloklari olarak
+  ayiriyor (Koton'un "Urun düz zeminde ölçülmüştür..." aciklama cumlesi +
+  altinda tablo bicimiyle birebir).
+- **Dogrulama (gercek veriyle)**: Bir kategoriye (Elbise) gecici olarak
+  Koton'daki ornek beden tablosu verisi yazilip yerel `npm run dev` uzerinde
+  ilgili urun sayfasi `curl` ile cekildi; render edilen HTML'de gercek
+  `<table>`/`<th>`/`<td>` etiketleri ve dogru hucre degerleri (34/32/37/51
+  vb.) dogrulandi, ayrica "Iade ve Degisim" butonunun aciklama ile
+  guven-ticker arasinda dogru sirada oldugu teyit edildi. Test verisi
+  dogrulama sonrasi `null`'a geri alindi (kalici veri degildi).
+
+**Dogrulama**: `npm run build` hatasiz gecti.

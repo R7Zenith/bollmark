@@ -17,15 +17,48 @@ import { resolveProductDisplayPrice, type AutomaticPercentCampaign } from "@/lib
 import { ProductBadge } from "@/components/product-badge";
 import { InfoDrawer } from "@/components/info-drawer";
 
-// sizeGuide serbest metin alaninda satirlar "|" ile ayrilmissa (admin
-// kategori formundaki yeni yardim metnine gore, bkz. kategoriler/[id]/page.tsx)
-// gercek bir <table> olarak gosterilir - "|" yoksa (mevcut urunlerin cogu
-// duz cumle icerdigi icin) eski whitespace-pre-line davranisi degismeden
-// korunur (geriye donuk uyumluluk, DB semasi degismedi).
-function parseSizeGuideTable(text: string): string[][] | null {
+type SizeGuideBlock = { type: "text"; content: string } | { type: "table"; rows: string[][] };
+
+// sizeGuide serbest metin alaninda "|" iceren ARDISIK satirlar gercek bir
+// <table>'a cevrilir (Koton'daki "Ürün Ölçü Tablosu" bicimiyle birebir -
+// bkz. URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md ICERIK 3: aciklama
+// cumlesi "|" icermez, tablo satirlari icerir). "|" iceren hic satir yoksa
+// (mevcut urunlerin cogu duz cumle icerdigi icin) eski whitespace-pre-line
+// davranisi tek bir "text" blogu olarak korunur (geriye donuk uyumluluk,
+// DB semasi degismedi).
+function parseSizeGuideTable(text: string): SizeGuideBlock[] {
   const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
-  if (!lines.some((l) => l.includes("|"))) return null;
-  return lines.map((l) => l.split("|").map((cell) => cell.trim()));
+  if (!lines.some((l) => l.includes("|"))) return [{ type: "text", content: text }];
+
+  const blocks: SizeGuideBlock[] = [];
+  let textBuffer: string[] = [];
+  let tableBuffer: string[][] = [];
+
+  const flushText = () => {
+    if (textBuffer.length > 0) {
+      blocks.push({ type: "text", content: textBuffer.join("\n") });
+      textBuffer = [];
+    }
+  };
+  const flushTable = () => {
+    if (tableBuffer.length > 0) {
+      blocks.push({ type: "table", rows: tableBuffer });
+      tableBuffer = [];
+    }
+  };
+
+  for (const line of lines) {
+    if (line.includes("|")) {
+      flushText();
+      tableBuffer.push(line.split("|").map((cell) => cell.trim()));
+    } else {
+      flushTable();
+      textBuffer.push(line);
+    }
+  }
+  flushText();
+  flushTable();
+  return blocks;
 }
 
 // Bu esikten dusuk stok "Son N adet" uyarisi gosterir - e-posta gerektirmeyen
@@ -621,28 +654,31 @@ export function ProductViewer({
             <summary className="cursor-pointer text-[16px] tracking-[-0.64px] text-ink underline decoration-transparent underline-offset-[5px] transition duration-300 hover:decoration-ink">
               Beden Tablosu
             </summary>
-            {(() => {
-              const table = parseSizeGuideTable(sizeGuide);
-              if (!table) {
-                return <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink/70">{sizeGuide}</p>;
+            {parseSizeGuideTable(sizeGuide).map((block, i) => {
+              if (block.type === "text") {
+                return (
+                  <p key={i} className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink/70">
+                    {block.content}
+                  </p>
+                );
               }
-              const [head, ...body] = table;
+              const [head, ...body] = block.rows;
               return (
-                <table className="mt-3 w-full border-collapse text-xs text-ink/70">
+                <table key={i} className="mt-3 w-full border-collapse text-xs text-ink/70">
                   <thead>
                     <tr>
-                      {head.map((cell, i) => (
-                        <th key={i} className="border border-line px-2 py-1.5 text-left font-medium text-ink">
+                      {head.map((cell, j) => (
+                        <th key={j} className="border border-line px-2 py-1.5 text-left font-medium text-ink">
                           {cell}
                         </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
-                    {body.map((row, i) => (
-                      <tr key={i}>
-                        {row.map((cell, j) => (
-                          <td key={j} className="border border-line px-2 py-1.5">
+                    {body.map((row, r) => (
+                      <tr key={r}>
+                        {row.map((cell, c) => (
+                          <td key={c} className="border border-line px-2 py-1.5">
                             {cell}
                           </td>
                         ))}
@@ -651,30 +687,9 @@ export function ProductViewer({
                   </tbody>
                 </table>
               );
-            })()}
+            })}
           </details>
         )}
-
-        {/* Koton'un urun sayfasindaki gibi (referans: koton.com/.../4197527)
-            Beden Tablosu accordion'unun altina, InfoDrawer'i acan ok isaretli
-            iki satir - bunlar accordion degil, cart-drawer.tsx'teki desenle
-            ayni sagdan cekmece (bkz. info-drawer.tsx). */}
-        <button
-          type="button"
-          onClick={() => setIadeDrawerOpen(true)}
-          className="flex w-full items-center justify-between border-t border-line py-4 text-[16px] tracking-[-0.64px] text-ink"
-        >
-          İade ve Değişim
-          <ChevronRight size={18} className="text-ink/40" />
-        </button>
-        <button
-          type="button"
-          onClick={() => setBakimDrawerOpen(true)}
-          className="flex w-full items-center justify-between border-t border-line py-4 text-[16px] tracking-[-0.64px] text-ink"
-        >
-          Ürün Bakım Talimatı
-          <ChevronRight size={18} className="text-ink/40" />
-        </button>
 
         <div className="mt-8 space-y-6">
           {colors.length > 0 && colors.some(Boolean) && (
@@ -844,6 +859,31 @@ export function ProductViewer({
             </div>
           )}
 
+          {/* Koton'un urun sayfasindaki gibi (referans: koton.com/.../4197527)
+              urun aciklamasinin hemen altinda, InfoDrawer'i acan ok isaretli
+              iki satir - bunlar accordion degil, cart-drawer.tsx'teki desenle
+              ayni sagdan cekmece (bkz. info-drawer.tsx). v1'de bu satirlar
+              Beden Tablosu accordion'unun altindaydi, kullanicinin istegiyle
+              aciklamanin hemen altina tasindi (bkz.
+              URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md v2). */}
+          <div>
+            <button
+              type="button"
+              onClick={() => setIadeDrawerOpen(true)}
+              className="flex w-full items-center justify-between border-t border-line py-4 text-[16px] tracking-[-0.64px] text-ink"
+            >
+              İade ve Değişim
+              <ChevronRight size={18} className="text-ink/40" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setBakimDrawerOpen(true)}
+              className="flex w-full items-center justify-between border-t border-b border-line py-4 text-[16px] tracking-[-0.64px] text-ink"
+            >
+              Ürün Bakım Talimatı
+              <ChevronRight size={18} className="text-ink/40" />
+            </button>
+          </div>
 
           {/* release-main.myshopify.com/products/top-8'de IKI AYRI ticker
               satiri var, ikisi de ayni 2 mesaj arasinda geçiş yapiyor ama
@@ -945,55 +985,219 @@ export function ProductViewer({
       }}
     />
 
+    {/* Icerik Koton'un canli sitesinden birebir alindi (bkz.
+        URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md v2, ICERIK 1) - sadece
+        "tum Turkiye magazalarimizdan" gecen iki cumle Bollmark'in tek
+        magazasi (Karacabey/Bursa) gercegine uyarlandi, geri kalani birebir. */}
     <InfoDrawer open={iadeDrawerOpen} onClose={() => setIadeDrawerOpen(false)} title="İade & Değişim">
       <div className="space-y-5 text-sm leading-relaxed text-ink/70">
-        <p>
-          Bollmark üzerinden yaptığınız alışverişlerde, ürünü teslim aldığınız tarihten itibaren 14 gün
-          içinde hiçbir gerekçe göstermeksizin cayma hakkınızı kullanabilir, ürünü iade edebilirsiniz.
-        </p>
+        <p>İnternet mağazamızdan yapılan alışverişleri, gönderi tarihinden itibaren 30 gün içinde iade edebilirsiniz.</p>
         <div>
           <p className="font-medium text-ink">İadesi Mümkün Olmayan Ürünler</p>
           <p className="mt-1">
-            İç giyim, mayo ve bikini gibi hijyen açısından hassas ürünler; ambalajı/etiketi açılmış veya
-            kullanılmışsa iade kapsamı dışındadır.
+            İç giyim alt parçaları, mayo ve bikini altları iadesi mümkün olmayan ürünlerdir. Bu ürünler
+            sağlık ve hijyen açısından uygun olmamasından dolayı iade ve değişim kapsamına girmemektedir.
+            Makyaj malzemeleri, küpe, takı, tek kullanımlık ürünler, çabuk bozulma tehlikesi olan veya son
+            kullanma tarihi geçme ihtimali olan ürünler ve parfüm gibi ürünler ambalajının açılmış olması
+            halinde iadesi mümkün olmayan ürünlerdir.
           </p>
         </div>
         <div>
-          <p className="font-medium text-ink">İade Adımları</p>
-          <ol className="mt-1 list-decimal space-y-1 pl-4">
-            <li>bilgi@bollmark.com adresine sipariş numaranızla iade talebinizi iletin.</li>
-            <li>
-              Ürünü faturası, orijinal kutusu/ambalajı ve etiketleriyle birlikte, kullanılmamış ve hasarsız
-              şekilde paketleyin.
-            </li>
-            <li>Belirtilen adrese gönderin.</li>
-            <li>İade kargo ücreti alıcıya aittir.</li>
-            <li>Ürün elimize ulaşıp kontrolü tamamlandıktan sonra bedeli en geç 14 gün içinde ödeme yaptığınız yönteme iade edilir.</li>
-          </ol>
+          <p className="font-medium text-ink">İade Seçenekleri</p>
+          <div className="mt-2 space-y-3">
+            <div>
+              <p className="font-medium text-ink">Mağazadan İade</p>
+              <p className="mt-1">Karacabey/Bursa'daki mağazamızdan da ürününüzü iade edebilirsiniz.</p>
+            </div>
+            <div>
+              <p className="font-medium text-ink">Kargo ile İade</p>
+              <p className="mt-1">
+                Hesabım alanından Siparişlerim sayfasına girerek iade etmek istediğiniz ürün için iade talebi
+                oluşturun. İade talebi oluşturduktan sonra size özel bir Kolay İade Kodu oluşturulacaktır.
+                Dilediğiniz kargo şubesine Kolay İade Kodu numaranızı bildirerek ÜCRETSİZ olarak ürünü teslim
+                etmeniz yeterlidir. Ayrıca iade adresi belirtmeniz gerekmez. Ürünü teslim ettikten sonra kargo
+                takip numaranızı kargo görevlisinden almayı unutmayınız.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-ink">Üyeliksiz Verilen Siparişler</p>
+              <p className="mt-1">
+                Siparişinizi üyelik oluşturmadan verdiyseniz, iade işleminizi gerçekleştirebilmek için
+                siparişinizle aynı e-posta adresini kullanarak kolayca üyelik oluşturabilirsiniz.
+                Üyeliğinizi oluşturduktan sonra Hesabım alanındaki Siparişlerim sayfasından iade talebinizi
+                oluşturabilir ve size özel Kolay İade Kodu ile ürününüzü dilediğiniz kargo şubelerine
+                ÜCRETSİZ olarak teslim edebilirsiniz.
+              </p>
+            </div>
+          </div>
         </div>
-        <p className="text-xs text-ink/50">Detaylı bilgi için Teslimat ve İade Şartları sayfamızı inceleyebilirsiniz.</p>
+        <div>
+          <p className="font-medium text-ink">Değişim İşlemleri</p>
+          <p className="mt-1">Ürün değişimlerinizi Karacabey/Bursa'daki mağazamızdan gerçekleştirebilirsiniz.</p>
+        </div>
+        <p>Daha fazla bilgi için Sıkça Sorulan Sorular bölümünü inceleyebilirsiniz.</p>
       </div>
     </InfoDrawer>
 
+    {/* Icerik Koton'un canli sitesinden birebir alindi, hic degistirilmedi
+        (marka/urun adi gecmiyor, tamamen genel bir bakim rehberi - bkz.
+        URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md v2, ICERIK 2). Ustte
+        (varsa) urunun kendi careInstructions'i, altinda bu genel metin. */}
     <InfoDrawer open={bakimDrawerOpen} onClose={() => setBakimDrawerOpen(false)} title="Ürün Bakım Talimatı">
-      <div className="space-y-5 text-sm leading-relaxed text-ink/70">
+      <div className="space-y-4 text-sm leading-relaxed text-ink/70">
         {careInstructions && (
           <div>
             <p className="font-medium text-ink">Bu ürün için</p>
             <p className="mt-1">{careInstructions}</p>
           </div>
         )}
-        <div>
-          <p className="font-medium text-ink">Genel Bakım Önerileri</p>
-          <ol className="mt-1 list-decimal space-y-1.5 pl-4">
-            <li>Ürünün etiketindeki yıkama ve bakım sembollerini satın almadan önce ve her kullanımdan sonra kontrol edin.</li>
-            <li>Farklı ürün ve kumaşlar için farklı bakım yöntemleri gerekebilir; etikette belirtilen talimatlara sadık kalın.</li>
-            <li>Yüksek dereceli yıkama ve sık kuru temizleme yerine, mümkün olduğunda daha düşük sıcaklıkta ve nazik yıkama tercih edin.</li>
-            <li>Deterjanı ölçü kabıyla, önerilen miktarda kullanın; fazla deterjan hem ürüne hem çevreye zarar verir.</li>
-            <li>Koyu ve açık renkli ürünleri ayrı yıkayın, renk akmasını önlemek için ilk birkaç yıkamada dikkatli olun.</li>
-            <li>Ayakkabı ve çanta gibi ürünleri doğrudan güneş ışığından ve nemden uzak, kuru bir ortamda saklayın.</li>
-          </ol>
-        </div>
+        <p className="font-medium text-ink">Genel Bakım Uyarıları: Ürünlerin Doğru Bakımı</p>
+        <p>
+          Çevreyi ve doğal kaynaklarımızı korumanın ilk adımlarından biri, ürün ve giysi bakımında önerilen
+          talimatları doğru bir şekilde uygulamaktır. Ürünlere uygun bakım ve yıkama talimatlarını
+          uygulayarak çevremizi ve kaynaklarımızı korumanın yanı sıra giysilerin kullanım ömrünü uzatma
+          şansı da yakalayabiliriz. Satın aldığınız ürünün her yıkama sonrası ilk günkü gibi canlı bir
+          görünüme sahip olması için yapmanız gerekenlere bakacak olursak;
+        </p>
+        <p>
+          <strong className="text-ink">1. Ürün Etiketlerine Önem Verin:</strong> Giysi veya ürünlerinizin
+          bakım etiketlerini hem satın alma aşamasında hem de bakım ve yıkama işlemi öncesinde dikkatlice
+          incelemek doğru bakım sürecinin ilk adımı olacaktır. Bu etiketler, ürünlerin kumaş yapısına uygun
+          bakım ve yıkama talimatları içerir. Ürünlere uygulayabileceğiniz işlemler, yıkama ve bakım
+          önerilerinin yanı sıra kumaş içeriklerini de görebileceğiniz bu etiketler ürünlerin doğru bakımı
+          konusunda bilgi sahibi olmanıza olanak sağlayacaktır.
+        </p>
+        <p>
+          <strong className="text-ink">2. Önerilen Bakım Talimatlarına Uyun:</strong> Dolabınıza
+          ekleyeceğiniz her giysi, ayakkabı ve aksesuar ürünü için farklı bir bakım yöntemi oluşturmanız
+          gerekir. Ürünün kumaş içeriğine, tasarımına ve yapısına göre değişebilen bu yöntemleri doğru
+          uygulamak oldukça önemlidir. Ürün için önerilen talimatlara uygun şekilde bakım yapmak
+          ürününüzün kullanım süresi uzarken, rengini ve dokusunu uzun süre muhafaza etmenizi de
+          kolaylaştıracaktır.
+        </p>
+        <p>
+          <strong className="text-ink">3. Yüksek Dereceli Yıkama İşlemlerinden Kaçının:</strong> Ürün
+          bakımı ve yıkama işlemlerinde çevre dostu ve tasarruf sağlayan yöntemleri tercih etmek uzun
+          vadede oldukça faydalıdır. Yüksek dereceli yıkama işlemlerinden kaçınarak siz de ürününüzün
+          kullanım süresini uzatırken kalitesini uzun süre korumasına yardımcı olabilirsiniz. Özellikle iç
+          çamaşırı ve beyaz renkli ürünlerde sık sık tercih edilen yüksek dereceli yıkama işlemleri
+          ürünlerinizin dokusunda hasar oluşturmanın yanı sıra tasarım detaylarına ve kalıplarına da zarar
+          verebilir. Ürünün etiketinde yer alan yıkama derecesine sadık kalmak ürününüz için doğru olan
+          bakım adımlarından birini daha tamamlamanızı sağlayacaktır.
+        </p>
+        <p>
+          <strong className="text-ink">4. Fazla Deterjan Kullanımından Kaçının:</strong> Ürün yıkama
+          işlemi sırasında deterjan kullanımını minimum düzeyde tutmak çevresel ve bireysel sağlık
+          açısından oldukça önemlidir. Yıkama esnasında önerilen deterjan miktarını aşmak ürünlerinizin
+          daha hijyenik olmasına değil; aksine daha fazla kimyasal maddeye maruz kalarak hasar görmesine
+          sebep olabilir. Bu nedenle yıkama işlemi başlamadan önce deterjan miktarını ölçek yardımı ile
+          belirleyerek fazla deterjan kullanımından kaçınmalısınız. Bir diğer yandan, yıkama işlemi
+          esnasında deterjan çeşitlerinin yanı sıra yumuşatıcı ve leke çıkarıcı gibi kimyasal maddelerin
+          kullanımını en aza indirgemek de çevreyi ve ürünlerinizi korumak adına atacağınız etkili bir
+          adım olacaktır.
+        </p>
+        <p>
+          <strong className="text-ink">5. Yıkama İşlemlerinde Renk Ayrımını Gözetin:</strong>
+          Giysilerinizi yıkamadan önce renk ve dokularına göre ayırmak ürünlerinizin yapısını korumanın
+          öncelikleri arasında yer alır. Yüksek sıcaklık ve basınçlı suya maruz kalan ürünler kimi zaman
+          beraber yıkandıkları diğer ürünlere renk verebilir. Özellikle içerisinde indigo boya bulunan
+          bazı kumaşlar yıkama esnasından yüksek oranda renk bırakabilir. Bu nedenle yıkama işlemi
+          öncesinde ürünlerinizi benzer renkler bir arada yıkanacak şekilde ayırmanız ürün bakım sürecinize
+          yarar sağlayacak bir yöntem olacaktır. Beyazlar, koyu renkler ve açık renkler gibi renk tonlarına
+          göre ayırarak yıkama işlemini gerçekleştirdiğiniz ürünler renklerini ve dokularını uzun süre
+          muhafaza edecektir.
+        </p>
+        <p>
+          <strong className="text-ink">6. Yıkama İşlemlerinde Ağartıcı Kullanmayın:</strong> Ürün bakım
+          sürecinde kimyasal madde kullanımını en az seviyede tutmak önceliğiniz olmalı. Bu kimyasallar
+          arasında oldukça güçlü bir etkiye sahip olan ağartıcı maddeleri ürün yıkama işleminin öncesinde
+          ve yıkama işlemi esnasında kullanmaktan kaçınmanızı öneririz. Çevreye olan zararının yanı sıra
+          cildinizi irrite edecek bir etkiye de sahip olan ağartıcı maddelere alternatif olacak leke
+          çıkarıcı ve doğal içerikli ürünleri tercih edebilirsiniz. Bu şekilde hem ürünlerinizin renk,
+          doku ve tasarımını koruyabilir hem de ağartıcı maddelerin çevresel ve bireysel zararlarına karşı
+          önlem alabilirsiniz.
+        </p>
+        <p>
+          <strong className="text-ink">7. Baskılı/Nakışlı Ürünleri Ütülemeden ve Yıkamadan Önce Ters
+          Çevirin:</strong> Ürün bakımı süresince dikkat etmenizi önerdiğimiz bir diğer aşama ise baskılı,
+          pullu ve nakışlı tasarımlara sahip ürünleri her işlem öncesi ters çevirmeniz olacak. Özellikle
+          nakışlı ve işlemeli tasarımlar, genellikle el işçiliği kullanılarak hazırlanmaları sebebiyle
+          ekstra hassaslık gerektirir. Ters çevirme yöntemi ile ürünlerinizin rengini ve desenini korurken
+          işlemler esnasında oluşabilecek fiziksel hasarlara karşı da önlem almış olursunuz. Ters çevirme
+          adımı ile ürünleriniz tasarımları ve dokuları değişmeden, ilk günkü gibi kullanabileceğiniz
+          şekilde dolabınızda yer almaya devam edecektir.
+        </p>
+        <p className="pt-2 font-medium text-ink">ÜRÜN BAKIMINDA 3 ANA İŞLEM</p>
+        <p>
+          <strong className="text-ink">1. Yıkama İşlemi:</strong> Ürünlerin ve giysilerin etiketinde yer
+          alan yıkama talimatlarını doğru uygulamak, çevreyi ve doğal kaynakları koruma yolculuğunda
+          atacağınız önemli adımlardan biri. Üç ana adıma ayıracağımız bakım sürecinde dikkate almanız
+          gereken ilk önerimiz giysi ve ürünlerinizi yalnızca ihtiyaç duyduğunuz zamanlarda yıkamak
+          olacak. Gereğinden fazla yapılan bakım, ütü ve yıkama işlemlerinin uzun vadede ürünlerinizin
+          dokusuna ve kalıbına zarar verme olasılığı oldukça yüksektir. Sonrasında ise ürünlerinizin kumaş
+          ve tasarım özelliklerine uygun olacak yıkama şeklini belirlemeniz gerekecek. Ürünlerin
+          etiketlerinde yer alan yıkama talimatları bu adımda size büyük bir yarar sağlayacaktır. Etiket
+          bilgilerinde yer alan sıcaklık, yıkama yöntemi ve program gibi detayları inceleyerek ürününüz
+          için uygun olacak yıkama işlemini belirleyebilirsiniz.
+        </p>
+        <p>Gelin en sık tercih edilen yıkama biçimlerine birlikte göz atalım,</p>
+        <p>
+          <strong className="text-ink">Elde Yıkama:</strong> Hassas kumaş türleri kullanılarak tasarlanan
+          ya da nakışlı ve desenli tasarımlara sahip ürünler makinede yıkama işlemiyle zarar görebilir.
+          Ürününüzün hem dokusunu hem de tasarımını koruma altına alacak yıkama işlemlerinden biri olan
+          elde yıkama yöntemi, doğru su sıcaklığı ve deterjan kullanımıyla ürününüzün ihtiyaç duyduğu
+          hassasiyeti sağlayacaktır.
+        </p>
+        <p>
+          <strong className="text-ink">Makinede Yıkama:</strong> Yıkama yöntemleri arasında hem tasarruflu
+          hem de pratik bir yöntem olarak kabul edilen makinede yıkama işlemini genel olarak iki şekilde
+          sınıflandırabiliriz:
+        </p>
+        <p>
+          <strong className="text-ink">Normal Programda Yıkama:</strong> Makinede yıkama programları
+          arasında en sık tercih edilenler arasında normal yıkama programlarının olduğunu söyleyebiliriz.
+          Günlük kıyafetleriniz için tercih edebileceğiniz normal yıkama programları ürünlerinizi ideal
+          şekilde temizlemenin en tasarruflu yollarından biri. Normal yıkama programlarında dikkat
+          etmeniz gereken tek şey ürünün benzer renklerle yıkanması ve etiketinde yer alan su sıcaklık
+          derecesine uygun bir program tercih etmek olacak.
+        </p>
+        <p>
+          <strong className="text-ink">Hassas Programda Yıkama:</strong> Hassas, dokulu veya el
+          işçiliğiyle hazırlanan ürünleri makinede yıkamak için en uygun seçeneğin hassas programlar
+          olduğunu söyleyebiliriz. Hassas yıkama programlarını aynı zamanda yüksek ısı, yoğun sıkma ve
+          durulama işlemleriyle kumaş dokusu zedelenebilecek ürünler için de tercih edebilirsiniz. Ürün
+          bakım talimatlarında görebileceğiniz bu programlar ürününüze zarar vermeden yıkamak için en
+          doğru seçenek olacaktır.
+        </p>
+        <p>
+          <strong className="text-ink">2. Kurutma İşlemi:</strong> Ürünlerinizin dokusunu ve rengini uzun
+          süre koruyacak bir diğer işlem ise elbette kurutma işlemi. Giysilerinizin önerilen kurutma
+          talimatlarına uygun şekilde kurutmak bakım ve yıkama işlemi kadar önem arz ediyor. Genellikle
+          etiket ve ürün bilgi alanlarında yer alan bu talimatlar ürünlerinizi kumaş ve tasarım
+          modellerine uygun olacak şekilde hazırlanıyor. Doğrudan güneş ışığından kaçınmanın yanı sıra
+          kalorifer ve ısıtıcı gibi araçlarla giysilerinizi temas ettirmeden kurutma işlemini
+          gerçekleştirmelisiniz. Hassas kumaş yapılı ürünlerde ise oda sıcaklığında askı yöntemi ile
+          kurutma işlemini tamamlayabilirsiniz.
+        </p>
+        <p>
+          <strong className="text-ink">3. Ütüleme İşlemi:</strong> Ütüleme işlemi, ürününüze
+          uygulayacağınız doğru bakım sürecinin son adımı olarak kabul edilebilir. Yıkama, bakım ve
+          kurutma işleminin ardından ürünün yapısına uyacak ütü ısı derecesi ile ütü işlemine
+          başlayabilirsiniz. Ürünleri ters çevirerek ütülemek, bakım talimatlarında yer alan ısı
+          derecesini geçmemeniz, fermuarlı ürünlerde bu bölgelere es geçerek ve ürünlerinizi hafif
+          nemliyken ütülemeye başlamak bu adımda size önereceğimiz birkaç küçük ipucu olacak. Yıkama ve
+          kurutma işleminde olduğu gibi ütü işleminde de yüksek ısılı programlardan kaçınmak ürünün
+          yapısında oluşabilecek zararlara karşı koruyucu bir önlem olacaktır.
+        </p>
+        <p>
+          <strong className="text-ink">Kuru Temizleme İşlemi:</strong> Kuru temizleme işlemi, makinede
+          veya elde yıkamaya uygun olmayan ürünler için tercih edebileceğiniz bakım yöntemlerinden
+          biridir. Bu yöntem, hassas kumaş yapısına sahip olan veya tasarımında el işçiliği bulunan
+          ürünler için uygun olacak özel bir bakım işlemidir. Genellikle abiye elbise, takım elbise ve dış
+          giyim ürünleri gibi elde ve makinede temizlenmesi sakıncalı olacak ürünler için tavsiye edilen
+          kuru temizleme işlemi simgesi, ürününüzün etiketinde yer alan bakım talimatları bölümünde yer
+          almaktadır.
+        </p>
       </div>
     </InfoDrawer>
     </>
