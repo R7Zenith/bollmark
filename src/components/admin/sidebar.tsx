@@ -20,7 +20,6 @@ import {
   RotateCcw,
   History,
   FileText,
-  MessageSquare,
   ChevronDown
 } from "lucide-react";
 import { isPathAllowedForRole } from "@/lib/roles";
@@ -75,8 +74,7 @@ const navGroups: NavGroup[] = [
     id: "musteriler",
     label: "Müşteriler",
     items: [
-      { href: "/admin/musteriler", label: "Müşteriler", icon: Users },
-      { href: "/admin/yorumlar", label: "Yorumlar", icon: MessageSquare }
+      { href: "/admin/musteriler", label: "Müşteriler", icon: Users }
     ]
   },
   {

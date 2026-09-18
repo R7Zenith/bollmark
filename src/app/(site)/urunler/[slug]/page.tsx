@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelatedProducts, firstImageUrl, isNewProduct } from "@/lib/catalog";
-import { getProductReviewSummary } from "@/lib/reviews";
 import { getBundleForProduct } from "@/lib/bundles";
 import { prisma } from "@/lib/prisma";
 import { getActiveAutomaticPercentCampaigns, resolveProductDisplayPrice } from "@/lib/coupons";
 import { ProductViewer } from "@/components/product-viewer";
-import { ProductReviews, type ReviewView } from "@/components/product-reviews";
 import { ProductCard } from "@/components/product-card";
 import { optionValue, optionPosition, colorValueId } from "@/lib/variant-attributes";
 import { sanitizeDescriptionHtml, descriptionToPlainText } from "@/lib/description-html";
@@ -67,18 +65,7 @@ export default async function ProductPage({
   const relatedProducts = await getRelatedProducts(product);
   const bundleInfo = await getBundleForProduct(product.id);
   const automaticCampaigns = await getActiveAutomaticPercentCampaigns(prisma);
-  const { avgRating, count, reviews } = await getProductReviewSummary(product.id);
-  const reviewViews: ReviewView[] = reviews.map((r) => ({
-    id: r.id,
-    customerName: r.customerName,
-    rating: r.rating,
-    comment: r.comment,
-    imageUrls: r.imageUrls ? r.imageUrls.split("\n").filter(Boolean) : [],
-    createdAtLabel: r.createdAt.toLocaleDateString("tr-TR")
-  }));
 
-  // Boş/sıfır rating göstermek yanıltıcı olur - yorum yoksa aggregateRating
-  // alanı hiç eklenmez.
   const productJsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
@@ -93,10 +80,7 @@ export default async function ProductPage({
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
       url: `${BASE_URL}/urunler/${product.slug}`
-    },
-    ...(count > 0 && avgRating != null
-      ? { aggregateRating: { "@type": "AggregateRating", ratingValue: avgRating.toFixed(1), reviewCount: count } }
-      : {})
+    }
   };
 
   return (
@@ -157,7 +141,6 @@ export default async function ProductPage({
         automaticCampaigns={automaticCampaigns}
         isNew={isNewProduct(product.createdAt)}
       />
-      <ProductReviews productId={product.id} avgRating={avgRating} count={count} reviews={reviewViews} />
 
       {relatedProducts.length > 0 && (
         <div className="mt-20 border-t border-line pt-12">

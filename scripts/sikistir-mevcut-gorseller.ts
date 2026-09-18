@@ -20,7 +20,7 @@ const USER_AGENT = "Mozilla/5.0 (compatible; BollmarkImageCompressBot/1.0; +http
 const ESTIMATED_REDUCTION_RATIO = 0.15; // sikistirma sonrasi tahmini kalan oran (%10-20 araliginin ortasi)
 
 type ImageRef = {
-  source: "productImage" | "optionImage" | "category" | "brand" | "review";
+  source: "productImage" | "optionImage" | "category" | "brand";
   rowId: string;
   url: string;
 };
@@ -40,42 +40,19 @@ function isAlreadyProcessed(url: string): boolean {
 async function collectImageRefs(): Promise<ImageRef[]> {
   const refs: ImageRef[] = [];
 
-  const [productImages, optionImages, categories, brands, reviews] = await Promise.all([
+  const [productImages, optionImages, categories, brands] = await Promise.all([
     prisma.productImage.findMany({ select: { id: true, url: true } }),
     prisma.productOptionImage.findMany({ select: { id: true, url: true } }),
     prisma.category.findMany({ where: { imageUrl: { not: null } }, select: { id: true, imageUrl: true } }),
-    prisma.brand.findMany({ where: { logoUrl: { not: null } }, select: { id: true, logoUrl: true } }),
-    prisma.productReview.findMany({ where: { imageUrls: { not: null } }, select: { id: true, imageUrls: true } })
+    prisma.brand.findMany({ where: { logoUrl: { not: null } }, select: { id: true, logoUrl: true } })
   ]);
 
   for (const p of productImages) refs.push({ source: "productImage", rowId: p.id, url: p.url });
   for (const o of optionImages) refs.push({ source: "optionImage", rowId: o.id, url: o.url });
   for (const c of categories) if (c.imageUrl) refs.push({ source: "category", rowId: c.id, url: c.imageUrl });
   for (const b of brands) if (b.logoUrl) refs.push({ source: "brand", rowId: b.id, url: b.logoUrl });
-  for (const r of reviews) {
-    if (!r.imageUrls) continue;
-    for (const url of r.imageUrls.split("\n")) {
-      const trimmed = url.trim();
-      if (trimmed) refs.push({ source: "review", rowId: r.id, url: trimmed });
-    }
-  }
 
   return refs;
-}
-
-// review satirinda ayni id altinda birden fazla url olabilecegi icin (imageUrls tek bir
-// "\n" ayrik string alani), o satirdaki url'i guncellerken satiri taze okuyup yaziyoruz -
-// ayni satirin farkli url'leri paralel islenirse birbirini ezmesin diye satir bazinda
-// sirali kilit (lock chain) kullaniyoruz.
-const rowLocks = new Map<string, Promise<void>>();
-function withRowLock(key: string, fn: () => Promise<void>): Promise<void> {
-  const prev = rowLocks.get(key) ?? Promise.resolve();
-  const next = prev.then(fn, fn);
-  rowLocks.set(
-    key,
-    next.catch(() => undefined)
-  );
-  return next;
 }
 
 async function applyNewUrl(ref: ImageRef, newUrl: string): Promise<void> {
@@ -91,17 +68,6 @@ async function applyNewUrl(ref: ImageRef, newUrl: string): Promise<void> {
       return;
     case "brand":
       await prisma.brand.update({ where: { id: ref.rowId }, data: { logoUrl: newUrl } });
-      return;
-    case "review":
-      await withRowLock(`review:${ref.rowId}`, async () => {
-        const row = await prisma.productReview.findUnique({ where: { id: ref.rowId }, select: { imageUrls: true } });
-        if (!row?.imageUrls) return;
-        const parts = row.imageUrls.split("\n");
-        const idx = parts.findIndex((p) => p.trim() === ref.url);
-        if (idx === -1) return;
-        parts[idx] = newUrl;
-        await prisma.productReview.update({ where: { id: ref.rowId }, data: { imageUrls: parts.join("\n") } });
-      });
       return;
   }
 }

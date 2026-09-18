@@ -1,8 +1,8 @@
 // Tek seferlik script: Vercel Blob store'undaki, veritabaninin hicbir yerinde
 // referans edilmeyen ("yetim") dosyalari bulup siler. Bkz.
 // GORSEL_SIKISTIRMA_VE_BLOB_LIMIT_PLANI.md. Bir blob'un "kullaniliyor" sayilmasi
-// icin referans edilebilecegi 5 kaynak: ProductImage.url, ProductOptionImage.url,
-// Category.imageUrl, Brand.logoUrl, ProductReview.imageUrls ("\n" ayrik liste).
+// icin referans edilebilecegi 4 kaynak: ProductImage.url, ProductOptionImage.url,
+// Category.imageUrl, Brand.logoUrl.
 // Varsayilan dry-run (sadece rapor); --execute ile gercekten siler.
 import "dotenv/config";
 import { config } from "dotenv";
@@ -13,25 +13,17 @@ import { prisma } from "../src/lib/prisma";
 async function collectReferencedUrls(): Promise<Set<string>> {
   const referenced = new Set<string>();
 
-  const [productImages, optionImages, categories, brands, reviews] = await Promise.all([
+  const [productImages, optionImages, categories, brands] = await Promise.all([
     prisma.productImage.findMany({ select: { url: true } }),
     prisma.productOptionImage.findMany({ select: { url: true } }),
     prisma.category.findMany({ where: { imageUrl: { not: null } }, select: { imageUrl: true } }),
-    prisma.brand.findMany({ where: { logoUrl: { not: null } }, select: { logoUrl: true } }),
-    prisma.productReview.findMany({ where: { imageUrls: { not: null } }, select: { imageUrls: true } })
+    prisma.brand.findMany({ where: { logoUrl: { not: null } }, select: { logoUrl: true } })
   ]);
 
   for (const p of productImages) referenced.add(p.url);
   for (const o of optionImages) referenced.add(o.url);
   for (const c of categories) if (c.imageUrl) referenced.add(c.imageUrl);
   for (const b of brands) if (b.logoUrl) referenced.add(b.logoUrl);
-  for (const r of reviews) {
-    if (!r.imageUrls) continue;
-    for (const url of r.imageUrls.split("\n")) {
-      const trimmed = url.trim();
-      if (trimmed) referenced.add(trimmed);
-    }
-  }
 
   return referenced;
 }
