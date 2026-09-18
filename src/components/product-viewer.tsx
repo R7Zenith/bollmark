@@ -985,57 +985,38 @@ export function ProductViewer({
       }}
     />
 
-    {/* Icerik Koton'un canli sitesinden birebir alindi (bkz.
-        URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md v2, ICERIK 1) - sadece
-        "tum Turkiye magazalarimizdan" gecen iki cumle Bollmark'in tek
-        magazasi (Karacabey/Bursa) gercegine uyarlandi, geri kalani birebir. */}
+    {/* Icerik Bollmark'in gercek iade politikasindan (HUKUKI_SAYFALAR_ICERIK_
+        VE_PLAN.md "Teslimat ve İade Şartları") ozetlendi - Koton'un metni
+        DEGIL: kullanici bunun sadece Urun Bakim Talimati icin (asagida)
+        gecerli oldugunu, Iade & Degisim'in orijinal Bollmark metnine geri
+        alinmasi gerektigini belirtti. */}
     <InfoDrawer open={iadeDrawerOpen} onClose={() => setIadeDrawerOpen(false)} title="İade & Değişim">
       <div className="space-y-5 text-sm leading-relaxed text-ink/70">
-        <p>İnternet mağazamızdan yapılan alışverişleri, gönderi tarihinden itibaren 30 gün içinde iade edebilirsiniz.</p>
+        <p>
+          Bollmark üzerinden yaptığınız alışverişlerde, ürünü teslim aldığınız tarihten itibaren 14 gün
+          içinde hiçbir gerekçe göstermeksizin cayma hakkınızı kullanabilir, ürünü iade edebilirsiniz.
+        </p>
         <div>
           <p className="font-medium text-ink">İadesi Mümkün Olmayan Ürünler</p>
           <p className="mt-1">
-            İç giyim alt parçaları, mayo ve bikini altları iadesi mümkün olmayan ürünlerdir. Bu ürünler
-            sağlık ve hijyen açısından uygun olmamasından dolayı iade ve değişim kapsamına girmemektedir.
-            Makyaj malzemeleri, küpe, takı, tek kullanımlık ürünler, çabuk bozulma tehlikesi olan veya son
-            kullanma tarihi geçme ihtimali olan ürünler ve parfüm gibi ürünler ambalajının açılmış olması
-            halinde iadesi mümkün olmayan ürünlerdir.
+            İç giyim, mayo ve bikini gibi hijyen açısından hassas ürünler; ambalajı/etiketi açılmış veya
+            kullanılmışsa iade kapsamı dışındadır.
           </p>
         </div>
         <div>
-          <p className="font-medium text-ink">İade Seçenekleri</p>
-          <div className="mt-2 space-y-3">
-            <div>
-              <p className="font-medium text-ink">Mağazadan İade</p>
-              <p className="mt-1">Karacabey/Bursa'daki mağazamızdan da ürününüzü iade edebilirsiniz.</p>
-            </div>
-            <div>
-              <p className="font-medium text-ink">Kargo ile İade</p>
-              <p className="mt-1">
-                Hesabım alanından Siparişlerim sayfasına girerek iade etmek istediğiniz ürün için iade talebi
-                oluşturun. İade talebi oluşturduktan sonra size özel bir Kolay İade Kodu oluşturulacaktır.
-                Dilediğiniz kargo şubesine Kolay İade Kodu numaranızı bildirerek ÜCRETSİZ olarak ürünü teslim
-                etmeniz yeterlidir. Ayrıca iade adresi belirtmeniz gerekmez. Ürünü teslim ettikten sonra kargo
-                takip numaranızı kargo görevlisinden almayı unutmayınız.
-              </p>
-            </div>
-            <div>
-              <p className="font-medium text-ink">Üyeliksiz Verilen Siparişler</p>
-              <p className="mt-1">
-                Siparişinizi üyelik oluşturmadan verdiyseniz, iade işleminizi gerçekleştirebilmek için
-                siparişinizle aynı e-posta adresini kullanarak kolayca üyelik oluşturabilirsiniz.
-                Üyeliğinizi oluşturduktan sonra Hesabım alanındaki Siparişlerim sayfasından iade talebinizi
-                oluşturabilir ve size özel Kolay İade Kodu ile ürününüzü dilediğiniz kargo şubelerine
-                ÜCRETSİZ olarak teslim edebilirsiniz.
-              </p>
-            </div>
-          </div>
+          <p className="font-medium text-ink">İade Adımları</p>
+          <ol className="mt-1 list-decimal space-y-1 pl-4">
+            <li>bilgi@bollmark.com adresine sipariş numaranızla iade talebinizi iletin.</li>
+            <li>
+              Ürünü faturası, orijinal kutusu/ambalajı ve etiketleriyle birlikte, kullanılmamış ve hasarsız
+              şekilde paketleyin.
+            </li>
+            <li>Belirtilen adrese gönderin.</li>
+            <li>İade kargo ücreti alıcıya aittir.</li>
+            <li>Ürün elimize ulaşıp kontrolü tamamlandıktan sonra bedeli en geç 14 gün içinde ödeme yaptığınız yönteme iade edilir.</li>
+          </ol>
         </div>
-        <div>
-          <p className="font-medium text-ink">Değişim İşlemleri</p>
-          <p className="mt-1">Ürün değişimlerinizi Karacabey/Bursa'daki mağazamızdan gerçekleştirebilirsiniz.</p>
-        </div>
-        <p>Daha fazla bilgi için Sıkça Sorulan Sorular bölümünü inceleyebilirsiniz.</p>
+        <p className="text-xs text-ink/50">Detaylı bilgi için Teslimat ve İade Şartları sayfamızı inceleyebilirsiniz.</p>
       </div>
     </InfoDrawer>
 
