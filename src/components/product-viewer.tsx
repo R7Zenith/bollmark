@@ -572,31 +572,6 @@ export function ProductViewer({
             {bundleInfo.discountPercent} indirim kazan.
           </p>
         )}
-        {descriptionHtml && (
-          <div className="mt-6">
-            <div
-              className={`prose-description text-sm relative leading-relaxed text-ink/70 [&_p]:mb-3 [&_p:last-child]:mb-0 [&>strong]:mb-1 [&>strong]:mt-4 [&>strong]:block [&>strong:first-child]:mt-0 ${
-                descriptionExpanded ? "" : "max-h-24 overflow-hidden"
-              }`}
-            >
-              {/* descriptionHtml sunucuda sanitizeDescriptionHtml() ile temizleniyor
-                  (bkz. urunler/[slug]/page.tsx) - burada tekrar sanitize etmeye gerek yok. */}
-              {/* eslint-disable-next-line react/no-danger */}
-              <div dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
-              {!descriptionExpanded && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-cream to-transparent" />
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={() => setDescriptionExpanded((v) => !v)}
-              className="mt-2 text-xs font-medium uppercase tracking-wide text-ink underline underline-offset-4"
-            >
-              {descriptionExpanded ? "Daha Az Göster" : "Devamını Oku"}
-            </button>
-          </div>
-        )}
-
         {(material || origin || careInstructions) && (
           <details className="mt-6 border-t border-line pt-6 text-sm text-ink/70" open>
             {/* Release'in `.accordion__button`'u: font-size 1.6rem,
@@ -777,6 +752,31 @@ export function ProductViewer({
               <Clock size={14} className="shrink-0 text-ink/60" />
               Son {selected.stock} adet kaldı. Acele edin.
             </p>
+          )}
+
+          {descriptionHtml && (
+            <div>
+              <div
+                className={`prose-description text-sm relative leading-relaxed text-ink/70 [&_p]:mb-3 [&_p:last-child]:mb-0 [&>strong]:mb-1 [&>strong]:mt-4 [&>strong]:block [&>strong:first-child]:mt-0 ${
+                  descriptionExpanded ? "" : "max-h-24 overflow-hidden"
+                }`}
+              >
+                {/* descriptionHtml sunucuda sanitizeDescriptionHtml() ile temizleniyor
+                    (bkz. urunler/[slug]/page.tsx) - burada tekrar sanitize etmeye gerek yok. */}
+                {/* eslint-disable-next-line react/no-danger */}
+                <div dangerouslySetInnerHTML={{ __html: descriptionHtml }} />
+                {!descriptionExpanded && (
+                  <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-cream to-transparent" />
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setDescriptionExpanded((v) => !v)}
+                className="mt-2 text-xs font-medium uppercase tracking-wide text-ink underline underline-offset-4"
+              >
+                {descriptionExpanded ? "Daha Az Göster" : "Devamını Oku"}
+              </button>
+            </div>
           )}
 
 
