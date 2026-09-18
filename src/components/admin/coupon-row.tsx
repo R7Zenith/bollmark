@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Pencil, Trash2, X, Check, ChevronDown, ChevronUp } from "lucide-react";
 import { Badge } from "@/components/admin/badge";
 import { CouponValueField } from "@/components/admin/coupon-value-field";
+import { CouponCategoryBrandGenderFields } from "@/components/admin/coupon-category-brand-gender-fields";
 import { formatPrice } from "@/lib/format";
 import { couponStatusLabel, couponStatusTone, type CouponStatus } from "@/lib/status";
 
@@ -29,10 +30,11 @@ export type CouponData = {
   startsAt: string | null; // yyyy-mm-dd (input[type=date] icin)
   expiresAt: string | null;
   isActive: boolean;
-  categoryId: string | null;
-  categoryLabel: string | null;
-  brandId: string | null;
-  brandName: string | null;
+  categoryIds: string[];
+  categoryLabels: string[];
+  brandIds: string[];
+  brandNames: string[];
+  genders: string[];
   includeManuallyDiscountedProducts: boolean;
   status: CouponStatus;
   usageOrders: CouponUsageOrder[];
@@ -106,30 +108,13 @@ export function CouponRow({
               className={inputClass}
             />
           </div>
-          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-            <div>
-              <label className="text-xs text-admin-text-muted">Kategori</label>
-              <select name="categoryId" defaultValue={coupon.categoryId ?? ""} className={inputClass}>
-                <option value="">Tüm kategoriler</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-admin-text-muted">Marka</label>
-              <select name="brandId" defaultValue={coupon.brandId ?? ""} className={inputClass}>
-                <option value="">Tüm markalar</option>
-                {brands.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <CouponCategoryBrandGenderFields
+            categories={categories}
+            brands={brands}
+            defaultCategoryIds={coupon.categoryIds}
+            defaultBrandIds={coupon.brandIds}
+            defaultGenders={coupon.genders}
+          />
           <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
             <div>
               <label className="text-xs text-admin-text-muted">Kullanım Limiti</label>
@@ -212,8 +197,11 @@ export function CouponRow({
           {coupon.minOrderCents > 0 && (
             <Badge tone="gray-muted">Min. {formatPrice(coupon.minOrderCents)}</Badge>
           )}
-          {coupon.categoryLabel && <Badge tone="gray-muted">Kategori: {coupon.categoryLabel}</Badge>}
-          {coupon.brandName && <Badge tone="gray-muted">Marka: {coupon.brandName}</Badge>}
+          {coupon.categoryLabels.length > 0 && (
+            <Badge tone="gray-muted">Kategori: {coupon.categoryLabels.join(", ")}</Badge>
+          )}
+          {coupon.brandNames.length > 0 && <Badge tone="gray-muted">Marka: {coupon.brandNames.join(", ")}</Badge>}
+          {coupon.genders.length > 0 && <Badge tone="gray-muted">Cinsiyet: {coupon.genders.join(", ")}</Badge>}
           {coupon.includeManuallyDiscountedProducts && (
             <Badge tone="gray-muted">Elle indirimli ürünlerde de geçerli</Badge>
           )}

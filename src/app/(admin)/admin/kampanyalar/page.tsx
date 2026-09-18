@@ -6,6 +6,7 @@ import { Card } from "@/components/admin/card";
 import { StatCard } from "@/components/admin/stat-card";
 import { KampanyalarFilters } from "@/components/admin/kampanyalar-filters";
 import { CouponRow, type CouponData, type CategoryOption, type BrandOption } from "@/components/admin/coupon-row";
+import { CouponCategoryBrandGenderFields } from "@/components/admin/coupon-category-brand-gender-fields";
 import { CouponFeedback } from "@/components/admin/coupon-feedback";
 import { CouponIdentityField } from "@/components/admin/coupon-identity-field";
 import { CouponValueField } from "@/components/admin/coupon-value-field";
@@ -39,8 +40,9 @@ function readCouponFields(formData: FormData) {
   const startsAtRaw = String(formData.get("startsAt") || "").trim();
   const expiresAtRaw = String(formData.get("expiresAt") || "").trim();
   const isActive = formData.get("isActive") === "on";
-  const categoryIdRaw = String(formData.get("categoryId") || "").trim();
-  const brandIdRaw = String(formData.get("brandId") || "").trim();
+  const categoryIds = formData.getAll("categoryIds").map(String).filter(Boolean);
+  const brandIds = formData.getAll("brandIds").map(String).filter(Boolean);
+  const genders = formData.getAll("genders").map(String).filter(Boolean);
   const includeManuallyDiscountedProducts = formData.get("includeManuallyDiscountedProducts") === "on";
 
   return {
@@ -53,8 +55,9 @@ function readCouponFields(formData: FormData) {
     startsAt: startsAtRaw ? new Date(startsAtRaw) : null,
     expiresAt: expiresAtRaw ? new Date(expiresAtRaw) : null,
     isActive,
-    categoryId: categoryIdRaw || null,
-    brandId: brandIdRaw || null,
+    categoryIds,
+    brandIds,
+    genders,
     includeManuallyDiscountedProducts
   };
 }
@@ -179,10 +182,11 @@ export default async function AdminCouponsPage({
     startsAt: toDateInputValue(c.startsAt),
     expiresAt: toDateInputValue(c.expiresAt),
     isActive: c.isActive,
-    categoryId: c.categoryId,
-    categoryLabel: c.categoryId ? categoryLabelById.get(c.categoryId) ?? null : null,
-    brandId: c.brandId,
-    brandName: c.brandId ? brandNameById.get(c.brandId) ?? null : null,
+    categoryIds: c.categoryIds,
+    categoryLabels: c.categoryIds.map((id) => categoryLabelById.get(id)).filter((v): v is string => Boolean(v)),
+    brandIds: c.brandIds,
+    brandNames: c.brandIds.map((id) => brandNameById.get(id)).filter((v): v is string => Boolean(v)),
+    genders: c.genders,
     includeManuallyDiscountedProducts: c.includeManuallyDiscountedProducts,
     status: computeCouponStatus(c),
     usageOrders: (usageByCoupon.get(c.id) ?? []).slice(0, 5).map((o) => ({
@@ -226,30 +230,13 @@ export default async function AdminCouponsPage({
             <label className={labelClass}>Min. Sepet Tutarı (TL)</label>
             <input name="minOrderCents" type="number" step="0.01" min={0} className={`mt-1 ${inputClass}`} />
           </div>
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div>
-              <label className={labelClass}>Kategori</label>
-              <select name="categoryId" defaultValue="" className={`mt-1 ${inputClass}`}>
-                <option value="">Tüm kategoriler</option>
-                {categoryOptions.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className={labelClass}>Marka</label>
-              <select name="brandId" defaultValue="" className={`mt-1 ${inputClass}`}>
-                <option value="">Tüm markalar</option>
-                {brandOptions.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+          <CouponCategoryBrandGenderFields
+            categories={categoryOptions}
+            brands={brandOptions}
+            defaultCategoryIds={[]}
+            defaultBrandIds={[]}
+            defaultGenders={[]}
+          />
           <div>
             <label className="flex items-center gap-2 text-sm text-admin-text">
               <input
