@@ -268,5 +268,7 @@ export async function getRelatedProducts(product: { id: string; categoryId: stri
     orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
     take: 4
   });
-  return products.map((p) => ({ ...p, quickAddVariant: pickQuickAddVariant(p.variants) }));
+  return products
+    .filter((p) => totalStock(p.variants) > 0)
+    .map((p) => ({ ...p, quickAddVariant: pickQuickAddVariant(p.variants) }));
 }
