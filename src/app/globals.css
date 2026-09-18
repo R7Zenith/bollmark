@@ -200,3 +200,44 @@ body {
     transform: translateY(0);
   }
 }
+
+
+/* Admin giris sayfasi (bkz. src/app/(admin)/admin/login/page.tsx): form
+   8px asagidan yukari belirir, gorsel yavasca scale(1.05 -> 1) ile oturur.
+   prefers-reduced-motion kontrolu bilerek yok - projedeki diger animasyonlar
+   gibi (bkz. yukaridaki ticker notu) kullanicinin istegiyle her zaman calisir. */
+.admin-login-form {
+  animation: adminLoginFormIn 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.admin-login-image {
+  animation: adminLoginImageSettle 2.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes adminLoginFormIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes adminLoginImageSettle {
+  from {
+    transform: scale(1.05);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+/* Tarayici otomatik doldurmasinin acik mavi zeminini bastir. */
+.admin-login-input:-webkit-autofill,
+.admin-login-input:-webkit-autofill:hover,
+.admin-login-input:-webkit-autofill:focus {
+  box-shadow: 0 0 0 1000px #fff inset;
+  -webkit-text-fill-color: #111;
+}

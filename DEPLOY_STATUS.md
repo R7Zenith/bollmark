@@ -4419,3 +4419,22 @@ boş durum (`?fiyat-min=99999999`); konsol hatası yok. Bulunan bug: panel açı
 Ayrıca bu dosyadaki gerçek bir admin parolası (eski bir bölümde) push öncesi
 maskelendi; deger git geçmişinde önceki commit'te duruyor, parolanın
 değiştirilmesi önerilir.
+
+## Oturum: Admin giriş sayfası yeniden tasarımı (19 Eylul 2026)
+
+`/admin/login` split-screen'e çevrildi (sol %55 editoryal görsel, sağ %45 form).
+Eski sayfanın asıl bug'ı: `bg-paper` Tailwind'de tanımlı bir renk değil, form
+şeffaf kalıyor ve koyu (`bg-ink`) zeminde siyah logo/buton görünmüyordu.
+
+- `src/app/(admin)/admin/login/page.tsx`: yeni yerleşim; Poppins bu sayfada
+  `next/font` ile yükleniyor (admin katmanı font yüklemiyordu); şifre göster/gizle
+  (lucide `Eye`/`EyeOff`); `label htmlFor` + `id="email"`/`id="password"` eklendi
+  (`name` alanları ve `signIn` mantığı aynen korundu); hata kutusu `role="alert"`.
+- `src/app/globals.css`: form fade-in (8px), görsel `scale(1.05 -> 1)` ve
+  `input:-webkit-autofill` bastırma sınıfları (`.admin-login-*`).
+- Görsel: yeni dosya yok, mağaza hero'sundaki `public/hero-model.jpg` (2250x2954)
+  `next/image` `priority` ile kullanıldı. Mobilde 160px'lik üst bant.
+- Animasyonlar `prefers-reduced-motion`'da KAPATILMADI (kullanıcının kalıcı tercihi).
+
+Doğrulama: Playwright ile 1440/1024/390px — logo ve buton görünür, yatay taşma yok
+(scrollWidth = genişlik); hata kutusu, yükleniyor durumu ve göz ikonu çalışıyor.
