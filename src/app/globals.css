@@ -160,3 +160,43 @@ body {
    denendi, ikisi de OS'te "Show animations" kapali kullanicilar icin
    ticker'in beklenenden farkli/bozukmus gorunmesine yol acti - kullanici
    herkeste ayni, surekli akan animasyonu istedi. */
+
+/* Anasayfa hero metin girisi (bkz. release-main.myshopify.com'un canli
+   section-hero-banner.css'inden birebir alindi, 18 Eylul 2026): etiket,
+   baslik ve buton her biri ayri bir `overflow:hidden` sarmalayicinin
+   icinde; sayfa yuklendiginde asagidan yukari kayarak (translateY(200%)
+   -> 0) ve solarak (opacity 0 -> 1) ortaya cikiyor. Ucu de ayni anda
+   baslayip farkli surelerle (.85s/.9s/1.15s, orijinal CSS'teki
+   nth-child degerleri) bitiyor - bu, ayri gecikmeler yerine sadece
+   sure farkiyla dogal bir kademe (cascade) hissi yaratiyor. */
+.hero-reveal {
+  overflow: hidden;
+}
+
+.hero-reveal > * {
+  animation-name: heroReveal;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hero-reveal:nth-child(1) > * {
+  animation-duration: 0.85s;
+}
+
+.hero-reveal:nth-child(2) > * {
+  animation-duration: 0.9s;
+}
+
+.hero-reveal:nth-child(3) > * {
+  animation-duration: 1.15s;
+}
+
+@keyframes heroReveal {
+  0% {
+    opacity: 0;
+    transform: translateY(200%);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

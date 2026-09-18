@@ -61,7 +61,11 @@ export default async function HomePage() {
           olarak dokunulmadan bırakıldı. Masaüstünde (md:) Release'in canlı
           demosuyla (release-main.myshopify.com) birebir ölçülen hizalamaya
           getirildi: metin bloğu tam genişlikte ortalı ve alta yaslı,
-          "Keşfet" butonu şeffaf/ince çerçeveli (outline) hap-buton. */}
+          "Keşfet" butonu şeffaf/ince çerçeveli (outline) hap-buton, başlık
+          font boyutu Release'de olculen 1024px/1600px degerleriyle
+          orantili bir clamp()'e alindi. Uc metin ogesi de (.hero-reveal,
+          bkz. globals.css) Release'in giris animasyonunu birebir kullanir:
+          sayfa yuklenince asagidan kayarak/solarak belirir. */}
       <section className="relative flex min-h-screen items-end overflow-hidden bg-ink text-cream md:items-end">
         <Image
           src="/hero-model.jpg"
@@ -73,16 +77,22 @@ export default async function HomePage() {
         />
         <div className="absolute inset-0 bg-gradient-to-r from-ink/70 via-ink/20 to-transparent" />
         <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pb-14 md:max-w-none md:px-[54px] md:pb-16 md:pt-[97px] md:text-center">
-          <p className="text-[10px] uppercase tracking-widest2 text-cream/70 md:text-xs">2026 Sonbahar / Kış</p>
-          <h1 className="mt-2 max-w-[13rem] font-display text-3xl font-light leading-[1.05] md:mx-auto md:mt-6 md:max-w-3xl md:text-8xl md:leading-[0.95]">
-            Her gün için, her parça için
-          </h1>
-          <Link
-            href="/urunler"
-            className="mt-5 inline-flex items-center rounded-full bg-cream px-6 py-2.5 text-xs uppercase tracking-wide text-ink transition hover:bg-clay hover:text-cream md:mt-10 md:border md:border-cream md:bg-transparent md:px-8 md:py-3.5 md:text-sm md:text-cream md:hover:bg-cream md:hover:text-ink"
-          >
-            Keşfet
-          </Link>
+          <div className="hero-reveal">
+            <p className="text-[10px] uppercase tracking-widest2 text-cream/70 md:text-xs">2026 Sonbahar / Kış</p>
+          </div>
+          <div className="hero-reveal">
+            <h1 className="mt-2 max-w-[13rem] font-display text-3xl font-light leading-[1.05] md:mx-auto md:mt-6 md:max-w-3xl md:text-[clamp(3.8125rem,1.7013rem+3.2986vw,5rem)] md:leading-[0.95]">
+              Her gün için, her parça için
+            </h1>
+          </div>
+          <div className="hero-reveal">
+            <Link
+              href="/urunler"
+              className="mt-5 inline-flex items-center rounded-full bg-cream px-6 py-2.5 text-xs uppercase tracking-wide text-ink transition hover:bg-clay hover:text-cream md:mt-10 md:border md:border-cream md:bg-transparent md:px-8 md:py-3.5 md:text-sm md:text-cream md:hover:bg-cream md:hover:text-ink"
+            >
+              Keşfet
+            </Link>
+          </div>
         </div>
       </section>
 
