@@ -4355,3 +4355,23 @@ kartı taşmıyordu, dokunulmadı.
 sınıfı bazen yakalamıyor (`break-all` CSS'e girmedi); sunucu yeniden
 başlatılınca sınıf üretildi, ölçümde tuhaf sonuç görürseniz önce yeniden
 başlatın.
+
+## Header: ana menü altına ince çizgi + sağ ikonlar büyütüldü (bu oturum)
+
+Referans Release temasıydı. `site-header.tsx`'te iki değişiklik:
+1) Şeffaf (hero üstü) modda header'a `border-b border-white/[0.12]` eklendi;
+katı modda mevcut `border-line` aynen duruyor. Header'da duyuru çubuğu olmadığı
+için çizgi doğrudan ana menü satırının altında. Her iki durumda da 1px border
+olduğundan geçişte yükseklik oynamıyor.
+2) Arama/hesap/sepet ikonları 18px → masaüstünde 24px, mobilde 20px; stroke
+1.75 → 1.5 (24px'te kalınlaşmasın diye), tıklama alanı 40×40, ikon arası
+boşluk ~22px. Kutular 28px'lik satıra sığmadığı için ikon satırına negatif dikey
+margin (`-my-1 xl:-my-1.5`) verildi: header yüksekliği masaüstü/mobilde eskisiyle
+aynı kaldı (73px). Sepet rozeti `right-0 top-0` ile yeni kutuda ikonun köşesine
+oturtuldu. Mobildeki hamburger (32×32) bilerek değiştirilmedi.
+
+**Doğrulama**: `tsc --noEmit` temiz; 1440px'te ekran görüntüsü, 390/768px'te
+Chrome DevTools emülasyonu: header 73px, sepet kutusu 40×40 ve logoyla
+çakışmıyor. Not: `PREVIEW_PASSWORD` yerel önizlemede `/` ve `/urunler`'i
+"coming soon" sayfasına yönlendiriyor; ekran görüntüsü için dev sunucusunu bu
+değişken boş verilerek (`PREVIEW_PASSWORD= npx next dev -p 3100`) başlattım.

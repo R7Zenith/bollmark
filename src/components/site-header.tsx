@@ -104,9 +104,15 @@ function ForwardIcon() {
   );
 }
 
+// Release'de ikonlar ~22-24px; mobilde 20px'e iner. Tiklama alani her yerde
+// 40x40 (HEADER_ICON_LINK_CLASS). Stroke 1.5: viewBox 24 oldugu icin 24px'te
+// 1.5px cizgi - eski 18px/1.75'in (1.31px) yaninda kalinlasma minimumda.
+const HEADER_ICON_CLASS = "h-5 w-5 xl:h-6 xl:w-6";
+const HEADER_ICON_LINK_CLASS = "h-10 w-10 items-center justify-center hover:text-clay";
+
 function SearchIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <svg className={HEADER_ICON_CLASS} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
       <circle cx="11" cy="11" r="7" />
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
@@ -115,7 +121,7 @@ function SearchIcon() {
 
 function AccountIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <svg className={HEADER_ICON_CLASS} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
       <circle cx="12" cy="8" r="4" />
       <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
     </svg>
@@ -124,7 +130,7 @@ function AccountIcon() {
 
 function CartIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
+    <svg className={HEADER_ICON_CLASS} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
       <path d="M6 8h12l-1 12H7L6 8Z" />
       <path d="M9 8V6a3 3 0 0 1 6 0v2" />
     </svg>
@@ -551,7 +557,9 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
     <>
       <header
         className={`fixed inset-x-0 top-0 z-40 transition-colors duration-300 ${
-          transparent ? "bg-transparent text-cream" : "border-b border-line bg-cream text-ink"
+          transparent
+            ? "border-b border-white/[0.12] bg-transparent text-cream"
+            : "border-b border-line bg-cream text-ink"
         }`}
         onMouseLeave={() => setOpenMenu(null)}
       >
@@ -583,14 +591,14 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
             />
           </Link>
 
-          <div className="flex items-center justify-end gap-4">
+          <div className="-my-1 flex items-center justify-end gap-1 xl:-my-1.5 xl:gap-1.5">
             {/* Masaustu (xl+): Release'deki gibi kompakt ikon satiri - arama,
                 hesap, sepet. Arama simdilik /urunler'e yonlendiriyor, gercek
                 arama islevi bu adimin kapsami disinda. */}
             <Link
               href="/urunler"
               aria-label="Ürünlerde ara"
-              className="hidden hover:text-clay xl:inline-flex"
+              className={`hidden xl:inline-flex ${HEADER_ICON_LINK_CLASS}`}
             >
               <span className="nav-underline inline-block">
                 <SearchIcon />
@@ -599,7 +607,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
             <Link
               href={session?.user ? "/hesap" : "/hesap/giris"}
               aria-label="Hesabım"
-              className="hidden hover:text-clay xl:inline-flex"
+              className={`hidden xl:inline-flex ${HEADER_ICON_LINK_CLASS}`}
             >
               <span className="nav-underline inline-block">
                 <AccountIcon />
@@ -615,7 +623,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
             <Link
               href="/sepet"
               aria-label="Sepetim"
-              className="relative inline-flex hover:text-clay"
+              className={`relative inline-flex ${HEADER_ICON_LINK_CLASS}`}
               onClick={(e) => {
                 e.preventDefault();
                 openDrawer();
@@ -625,7 +633,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
                 <CartIcon />
               </span>
               {totalCount > 0 && (
-                <span className="absolute -right-2 -top-2 flex h-4 w-4 items-center justify-center rounded-full bg-clay text-[10px] text-cream">
+                <span className="absolute right-0 top-0 flex h-4 w-4 items-center justify-center rounded-full bg-clay text-[10px] text-cream">
                   {totalCount}
                 </span>
               )}
