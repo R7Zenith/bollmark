@@ -55,11 +55,6 @@ export function SiteFooter() {
                   </Link>
                 </li>
                 <li>
-                  <Link href="/#hikaye" className={FOOTER_LINK_CLASS}>
-                    Hikayemiz
-                  </Link>
-                </li>
-                <li>
                   <Link href="/sayfa/kargo-bilgisi" className={FOOTER_LINK_CLASS}>
                     Kargo Bilgisi
                   </Link>

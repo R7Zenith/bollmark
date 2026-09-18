@@ -122,35 +122,6 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* 3) Editoryal iki gorselli blok: solda model fotografi + uzerine
-          bindirilmis baslik (bir kelimesi Cormorant italik), sagda sade bir
-          moda fotografi. */}
-      <section id="hikaye" className="grid md:grid-cols-2">
-        <div className="relative aspect-[4/5] md:aspect-[3/4]">
-          <Image
-            src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1400"
-            alt="Bollmark atölye"
-            fill
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink/60 via-ink/10 to-transparent" />
-          <div className="absolute inset-x-0 bottom-0 p-10 text-cream md:p-16">
-            <p className="text-xs uppercase tracking-widest2 text-cream/70">Hikayemiz</p>
-            <h2 className="mt-4 max-w-md font-display text-4xl font-light leading-tight">
-              Detaylara verdiğimiz <em className="font-accent italic font-normal">önem</em>
-            </h2>
-          </div>
-        </div>
-        <div className="relative aspect-[4/5] md:aspect-[3/4]">
-          <Image
-            src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=1400"
-            alt="Bollmark koleksiyonu"
-            fill
-            className="object-cover"
-          />
-        </div>
-      </section>
-
       {/* 4) Tam genislik tek buyuk gorsel, uzerine bindirilmis cok buyuk
           baslik (bir kelimesi italik) + ortada bir hap buton. */}
       <section className="relative flex min-h-[70vh] items-center justify-center overflow-hidden bg-ink text-center text-cream">

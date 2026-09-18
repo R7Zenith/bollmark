@@ -466,9 +466,6 @@ function MobileMenu({
                 <ForwardIcon />
               </button>
             ))}
-            <Link href="/#hikaye" onClick={onClose} className="block border-b border-line py-4 text-sm uppercase tracking-wide">
-              Hikayemiz
-            </Link>
             <Link
               href={session?.user ? "/hesap" : "/hesap/giris"}
               onClick={onClose}
