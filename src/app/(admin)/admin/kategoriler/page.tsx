@@ -31,7 +31,6 @@ export default async function AdminCategoriesPage({
     depth,
     productCount: category._count.products,
     parentId: category.parentId,
-    sizeGuide: category.sizeGuide,
     imageUrl: category.imageUrl,
     description: category.description,
     metaTitle: category.metaTitle,
@@ -68,12 +67,6 @@ export default async function AdminCategoriesPage({
               </option>
             ))}
           </select>
-          <textarea
-            name="sizeGuide"
-            rows={3}
-            placeholder="Beden tablosu (opsiyonel)"
-            className="w-full rounded-md border border-admin-border px-4 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
-          />
           <CategoryFormFields inputClassName="w-full rounded-md border border-admin-border px-4 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent" />
           <button className="w-full rounded-md bg-admin-accent px-5 py-2 text-sm font-medium text-white hover:bg-indigo-700">
             Ekle

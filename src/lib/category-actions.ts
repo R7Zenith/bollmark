@@ -25,9 +25,8 @@ export async function createCategory(formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   if (!name) redirect("/admin/kategoriler?hata=isim-gerekli");
   const parentId = String(formData.get("parentId") || "") || null;
-  const sizeGuide = String(formData.get("sizeGuide") || "").trim() || null;
   await prisma.category.create({
-    data: { name, slug: slugify(name), parentId, sizeGuide, ...readCategoryFields(formData) }
+    data: { name, slug: slugify(name), parentId, ...readCategoryFields(formData) }
   });
   redirect("/admin/kategoriler?basarili=eklendi");
 }
@@ -36,7 +35,6 @@ export async function updateCategory(id: string, redirectBase: string, formData:
   const name = String(formData.get("name") || "").trim();
   if (!name) redirect(`${redirectBase}?hata=isim-gerekli`);
   const parentId = String(formData.get("parentId") || "") || null;
-  const sizeGuide = String(formData.get("sizeGuide") || "").trim() || null;
 
   if (parentId === id) redirect(`${redirectBase}?hata=kendine-bagli`);
   if (parentId) {
@@ -46,7 +44,7 @@ export async function updateCategory(id: string, redirectBase: string, formData:
 
   await prisma.category.update({
     where: { id },
-    data: { name, slug: slugify(name), parentId, sizeGuide, ...readCategoryFields(formData) }
+    data: { name, slug: slugify(name), parentId, ...readCategoryFields(formData) }
   });
   redirect(`${redirectBase}?basarili=guncellendi`);
 }

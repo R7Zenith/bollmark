@@ -14,7 +14,6 @@ export type CategoryRowData = {
   name: string;
   depth: number;
   parentId: string | null;
-  sizeGuide: string | null;
   imageUrl: string | null;
   description: string | null;
   metaTitle: string | null;

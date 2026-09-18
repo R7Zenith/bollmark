@@ -4244,3 +4244,26 @@ ayni deseni birebir kullaniyor. Commit `23c7012` ile `origin/main`'e pushlandi.
   teyit edildi; dev sunucuda urun sayfasi `curl` ile cekilip "Devamını Oku"
   -> "İade ve Değişim" -> "Ürün Bakım Talimatı" -> "Beden Tablosu" ->
   trust-ticker sirasi korundu.
+
+## Admin panelindeki artik islevsiz "Beden Tablosu" alani kaldirildi (ayni oturum, kullanicinin acik istegiyle)
+
+Bir onceki maddede sizeGuide siteden kaldirilinca admin panelindeki
+"Beden Tablosu" textarea'si artik hicbir sey render etmiyordu - kullanici
+bunun da kaldirilmasini istedi:
+
+- `admin/kategoriler/[id]/page.tsx`: "Beden Tablosu" textarea'si ve yardim
+  metni formdan kaldirildi.
+- `admin/kategoriler/page.tsx`: "Yeni Kategori" hizli ekleme formundaki ayni
+  textarea ve `rows` map'indeki `sizeGuide: category.sizeGuide` alani
+  kaldirildi.
+- `lib/category-actions.ts`: `createCategory`/`updateCategory` artik
+  `sizeGuide` form alanini okuyup DB'ye yazmiyor.
+- `components/admin/category-manager.tsx`, `category-row.tsx`: `sizeGuide`
+  prop'u ve kategori satirindaki "Beden tablosu var" rozeti kaldirildi.
+- **Bilerek dokunulmadi**: `prisma/schema.prisma`'daki `Category.sizeGuide`
+  DB kolonu duruyor - kolon silmek migration gerektiriyor ve eski
+  kategorilerde halihazirda girilmis veri varsa kaybolur, bu daha riskli bir
+  adim oldugu icin sadece admin UI/yazma yolu kaldirildi, kolonun kendisi
+  bir sonraki ayri bir kararla temizlenebilir.
+
+**Dogrulama**: `npm run build` hatasiz gecti.

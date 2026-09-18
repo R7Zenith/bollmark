@@ -19,7 +19,6 @@ export function CategoryRow({
   depth,
   productCount,
   imageUrl,
-  sizeGuide,
   isActive,
   parentOptions,
   deleteAction,
@@ -36,7 +35,6 @@ export function CategoryRow({
   depth: number;
   productCount: number;
   parentId: string | null;
-  sizeGuide: string | null;
   imageUrl: string | null;
   description: string | null;
   metaTitle: string | null;
@@ -114,7 +112,6 @@ export function CategoryRow({
         ) : (
           <Badge tone="gray">{productCount} ürün</Badge>
         )}
-        {sizeGuide && <Badge tone="blue">Beden tablosu var</Badge>}
         {!isActive && <Badge tone="gray-muted">Pasif</Badge>}
       </div>
       <div className="flex items-center gap-1">
