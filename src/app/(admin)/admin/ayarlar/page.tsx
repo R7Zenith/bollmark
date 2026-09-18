@@ -288,9 +288,9 @@ export default async function AdminSettingsPage({
       <Card title="Vega E-Ticaret Entegrasyonu">
         <div className="mb-4 flex gap-3 rounded-md bg-admin-bg p-4 text-sm text-admin-text-muted">
           <Info size={18} className="mt-0.5 flex-shrink-0 text-admin-accent" />
-          <p>
+          <p className="min-w-0">
             Vega SanalMağaza programındaki &quot;E-Ticaret&quot; ayarının &quot;Site Adı&quot; alanına{" "}
-            <code className="rounded bg-white px-1 py-0.5">https://bollmark.com/api/vega/panelapi</code>, &quot;E-Mail&quot;
+            <code className="break-words rounded bg-white px-1 py-0.5">https://bollmark.com/api/vega/panelapi</code>, &quot;E-Mail&quot;
             ve &quot;Parola&quot; alanlarına ise burada belirlediğiniz bilgileri girin. Bu, admin panel giriş
             hesaplarınızdan bağımsız, sadece Vega&apos;nın kullandığı ayrı bir hesaptır.
           </p>

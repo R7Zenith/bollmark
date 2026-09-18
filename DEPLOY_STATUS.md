@@ -4339,3 +4339,19 @@ düzenlenince `variantsValue` güncelleniyor, seçim + toplu işlem çubuğu ve 
 yerel istemciye yansımamıştı). `npm run lint` toplamı değişiklikten önce ve
 sonra aynı (72 sorun / 28 hata, hepsi ilgisiz eski dosyalarda; `data-table.tsx:61`
 mevcut bir localStorage `useEffect`'i).
+
+## Ayarlar sayfası: Vega E-Ticaret açıklamasının mobilde taşması düzeltildi (bu oturum)
+
+`/admin/ayarlar` sayfasında "Vega E-Ticaret Entegrasyonu" kartındaki açıklama
+375px'te sayfayı 386px'e genişletiyordu. Kök neden: içindeki
+`https://bollmark.com/api/vega/panelapi` `<code>` öğesi bölünemeyen tek bir
+kelime ve `<p>`, flex çocuğu olarak `min-w-0`'sız olduğu için küçülemiyordu.
+`ayarlar/page.tsx`'te `<p>`'ye `min-w-0`, `<code>`'a `break-words` eklendi
+(`break-all` URL'yi "http|s" ortasından kırdığı için tercih edilmedi). Ticimax
+kartı taşmıyordu, dokunulmadı.
+
+**Doğrulama**: Playwright ile 375/390/1280'de `scrollWidth == innerWidth`;
+`npm run build` hatasız. Not: dev sunucusu Tailwind'e sonradan eklenen yeni
+sınıfı bazen yakalamıyor (`break-all` CSS'e girmedi); sunucu yeniden
+başlatılınca sınıf üretildi, ölçümde tuhaf sonuç görürseniz önce yeniden
+başlatın.
