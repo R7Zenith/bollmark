@@ -90,13 +90,8 @@ export function SiteFooter() {
               <p className="text-sm uppercase tracking-wide text-cream">İletişim</p>
               <ul className="mt-3 space-y-2 text-sm">
                 <li>
-                  <a href="mailto:destek@bollmark.com" className={FOOTER_LINK_CLASS}>
-                    destek@bollmark.com
-                  </a>
-                </li>
-                <li>
-                  <a href="tel:+905550000000" className={FOOTER_LINK_CLASS}>
-                    +90 555 000 00 00
+                  <a href="mailto:bilgi@bollmark.com" className={FOOTER_LINK_CLASS}>
+                    bilgi@bollmark.com
                   </a>
                 </li>
               </ul>
