@@ -2,9 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { X } from "lucide-react";
+import { FilterDrawer } from "@/components/filter-drawer";
+import {
+  EMPTY_FILTERS,
+  STOCK_IN,
+  countActiveFilters,
+  writeCatalogFilters,
+  type CatalogFacets,
+  type CatalogFilters
+} from "@/lib/catalog-filters";
 
 // Release temasinin katalog sayfasindaki ust cubugu: tek satirda solda
-// "Filters" acilir menusu, ortada "Showing X of Y products" sayaci, sagda
+// "Filtrele" butonu (soldan acilan filtre cekmecesi, bkz. filter-drawer.tsx), ortada "Showing X of Y products" sayaci, sagda
 // siralama acilir menusu (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 2).
 // Kucuk-kapital tipografi header'daki nav linkleriyle ayni token'i kullanir
 // (text-[10px] / tracking-[1.4px]) - Release'in bu cubuk icin ayri bir
@@ -114,20 +124,25 @@ export function CatalogToolbar({
   categories,
   activeCategory,
   activeSort,
-  count
+  count,
+  facets,
+  filters
 }: {
   categories: CatalogFilterCategory[];
   activeCategory: string | null;
   activeSort: string;
   count: number;
+  facets: CatalogFacets;
+  filters: CatalogFilters;
 }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   // Mevcut sorgu parametrelerini koruyarak tek bir parametreyi degistirir -
-  // cinsiyet filtresi (mega menuden gelen) kategori/siralama secilince
-  // kaybolmasin diye.
+  // cinsiyet filtresi (mega menuden gelen) siralama secilince kaybolmasin diye.
   const applyParam = (key: string, value: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
@@ -136,43 +151,101 @@ export function CatalogToolbar({
     router.push(query ? `${pathname}?${query}` : pathname);
   };
 
+  // Filtre cekmecesi/cipleri: kategori + tum filtre param'larini birlikte yazar,
+  // cinsiyet/sirala olduklari gibi kalir.
+  const applyFilters = (next: CatalogFilters, category: string | null) => {
+    const params = new URLSearchParams(searchParams.toString());
+    writeCatalogFilters(params, next);
+    if (category) params.set("kategori", category);
+    else params.delete("kategori");
+    const query = params.toString();
+    router.push(query ? `${pathname}?${query}` : pathname);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    triggerRef.current?.focus();
+  };
+
   const activeSortLabel =
     CATALOG_SORTS.find((s) => s.key === activeSort)?.label ?? CATALOG_SORTS[0].label;
+
+  const activeFilterCount = countActiveFilters(filters, activeCategory !== null);
+  const categoryName = categories.find((c) => c.slug === activeCategory)?.name ?? activeCategory;
+
+  // Secili filtrelerin kaldirilabilir cipleri - her biri tek bir filtreyi
+  // cikarip kalanlari korur.
+  const chips: { key: string; label: string; remove: () => void }[] = [];
+  if (activeCategory) {
+    chips.push({ key: "kategori", label: categoryName ?? "", remove: () => applyFilters(filters, null) });
+  }
+  filters.colors.forEach((c) =>
+    chips.push({
+      key: `renk-${c}`,
+      label: c,
+      remove: () => applyFilters({ ...filters, colors: filters.colors.filter((v) => v !== c) }, activeCategory)
+    })
+  );
+  filters.sizes.forEach((s) =>
+    chips.push({
+      key: `beden-${s}`,
+      label: `Beden: ${s}`,
+      remove: () => applyFilters({ ...filters, sizes: filters.sizes.filter((v) => v !== s) }, activeCategory)
+    })
+  );
+  if (filters.minPrice !== null || filters.maxPrice !== null) {
+    const min = filters.minPrice !== null ? `${filters.minPrice} TL` : "";
+    const max = filters.maxPrice !== null ? `${filters.maxPrice} TL` : "";
+    chips.push({
+      key: "fiyat",
+      label: filters.minPrice !== null && filters.maxPrice !== null ? `${min} – ${max}` : filters.minPrice !== null ? `${min} ve üzeri` : `${max} ve altı`,
+      remove: () => applyFilters({ ...filters, minPrice: null, maxPrice: null }, activeCategory)
+    });
+  }
+  if (filters.stock.length === 1) {
+    chips.push({
+      key: "stok",
+      label: filters.stock[0] === STOCK_IN ? "Stokta" : "Stokta yok",
+      remove: () => applyFilters({ ...filters, stock: [] }, activeCategory)
+    });
+  }
+  if (filters.onSale) {
+    chips.push({ key: "indirimli", label: "İndirimli", remove: () => applyFilters({ ...filters, onSale: false }, activeCategory) });
+  }
 
   // Release'de cubugun kendi bir ust/alt cizgisi yok - ayrim artik butonlarin
   // kendi cercevesinden geliyor (bkz. TRIGGER_CLASS), disaridaki border-y
   // cift cerceve gibi durup gereksiz agirlasiyordu, kaldirildi.
   return (
+    <>
     <div className="flex items-center justify-between gap-4 py-4">
-      <Dropdown label="Filtrele" align="left">
-        {(close) => (
-          <>
-            <button
-              type="button"
-              className={activeCategory ? ITEM_CLASS : ITEM_ACTIVE_CLASS}
-              onClick={() => {
-                applyParam("kategori", null);
-                close();
-              }}
-            >
-              Tüm Kategoriler
-            </button>
-            {categories.map((category) => (
-              <button
-                key={category.slug}
-                type="button"
-                className={activeCategory === category.slug ? ITEM_ACTIVE_CLASS : ITEM_CLASS}
-                onClick={() => {
-                  applyParam("kategori", category.slug);
-                  close();
-                }}
-              >
-                {category.name}
-              </button>
-            ))}
-          </>
+      <button
+        ref={triggerRef}
+        type="button"
+        className={TRIGGER_CLASS}
+        aria-haspopup="dialog"
+        aria-expanded={drawerOpen}
+        onClick={() => setDrawerOpen(true)}
+      >
+        Filtrele
+        {activeFilterCount > 0 && (
+          <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-ink px-1 text-[9px] leading-none tracking-normal text-cream">
+            {activeFilterCount}
+          </span>
         )}
-      </Dropdown>
+      </button>
+      <FilterDrawer
+        open={drawerOpen}
+        onClose={closeDrawer}
+        facets={facets}
+        categories={categories}
+        activeCategory={activeCategory}
+        applied={filters}
+        onApply={(next, category) => {
+          applyFilters(next, category);
+          closeDrawer();
+        }}
+      />
 
       {/* Release'de burada "Showing X of Y products" yazar - orada sayfalama
           oldugu icin X ile Y farklidir. Bollmark katalogu tek sayfada tum
@@ -200,5 +273,35 @@ export function CatalogToolbar({
         )}
       </Dropdown>
     </div>
+
+    {chips.length > 0 && (
+      <ul className="flex flex-wrap items-center gap-2 pb-4">
+        {chips.map((chip) => (
+          <li key={chip.key}>
+            <button
+              type="button"
+              aria-label={`${chip.label} filtresini kaldır`}
+              onClick={chip.remove}
+              className="flex h-8 items-center gap-2 border border-line px-3 text-[10px] uppercase tracking-[1.4px] text-ink transition hover:border-ink"
+            >
+              {chip.label}
+              <X size={12} strokeWidth={1.5} />
+            </button>
+          </li>
+        ))}
+        {chips.length > 1 && (
+          <li>
+            <button
+              type="button"
+              onClick={() => applyFilters(EMPTY_FILTERS, null)}
+              className="px-2 text-[10px] uppercase tracking-[1.4px] text-ink underline underline-offset-4"
+            >
+              Tümünü temizle
+            </button>
+          </li>
+        )}
+      </ul>
+    )}
+    </>
   );
 }

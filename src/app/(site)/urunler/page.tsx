@@ -2,7 +2,16 @@ import type { Metadata } from "next";
 import { getCatalogEntries } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/product-card";
+import Link from "next/link";
 import { CatalogToolbar } from "@/components/catalog-toolbar";
+import {
+  FILTER_PARAM_KEYS,
+  applyCatalogFilters,
+  buildCatalogFacets,
+  countActiveFilters,
+  parseCatalogFilters,
+  toURLSearchParams
+} from "@/lib/catalog-filters";
 import { getActiveAutomaticPercentCampaigns, resolveProductDisplayPrice } from "@/lib/coupons";
 import type { CatalogEntry } from "@/lib/catalog";
 
@@ -60,9 +69,14 @@ export async function generateMetadata({
 export default async function ProductsPage({
   searchParams
 }: {
-  searchParams: Promise<{ kategori?: string; cinsiyet?: string; sirala?: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const { kategori, cinsiyet, sirala } = await searchParams;
+  const query = await searchParams;
+  const params = toURLSearchParams(query);
+  const kategori = params.get("kategori") || undefined;
+  const cinsiyet = params.get("cinsiyet") || undefined;
+  const sirala = params.get("sirala") || undefined;
+  const filters = parseCatalogFilters(params);
 
   // Birden fazla rengi olan urunler burada renk basina ayri bir giris olarak
   // gelir (bkz. lib/catalog.ts getCatalogEntries) - musteri kataloga bakarken
@@ -81,7 +95,20 @@ export default async function ProductsPage({
       select: { name: true, slug: true, imageUrl: true }
     })
   ]);
-  const entries = sortEntries(rawEntries, sirala);
+  // Cekmece secenekleri filtrelenmemis (kategori/cinsiyet kapsamindaki)
+  // girislerden uretilir, yoksa bir renk secince diger renkler kaybolurdu.
+  const facets = buildCatalogFacets(rawEntries);
+  const entries = sortEntries(applyCatalogFilters(rawEntries, filters), sirala);
+  // Kategori burada sayilmiyor: kategori+cinsiyet kombinasyonunun bos olmasi
+  // icin zaten ozel bir mesaj var (emptyMessage).
+  const hasActiveFilters = countActiveFilters(filters, false) > 0;
+
+  // Bos sonuc durumundaki "Filtreleri temizle" baglantisi - cinsiyet/sirala
+  // kalir, kategori dahil tum filtreler kalkar.
+  const clearParams = new URLSearchParams(params);
+  [...FILTER_PARAM_KEYS, "kategori"].forEach((key) => clearParams.delete(key));
+  const clearQuery = clearParams.toString();
+  const clearHref = clearQuery ? `/urunler?${clearQuery}` : "/urunler";
 
   const heading = cinsiyet ? `${cinsiyet} Koleksiyonu` : "Tüm Ürünler";
   const emptyMessage = cinsiyet
@@ -140,11 +167,26 @@ export default async function ProductsPage({
           activeCategory={kategori ?? null}
           activeSort={sirala ?? ""}
           count={entries.length}
+          facets={facets}
+          filters={filters}
         />
       </div>
 
       {entries.length === 0 ? (
-        <p className="mt-10 text-ink/60">{emptyMessage}</p>
+        hasActiveFilters ? (
+          <div className="mt-16 flex flex-col items-center text-center">
+            <p className="text-2xl font-normal tracking-[-0.5px]">Sonuç bulunamadı</p>
+            <p className="mt-3 text-sm text-ink/60">Seçtiğiniz filtrelere uyan ürün yok.</p>
+            <Link
+              href={clearHref}
+              className="mt-8 flex h-[44px] items-center justify-center rounded-[50px] border border-ink px-8 text-[10px] uppercase tracking-[1px] text-ink transition duration-300 hover:bg-ink hover:text-cream"
+            >
+              Filtreleri Temizle
+            </Link>
+          </div>
+        ) : (
+          <p className="mt-10 text-ink/60">{emptyMessage}</p>
+        )
       ) : (
         // Mobilde gorseller ekran kenarina yapisik olsun diye grid ust
         // konteynerin px-4'unu -mx-4 ile iptal ediyor (bkz.

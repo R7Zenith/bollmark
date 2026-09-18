@@ -138,7 +138,7 @@ ile (delegasyonu atlayarak) asildi ve Worker'a ilk deploy basarili oldu.
 
 Ardindan `.env`'de `ADMIN_PASSWORD` placeholder oldugu fark edildi
 (`guclu-bir-sifre-belirleyin`), kullanicinin belirledigi gercek deger
-(`ozilevent@gmail.com` / `kujju123`) ile guncellendi; `PREVIEW_PASSWORD` da
+(`ozilevent@gmail.com` / deger burada gizli tutuluyor, `.env` dosyasindan okunabilir) ile guncellendi; `PREVIEW_PASSWORD` da
 hic yoktu, rastgele uretilip eklendi. Cloudflare secret'lari
 (`wrangler secret put`) ile Worker'a eklendi ve **admin login "kullanici
 adi veya sifre hatali" verdi**. Kok neden arastirmasi:
@@ -4375,3 +4375,47 @@ Chrome DevTools emülasyonu: header 73px, sepet kutusu 40×40 ve logoyla
 çakışmıyor. Not: `PREVIEW_PASSWORD` yerel önizlemede `/` ve `/urunler`'i
 "coming soon" sayfasına yönlendiriyor; ekran görüntüsü için dev sunucusunu bu
 değişken boş verilerek (`PREVIEW_PASSWORD= npx next dev -p 3100`) başlattım.
+
+## Katalog filtre çekmecesi: soldan açılan "Filtrele" paneli (bu oturum)
+
+Kaynak plan: `FILTRE_CEKMECESI_PLANI.md`. Eski "Filtrele" butonu yalnızca
+kategori seçtiren küçük bir açılır menüydü; Release'deki gibi soldan kayan,
+akordeonlu bir çekmeceye dönüştürüldü.
+
+- `components/filter-drawer.tsx` (yeni): sepet çekmecesiyle aynı overlay/z-index
+  (800/801), 450ms + aynı cubic-bezier, body scroll kilidi; kapanışta da animasyon
+  oynuyor (450ms sonra unmount). Bölümler: Kategori, Renk (ilk 5 + "Daha fazla
+  göster"), Beden (çipler), Fiyat (min-max TL girişi), Stok Durumu, İndirimli
+  Ürünler. Seçimler çekmece içinde geçici (draft) tutulur; "Filtreleri Uygula"
+  URL'ye yazar, "Temizle" draft'ı sıfırlar. Erişilebilirlik: role=dialog +
+  aria-modal, Esc, Tab focus trap, kapanınca odak Filtrele butonuna döner,
+  kapalı akordeonlar `inert`, `motion-reduce` desteği.
+- `lib/catalog-filters.ts` (yeni): query param ↔ filtre nesnesi
+  (`renk`, `beden`, `fiyat-min`, `fiyat-max`, `stok`, `indirimli`; renk/beden/stok
+  tekrarlı param), filtre uygulama ve facet/sayı hesabı. Sunucu ve istemci
+  ortak kullanıyor.
+- `urunler/page.tsx`: filtreler sunucuda `getCatalogEntries` sonucuna uygulanıyor
+  (URL paylaşılabilir, geri tuşu çalışır). Facet seçenekleri **filtrelenmemiş**
+  girişlerden üretilir, yoksa bir renk seçince diğer renkler kaybolurdu. Sonuç
+  yoksa "Sonuç bulunamadı + Filtreleri Temizle" boş durumu.
+- `catalog-toolbar.tsx`: buton + aktif filtre sayısı rozeti, listenin üstünde
+  kaldırılabilir filtre çipleri ve "Tümünü temizle".
+- `lib/catalog.ts`: `CatalogEntry`'ye `colorName` eklendi (tek renkli ürünlerde
+  `colorLabel` null olduğu için renk filtresi buna bakıyor).
+
+Kararlar: Beden filtresi yalnızca **stokta olan** bedenlere bakıyor
+(`quickAddVariants`); fiyat filtresi/aralığı kampanya öncesi `priceCents` üzerinden
+(sıralamayla tutarlı); yeni bağımlılık eklenmedi. Kategori tek seçim (mevcut
+`kategori` param'ı, sunucu tarafı DB filtresi).
+
+**Doğrulama**: `tsc --noEmit` ve eslint (değişen dosyalar) temiz, `next build`
+hatasız. Playwright ile 1440 ve 390px'te: aç/Esc ile kapat (odak Filtrele'ye
+dönüyor), stok filtresi uygula (47 → 45 ürün, `?stok=stokta`), çip ile kaldır,
+boş durum (`?fiyat-min=99999999`); konsol hatası yok. Bulunan bug: panel açılışta
+`visibility` geçişi yüzünden odak kapat butonuna geçmiyordu (60ms gecikmeyle
+çözüldü) ve Esc bu yüzden çalışmıyordu (dinleyici document'a taşındı). Not:
+`cart-drawer.tsx`'teki `setState in effect` lint hataları önceden var, bu
+çekmecede aynı pattern kullanılmadı.
+Ayrıca bu dosyadaki gerçek bir admin parolası (eski bir bölümde) push öncesi
+maskelendi; deger git geçmişinde önceki commit'te duruyor, parolanın
+değiştirilmesi önerilir.

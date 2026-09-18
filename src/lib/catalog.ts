@@ -118,6 +118,9 @@ export type CatalogEntry = {
   compareAtCents: number | null;
   image: string | null;
   colorLabel: string | null; // yalnizca birden fazla rengi olan urunlerde dolu
+  // Bu girisin kendi rengi - tek renkli urunlerde de dolu (colorLabel'in aksine),
+  // filtre cekmecesindeki renk secenekleri icin (bkz. lib/catalog-filters.ts).
+  colorName: string | null;
   categoryId: string | null;
   brandId: string | null;
   gender: string | null;
@@ -202,6 +205,7 @@ export async function getCatalogEntries(
         image: p.images[0]?.url ?? cover?.url ?? null,
         secondImage: p.images[1]?.url ?? secondOptionImage?.url ?? null,
         colorLabel: null,
+        colorName: [...colorLabelByValueId.values()][0]?.label ?? null,
         categoryId: p.categoryId,
         brandId: p.brandId,
         gender: p.gender,
@@ -230,6 +234,7 @@ export async function getCatalogEntries(
         image: cover?.url ?? p.images[0]?.url ?? null,
         secondImage: secondColorImage?.url ?? p.images[1]?.url ?? null,
         colorLabel: label,
+        colorName: label,
         categoryId: p.categoryId,
         brandId: p.brandId,
         gender: p.gender,
