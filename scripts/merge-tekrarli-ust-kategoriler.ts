@@ -88,10 +88,11 @@ async function main() {
         where: { categoryId: duplicate.id },
         data: { categoryId: canonical.id }
       });
-      await tx.coupon.updateMany({
-        where: { categoryId: duplicate.id },
-        data: { categoryId: canonical.id }
-      });
+      const couponsToUpdate = await tx.coupon.findMany({ where: { categoryIds: { has: duplicate.id } } });
+      for (const c of couponsToUpdate) {
+        const newCategoryIds = [...new Set(c.categoryIds.map((id) => (id === duplicate.id ? canonical.id : id)))];
+        await tx.coupon.update({ where: { id: c.id }, data: { categoryIds: newCategoryIds } });
+      }
 
       const remaining = await tx.product.count({ where: { categoryId: duplicate.id } });
       if (remaining > 0) {
