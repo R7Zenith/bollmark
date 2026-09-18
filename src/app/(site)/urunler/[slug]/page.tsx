@@ -119,7 +119,6 @@ export default async function ProductPage({
         material={product.material}
         origin={product.origin}
         careInstructions={product.careInstructions}
-        sizeGuide={product.category?.sizeGuide ?? null}
         priceCents={product.priceCents}
         compareAtCents={product.compareAtCents}
         categoryId={product.categoryId}

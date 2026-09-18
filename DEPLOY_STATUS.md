@@ -4204,3 +4204,43 @@ ayni deseni birebir kullaniyor. Commit `23c7012` ile `origin/main`'e pushlandi.
   sonrasinda `null`'a geri alindi.
 
 **Dogrulama**: `npm run build` hatasiz gecti.
+
+## Beden Tablosu, urune ozel sizeGuide accordion/InfoDrawer'indan Koton tarzi genel/tum siteye ortak SizeGuideModal'a donusturuldu (ayni oturum, bkz. URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md v4)
+
+- `src/lib/size-guide-data.ts` eklendi: Koton'un canli sitesinden birebir
+  okunan 27 tablo (Kadin 9, Genc 4 - 3'u Kadin ile ayni referans, Erkek 5,
+  Kiz Cocuk 2, Erkek Cocuk 2 - Kiz Cocuk ile ayni referans, Bebek 1, Buyuk
+  Beden 4), `SIZE_GUIDE: Record<anaKategori, Record<altTip, {headers, rows}>>`
+  seklinde. Ondalik virguller ("34,5" gibi) Koton'daki gibi virgul olarak
+  birakildi. "X ile birebir ayni veri" denen yerler (orn. Genc Ust Giyim =
+  Kadin Ust Giyim) gercekten ayni obje referansi - kopyalanmadi.
+- `src/components/size-guide-modal.tsx` eklendi: InfoDrawer'in sagdan
+  cekmece deseninden FARKLI, ortada beliren fade+scale modal (200ms,
+  ESC + overlay tiklayinca kapanir, body scroll lock) - genis tablo + yan
+  bilgi kutusu dar bir cekmeceye sigmadigi icin ayri bir desen kullanildi.
+  Ust seviye sekmeler (7 ana kategori, pill buton) + alt seviye sekmeler
+  (secili ana kategoriye gore degisen alt tipler, tek alt tip varsa - Bebek -
+  sekme gizlenir) + tablo + sabit "±2 cm sapma" notu + "Bedeninizi nasil
+  olcmelisiniz?" 4 maddelik yan kutu.
+- `product-viewer.tsx`: "Beden Tablosu" satiri artik ProductViewer'a gelen
+  `sizeGuide` prop'una (urunun kendi kategorisinden miras alinan serbest
+  metin) BAGLI DEGIL - tiklaninca her zaman ayni genel `SizeGuideModal`'i
+  acar. Bu yuzden eski `sizeGuide` prop'u, `parseSizeGuideTable`,
+  `SizeGuideContent`, ilgili InfoDrawer ve "Beden Rehberi" kisayolundaki
+  kosul TAMAMEN kaldirildi (plan dosyasinin acik talimatiyla - "o plan artik
+  gecersiz, bu genel modal onun yerini aliyor"). `urunler/[slug]/page.tsx`'te
+  `sizeGuide={product.category?.sizeGuide ?? null}` satiri da bu yuzden
+  kaldirildi.
+- **Not (kod degil, urun karari)**: Admin panelindeki kategori duzenleme
+  formunda (`admin/kategoriler/[id]/page.tsx`) "Beden Tablosu" textarea'si
+  ve yardim metni hala duruyor ama artik hicbir sey render etmiyor - alan/
+  yardim metni bu oturumda BILEREK silinmedi (plan sadece product-viewer.tsx
+  kapsamindaydi), ama bir sonraki turda admin formundan da kaldirilmasi
+  gerekebilir, yoksa yonetici bos yere veri giriyor.
+- **Dogrulama**: `npm run build` hatasiz gecti; veri seti bir tsx script ile
+  yuklenip 7 ana kategori/tum alt tipler dogru anahtarlarla listelendi,
+  paylasilan referanslar (`Genç.Üst Giyim === Kadın.Üst Giyim`,
+  `Erkek Çocuk.Üst Giyim === Kız Çocuk.Üst Giyim`) `true` doner sekilde
+  teyit edildi; dev sunucuda urun sayfasi `curl` ile cekilip "Devamını Oku"
+  -> "İade ve Değişim" -> "Ürün Bakım Talimatı" -> "Beden Tablosu" ->
+  trust-ticker sirasi korundu.

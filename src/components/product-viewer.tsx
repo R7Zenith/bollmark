@@ -16,95 +16,7 @@ import { effectivePrice } from "@/lib/variant";
 import { resolveProductDisplayPrice, type AutomaticPercentCampaign } from "@/lib/coupons";
 import { ProductBadge } from "@/components/product-badge";
 import { InfoDrawer } from "@/components/info-drawer";
-
-type SizeGuideBlock = { type: "text"; content: string } | { type: "table"; rows: string[][] };
-
-// sizeGuide serbest metin alaninda "|" iceren ARDISIK satirlar gercek bir
-// <table>'a cevrilir (Koton'daki "Ürün Ölçü Tablosu" bicimiyle birebir -
-// bkz. URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md ICERIK 3: aciklama
-// cumlesi "|" icermez, tablo satirlari icerir). "|" iceren hic satir yoksa
-// (mevcut urunlerin cogu duz cumle icerdigi icin) eski whitespace-pre-line
-// davranisi tek bir "text" blogu olarak korunur (geriye donuk uyumluluk,
-// DB semasi degismedi).
-function parseSizeGuideTable(text: string): SizeGuideBlock[] {
-  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
-  if (!lines.some((l) => l.includes("|"))) return [{ type: "text", content: text }];
-
-  const blocks: SizeGuideBlock[] = [];
-  let textBuffer: string[] = [];
-  let tableBuffer: string[][] = [];
-
-  const flushText = () => {
-    if (textBuffer.length > 0) {
-      blocks.push({ type: "text", content: textBuffer.join("\n") });
-      textBuffer = [];
-    }
-  };
-  const flushTable = () => {
-    if (tableBuffer.length > 0) {
-      blocks.push({ type: "table", rows: tableBuffer });
-      tableBuffer = [];
-    }
-  };
-
-  for (const line of lines) {
-    if (line.includes("|")) {
-      flushText();
-      tableBuffer.push(line.split("|").map((cell) => cell.trim()));
-    } else {
-      flushTable();
-      textBuffer.push(line);
-    }
-  }
-  flushText();
-  flushTable();
-  return blocks;
-}
-
-// parseSizeGuideTable'in blok listesini InfoDrawer icinde gosteren ortak
-// render - Beden Tablosu artik accordion degil, diger iki bilgi satiriyla
-// (Iade ve Degisim, Urun Bakim Talimati) ayni InfoDrawer deseniyle acilan
-// ucuncu satir (bkz. URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md).
-function SizeGuideContent({ sizeGuide }: { sizeGuide: string }) {
-  return (
-    <div className="text-sm leading-relaxed text-ink/70">
-      {parseSizeGuideTable(sizeGuide).map((block, i) => {
-        if (block.type === "text") {
-          return (
-            <p key={i} className="whitespace-pre-line first:mt-0 mt-3">
-              {block.content}
-            </p>
-          );
-        }
-        const [head, ...body] = block.rows;
-        return (
-          <table key={i} className="mt-3 w-full border-collapse text-xs first:mt-0">
-            <thead>
-              <tr>
-                {head.map((cell, j) => (
-                  <th key={j} className="border border-line px-2 py-1.5 text-left font-medium text-ink">
-                    {cell}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {body.map((row, r) => (
-                <tr key={r}>
-                  {row.map((cell, c) => (
-                    <td key={c} className="border border-line px-2 py-1.5">
-                      {cell}
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        );
-      })}
-    </div>
-  );
-}
+import { SizeGuideModal } from "@/components/size-guide-modal";
 
 // Bu esikten dusuk stok "Son N adet" uyarisi gosterir - e-posta gerektirmeyen
 // salt UI bir isaret. Ileride StoreSettings'e tasinabilir (Faz A'ya dahil degil).
@@ -217,7 +129,6 @@ export function ProductViewer({
   material,
   origin,
   careInstructions,
-  sizeGuide,
   priceCents,
   compareAtCents,
   categoryId,
@@ -242,7 +153,6 @@ export function ProductViewer({
   material: string | null;
   origin: string | null;
   careInstructions: string | null;
-  sizeGuide: string | null;
   priceCents: number;
   compareAtCents: number | null;
   categoryId: string | null;
@@ -288,7 +198,7 @@ export function ProductViewer({
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
   const [iadeDrawerOpen, setIadeDrawerOpen] = useState(false);
   const [bakimDrawerOpen, setBakimDrawerOpen] = useState(false);
-  const [bedenDrawerOpen, setBedenDrawerOpen] = useState(false);
+  const [sizeGuideModalOpen, setSizeGuideModalOpen] = useState(false);
 
   // Release'de urun gorselleri PhotoSwipe ile tiklaninca tam ekran bir
   // lightbox'ta aciliyor (zoom="click", bkz. product-media-gallery.js).
@@ -310,10 +220,8 @@ export function ProductViewer({
 
   // release-main.myshopify.com/products/top-8 canli DOM'unda "Size guide"
   // linki BEDEN etiketinin hemen yaninda duruyor (`group "Size XS Size
-  // guide"`), Bollmark'ta bu kisayol Beden Tablosu InfoDrawer'ini acar
-  // (bkz. asagida bedenDrawerOpen - eskiden ayri bir accordion'u acip oraya
-  // kaydiran bir ref kullaniyordu, Beden Tablosu drawer'a tasininca geriye
-  // kaydirilacak bir accordion kalmadi).
+  // guide"`), Bollmark'ta bu kisayol genel/urune bagli olmayan
+  // SizeGuideModal'i acar (bkz. asagida sizeGuideModalOpen).
 
   const selected = variants.find((v) => v.size === size && v.color === color);
   const outOfStock = !selected || selected.stock <= 0;
@@ -729,15 +637,13 @@ export function ProductViewer({
             <div>
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs uppercase tracking-wide text-ink/60">Beden</p>
-                {sizeGuide && (
-                  <button
-                    type="button"
-                    onClick={() => setBedenDrawerOpen(true)}
-                    className="text-xs uppercase tracking-wide text-ink underline underline-offset-4 hover:text-ink/70"
-                  >
-                    Beden Rehberi
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={() => setSizeGuideModalOpen(true)}
+                  className="text-xs uppercase tracking-wide text-ink underline underline-offset-4 hover:text-ink/70"
+                >
+                  Beden Rehberi
+                </button>
               </div>
               {/* Release'de beden kutucuklari 28x28px KARE, 1px duz siyah
                   cerceve, kose yariçapi 0 (bkz. 3) - hap/pill degil. Bollmark'ta
@@ -859,14 +765,13 @@ export function ProductViewer({
           )}
 
           {/* Koton'un urun sayfasindaki gibi (referans: koton.com/.../4197527)
-              urun aciklamasinin hemen altinda, InfoDrawer'i acan ok isaretli
-              satirlar - bunlar accordion degil, cart-drawer.tsx'teki desenle
-              ayni sagdan cekmece (bkz. info-drawer.tsx). Beden Tablosu
-              eskiden Urun Detaylari accordion'unun yaninda ayri bir
-              accordion'du - kullanicinin istegiyle sokulup buraya, ayni
-              stildeki ucuncu satir olarak eklendi (bkz.
-              URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md). Sira: Iade ve
-              Degisim -> Urun Bakim Talimati -> Beden Tablosu. */}
+              urun aciklamasinin hemen altinda, ok isaretli uc satir - Iade ve
+              Degisim / Urun Bakim Talimati InfoDrawer (cart-drawer.tsx'teki
+              sagdan cekmece deseniyle) acarken, Beden Tablosu artik urune
+              bagli degil - genel/tum siteye ortak SizeGuideModal'i (ortali
+              modal) acar (bkz. URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md
+              v4). Sira: Iade ve Degisim -> Urun Bakim Talimati -> Beden
+              Tablosu. */}
           <div>
             <button
               type="button"
@@ -884,16 +789,14 @@ export function ProductViewer({
               Ürün Bakım Talimatı
               <ChevronRight size={18} className="text-ink/40" />
             </button>
-            {sizeGuide && (
-              <button
-                type="button"
-                onClick={() => setBedenDrawerOpen(true)}
-                className="flex w-full items-center justify-between border-t border-b border-line py-4 text-[16px] tracking-[-0.64px] text-ink"
-              >
-                Beden Tablosu
-                <ChevronRight size={18} className="text-ink/40" />
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => setSizeGuideModalOpen(true)}
+              className="flex w-full items-center justify-between border-t border-b border-line py-4 text-[16px] tracking-[-0.64px] text-ink"
+            >
+              Beden Tablosu
+              <ChevronRight size={18} className="text-ink/40" />
+            </button>
           </div>
 
           {/* release-main.myshopify.com/products/top-8'de IKI AYRI ticker
@@ -1193,11 +1096,7 @@ export function ProductViewer({
       </div>
     </InfoDrawer>
 
-    {sizeGuide && (
-      <InfoDrawer open={bedenDrawerOpen} onClose={() => setBedenDrawerOpen(false)} title="Beden Tablosu">
-        <SizeGuideContent sizeGuide={sizeGuide} />
-      </InfoDrawer>
-    )}
+    <SizeGuideModal open={sizeGuideModalOpen} onClose={() => setSizeGuideModalOpen(false)} />
     </>
   );
 }
