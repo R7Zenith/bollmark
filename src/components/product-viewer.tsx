@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
 import { useRouter } from "next/navigation";
-import { Heart, Minus, Plus, Truck, RotateCcw, ShieldCheck, Check, ZoomIn, Clock } from "lucide-react";
+import { Heart, Minus, Plus, Truck, RotateCcw, ShieldCheck, Check, ZoomIn, Clock, ChevronRight } from "lucide-react";
 import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/styles.css";
@@ -15,6 +15,18 @@ import { formatPrice } from "@/lib/format";
 import { effectivePrice } from "@/lib/variant";
 import { resolveProductDisplayPrice, type AutomaticPercentCampaign } from "@/lib/coupons";
 import { ProductBadge } from "@/components/product-badge";
+import { InfoDrawer } from "@/components/info-drawer";
+
+// sizeGuide serbest metin alaninda satirlar "|" ile ayrilmissa (admin
+// kategori formundaki yeni yardim metnine gore, bkz. kategoriler/[id]/page.tsx)
+// gercek bir <table> olarak gosterilir - "|" yoksa (mevcut urunlerin cogu
+// duz cumle icerdigi icin) eski whitespace-pre-line davranisi degismeden
+// korunur (geriye donuk uyumluluk, DB semasi degismedi).
+function parseSizeGuideTable(text: string): string[][] | null {
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  if (!lines.some((l) => l.includes("|"))) return null;
+  return lines.map((l) => l.split("|").map((cell) => cell.trim()));
+}
 
 // Bu esikten dusuk stok "Son N adet" uyarisi gosterir - e-posta gerektirmeyen
 // salt UI bir isaret. Ileride StoreSettings'e tasinabilir (Faz A'ya dahil degil).
@@ -196,6 +208,8 @@ export function ProductViewer({
   const [added, setAdded] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [iadeDrawerOpen, setIadeDrawerOpen] = useState(false);
+  const [bakimDrawerOpen, setBakimDrawerOpen] = useState(false);
 
   // Release'de urun gorselleri PhotoSwipe ile tiklaninca tam ekran bir
   // lightbox'ta aciliyor (zoom="click", bkz. product-media-gallery.js).
@@ -607,9 +621,60 @@ export function ProductViewer({
             <summary className="cursor-pointer text-[16px] tracking-[-0.64px] text-ink underline decoration-transparent underline-offset-[5px] transition duration-300 hover:decoration-ink">
               Beden Tablosu
             </summary>
-            <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink/70">{sizeGuide}</p>
+            {(() => {
+              const table = parseSizeGuideTable(sizeGuide);
+              if (!table) {
+                return <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-ink/70">{sizeGuide}</p>;
+              }
+              const [head, ...body] = table;
+              return (
+                <table className="mt-3 w-full border-collapse text-xs text-ink/70">
+                  <thead>
+                    <tr>
+                      {head.map((cell, i) => (
+                        <th key={i} className="border border-line px-2 py-1.5 text-left font-medium text-ink">
+                          {cell}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {body.map((row, i) => (
+                      <tr key={i}>
+                        {row.map((cell, j) => (
+                          <td key={j} className="border border-line px-2 py-1.5">
+                            {cell}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              );
+            })()}
           </details>
         )}
+
+        {/* Koton'un urun sayfasindaki gibi (referans: koton.com/.../4197527)
+            Beden Tablosu accordion'unun altina, InfoDrawer'i acan ok isaretli
+            iki satir - bunlar accordion degil, cart-drawer.tsx'teki desenle
+            ayni sagdan cekmece (bkz. info-drawer.tsx). */}
+        <button
+          type="button"
+          onClick={() => setIadeDrawerOpen(true)}
+          className="flex w-full items-center justify-between border-t border-line py-4 text-[16px] tracking-[-0.64px] text-ink"
+        >
+          İade ve Değişim
+          <ChevronRight size={18} className="text-ink/40" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setBakimDrawerOpen(true)}
+          className="flex w-full items-center justify-between border-t border-line py-4 text-[16px] tracking-[-0.64px] text-ink"
+        >
+          Ürün Bakım Talimatı
+          <ChevronRight size={18} className="text-ink/40" />
+        </button>
 
         <div className="mt-8 space-y-6">
           {colors.length > 0 && colors.some(Boolean) && (
@@ -879,6 +944,58 @@ export function ProductViewer({
         }
       }}
     />
+
+    <InfoDrawer open={iadeDrawerOpen} onClose={() => setIadeDrawerOpen(false)} title="İade & Değişim">
+      <div className="space-y-5 text-sm leading-relaxed text-ink/70">
+        <p>
+          Bollmark üzerinden yaptığınız alışverişlerde, ürünü teslim aldığınız tarihten itibaren 14 gün
+          içinde hiçbir gerekçe göstermeksizin cayma hakkınızı kullanabilir, ürünü iade edebilirsiniz.
+        </p>
+        <div>
+          <p className="font-medium text-ink">İadesi Mümkün Olmayan Ürünler</p>
+          <p className="mt-1">
+            İç giyim, mayo ve bikini gibi hijyen açısından hassas ürünler; ambalajı/etiketi açılmış veya
+            kullanılmışsa iade kapsamı dışındadır.
+          </p>
+        </div>
+        <div>
+          <p className="font-medium text-ink">İade Adımları</p>
+          <ol className="mt-1 list-decimal space-y-1 pl-4">
+            <li>bilgi@bollmark.com adresine sipariş numaranızla iade talebinizi iletin.</li>
+            <li>
+              Ürünü faturası, orijinal kutusu/ambalajı ve etiketleriyle birlikte, kullanılmamış ve hasarsız
+              şekilde paketleyin.
+            </li>
+            <li>Belirtilen adrese gönderin.</li>
+            <li>İade kargo ücreti alıcıya aittir.</li>
+            <li>Ürün elimize ulaşıp kontrolü tamamlandıktan sonra bedeli en geç 14 gün içinde ödeme yaptığınız yönteme iade edilir.</li>
+          </ol>
+        </div>
+        <p className="text-xs text-ink/50">Detaylı bilgi için Teslimat ve İade Şartları sayfamızı inceleyebilirsiniz.</p>
+      </div>
+    </InfoDrawer>
+
+    <InfoDrawer open={bakimDrawerOpen} onClose={() => setBakimDrawerOpen(false)} title="Ürün Bakım Talimatı">
+      <div className="space-y-5 text-sm leading-relaxed text-ink/70">
+        {careInstructions && (
+          <div>
+            <p className="font-medium text-ink">Bu ürün için</p>
+            <p className="mt-1">{careInstructions}</p>
+          </div>
+        )}
+        <div>
+          <p className="font-medium text-ink">Genel Bakım Önerileri</p>
+          <ol className="mt-1 list-decimal space-y-1.5 pl-4">
+            <li>Ürünün etiketindeki yıkama ve bakım sembollerini satın almadan önce ve her kullanımdan sonra kontrol edin.</li>
+            <li>Farklı ürün ve kumaşlar için farklı bakım yöntemleri gerekebilir; etikette belirtilen talimatlara sadık kalın.</li>
+            <li>Yüksek dereceli yıkama ve sık kuru temizleme yerine, mümkün olduğunda daha düşük sıcaklıkta ve nazik yıkama tercih edin.</li>
+            <li>Deterjanı ölçü kabıyla, önerilen miktarda kullanın; fazla deterjan hem ürüne hem çevreye zarar verir.</li>
+            <li>Koyu ve açık renkli ürünleri ayrı yıkayın, renk akmasını önlemek için ilk birkaç yıkamada dikkatli olun.</li>
+            <li>Ayakkabı ve çanta gibi ürünleri doğrudan güneş ışığından ve nemden uzak, kuru bir ortamda saklayın.</li>
+          </ol>
+        </div>
+      </div>
+    </InfoDrawer>
     </>
   );
 }

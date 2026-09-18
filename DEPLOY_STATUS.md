@@ -4125,3 +4125,29 @@ telefon numarasi henuz belirtilmedi (footer'daki `+90 555 000 00 00` ve
 `RESEND_API_KEY` local'de tanimli olmadigi icin gercek mail gonderimi test
 edilemedi (bkz. prompt dosyasindaki not); kod, `notifyAdminNewOrder` ile
 ayni deseni birebir kullaniyor. Commit `23c7012` ile `origin/main`'e pushlandi.
+
+## Urun detay: Iade & Degisim / Urun Bakim Talimati cekmeceleri + Beden Tablosu gercek tablo gorunumu (bu oturum, bkz. URUN_DETAY_IADE_BAKIM_BEDEN_TABLOSU_PLANI.md)
+
+- `src/components/info-drawer.tsx` eklendi: `cart-drawer.tsx`'teki
+  mount/shouldRender/visible + `createPortal` + 450ms transition deseninin
+  genellestirilmis hali (cart-drawer.tsx'e dokunulmadi).
+- `src/components/product-viewer.tsx`: Beden Tablosu accordion'unun altina
+  ok isaretli (ChevronRight) "Iade ve Degisim" ve "Urun Bakim Talimati"
+  satirlari eklendi, tiklaninca `InfoDrawer` aciliyor. Icerikler Bollmark'in
+  gercek politikasindan (HUKUKI_SAYFALAR_ICERIK_VE_PLAN.md) ozetlendi,
+  Koton'un metni kullanilmadi; `/teslimat-ve-iade` route'u henuz
+  olusturulmadigi icin alt bilgi satiri simdilik duz metin birakildi.
+- Beden Tablosu icerigi icin `parseSizeGuideTable` eklendi: `sizeGuide`
+  metninde "|" karakteri varsa satirlar gercek bir `<table>` olarak, yoksa
+  eskisi gibi duz metin (`whitespace-pre-line`) olarak gosteriliyor -
+  DB semasi degismedi, geriye donuk uyumlu.
+- **Plandaki bir varsayim duzeltildi**: Plan dosyasi "Beden Tablosu" (`sizeGuide`)
+  alaninin urun formunda oldugunu varsaymisti; kod incelemesinde bu alanin
+  aslinda **kategori** modelinde oldugu goruldu (urunler kendi kategorilerinin
+  beden tablosunu miras aliyor, bkz. `urunler/[slug]/page.tsx` ->
+  `product.category?.sizeGuide`). Yardim metni bu yuzden urun formuna degil,
+  `src/app/(admin)/admin/kategoriler/[id]/page.tsx`'teki asil kategori
+  duzenleme formuna eklendi (kategoriler listesindeki kompakt "hizli ekle"
+  formuna dokunulmadi, oraya siginmiyordu).
+
+**Dogrulama**: `npm run build` hatasiz gecti.

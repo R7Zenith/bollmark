@@ -75,6 +75,9 @@ export default async function CategoryDetailPage({
                 placeholder="Beden tablosu (opsiyonel)"
                 className={`mt-1 ${inputClass}`}
               />
+              <p className="mt-1 text-xs text-admin-text-muted">
+                Tablo olarak göstermek için satırları | ile ayırın, örnek: Beden | Boy | Bel | Kalça sonra 34 | 35 | 34 | 46 gibi her ölçü satırını yeni satıra yazın.
+              </p>
             </div>
           </div>
         </Card>
