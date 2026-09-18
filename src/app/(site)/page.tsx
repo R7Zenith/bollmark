@@ -65,7 +65,12 @@ export default async function HomePage() {
           font boyutu Release'de olculen 1024px/1600px degerleriyle
           orantili bir clamp()'e alindi. Uc metin ogesi de (.hero-reveal,
           bkz. globals.css) Release'in giris animasyonunu birebir kullanir:
-          sayfa yuklenince asagidan kayarak/solarak belirir. */}
+          sayfa yuklenince asagidan kayarak/solarak belirir. NOT: bu
+          overflow:hidden sarmalayici yuzunden satir yuksekligi Release'in
+          olcumu (1:1, leading-[0.95]e yakin) kadar sıkı tutulamiyor -
+          Turkce "ç" harfinin altindaki cengel kirpiliyor ve iki satir
+          basligda ust/alt satir birbirine deger hale geliyordu; bu yuzden
+          md:leading-[1.15] ile bilincli gevsetildi. */}
       <section className="relative flex min-h-screen items-end overflow-hidden bg-ink text-cream md:items-end">
         <Image
           src="/hero-model.jpg"
@@ -81,7 +86,7 @@ export default async function HomePage() {
             <p className="text-[10px] uppercase tracking-widest2 text-cream/70 md:text-xs">2026 Sonbahar / Kış</p>
           </div>
           <div className="hero-reveal">
-            <h1 className="mt-2 max-w-[13rem] font-display text-3xl font-light leading-[1.05] md:mx-auto md:mt-6 md:max-w-3xl md:text-[clamp(3.8125rem,1.7013rem+3.2986vw,5rem)] md:leading-[0.95]">
+            <h1 className="mt-2 max-w-[13rem] font-display text-3xl font-light leading-[1.05] md:mx-auto md:mt-6 md:max-w-3xl md:text-[clamp(3.8125rem,1.7013rem+3.2986vw,5rem)] md:leading-[1.15]">
               Her gün için, her parça için
             </h1>
           </div>
