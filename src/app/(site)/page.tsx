@@ -70,7 +70,12 @@ export default async function HomePage() {
           olcumu (1:1, leading-[0.95]e yakin) kadar sıkı tutulamiyor -
           Turkce "ç" harfinin altindaki cengel kirpiliyor ve iki satir
           basligda ust/alt satir birbirine deger hale geliyordu; bu yuzden
-          md:leading-[1.15] ile bilincli gevsetildi. */}
+          md:leading-[1.15] ile bilincli gevsetildi. Bu satir araligi ust/alt
+          satir cakismasini cozdu ama son satirin cengeli hala sarmalayicinin
+          ALT kenarindan tasip kirpiliyordu - h1'in kendi kutusu satir
+          yuksekligiyle bitiyor, cengel onun disina cikiyordu; pb-[0.15em]
+          (font-size'a orantili) ile h1'in kutusu asagi dogru genisletilip
+          cengele yer acildi. */}
       <section className="relative flex min-h-screen items-end overflow-hidden bg-ink text-cream md:items-end">
         <Image
           src="/hero-model.jpg"
@@ -86,7 +91,7 @@ export default async function HomePage() {
             <p className="text-[10px] uppercase tracking-widest2 text-cream/70 md:text-xs">2026 Sonbahar / Kış</p>
           </div>
           <div className="hero-reveal">
-            <h1 className="mt-2 max-w-[13rem] font-display text-3xl font-light leading-[1.05] md:mx-auto md:mt-6 md:max-w-3xl md:text-[clamp(3.8125rem,1.7013rem+3.2986vw,5rem)] md:leading-[1.15]">
+            <h1 className="mt-2 max-w-[13rem] pb-[0.15em] font-display text-3xl font-light leading-[1.05] md:mx-auto md:mt-6 md:max-w-3xl md:text-[clamp(3.8125rem,1.7013rem+3.2986vw,5rem)] md:leading-[1.15]">
               Her gün için, her parça için
             </h1>
           </div>
