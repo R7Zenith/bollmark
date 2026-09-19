@@ -4554,3 +4554,31 @@ alanını içeriyor), breadcrumb 34px yüksekliğinde ve header'ın ~33px altın
 banner'ı buna göre yeniden kuruldu (önceki 60/65svh ve 40-64px başlık kalktı). Bizdeki sonuç:
 1440'ta banner 450px, başlık 66px yüksek/222px'te (Release 221px); 390'da banner 422px. Fark: breadcrumb
 Release'de 97px'te, bizde 101px'te (Bollmark header'ı 68px, Release'inki 64px).
+
+## 2026-09-19 — Admin ürünler: sayfalama + yatay scroll
+
+**Sayfalama** (commit c6a9fdb)
+- `src/app/(admin)/admin/urunler/page.tsx`: `sayfa`/`adet` (10/25/50/100, varsayılan 25) parametreleri, tek `where`
+  (count + findMany), sayfa [1, toplamSayfa]'ya sıkıştırılıyor. name/price/createdAt sıralamasında skip/take DB'de,
+  her orderBy'a `{ id: "asc" }` ikinci anahtar. stock/photo sıralamasında iki adım: hafif sorgu (id + stok + görsel var mı)
+  → bellekte sırala → sayfanın id'lerini ağır include ile çek, aynı sırada döndür.
+- Yeni `src/components/admin/products-pagination.tsx` (client): "1–25 / 312 ürün", ellipsis'li sayfa numaraları,
+  "Sayfada göster" seçici (adet değişince sayfa 1), mobilde "Sayfa X / Y". Tablonun üstünde ve altında.
+- `products-filters.tsx` (`updateParam`) ve `products-table.tsx` (`handleSortChange`) `sayfa` parametresini siliyor.
+  `ProductsTable`'a `key={sayfa-adet}` verildi, sayfa değişince seçili satırlar sıfırlanıyor.
+- SAPMA: Plan eski `Pagination` bileşeninin hiçbir yerde kullanılmadığını söylüyordu, ama `siparisler/page.tsx`
+  kullanıyor. Yeniden yazmak yerine ayrı bileşen eklendi, eskisine dokunulmadı.
+
+**Yatay scroll** (commit 978cda2)
+- `products-table.tsx`: ürün adı `line-clamp-2` + `title` + `max-w-xs`, ürün kodu adın altında küçük gri satır;
+  "Ürün Kodu" ve "Fotoğraf" kolonları kaldırıldı. Plandaki 1. ve 2. adım uygulandı; 3-5 (DataTable `fitContainer`,
+  `hideBelow`, "⋯" menüsü) uygulanmadı.
+- "Fotoğraf" kolonu kalkınca photo sıralamasının arayüzde tetikleyicisi kalmadı (`?sort=photo` URL'den hâlâ çalışıyor;
+  "Fotoğrafsız ürünler" filtresi ve uyarı bandı zaten var).
+
+**Doğrulama**
+- `tsc --noEmit` temiz, `npm run build` başarılı. Dokunulan dosyalarda yeni lint hatası yok; tam `npm run lint`
+  önceden var olan 74 hata (ör. `wishlist.tsx`, `data-table.tsx` set-state-in-effect, "Excel'den" kesme işareti) veriyor.
+- YAPILAMADI: tarayıcıda doğrulama. `.env`'deki ADMIN_PASSWORD ile giriş 401 verdi (DB'deki şifre farklı), kullanıcı
+  bu adımı atlamamı istedi. Yani 1280/1366/1440/1920 px yatay scrollbar ölçümü, sayfa numaraları/adet seçici davranışı,
+  stock/photo sıralamasının 1. sayfası ve seçim sıfırlanması elle denenmedi.
