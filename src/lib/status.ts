@@ -95,15 +95,6 @@ export const contactStatusTone: Record<ContactStatus, BadgeTone> = {
   YANITLANDI: "green"
 };
 
-export const contactPrefs = ["EPOSTA", "TELEFON", "SMS"] as const;
-export type ContactPref = (typeof contactPrefs)[number];
-
-export const contactPrefLabel: Record<ContactPref, string> = {
-  EPOSTA: "E-posta",
-  TELEFON: "Telefon",
-  SMS: "SMS"
-};
-
 export const returnTypes = ["IADE", "DEGISIM"] as const;
 export type ReturnType = (typeof returnTypes)[number];
 

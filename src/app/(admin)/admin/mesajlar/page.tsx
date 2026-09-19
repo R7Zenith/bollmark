@@ -60,7 +60,6 @@ export default async function AdminMessagesPage({ searchParams }: { searchParams
     }),
     fullName: `${m.firstName} ${m.lastName}`,
     email: m.email,
-    phone: m.phone,
     firstLine: m.message.split("\n")[0],
     status: m.status
   }));

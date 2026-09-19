@@ -4631,3 +4631,13 @@ Release'de 97px'te, bizde 101px'te (Bollmark header'ı 68px, Release'inki 64px).
   (DB'deki şifre farklı); oturumu başka yolla üretmedim. Liste/filtre/sayfalama, detay, otomatik okundu, rozet
   güncellenmesi, durum değiştirme ve silme yalnızca tip/build seviyesinde doğrulandı.
 - YAPILAMADI: gerçek mail gönderimi (yerelde RESEND_API_KEY yok). Reply-To ve escape'in canlıda bir kez denenmesi gerek.
+
+**Ek (aynı gün): iletişim formu yalnızca e-posta**
+- "Size nasıl ulaşalım?" onay kutuları ve koşullu Telefon alanı formdan kaldırıldı; yerine "Size e-posta üzerinden geri
+  dönüş sağlayacağız." bilgi metni kondu. `/api/iletisim` artık `phone`/`contactPrefs` almıyor (eski istemciden gelirse
+  yok sayılır), mail ve admin liste/detay ekranlarından Telefon ve İletişim Tercihi kaldırıldı, `status.ts`'teki
+  `contactPrefs` sabitleri silindi.
+- DB'ye dokunulmadı: `ContactMessage.phone` ve `contactPrefs` sütunları duruyor (kullanılmıyor, şemada not düşüldü).
+  İstenirse ileride ayrı bir `db push` ile kaldırılabilir; ortak Neon olduğu için otomatik yapılmadı.
+- Doğrulama: `tsc` temiz, `npm run build` başarılı, dokunulan dosyalarda lint temiz; API ve form tarayıcıda yeniden
+  denendi, test kayıtları silindi (tablo boş).

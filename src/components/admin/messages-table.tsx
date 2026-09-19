@@ -10,7 +10,6 @@ export interface MessageRow {
   createdAtLabel: string;
   fullName: string;
   email: string;
-  phone: string | null;
   firstLine: string;
   status: string;
 }
@@ -39,12 +38,6 @@ export function MessagesTable({ messages }: { messages: MessageRow[] }) {
       header: "E-posta",
       hideOnMobile: true,
       render: (row) => <span className="text-admin-text-muted">{row.email}</span>
-    },
-    {
-      key: "phone",
-      header: "Telefon",
-      hideOnMobile: true,
-      render: (row) => <span className="text-admin-text-muted">{row.phone ?? "-"}</span>
     },
     {
       key: "message",

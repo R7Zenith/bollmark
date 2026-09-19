@@ -1,22 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { contactPrefs, contactPrefLabel } from "@/lib/status";
 
 const inputClass = "w-full rounded-lg border border-line h-12 px-4 text-xs bg-transparent";
 const labelClass = "text-[10px] font-medium tracking-[1px] uppercase text-ink";
 
 export function ContactForm() {
-  const [prefs, setPrefs] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-
-  const needsPhone = prefs.includes("TELEFON") || prefs.includes("SMS");
-
-  function togglePref(pref: string) {
-    setPrefs((prev) => (prev.includes(pref) ? prev.filter((p) => p !== pref) : [...prev, pref]));
-  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -29,8 +21,6 @@ export function ContactForm() {
       firstName: String(form.get("firstName") || ""),
       lastName: String(form.get("lastName") || ""),
       email: String(form.get("email") || ""),
-      phone: needsPhone ? String(form.get("phone") || "") : undefined,
-      contactPrefs: prefs,
       message: String(form.get("message") || ""),
       website: String(form.get("website") || "")
     };
@@ -49,7 +39,6 @@ export function ContactForm() {
         return;
       }
       setSuccess(true);
-      setPrefs([]);
       formEl.reset();
     } catch {
       setError("Bir sorun oluştu, lütfen bağlantınızı kontrol edip tekrar deneyin.");
@@ -75,22 +64,7 @@ export function ContactForm() {
         </div>
       </div>
 
-      <fieldset className="space-y-3">
-        <legend className={labelClass}>Size nasıl ulaşalım?</legend>
-        <div className="flex flex-wrap gap-x-6 gap-y-2">
-          {contactPrefs.map((pref) => (
-            <label key={pref} className="flex items-center gap-2 text-xs text-ink">
-              <input
-                type="checkbox"
-                checked={prefs.includes(pref)}
-                onChange={() => togglePref(pref)}
-                className="h-4 w-4 accent-ink"
-              />
-              {contactPrefLabel[pref]}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      <p className="text-xs text-ink/70">Size e-posta üzerinden geri dönüş sağlayacağız.</p>
 
       <div className="space-y-2">
         <label htmlFor="contact-email" className={labelClass}>
@@ -98,23 +72,6 @@ export function ContactForm() {
         </label>
         <input id="contact-email" name="email" type="email" required maxLength={254} autoComplete="email" className={inputClass} />
       </div>
-
-      {needsPhone && (
-        <div className="space-y-2">
-          <label htmlFor="contact-phone" className={labelClass}>
-            Telefon
-          </label>
-          <input
-            id="contact-phone"
-            name="phone"
-            type="tel"
-            required
-            maxLength={20}
-            autoComplete="tel"
-            className={inputClass}
-          />
-        </div>
-      )}
 
       <div className="space-y-2">
         <label htmlFor="contact-message" className={labelClass}>

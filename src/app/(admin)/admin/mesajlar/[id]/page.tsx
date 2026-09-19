@@ -9,8 +9,6 @@ import {
   contactStatuses,
   contactStatusLabel,
   contactStatusTone,
-  contactPrefLabel,
-  type ContactPref,
   type ContactStatus
 } from "@/lib/status";
 import { Card } from "@/components/admin/card";
@@ -95,7 +93,6 @@ export default async function AdminMessageDetailPage({
   }
 
   const fullName = `${message.firstName} ${message.lastName}`;
-  const prefs = message.contactPrefs.map((p) => contactPrefLabel[p as ContactPref] ?? p).join(", ");
   const replyHref = `mailto:${message.email}?subject=${encodeURIComponent("Bollmark - Mesajınız hakkında")}`;
 
   return (
@@ -132,14 +129,6 @@ export default async function AdminMessageDetailPage({
             <div>
               <dt className={labelClass}>E-posta</dt>
               <dd className="mt-1 break-all text-sm text-admin-text">{message.email}</dd>
-            </div>
-            <div>
-              <dt className={labelClass}>Telefon</dt>
-              <dd className="mt-1 text-sm text-admin-text">{message.phone ?? "-"}</dd>
-            </div>
-            <div>
-              <dt className={labelClass}>İletişim Tercihi</dt>
-              <dd className="mt-1 text-sm text-admin-text">{prefs || "Belirtilmedi"}</dd>
             </div>
           </dl>
         </Card>

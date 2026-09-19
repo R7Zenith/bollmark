@@ -491,8 +491,8 @@ model ContactMessage {
   firstName    String
   lastName     String
   email        String
-  phone        String?
-  contactPrefs String[] // "EPOSTA" | "TELEFON" | "SMS"
+  phone        String? // artik formdan alinmiyor (geri donus e-posta ile), eski sutun
+  contactPrefs String[] // artik formdan alinmiyor, eski sutun
   message      String
   status       String   @default("YENI") // "YENI" | "OKUNDU" | "YANITLANDI"
   ipHash       String?

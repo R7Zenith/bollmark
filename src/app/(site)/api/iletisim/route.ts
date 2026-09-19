@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { notifyContactMessage } from "@/lib/contact-notifications";
-import { contactPrefs } from "@/lib/status";
 
 // Hiz siniri: ayni IP'den 10 dakikada en fazla 3 mesaj. Projede mevcut bir
 // rate limit altyapisi yok ve sunucusuz ortamda bellek ici sayac guvenilmez,
@@ -12,31 +11,18 @@ import { contactPrefs } from "@/lib/status";
 const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
 const RATE_LIMIT_MAX = 3;
 
-const PHONE_PATTERN = /^[+\d][\d\s().-]{6,19}$/;
-
-const schema = z
-  .object({
-    firstName: z.string().trim().min(1, "Ad zorunludur.").max(60, "Ad çok uzun."),
-    lastName: z.string().trim().min(1, "Soyad zorunludur.").max(60, "Soyad çok uzun."),
-    email: z.string().trim().max(254, "E-posta çok uzun.").email("Geçerli bir e-posta adresi girin."),
-    phone: z.string().trim().max(20, "Telefon numarası çok uzun.").optional(),
-    contactPrefs: z.array(z.enum(contactPrefs)).max(contactPrefs.length).default([]),
-    message: z
-      .string()
-      .trim()
-      .min(3, "Lütfen mesajınızı yazın.")
-      .max(2000, "Mesaj en fazla 2000 karakter olabilir."),
-    // Gorunmez tuzak alan - gercek kullanici asla doldurmaz.
-    website: z.string().optional()
-  })
-  .superRefine((data, ctx) => {
-    const needsPhone = data.contactPrefs.includes("TELEFON") || data.contactPrefs.includes("SMS");
-    if (needsPhone && !data.phone) {
-      ctx.addIssue({ code: "custom", path: ["phone"], message: "Telefon veya SMS için telefon numarası zorunludur." });
-    } else if (data.phone && !PHONE_PATTERN.test(data.phone)) {
-      ctx.addIssue({ code: "custom", path: ["phone"], message: "Geçerli bir telefon numarası girin." });
-    }
-  });
+const schema = z.object({
+  firstName: z.string().trim().min(1, "Ad zorunludur.").max(60, "Ad çok uzun."),
+  lastName: z.string().trim().min(1, "Soyad zorunludur.").max(60, "Soyad çok uzun."),
+  email: z.string().trim().max(254, "E-posta çok uzun.").email("Geçerli bir e-posta adresi girin."),
+  message: z
+    .string()
+    .trim()
+    .min(3, "Lütfen mesajınızı yazın.")
+    .max(2000, "Mesaj en fazla 2000 karakter olabilir."),
+  // Gorunmez tuzak alan - gercek kullanici asla doldurmaz.
+  website: z.string().optional()
+});
 
 function hashIp(req: NextRequest): string | null {
   const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || req.headers.get("x-real-ip")?.trim();
@@ -77,14 +63,11 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const needsPhone = data.contactPrefs.includes("TELEFON") || data.contactPrefs.includes("SMS");
   const saved = await prisma.contactMessage.create({
     data: {
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
-      phone: needsPhone ? data.phone : null,
-      contactPrefs: [...new Set(data.contactPrefs)],
       message: data.message,
       ipHash
     }
