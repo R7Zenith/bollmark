@@ -205,6 +205,11 @@ export function ProductsTable({
 
   const columns: DataTableColumn<ProductRow>[] = [
     {
+      key: "status",
+      header: "Durum",
+      render: (row) => <Badge tone={statusTone[row.status]}>{statusLabel[row.status] ?? row.status}</Badge>
+    },
+    {
       key: "name",
       header: "Ürün",
       sortable: true,
@@ -222,7 +227,7 @@ export function ProductsTable({
               <ImageOff size={14} className="text-red-400" />
             )}
           </span>
-          <span className="flex min-w-0 max-w-xs flex-col">
+          <span className="flex min-w-0 max-w-xl flex-col">
             <span className="line-clamp-2 font-medium text-admin-text" title={row.name}>
               {row.name}
             </span>
@@ -235,11 +240,6 @@ export function ProductsTable({
           </span>
         </Link>
       )
-    },
-    {
-      key: "status",
-      header: "Durum",
-      render: (row) => <Badge tone={statusTone[row.status]}>{statusLabel[row.status] ?? row.status}</Badge>
     },
     {
       key: "colors",
