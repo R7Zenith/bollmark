@@ -222,8 +222,11 @@ export function ProductsTable({
               <ImageOff size={14} className="text-red-400" />
             )}
           </span>
-          <span className="flex flex-col">
-            <span className="font-medium text-admin-text">{row.name}</span>
+          <span className="flex min-w-0 max-w-xs flex-col">
+            <span className="line-clamp-2 font-medium text-admin-text" title={row.name}>
+              {row.name}
+            </span>
+            {row.code && <span className="text-xs text-admin-text-muted">{row.code}</span>}
             {!row.imageUrl && (
               <span className="mt-0.5">
                 <Badge tone="red">Fotoğraf Yok</Badge>
@@ -232,25 +235,6 @@ export function ProductsTable({
           </span>
         </Link>
       )
-    },
-    {
-      key: "code",
-      header: "Ürün Kodu",
-      sortable: false,
-      hideOnMobile: true,
-      render: (row) => <span className="text-sm text-admin-text-muted">{row.code || "—"}</span>
-    },
-    {
-      key: "photo",
-      header: "Fotoğraf",
-      sortable: true,
-      align: "center",
-      render: (row) =>
-        row.imageUrl ? (
-          <Check size={16} className="mx-auto text-admin-text-muted" />
-        ) : (
-          <ImageOff size={16} className="mx-auto text-red-400" />
-        )
     },
     {
       key: "status",
