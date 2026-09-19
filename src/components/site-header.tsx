@@ -532,7 +532,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
   // uzerindeyken header saydam + beyaz metinli gorunur (Aritzia'daki gibi) -
   // scroll edildiginde veya menu acildiginda krem zemine gecer. Diger
   // sayfalarda body ile ayni renkte oldugu icin saydamligin bir anlami yok,
-  // o yuzden hep katı baslar. Banner yuksekligi 60svh (bkz. urunler/page.tsx)
+  // o yuzden hep katı baslar. Banner yuksekligi 50svh (bkz. urunler/page.tsx)
   // oldugu icin ayni esik (scrollY > 60) banner'dan cikmadan once tetiklenir
   // - bu, anasayfadaki hero'da da ayni sekilde erken tetiklenen mevcut
   // davranis, bilincli olarak korundu.

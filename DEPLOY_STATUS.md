@@ -4545,3 +4545,12 @@ Plan: `KATEGORI_BANNER_RELEASE_TARZI_PLANI.md`. Değişen dosyalar: `src/app/(si
 - Not: `?kategori=aksesuar` başlığı "Tüm Ürünler" gösteriyor (aksesuar filtre listesinde kategori olarak
   bulunmuyor); bu davranış değişiklikten önce de aynıydı, dokunulmadı.
 - Commit önerisi: "Katalog banner'ini Release tarzinda yap ve tum katalog gorunumlerinde goster".
+
+### Ek (aynı gün): banner inceltildi, Release ölçüleriyle eşlendi
+
+Release `collections/shorts` 1440x900 ve 390x844'te ölçüldü: banner 50svh (450px / 422px; header
+alanını içeriyor), breadcrumb 34px yüksekliğinde ve header'ın ~33px altında, başlık 47px/47px/-1.88px
+(mobilde 27px/-1.08px, py 9.4px) ve kalan alanda ortalı (~10-12px aşağıda). `urunler/page.tsx`
+banner'ı buna göre yeniden kuruldu (önceki 60/65svh ve 40-64px başlık kalktı). Bizdeki sonuç:
+1440'ta banner 450px, başlık 66px yüksek/222px'te (Release 221px); 390'da banner 422px. Fark: breadcrumb
+Release'de 97px'te, bizde 101px'te (Bollmark header'ı 68px, Release'inki 64px).

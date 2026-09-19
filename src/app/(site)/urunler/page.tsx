@@ -138,7 +138,11 @@ export default async function ProductsPage({
 
   return (
     <div className="w-full">
-      <div className="relative flex h-[60svh] min-h-[320px] w-full items-center justify-center overflow-hidden bg-ink md:h-[65svh]">
+      {/* Release'de olculen degerler (collections/shorts, 1440x900 ve 390x844):
+          banner 50svh (450px / 422px) ve header'in alt bosluguna kadar uzaniyor;
+          breadcrumb (34px) header'in ~33px altinda, baslik kalan alanda ortali
+          (~10-12px asagida). */}
+      <div className="relative flex h-[50svh] min-h-[320px] w-full flex-col items-center overflow-hidden bg-ink pb-[72px] pt-[101px] md:pb-24">
         <div className="absolute inset-0 bg-gradient-to-b from-ink to-ink/70" />
         {/* Mega menudeki PromoCard ile ayni sebepten duz <img>: kategori
             imageUrl'i Unsplash/Blob disinda bir kaynaktan da gelebiliyor,
@@ -153,8 +157,8 @@ export default async function ProductsPage({
           className="absolute inset-0 h-full w-full object-cover grayscale"
         />
         <div className="absolute inset-0 bg-ink/55" />
-        <div className="relative z-10 flex flex-col items-center px-4 pt-16 text-center text-cream">
-          <nav aria-label="Sayfa yolu">
+        <div className="relative z-10 flex w-full flex-1 flex-col items-center px-4 text-center text-cream">
+          <nav aria-label="Sayfa yolu" className="flex h-[34px] items-center">
             <ol className="flex items-center gap-2 text-[10px] uppercase tracking-[1px]">
               {breadcrumb.map((crumb, i) => (
                 <li key={crumb.label} className="flex items-center gap-2">
@@ -170,9 +174,11 @@ export default async function ProductsPage({
               ))}
             </ol>
           </nav>
-          <h1 className="mt-4 font-display text-[40px] font-normal leading-none tracking-[-1.6px] md:text-[47px] md:tracking-[-1.88px] xl:text-6xl xl:tracking-[-2.4px]">
-            {bannerTitle}
-          </h1>
+          <div className="flex flex-1 items-center pt-5">
+            <h1 className="py-[9.4px] font-display text-[27px] font-normal leading-[27px] tracking-[-1.08px] md:text-[47px] md:leading-[47px] md:tracking-[-1.88px]">
+              {bannerTitle}
+            </h1>
+          </div>
         </div>
       </div>
 
