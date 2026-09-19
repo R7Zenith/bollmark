@@ -176,6 +176,7 @@ export function ProductsTable({
     const params = new URLSearchParams(searchParams.toString());
     params.set("sort", key);
     params.set("dir", direction);
+    params.delete("sayfa");
     router.push(`${pathname}?${params.toString()}`);
   }
 

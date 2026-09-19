@@ -6,12 +6,17 @@ import { variantOptionsInclude } from "@/lib/variant-attributes";
 import { Button } from "@/components/admin/button";
 import { EmptyState } from "@/components/admin/empty-state";
 import { ProductsFilters } from "@/components/admin/products-filters";
+import { ProductsPagination } from "@/components/admin/products-pagination";
 import { ProductsTable, type ProductRow } from "@/components/admin/products-table";
 
 type SortKey = "name" | "price" | "stock" | "createdAt" | "photo";
 const sortKeys: SortKey[] = ["name", "price", "stock", "createdAt", "photo"];
+const pageSizes: readonly number[] = [10, 25, 50, 100];
+const defaultPageSize = 25;
 
 interface SearchParams {
+  sayfa?: string;
+  adet?: string;
   q?: string;
   durum?: string;
   kategori?: string;
@@ -26,7 +31,7 @@ export default async function AdminProductsPage({
   searchParams: Promise<SearchParams>;
 }) {
   await requireAdmin();
-  const { q, durum, kategori, fotograf, sort, dir } = await searchParams;
+  const { q, durum, kategori, fotograf, sort, dir, sayfa, adet } = await searchParams;
 
   // Arsivlenmis urunler bu listede yer kaplamasin diye varsayilan olarak
   // haric tutuluyor - kendi ayri sayfasinda (/admin/urunler/arsiv) duruyorlar.
@@ -77,46 +82,87 @@ export default async function AdminProductsPage({
   const sortKey: SortKey = sortKeys.includes(sort as SortKey) ? (sort as SortKey) : "createdAt";
   const sortDir: "asc" | "desc" = dir === "asc" ? "asc" : "desc";
 
-  const [products, categories] = await Promise.all([
-    prisma.product.findMany({
-      where: {
-        status: { not: "ARCHIVED" },
-        ...(q
-          ? {
-              OR: [
-                { name: { contains: q, mode: "insensitive" as const } },
-                { code: { contains: q, mode: "insensitive" as const } }
-              ]
-            }
-          : {}),
-        ...(durum ? { status: durum } : {}),
-        ...(kategori ? { categoryId: kategori } : {}),
-        ...(fotograf === "yok" ? { images: { none: {} }, optionImages: { none: {} } } : {})
-      },
-      include: {
-        images: { take: 1, orderBy: { position: "asc" } },
-        // Renk bazinda "bu rengin hic gorseli var mi" hesabi icin (missingColorCount)
-        // sadece ilk kaydi degil, hepsini valueId ile birlikte cekmemiz gerekiyor -
-        // urun genelinde tek bir optionImages[0] varligina bakmak, cok renkli bir
-        // urunde sadece 1 rengin gorseli olsa bile diger renkleri gizliyordu.
-        optionImages: { select: { url: true, valueId: true }, orderBy: { position: "asc" } },
-        // Renk (isColor:true) varyant secenegini okuyabilmek icin secenek
-        // degerleriyle birlikte cekiliyor - listede "Renkler" kolonu icin.
-        variants: { include: variantOptionsInclude }
-      },
-      orderBy:
-        sortKey === "name"
-          ? { name: sortDir }
-          : sortKey === "price"
-            ? { priceCents: sortDir }
-            : sortKey === "createdAt"
-              ? { createdAt: sortDir }
-              : { createdAt: "desc" }
-    }),
-    prisma.category.findMany({ orderBy: { name: "asc" } })
-  ]);
+  const where = {
+    status: { not: "ARCHIVED" },
+    ...(q
+      ? {
+          OR: [
+            { name: { contains: q, mode: "insensitive" as const } },
+            { code: { contains: q, mode: "insensitive" as const } }
+          ]
+        }
+      : {}),
+    ...(durum ? { status: durum } : {}),
+    ...(kategori ? { categoryId: kategori } : {}),
+    ...(fotograf === "yok" ? { images: { none: {} }, optionImages: { none: {} } } : {})
+  };
 
-  let rows: ProductRow[] = products.map((p) => {
+  const pageSize = pageSizes.includes(Number(adet)) ? Number(adet) : defaultPageSize;
+  const filteredCount = await prisma.product.count({ where });
+  const totalPages = Math.max(1, Math.ceil(filteredCount / pageSize));
+  const currentPage = Math.min(Math.max(parseInt(sayfa ?? "", 10) || 1, 1), totalPages);
+  const skip = (currentPage - 1) * pageSize;
+
+  const include = {
+    images: { take: 1, orderBy: { position: "asc" } },
+    // Renk bazinda "bu rengin hic gorseli var mi" hesabi icin (missingColorCount)
+    // sadece ilk kaydi degil, hepsini valueId ile birlikte cekmemiz gerekiyor -
+    // urun genelinde tek bir optionImages[0] varligina bakmak, cok renkli bir
+    // urunde sadece 1 rengin gorseli olsa bile diger renkleri gizliyordu.
+    optionImages: { select: { url: true, valueId: true }, orderBy: { position: "asc" } },
+    // Renk (isColor:true) varyant secenegini okuyabilmek icin secenek
+    // degerleriyle birlikte cekiliyor - listede "Renkler" kolonu icin.
+    variants: { include: variantOptionsInclude }
+  } as const;
+
+  // Ikinci anahtar { id: "asc" }: Excel'den toplu eklenen urunlerde createdAt ayni
+  // olabiliyor, siralama kararli olmazsa sayfalar arasinda urun tekrar eder/atlanir.
+  async function fetchPage() {
+    if (sortKey === "stock" || sortKey === "photo") {
+      // Stok ve fotograf siralamasi veritabaninda yapilamiyor; tum eslesenler icin
+      // hafif bir sorgu ile bellekte siralayip sadece sayfanin urunlerini tam cekiyoruz.
+      const light = await prisma.product.findMany({
+        where,
+        select: {
+          id: true,
+          variants: { select: { stock: true } },
+          images: { take: 1, select: { id: true } },
+          optionImages: { take: 1, select: { id: true } }
+        },
+        orderBy: [{ createdAt: "desc" }, { id: "asc" }]
+      });
+      const keyed = light.map((p) => ({
+        id: p.id,
+        stock: p.variants.reduce((sum, v) => sum + v.stock, 0),
+        missingPhoto: p.images.length === 0 && p.optionImages.length === 0 ? 1 : 0
+      }));
+      keyed.sort((a, b) =>
+        sortKey === "stock"
+          ? sortDir === "asc"
+            ? a.stock - b.stock
+            : b.stock - a.stock
+          : sortDir === "asc"
+            ? b.missingPhoto - a.missingPhoto
+            : a.missingPhoto - b.missingPhoto
+      );
+      const ids = keyed.slice(skip, skip + pageSize).map((p) => p.id);
+      const full = await prisma.product.findMany({ where: { id: { in: ids } }, include });
+      const byId = new Map(full.map((p) => [p.id, p]));
+      return ids.map((id) => byId.get(id)!);
+    }
+    const field = sortKey === "price" ? "priceCents" : sortKey;
+    return prisma.product.findMany({
+      where,
+      include,
+      orderBy: [{ [field]: sortDir }, { id: "asc" }],
+      skip,
+      take: pageSize
+    });
+  }
+
+  const [products, categories] = await Promise.all([fetchPage(), prisma.category.findMany({ orderBy: { name: "asc" } })]);
+
+  const rows: ProductRow[] = products.map((p) => {
     // Bu urunun varyantlarinda gercekten var olan renkler (Renk ekseni,
     // isColor:true) - birden fazlaysa listede "Renkler" kolonunda gosterilir.
     const colorValueIds = new Set<string>();
@@ -149,15 +195,9 @@ export default async function AdminProductsPage({
     };
   });
 
-  if (sortKey === "stock") {
-    rows = rows.sort((a, b) => (sortDir === "asc" ? a.stock - b.stock : b.stock - a.stock));
-  } else if (sortKey === "photo") {
-    rows = rows.sort((a, b) => {
-      const aMissing = a.imageUrl ? 0 : 1;
-      const bMissing = b.imageUrl ? 0 : 1;
-      return sortDir === "asc" ? bMissing - aMissing : aMissing - bMissing;
-    });
-  }
+  const pagination = (
+    <ProductsPagination page={currentPage} pageSize={pageSize} pageSizes={pageSizes} total={filteredCount} />
+  );
 
   return (
     <div>
@@ -200,8 +240,15 @@ export default async function AdminProductsPage({
         <ProductsFilters categories={categories} />
       </div>
 
-      <div className="mt-4">
-        <ProductsTable products={rows} initialSort={{ key: sortKey, direction: sortDir }} />
+      <div className="mt-4 space-y-3">
+        {filteredCount > 0 && pagination}
+        {/* key: sayfa/adet degisince secili satirlar sifirlansin, gorunmeyen urunler toplu islemde kalmasin */}
+        <ProductsTable
+          key={`${currentPage}-${pageSize}`}
+          products={rows}
+          initialSort={{ key: sortKey, direction: sortDir }}
+        />
+        {filteredCount > 0 && pagination}
       </div>
     </div>
   );

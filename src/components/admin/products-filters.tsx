@@ -19,6 +19,7 @@ export function ProductsFilters({ categories }: { categories: { id: string; name
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
+    params.delete("sayfa");
     router.push(params.toString() ? `${pathname}?${params.toString()}` : pathname);
   }
 
