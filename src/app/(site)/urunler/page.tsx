@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/product-card";
 import Link from "next/link";
 import { CatalogToolbar } from "@/components/catalog-toolbar";
+import { DEFAULT_CATALOG_BANNER_IMAGE } from "@/lib/catalog-banner";
 import {
   FILTER_PARAM_KEYS,
   applyCatalogFilters,
@@ -116,52 +117,71 @@ export default async function ProductsPage({
     : "Bu kategoride henüz ürün bulunmuyor.";
 
   // Release'de her koleksiyon sayfasinin ustunde tam genislikte bir banner
-  // var, banner varken header saydamlasip banner'in uzerine biniyor (bkz.
-  // RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1 - `header-is-transparent`). Bunun
-  // icin uydurma bir kampanya gorseli eklemek yerine, secili kategorinin
-  // zaten var olan (mega menudeki promosyon kartlariyla ayni) gercek
-  // `imageUrl`'i kullaniliyor - kategori bir gorsele sahip degilse banner hic
-  // render edilmiyor, sayfa eskisi gibi duz baslikla aciliyor. SiteHeader'daki
-  // saydamlik kontrolu de (bkz. site-header.tsx) tam olarak ayni kosulu
-  // kontrol ediyor, ikisi birbirinden bagimsiz kaymasin diye.
+  // var ve header saydamlasip banner'in uzerine biniyor (bkz.
+  // RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1 - `header-is-transparent`). Banner
+  // her katalog gorunumunde (kategori, cinsiyet koleksiyonu, Tum Urunler)
+  // render ediliyor; "banner var mi" karari lib/catalog-banner.ts'te, header
+  // da saydamligi ayni yardimciyla belirliyor. Gorsel onceligi: secili
+  // kategorinin gercek `imageUrl`'i -> site geneli varsayilan gorsel -> (o da
+  // yuklenmezse) altindaki duz bg-ink + gradient.
   const activeCategory = kategori ? filterCategories.find((c) => c.slug === kategori) : null;
-  const bannerImageUrl = activeCategory?.imageUrl ?? null;
+  const bannerImageUrl = activeCategory?.imageUrl ?? DEFAULT_CATALOG_BANNER_IMAGE;
+  const bannerTitle = activeCategory?.name ?? heading;
+  // "ANA SAYFA / [CINSIYET /] KATEGORI" - son parca sayfanin kendisi, link degil.
+  const breadcrumb: { label: string; href?: string }[] = [{ label: "Ana Sayfa", href: "/" }];
+  if (activeCategory) {
+    if (cinsiyet) breadcrumb.push({ label: cinsiyet, href: `/urunler?cinsiyet=${encodeURIComponent(cinsiyet)}` });
+    breadcrumb.push({ label: activeCategory.name });
+  } else {
+    breadcrumb.push({ label: cinsiyet ?? "Tüm Ürünler" });
+  }
 
   return (
     <div className="w-full">
-      {bannerImageUrl && (
-        <div className="relative flex h-[50svh] min-h-[320px] w-full items-center justify-center overflow-hidden bg-ink">
-          {/* Mega menudeki PromoCard ile ayni sebepten duz <img>: kategori
-              imageUrl'i Unsplash/Blob disinda bir kaynaktan da gelebiliyor,
-              next/image'in remotePatterns kisitlamasina takilmasin diye. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={bannerImageUrl} alt="" className="absolute inset-0 h-full w-full object-cover" />
-          <div className="absolute inset-0 bg-ink/35" />
-          <div className="relative z-10 text-center text-cream">
-            {cinsiyet && (
-              <p className="text-xs uppercase tracking-widest2 text-cream/70">{cinsiyet}</p>
-            )}
-            <h1 className="mt-2 font-display text-5xl font-light">{activeCategory!.name}</h1>
-          </div>
+      <div className="relative flex h-[60svh] min-h-[320px] w-full items-center justify-center overflow-hidden bg-ink md:h-[65svh]">
+        <div className="absolute inset-0 bg-gradient-to-b from-ink to-ink/70" />
+        {/* Mega menudeki PromoCard ile ayni sebepten duz <img>: kategori
+            imageUrl'i Unsplash/Blob disinda bir kaynaktan da gelebiliyor,
+            next/image'in remotePatterns kisitlamasina takilmasin diye.
+            Dekoratif (alt=""), LCP icin oncelikli. Release'in siyah-beyaz
+            dili icin grayscale + koyu overlay. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={bannerImageUrl}
+          alt=""
+          fetchPriority="high"
+          className="absolute inset-0 h-full w-full object-cover grayscale"
+        />
+        <div className="absolute inset-0 bg-ink/55" />
+        <div className="relative z-10 flex flex-col items-center px-4 pt-16 text-center text-cream">
+          <nav aria-label="Sayfa yolu">
+            <ol className="flex items-center gap-2 text-[10px] uppercase tracking-[1px]">
+              {breadcrumb.map((crumb, i) => (
+                <li key={crumb.label} className="flex items-center gap-2">
+                  {i > 0 && <span aria-hidden="true">/</span>}
+                  {crumb.href ? (
+                    <Link href={crumb.href} className="underline underline-offset-2 hover:text-cream/70">
+                      {crumb.label}
+                    </Link>
+                  ) : (
+                    <span aria-current="page">{crumb.label}</span>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </nav>
+          <h1 className="mt-4 font-display text-[40px] font-normal leading-none tracking-[-1.6px] md:text-[47px] md:tracking-[-1.88px] xl:text-6xl xl:tracking-[-2.4px]">
+            {bannerTitle}
+          </h1>
         </div>
-      )}
+      </div>
 
       {/* Release'in katalog sayfasinda max-width yok: her ekran genisliginde
           tam viewport, sabit 36px yan bosluk (mobilde 16px) - header/mega
           menu ile ayni olcu (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1.1 ve
-          2). Banner varken ustteki dikey bosluk banner'dan geldigi icin
-          daralttik (py-16 -> pt-8 pb-16). */}
-      <div className={`px-4 md:px-6 xl:px-9 ${bannerImageUrl ? "pt-8 pb-16" : "py-16"}`}>
-        {!bannerImageUrl && (
-          <>
-            <p className="text-xs uppercase tracking-widest2 text-ink/50">
-              Tüm Ürünler {cinsiyet ? `— ${cinsiyet}` : ""}
-            </p>
-            <h1 className="mt-2 font-display text-5xl font-light">{heading}</h1>
-          </>
-        )}
-
-      <div className="mt-8">
+          2). Ustteki dikey bosluk banner'dan geldigi icin dar (pt-8). */}
+      <div className="px-4 pt-8 pb-16 md:px-6 xl:px-9">
+      <div>
         <CatalogToolbar
           categories={filterCategories}
           activeCategory={kategori ?? null}

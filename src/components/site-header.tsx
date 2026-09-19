@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { useSearchParams, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCart } from "@/lib/cart";
+import { hasCatalogBanner } from "@/lib/catalog-banner";
 import { CartDrawer } from "@/components/cart-drawer";
 import type { MegaMenuData, MenuCategory } from "@/lib/site-nav";
 
@@ -516,20 +517,12 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
   const { totalCount, openDrawer } = useCart();
   const { data: session } = useSession();
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const isHome = pathname === "/";
-  // Katalog sayfasi (urunler/page.tsx) secili bir kategorinin gercek
-  // `imageUrl`'i varsa tepede bir banner render ediyor (bkz. o dosyadaki
-  // "Release'de her koleksiyon sayfasinin ustunde..." notu) - burada AYNI
-  // kosul kontrol ediliyor ki header'in saydamligi banner'in gercekten
-  // ekranda olup olmamasiyla birebir eslessin, ikisi birbirinden bagimsiz
-  // kaymasin.
-  const activeCategorySlug = pathname === "/urunler" ? searchParams.get("kategori") : null;
-  const hasBanner =
-    !!activeCategorySlug &&
-    [...menuData.kadin, ...menuData.erkek, ...menuData.aksesuar].some(
-      (c) => c.slug === activeCategorySlug && !!c.imageUrl
-    );
+  // Katalog sayfasi (urunler/page.tsx) her gorunumde tepede bir banner
+  // render ediyor - "banner var mi" karari lib/catalog-banner.ts'te tek
+  // yerde, header'in saydamligi banner'in ekranda olup olmamasiyla birebir
+  // eslessin diye ayni yardimciyi kullaniyor.
+  const hasBanner = hasCatalogBanner(pathname);
   const isTransparentPage = isHome || hasBanner;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<TabKey | null>(null);
@@ -539,7 +532,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
   // uzerindeyken header saydam + beyaz metinli gorunur (Aritzia'daki gibi) -
   // scroll edildiginde veya menu acildiginda krem zemine gecer. Diger
   // sayfalarda body ile ayni renkte oldugu icin saydamligin bir anlami yok,
-  // o yuzden hep katı baslar. Banner yuksekligi 50svh (bkz. urunler/page.tsx)
+  // o yuzden hep katı baslar. Banner yuksekligi 60svh (bkz. urunler/page.tsx)
   // oldugu icin ayni esik (scrollY > 60) banner'dan cikmadan once tetiklenir
   // - bu, anasayfadaki hero'da da ayni sekilde erken tetiklenen mevcut
   // davranis, bilincli olarak korundu.

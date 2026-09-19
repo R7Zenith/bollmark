@@ -4520,3 +4520,28 @@ Plan: `URUN_DETAY_BEDEN_SECILI_GELMESIN_PLANI.md`. Değişen dosya: `src/compone
   M/SİYAH ekleniyor; adet seçici seçime kadar disabled. YAPILAMADI: yerel DB'de çok renkli ürün
   bulunamadı, renk değişiminde sıfırlanma ve tek bedenli/bedensiz ürün tarayıcıda denenmedi
   (yalnız kod okumasıyla); `/odeme` akışı elle denenmedi.
+
+## Oturum: Katalog banner'ı Release tarzı, her görünümde (19 Eylul 2026)
+
+Plan: `KATEGORI_BANNER_RELEASE_TARZI_PLANI.md`. Değişen dosyalar: `src/app/(site)/urunler/page.tsx`,
+`src/components/site-header.tsx`; yeni: `src/lib/catalog-banner.ts`, `public/catalog-banner.jpg`.
+
+- Banner artık `/urunler`'in TÜM görünümlerinde (kategori, `?cinsiyet=`, Tüm Ürünler) çıkıyor. "Banner var mı"
+  kararı `hasCatalogBanner(pathname)` yardımcısında; `site-header.tsx` saydamlığı aynı yardımcıyla belirliyor
+  (`/urunler` rotasında header her zaman saydam başlar). Header'daki kullanılmayan `useSearchParams` çağrısı kaldırıldı.
+- Görsel önceliği: kategorinin `imageUrl`'i → `public/catalog-banner.jpg` (Unsplash, engin akyurt, gri örgü
+  kumaş dokusu, 2000px) → görsel yüklenmezse altındaki `bg-ink` + gradient.
+- Görünüm: `grayscale` + `bg-ink/55` overlay, yükseklik 60svh (md+ 65svh, min 320px), ortada breadcrumb
+  ("ANA SAYFA / [CİNSİYET /] KATEGORİ", 10px, tracking-[1px], ANA SAYFA ve cinsiyet link) + başlık
+  (font-display, 40/47/64px, negatif letter-spacing). Eski cinsiyet eyebrow satırı kaldırıldı. `fetchPriority="high"`, `alt=""`.
+- Dokunulmadı: CatalogToolbar, ürün grid'i, `generateMetadata`, boş-sonuç mesajları. Banner-toolbar arası
+  boşluk `pt-8` (eski `mt-8` kaldırıldı ki çift boşluk olmasın).
+- Doğrulama: `tsc --noEmit` temiz; eslint'te yalnız önceden var olan 2 hata (MobileMenu set-state-in-effect).
+  Tarayıcıda 1440px (Tüm Ürünler, Kadın) ve 390px (Erkek/Gömlek — görselsiz kategori, Aksesuar) bakıldı:
+  banner, breadcrumb ve saydam header hepsinde aynı, header yazısı okunur.
+  YAPILAMADI: Release demosunda getComputedStyle ile yükseklik ölçümü (60-70% plan değerine göre
+  uygulandı, ölçülmedi); görseli olan bir kategoride test (yerel DB'de görselli kategori yoktu);
+  `npm run lint` tam çalıştırılmadı (yalnız dokunulan dosyalar).
+- Not: `?kategori=aksesuar` başlığı "Tüm Ürünler" gösteriyor (aksesuar filtre listesinde kategori olarak
+  bulunmuyor); bu davranış değişiklikten önce de aynıydı, dokunulmadı.
+- Commit önerisi: "Katalog banner'ini Release tarzinda yap ve tum katalog gorunumlerinde goster".
