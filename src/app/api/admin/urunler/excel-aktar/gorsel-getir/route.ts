@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { enrichOne, type KotonEnrichmentResult } from "@/lib/koton-images";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import type { KotonEnrichmentTarget } from "@/lib/excel-import";
 
 export const maxDuration = 30;
@@ -49,5 +50,6 @@ export async function POST(request: NextRequest) {
       missingColors: Object.keys(target.colorValueIdByLabel)
     };
   }
+  if (result.imagesAdded > 0 || result.descriptionUpdated) revalidateCatalog();
   return NextResponse.json(result);
 }

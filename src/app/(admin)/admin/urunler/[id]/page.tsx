@@ -15,6 +15,7 @@ import { ProductImagesField, type InitialProductImage } from "@/components/admin
 import { TagsField } from "@/components/admin/tags-field";
 import { variantOptionsInclude } from "@/lib/variant-attributes";
 import { deleteBlobUrls } from "@/lib/blob";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { buildCategoryOptions } from "@/lib/category-tree";
 import { GENDER_OPTIONS } from "@/lib/product-options";
 import { snapshotStockAlerts, carryOverOrQueueRestock, sendRestockNotifications } from "@/lib/stock-alerts";
@@ -291,6 +292,7 @@ async function updateProduct(id: string, formData: FormData) {
   const removedUrls = oldUrls.filter((url) => !newUrls.has(url));
   await deleteBlobUrls(removedUrls);
   await sendRestockNotifications(restockQueue);
+  revalidateCatalog();
 
   redirect(`/admin/urunler/${id}?basarili=guncellendi`);
 }
@@ -314,6 +316,7 @@ async function deleteProduct(id: string) {
     redirect(`/admin/urunler/${id}?hata=silinemedi`);
   }
   await deleteBlobUrls(urls);
+  revalidateCatalog();
   redirect("/admin/urunler");
 }
 

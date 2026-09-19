@@ -13,9 +13,14 @@ export const metadata: Metadata = {
   alternates: { canonical: "https://bollmark.com" }
 };
 
+// Yedek guvence: urun yazan yerler revalidateCatalog() ile sayfayi aninda
+// tazeler; bu, o cagriyi kacirabilecek yollar (elle DB degisikligi vb.) icin
+// en gec 1 dakikada tazelenmesini saglar.
+export const revalidate = 60;
+
 export default async function HomePage() {
   const [products, automaticCampaigns, kadinCount, erkekCount, aksesuarCount] = await Promise.all([
-    getPublishedProducts(undefined, { featuredFirst: true }),
+    getPublishedProducts(),
     getActiveAutomaticPercentCampaigns(prisma),
     prisma.product.count({ where: { status: "PUBLISHED", gender: "Kadın" } }),
     prisma.product.count({ where: { status: "PUBLISHED", gender: "Erkek" } }),
@@ -119,7 +124,7 @@ export default async function HomePage() {
         {products.length === 0 ? (
           <>
             <div className="mb-12 flex items-end justify-between">
-              <h2 className="font-display text-3xl font-light">Öne Çıkanlar</h2>
+              <h2 className="font-display text-3xl font-light">Yeni Gelenler</h2>
               <Link href="/urunler" className="text-sm uppercase tracking-wide hover:text-clay">
                 Tümünü Gör →
               </Link>

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 // Vega'nin "Site Tipi: Ticimax" secenegi, kullanicinin girdigi "Site Adi"
 // degerinin sonuna kendisi "/Servis/<Servis>.svc" ekleyip, Ticimax'in GERCEK
@@ -290,6 +291,7 @@ async function handleVaryasyonGuncelle(rawBody: string) {
   });
 
   logTcmx("VaryasyonGuncelle", { vegaId, stokAdedi, guncellenen: updated.count });
+  if (updated.count > 0) revalidateCatalog();
 
   return xmlResponse(
     soapEnvelope(

@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteBlobUrls } from "@/lib/blob";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 const allowedStatuses = new Set(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 
@@ -41,11 +42,13 @@ export async function POST(request: NextRequest) {
       );
     }
     await deleteBlobUrls(urls);
+    revalidateCatalog();
     return NextResponse.json({ ok: true });
   }
 
   if (body.action === "SET_STATUS" && allowedStatuses.has(body.status)) {
     await prisma.product.updateMany({ where: { id: { in: ids } }, data: { status: body.status } });
+    revalidateCatalog();
     return NextResponse.json({ ok: true });
   }
 
@@ -54,6 +57,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Geçersiz fiyat." }, { status: 400 });
     }
     await prisma.product.updateMany({ where: { id: { in: ids } }, data: { priceCents: body.priceCents } });
+    revalidateCatalog();
     return NextResponse.json({ ok: true });
   }
 

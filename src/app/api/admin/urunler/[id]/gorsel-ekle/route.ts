@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { enrichFromUrl } from "@/lib/koton-images";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 export const maxDuration = 30;
 
@@ -71,5 +72,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     { overwriteDescription: false }
   );
 
+  if (result.imagesAdded > 0 || result.descriptionUpdated) revalidateCatalog(product.slug);
   return NextResponse.json(result);
 }

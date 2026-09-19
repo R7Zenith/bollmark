@@ -9,6 +9,7 @@ import { ProductImagesField } from "@/components/admin/product-images-field";
 import { TagsField } from "@/components/admin/tags-field";
 import { buildCategoryOptions } from "@/lib/category-tree";
 import { GENDER_OPTIONS } from "@/lib/product-options";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 function parseVariantsJson(raw: string): SerializedVariant[] {
   let parsed: unknown;
@@ -190,6 +191,7 @@ async function createProduct(formData: FormData) {
     redirect("/admin/urunler/yeni?hata=kaydedilemedi");
   }
 
+  revalidateCatalog(slug);
   redirect(`/admin/urunler/${product.id}?basarili=olusturuldu`);
 }
 

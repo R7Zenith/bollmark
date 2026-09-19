@@ -4475,3 +4475,26 @@ düşüren kaynak).
 - DB düzeltmesi (onayla; yedek: `backups/excel-kategori-duzeltme-2026-09-19.json`):
   `TSHIRT LS -> Hırka` eşlemesi silindi, `7WAL60008IW` Gömlek -> Bluz yapıldı.
   `TANKTOPS -> Yelek` şüpheli ama dokunulmadı.
+
+## Oturum: Anasayfa "Yeni Gelenler" yeni ürün eklenince yenilenmiyor (19 Eylul 2026)
+
+Plan: `ANASAYFA_YENI_GELENLER_YENILENMIYOR_PLANI.md`. Teşhis: `src/` altında ürün yazan
+hiçbir yerde `revalidatePath` yoktu (yalnız hesap/ayarlar sayfalarında vardı) ve
+anasayfada `revalidate` export'u yoktu; sayfa build'de statik üretilip yeni deploy'a
+kadar aynı HTML sunuluyordu.
+
+- Yeni `src/lib/revalidate-catalog.ts`: `revalidateCatalog(slug?)` -> `/`, `/urunler` ve
+  slug varsa `/urunler/<slug>`, yoksa tüm `/urunler/[slug]` sayfaları.
+- Başarılı yazımdan sonra çağrıldığı yerler: yeni ürün, ürün düzenleme, ürün silme,
+  `/api/admin/urunler/bulk` (sil/durum/fiyat), `excel-aktar` (her parçadan sonra),
+  `excel-aktar/gorsel-getir`, `[id]/gorsel-ekle`, `[id]/gorsel-yenile` (görsel/açıklama
+  eklendiyse), Vega `VaryasyonGuncelle` stok güncellemesi.
+- `(site)/page.tsx`: `export const revalidate = 60` (yedek güvence) ve "Yeni Gelenler"
+  artık `getPublishedProducts()` ile en yeni 8 ürün (`featuredFirst` kaldırıldı; öne
+  çıkan işaretsiz yeni ürün artık listeden düşmüyor). Boş durum başlığı da "Yeni Gelenler".
+- Doğrulama: `tsc` temiz; `npm run build` temiz ve `/` artık `○ 1m` (revalidate 60sn)
+  görünüyor; eslint 132 sorun (74 hata) değişiklik öncesiyle aynı, dokunulan dosyalarda yeni sorun yok.
+  Tarayıcıda test ürünü ekleyip anasayfada görme testi YAPILAMADI (admin girişi
+  yerelde çalışmıyor); canlıda doğrulanmalı.
+- Dokunulmadı: kategori taşıma/silme (`category-actions.ts`) anasayfa kategori
+  sayılarını etkiler ama en geç 60sn içinde tazelenir.

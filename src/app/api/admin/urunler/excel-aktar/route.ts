@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import {
   groupExcelRows,
   importProductGroups,
@@ -99,6 +100,8 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
+
+  revalidateCatalog();
 
   // KOD3 -> kategori eslemesi SADECE guvenli oldugunda ogrenilir: Koton KOD3'u urun
   // tipini guvenilir ayirmadigi icin (ayni KOD3 altinda Tisort de Bluz da cikabiliyor)
