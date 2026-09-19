@@ -186,15 +186,15 @@ export function ProductViewer({
   const colors = orderedOptionValues(variants, (v) => v.color, (v) => v.colorPosition);
   const startColor = initialColor && colors.includes(initialColor) ? initialColor : (colors[0] ?? "");
   const [color, setColor] = useState(startColor);
-  const [size, setSize] = useState(() => {
-    // Baslangic rengi icin stokta olan bir beden varsa onu sec, yoksa o renge
-    // ait ilk bedeni - sizes[0] her zaman bu renkte olmayabilir (ozellikle
-    // katalogdan bir renge tiklanip gelindiginde).
-    const inStockForColor = variants.find((v) => v.color === startColor && v.stock > 0);
-    if (inStockForColor) return inStockForColor.size;
-    const anyForColor = variants.find((v) => v.color === startColor);
-    return anyForColor?.size ?? sizes[0] ?? "";
-  });
+  // Beden, musteri bilincli secene kadar bos (null) - yanlis beden siparisi ve
+  // iade riskini azaltmak icin. Istisna: bedensiz (sizes bos) veya tek bedenli
+  // (Standart/Tek Ebat) urunlerde secim yapilacak bir sey olmadigi icin o deger
+  // otomatik secilir, yoksa musteri sepete hic ekleyemez.
+  const [size, setSize] = useState<string | null>(() =>
+    sizes.length === 0 ? "" : sizes.length === 1 ? sizes[0] : null
+  );
+  const [sizeWarning, setSizeWarning] = useState(false);
+  const [sizeHighlight, setSizeHighlight] = useState(false);
   const [added, setAdded] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [descriptionExpanded, setDescriptionExpanded] = useState(false);
@@ -225,8 +225,8 @@ export function ProductViewer({
   // guide"`), Bollmark'ta bu kisayol genel/urune bagli olmayan
   // SizeGuideModal'i acar (bkz. asagida sizeGuideModalOpen).
 
-  const selected = variants.find((v) => v.size === size && v.color === color);
-  const outOfStock = !selected || selected.stock <= 0;
+  const selected = size === null ? undefined : variants.find((v) => v.size === size && v.color === color);
+  const needsSize = size === null;
   const selectedPriceCents = selected ? effectivePrice({ priceCents }, selected) : priceCents;
 
   // Basligin ustundeki "Son X Adet" rozeti icin katalogla ayni mantik (bkz.
@@ -238,6 +238,11 @@ export function ProductViewer({
   const colorStock = colorVariants.reduce((sum, v) => sum + Math.max(v.stock, 0), 0);
   const colorOutOfStock = colorVariants.length > 0 && colorVariants.every((v) => v.stock <= 0);
   const lowStockBadgeCount = !colorOutOfStock && colorStock < LOW_STOCK_THRESHOLD ? colorStock : null;
+
+  // Beden secilmedigi surece "Stokta Yok" gosterilmez (buton normal kalir,
+  // tiklayinca uyari cikar) - ama secili rengin tamami stoksuzsa mevcut
+  // "Stokta Yok" akisi bedenden bagimsiz korunur.
+  const outOfStock = colorOutOfStock || (!needsSize && (!selected || selected.stock <= 0));
 
   const isSizeOutOfStock = (s: string) =>
     !variants.some((v) => v.size === s && v.color === color && v.stock > 0);
@@ -299,13 +304,38 @@ export function ProductViewer({
     };
   }, [emblaMainApi]);
 
+  const selectSize = (s: string) => {
+    setSize(s);
+    setSizeWarning(false);
+    setSizeHighlight(false);
+  };
+
+  // Renk degisince secili beden yeni renkte stokta varsa korunur, yoksa
+  // sifirlanir - sessizce baska bir bedene atlamasin.
+  const selectColor = (c: string) => {
+    setColor(c);
+    if (size && sizes.length > 1 && !variants.some((v) => v.size === size && v.color === c && v.stock > 0)) {
+      setSize(null);
+    }
+  };
+
+  // Beden secilmeden ekleme/satin alma denenirse uyari gosterir ve beden
+  // kutucuklarini kisa sure vurgular; true doner = islem durdurulmali.
+  const blockIfSizeMissing = () => {
+    if (!needsSize) return false;
+    setSizeWarning(true);
+    setSizeHighlight(true);
+    setTimeout(() => setSizeHighlight(false), 1500);
+    return true;
+  };
+
   const addToCart = () => {
     if (!selected || outOfStock) return;
     addLine({
       productId,
       variantId: selected.id,
       name: productName,
-      size,
+      size: selected.size,
       color,
       priceCents: selectedPriceCents,
       compareAtCents: compareAtCents && compareAtCents > selectedPriceCents ? compareAtCents : null,
@@ -317,12 +347,14 @@ export function ProductViewer({
   };
 
   const handleAdd = () => {
+    if (blockIfSizeMissing()) return;
     if (!selected || outOfStock) return;
     addToCart();
     openDrawer();
   };
 
   const handleBuyNow = () => {
+    if (blockIfSizeMissing()) return;
     if (!selected || outOfStock) return;
     addToCart();
     router.push("/odeme");
@@ -618,7 +650,7 @@ export function ProductViewer({
                   return (
                     <button
                       key={c}
-                      onClick={() => setColor(c)}
+                      onClick={() => selectColor(c)}
                       className={`relative flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-3 text-xs uppercase leading-none tracking-[1px] transition duration-300 ${
                         color === c ? "bg-ink text-cream" : "bg-transparent text-ink hover:bg-ink/5"
                       } ${unavailable ? "opacity-40" : ""}`}
@@ -660,8 +692,10 @@ export function ProductViewer({
                   return (
                     <button
                       key={s}
-                      onClick={() => setSize(s)}
-                      className={`relative flex h-7 min-w-[28px] items-center justify-center rounded-none border border-ink px-1 text-xs leading-none tracking-[1px] transition duration-300 ${
+                      onClick={() => selectSize(s)}
+                      className={`relative flex h-7 min-w-[28px] items-center justify-center rounded-none border px-1 text-xs leading-none tracking-[1px] transition duration-300 ${
+                        sizeHighlight ? "border-sale" : "border-ink"
+                      } ${
                         size === s ? "bg-ink text-cream" : "bg-transparent text-ink hover:bg-ink/5"
                       } ${unavailable ? "opacity-40" : ""}`}
                     >
@@ -675,6 +709,11 @@ export function ProductViewer({
                   );
                 })}
               </div>
+              {sizeWarning && needsSize && (
+                <p role="alert" className="mt-2 text-xs text-sale">
+                  Lütfen beden seçin
+                </p>
+              )}
             </div>
           )}
 
@@ -693,7 +732,7 @@ export function ProductViewer({
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  disabled={quantity <= 1}
+                  disabled={needsSize || quantity <= 1}
                   aria-label="Adedi azalt"
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition duration-300 hover:bg-line disabled:opacity-30"
                 >
@@ -703,7 +742,7 @@ export function ProductViewer({
                 <button
                   type="button"
                   onClick={() => setQuantity((q) => Math.min(selected?.stock ?? 1, q + 1))}
-                  disabled={quantity >= (selected?.stock ?? 1)}
+                  disabled={needsSize || quantity >= (selected?.stock ?? 1)}
                   aria-label="Adedi artır"
                   className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition duration-300 hover:bg-line disabled:opacity-30"
                 >
@@ -735,7 +774,7 @@ export function ProductViewer({
 
           {outOfStock && selected && <StockAlertForm variantId={selected.id} />}
 
-          {!outOfStock && selected.stock <= LOW_STOCK_THRESHOLD && (
+          {!outOfStock && selected && selected.stock <= LOW_STOCK_THRESHOLD && (
             <p className="flex items-center gap-2 text-xs text-ink/70">
               <Clock size={14} className="shrink-0 text-ink/60" />
               Son {selected.stock} adet kaldı. Acele edin.

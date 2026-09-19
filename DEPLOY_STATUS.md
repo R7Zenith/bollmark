@@ -4498,3 +4498,25 @@ kadar aynı HTML sunuluyordu.
   yerelde çalışmıyor); canlıda doğrulanmalı.
 - Dokunulmadı: kategori taşıma/silme (`category-actions.ts`) anasayfa kategori
   sayılarını etkiler ama en geç 60sn içinde tazelenir.
+
+## Oturum: Ürün detayda beden otomatik seçili gelmesin (19 Eylul 2026)
+
+Plan: `URUN_DETAY_BEDEN_SECILI_GELMESIN_PLANI.md`. Değişen dosya: `src/components/product-viewer.tsx`.
+
+- `size` state'i `string | null`, başlangıç `null`. İstisna: bedensiz ürün (`""`) ve tek bedenli ürün
+  (o beden) otomatik seçili; aksi halde müşteri hiç ekleyemezdi.
+- `needsSize` (size null) eklendi; `outOfStock` artık beden seçilmemişken true olmuyor, buton
+  "Sepete Ekle" kalıyor. Seçili rengin tüm varyantları stoksuzsa (`colorOutOfStock`) mevcut
+  "Stokta Yok" akışı korundu; bu durumda StockAlertForm beden seçilince görünür (varyant gerekiyor).
+- `handleAdd`/`handleBuyNow`: beden yoksa eklemez, "Lütfen beden seçin" uyarısı (`role="alert"`)
+  çıkar, beden kutucukları 1.5 sn `border-sale` olur; beden seçilince uyarı kalkar. Butonlar disabled değil.
+- Renk değişince (`selectColor`): seçili beden yeni renkte stokta yoksa sıfırlanır (birden fazla
+  bedenli üründe); stokta varsa korunur.
+- Adet seçici beden seçilene kadar disabled ama görünür. "Son N adet" satırı null-safe.
+- `product-card.tsx`: dokunulmadı; kartta otomatik beden seçimi yok (popover, kullanıcı seçiyor).
+- Doğrulama: `tsc --noEmit` temiz; eslint product-viewer.tsx'te yalnız önceden var olan sorunlar
+  (set-state-in-effect hatası, kullanılmayan eslint-disable uyarısı). Tarayıcıda (masaüstü + 390px):
+  açılışta seçili beden yok; seçmeden ekleme sepete eklemiyor ve uyarı çıkıyor; M seçince sepete
+  M/SİYAH ekleniyor; adet seçici seçime kadar disabled. YAPILAMADI: yerel DB'de çok renkli ürün
+  bulunamadı, renk değişiminde sıfırlanma ve tek bedenli/bedensiz ürün tarayıcıda denenmedi
+  (yalnız kod okumasıyla); `/odeme` akışı elle denenmedi.
