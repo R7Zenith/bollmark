@@ -49,51 +49,59 @@ export async function POST(request: NextRequest) {
 
   const rawGroups = groupExcelRows(parsed.rows);
 
-  // Kesin eslesme icin once ogrenilmis DB eslemesi, sonra sabit CATEGORY_MAP kontrol
-  // edilir (detectCategoryName, bkz. excel-import.ts). Ikisi de yoksa her benzersiz
-  // KOD3 degeri icin bir kez AI onerisi istenir (ayni deger birden fazla grupta
-  // gecebilir, tekrar sorulmaz) - bu KESIN bir eslesme degil, sadece onizlemede
-  // yoneticinin onaylamasi/duzeltmesi icin bir oneri (bkz. EXCEL_KATEGORI_ESLEME_PLANI.md
-  // bolum 2 ve 6).
+  // Kategori onceligi URUN (productCode) bazinda: 1) urun adindan guclu tahmin (sadece
+  // DB'de var olan kategori adlariyla), 2) sabit CATEGORY_MAP (KOD3), 3) ogrenilmis
+  // CategoryKodMapping (yedek), 4) AI onerisi (prompta urun adi da girer). Koton KOD3'u
+  // urun tipini guvenilir ayirmadigi icin urun adi KOD3'ten once gelir (bkz.
+  // EXCEL_KATEGORI_YANLIS_ESLESME_PLANI.md). Ad tahmini ile KOD3 sonucu farkliysa KOD3
+  // sonucu conflictCategory olarak doner, onizlemede uyari gosterilir. AI KESIN bir
+  // eslesme degil, sadece yoneticinin onaylamasi/duzeltmesi icin bir oneri.
   const existingCategoryNames = (await prisma.category.findMany({ select: { name: true } })).map((c) => c.name);
-  const detectedCache = new Map<string, string | null>();
+  const kodCategoryCache = new Map<string, string | null>();
   for (const g of rawGroups) {
     const key = normalizeKod3(g.categoryRaw);
-    if (!key || detectedCache.has(key)) continue;
-    detectedCache.set(key, await detectCategoryName(prisma, g.categoryRaw));
-  }
-  // KOD3 kesin eşleşmezse, AI'ya gitmeden önce ürün adında geçen anahtar kelimeye
-  // bakarak ücretsiz/deterministik bir tahmin denenir (bkz. excel-import.ts,
-  // guessCategoryFromProductName). Bu, KOD3'e değil ÜRÜN KODU'na göre - çünkü aynı
-  // KOD3 altında farklı ürün adları olabilir.
-  const nameGuessCache = new Map<string, string | null>();
-  for (const g of rawGroups) {
-    const key = normalizeKod3(g.categoryRaw);
-    if (key && detectedCache.get(key)) continue;
-    nameGuessCache.set(g.productCode, guessCategoryFromProductName(g.productName));
+    if (!key || kodCategoryCache.has(key)) continue;
+    kodCategoryCache.set(key, await detectCategoryName(prisma, g.categoryRaw));
   }
 
-  const suggestionCache = new Map<string, CategorySuggestion | null>();
+  const suggestionByProductCode = new Map<string, CategorySuggestion | null>();
+  const resolved = new Map<
+    string,
+    { detectedCategory: string | null; detectedFrom: "name" | "kod" | null; conflictCategory: string | null }
+  >();
   for (const g of rawGroups) {
-    const key = normalizeKod3(g.categoryRaw);
-    if (!key || detectedCache.get(key)) continue;
-    if (nameGuessCache.get(g.productCode)) continue; // isimden tahmin başarılıysa AI'ya gitme
-    if (suggestionCache.has(key)) continue;
-    suggestionCache.set(key, await suggestCategory(g.categoryRaw, existingCategoryNames));
+    const nameGuess = guessCategoryFromProductName(g.productName, existingCategoryNames);
+    const kodCategory = kodCategoryCache.get(normalizeKod3(g.categoryRaw)) ?? null;
+    if (nameGuess) {
+      const conflicts = !!kodCategory && kodCategory.toLocaleLowerCase("tr-TR") !== nameGuess.toLocaleLowerCase("tr-TR");
+      resolved.set(g.productCode, {
+        detectedCategory: nameGuess,
+        detectedFrom: "name",
+        conflictCategory: conflicts ? kodCategory : null
+      });
+      continue;
+    }
+    if (kodCategory) {
+      resolved.set(g.productCode, { detectedCategory: kodCategory, detectedFrom: "kod", conflictCategory: null });
+      continue;
+    }
+    resolved.set(g.productCode, { detectedCategory: null, detectedFrom: null, conflictCategory: null });
+    if (normalizeKod3(g.categoryRaw)) {
+      suggestionByProductCode.set(g.productCode, await suggestCategory(g.categoryRaw, g.productName, existingCategoryNames));
+    }
   }
 
   const groups = rawGroups.map((g) => {
-    const key = normalizeKod3(g.categoryRaw);
-    const detectedCategory = detectedCache.get(key) ?? null;
-    const nameGuessedCategory = detectedCategory ? null : nameGuessCache.get(g.productCode) ?? null;
-    const suggestedCategory = detectedCategory || nameGuessedCategory ? null : suggestionCache.get(key) ?? null;
+    const { detectedCategory, detectedFrom, conflictCategory } = resolved.get(g.productCode)!;
+    const suggestedCategory = detectedCategory ? null : suggestionByProductCode.get(g.productCode) ?? null;
     return {
       productCode: g.productCode,
       productName: g.productName,
       gender: mapGender(g.genderRaw),
       categoryRaw: g.categoryRaw,
       detectedCategory,
-      nameGuessedCategory,
+      detectedFrom,
+      conflictCategory,
       suggestedCategory,
       brandName: g.brandName,
       priceCents: g.priceCents,

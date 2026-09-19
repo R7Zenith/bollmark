@@ -100,17 +100,25 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Yoneticinin bu ice aktarimda onayladigi/elle girdigi kategori eslemelerini kalici
-  // hale getir - bir dahaki dosyada ayni KOD3 tekrar sorulmasin/bos gelmesin (bkz.
-  // EXCEL_KATEGORI_ESLEME_PLANI.md bolum 6). Sadece yoneticinin GERCEKTEN bir isim
-  // girdigi satirlar ogrenilir - bos birakilip fallback kategoriye dusen satirlar
-  // ogrenilmez, aksi halde rastgele bir KOD3 degeri fallback'e kalici olarak baglanir.
-  // Ogrenme basarisiz olursa (DB hatasi vb.) asil ice aktarim sonucunu ASLA etkilemez.
+  // KOD3 -> kategori eslemesi SADECE guvenli oldugunda ogrenilir: Koton KOD3'u urun
+  // tipini guvenilir ayirmadigi icin (ayni KOD3 altinda Tisort de Bluz da cikabiliyor)
+  // karisik KOD3'ler asla ogrenilmemeli (bkz. EXCEL_KATEGORI_YANLIS_ESLESME_PLANI.md).
+  // Karar istemcide verilir cunku dosya parca parca (BATCH_SIZE) gonderiliyor ve tum
+  // dosyayi sadece istemci gorur: learnableKod3 = yonetici oneriyi elle degistirmis VE
+  // dosyadaki o KOD3'e ait TUM urunler ayni kategoride olan KOD3'ler (kod3 -> kategori
+  // adi). Sunucu burada sadece bu parcadaki satirin gercekten o kategoride oldugunu
+  // dogrular. Ogrenme basarisiz olursa (DB hatasi vb.) asil ice aktarim sonucunu ASLA
+  // etkilemez.
+  const rawLearnable = body?.learnableKod3;
+  const learnableKod3: Record<string, unknown> =
+    rawLearnable && typeof rawLearnable === "object" && !Array.isArray(rawLearnable) ? rawLearnable : {};
   const learnedByKod3 = new Map<string, string>();
   for (const group of groups) {
     const override = typeof categoryOverrides[group.productCode] === "string" ? categoryOverrides[group.productCode].trim() : "";
     const kod3 = normalizeKod3(group.categoryRaw);
     if (!override || !kod3) continue;
+    const learnableName = learnableKod3[kod3];
+    if (typeof learnableName !== "string" || learnableName.trim().toLocaleLowerCase("tr-TR") !== override.toLocaleLowerCase("tr-TR")) continue;
     const categoryId = categoryIdByName.get(override);
     if (!categoryId) continue;
     learnedByKod3.set(kod3, categoryId);

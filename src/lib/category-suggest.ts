@@ -14,15 +14,18 @@ const MODEL = "claude-haiku-4-5-20251001";
 
 export async function suggestCategory(
   categoryRaw: string,
+  productName: string,
   existingCategoryNames: string[]
 ): Promise<CategorySuggestion | null> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   const trimmedRaw = categoryRaw.trim();
   if (!apiKey || !trimmedRaw || existingCategoryNames.length === 0) return null;
 
-  const prompt = `Bir giyim e-ticaret sisteminde ürün tipi kodu "${trimmedRaw}" için, aşağıdaki mevcut
-kategori adları listesinden en olası eşleşmeyi seç. Hiçbiri makul şekilde uymuyorsa categoryName
-alanını null yap.
+  // Ürün tipi kodu tek başına güvenilir değil (aynı kod altında farklı türler çıkabiliyor),
+  // bu yüzden ürün adı da verilir.
+  const prompt = `Bir giyim e-ticaret sisteminde ürün adı "${productName.trim()}", ürün tipi kodu "${trimmedRaw}"
+olan ürün için, aşağıdaki mevcut kategori adları listesinden en olası eşleşmeyi seç. Ürün adı,
+ürün tipi kodundan daha güvenilirdir. Hiçbiri makul şekilde uymuyorsa categoryName alanını null yap.
 
 Mevcut kategoriler: ${existingCategoryNames.join(", ")}
 

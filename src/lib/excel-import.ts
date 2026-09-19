@@ -64,30 +64,41 @@ const CATEGORY_MAP: Record<string, string> = {
   "SHIRTS LS BSC": "Gömlek",
   SHORTS: "Şort",
   TROUSERS: "Pantolon",
-  "BIKINI BOTTOMS": "Mayo & Bikini"
+  "BIKINI BOTTOMS": "Mayo & Bikini",
+  "TSHIRT LS": "Tişört",
+  "BLOUSE LS": "Bluz",
+  JACKETS: "Ceket",
+  BLAZERS: "Ceket",
+  DRESSES: "Elbise",
+  SKIRTS: "Etek",
+  SWEATERS: "Kazak & Süveter",
+  SWEATSHIRTS: "Sweatshirt"
 };
 
 export function mapCategoryName(categoryRaw: string): string | null {
   return CATEGORY_MAP[categoryRaw.trim().toUpperCase()] ?? null;
 }
 
-// KOD3 (öğrenilmiş eşleme + CATEGORY_MAP) karşılığı yoksa, AI önerisine gitmeden
-// önce ürün adında geçen anahtar kelimeye bakarak ücretsiz/deterministik bir tahmin
-// denenir. Bu bir KESİN eşleşme değildir - önizlemede "öneri" olarak gösterilir,
-// yönetici onaylar/değiştirir (AI önerisiyle aynı güvenlik prensibi). Liste sitenin
-// gerçek kategori ağacındaki isimlere göre güncel tutulmalı. Sıra önemli - daha
-// spesifik türler (Kot Pantolon, Şort) genel olanlardan (Pantolon) önce kontrol
-// edilmeli ki "kot pantolon" ifadesi yanlışlıkla sade "Pantolon"a düşmesin.
+// Ürün adında geçen anahtar kelimeye bakarak yapılan deterministik kategori tahmini.
+// Koton KOD3'ü ürün tipini güvenilir ayırmıyor (aynı KOD3 altında hem Tişört hem Bluz
+// çıkabiliyor, bkz. EXCEL_KATEGORI_YANLIS_ESLESME_PLANI.md), bu yüzden ürün adı
+// KOD3'ten ÖNCE değerlendirilir. Liste sitenin gerçek kategori ağacındaki isimlere göre
+// güncel tutulmalı. Eşleşme kelime BAŞINDA aranır, kelime içinde değil - aksi halde
+// "sweatshirt" içindeki "tshirt" Tişört'e düşerdi. Türkçe ürün adlarında ürün türü adın
+// SONUNDAKİ isim öbeğidir ("Gömlek Yaka ... Ceket" bir Ceket, "Jean Ceket" bir Ceket,
+// "... Eşofman Altı" bir Eşofman Altı), bu yüzden birden fazla anahtar kelime geçiyorsa
+// adın en sonunda biten eşleşme kazanır; aynı yerde bitenlerde daha uzun olan
+// ("jean pantolon" > "pantolon") kazanır.
 const PRODUCT_NAME_CATEGORY_KEYWORDS: Array<{ category: string; keywords: string[] }> = [
   { category: "Şort", keywords: ["şort"] },
   { category: "Etek", keywords: ["etek"] },
-  { category: "Kot Pantolon", keywords: ["jean", "kot pantolon", "denim pantolon"] },
+  { category: "Kot Pantolon", keywords: ["jean", "jean pantolon", "kot pantolon", "denim pantolon"] },
   { category: "Pantolon", keywords: ["pantolon", "paça"] },
   { category: "Elbise", keywords: ["elbise"] },
   { category: "Bluz", keywords: ["bluz"] },
   { category: "Gömlek", keywords: ["gömlek"] },
-  { category: "Tişört", keywords: ["tişört", "t-shirt", "tshirt"] },
   { category: "Sweatshirt", keywords: ["sweatshirt"] },
+  { category: "Tişört", keywords: ["tişört", "t-shirt", "tshirt"] },
   { category: "Hırka", keywords: ["hırka"] },
   { category: "Kazak & Süveter", keywords: ["kazak", "süveter", "triko"] },
   { category: "Trençkot", keywords: ["trençkot", "trenchcoat"] },
@@ -99,18 +110,43 @@ const PRODUCT_NAME_CATEGORY_KEYWORDS: Array<{ category: string; keywords: string
   { category: "Mayo & Bikini", keywords: ["mayo", "bikini"] },
   { category: "İç Giyim", keywords: ["sütyen", "külot"] },
   { category: "Pijama & Gecelik", keywords: ["pijama", "gecelik"] },
+  { category: "Eşofman Altı", keywords: ["eşofman altı"] },
   { category: "Eşofman", keywords: ["eşofman", "jogger"] },
   { category: "Polo Yaka", keywords: ["polo yaka", "polo"] },
   { category: "Atlet", keywords: ["atlet"] },
   { category: "Boxer", keywords: ["boxer"] }
 ];
 
-export function guessCategoryFromProductName(productName: string): string | null {
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Anahtar kelime metin başında ya da boşluk/tire/eğik çizgi/parantez sonrasında
+// aranır; kelimenin sonu serbest (Türkçe ekler: "pantolonu", "tişörtlü").
+const PRODUCT_NAME_CATEGORY_MATCHERS = PRODUCT_NAME_CATEGORY_KEYWORDS.flatMap((entry) =>
+  entry.keywords.map((keyword) => ({
+    category: entry.category,
+    pattern: new RegExp(`(?:^|[\\s\\-/(])${escapeRegExp(keyword)}`, "g")
+  }))
+);
+
+// existingCategoryNames: DB'deki gerçek kategori adları. Tahmin edilen ad bu listede
+// (büyük/küçük harf duyarsız) yoksa null döner - böylece aktarımda getOrCreateCategoryId
+// ile "çöp kategori" oluşmaz; dönen değer DB'deki yazımdır.
+export function guessCategoryFromProductName(productName: string, existingCategoryNames: string[]): string | null {
   const lower = productName.toLocaleLowerCase("tr-TR");
-  for (const entry of PRODUCT_NAME_CATEGORY_KEYWORDS) {
-    if (entry.keywords.some((k) => lower.includes(k))) return entry.category;
+  let best: { category: string; end: number; length: number } | null = null;
+  for (const entry of PRODUCT_NAME_CATEGORY_MATCHERS) {
+    for (const match of lower.matchAll(entry.pattern)) {
+      const end = match.index + match[0].length;
+      if (!best || end > best.end || (end === best.end && match[0].length > best.length)) {
+        best = { category: entry.category, end, length: match[0].length };
+      }
+    }
   }
-  return null;
+  if (!best) return null;
+  const wanted = best.category.toLocaleLowerCase("tr-TR");
+  return existingCategoryNames.find((n) => n.toLocaleLowerCase("tr-TR") === wanted) ?? null;
 }
 
 // KOD3 -> kategori icin normalize edilmis anahtar (CategoryKodMapping.kod3 bu formatta
@@ -121,9 +157,8 @@ export function normalizeKod3(categoryRaw: string): string {
 
 // Yoneticinin onizlemede onayladigi/elle girdigi bir KOD3->kategori eslemesi, ayni
 // kod bir dahaki dosyada tekrar sorulmasin diye buradan ogrenilir (bkz.
-// EXCEL_KATEGORI_ESLEME_PLANI.md bolum 6). Sabit CATEGORY_MAP'ten ONCE kontrol
-// edilir, boylece yonetici CATEGORY_MAP'teki bir hatayi da kod deploy etmeden
-// duzeltebilir.
+// EXCEL_KATEGORI_ESLEME_PLANI.md bolum 6). Urun adi tahmininden ve sabit
+// CATEGORY_MAP'ten SONRA, sadece yedek olarak kullanilir (bkz. detectCategoryName).
 export async function resolveLearnedCategoryName(tx: Tx, categoryRaw: string): Promise<string | null> {
   const kod3 = normalizeKod3(categoryRaw);
   if (!kod3) return null;
@@ -131,11 +166,12 @@ export async function resolveLearnedCategoryName(tx: Tx, categoryRaw: string): P
   return mapping?.category.name ?? null;
 }
 
-// Kesin eslesme icin tam lookup sirasi: once ogrenilmis DB eslemesi, sonra sabit
-// CATEGORY_MAP. Ikisi de yoksa null doner - cagiran taraf (onizleme route'u) bu
-// durumda AI onerisine basvurur.
+// KOD3 kaynakli lookup sirasi: once sabit CATEGORY_MAP, sonra ogrenilmis DB eslemesi
+// (yedek - ogrenilmis esleme yanlis olabildigi icin sabit haritayi ezmemeli). Ikisi de
+// yoksa null doner - cagiran taraf (onizleme route'u) bu durumda AI onerisine basvurur.
+// Urun adi tahmini bunlardan ONCE route'ta degerlendirilir.
 export async function detectCategoryName(tx: Tx, categoryRaw: string): Promise<string | null> {
-  return (await resolveLearnedCategoryName(tx, categoryRaw)) ?? mapCategoryName(categoryRaw);
+  return mapCategoryName(categoryRaw) ?? (await resolveLearnedCategoryName(tx, categoryRaw));
 }
 
 // Marka/kategori sayfalarında kullanılan Türkçe slug üretimiyle aynı kural.

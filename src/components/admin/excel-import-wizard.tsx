@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { Upload, ArrowLeft, CheckCircle2, AlertTriangle, HelpCircle, Loader2, Sparkles } from "lucide-react";
+import { Upload, ArrowLeft, CheckCircle2, AlertTriangle, HelpCircle, Loader2 } from "lucide-react";
 import { Button } from "@/components/admin/button";
 import { Card } from "@/components/admin/card";
 import { formatPrice } from "@/lib/format";
@@ -35,7 +35,8 @@ type PreviewGroup = {
   gender: string | null;
   categoryRaw: string | null;
   detectedCategory: string | null;
-  nameGuessedCategory: string | null;
+  detectedFrom: "name" | "kod" | null;
+  conflictCategory: string | null;
   suggestedCategory: CategorySuggestion | null;
   brandName: string;
   priceCents: number;
@@ -96,6 +97,35 @@ function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Önizlemede bir grup için otomatik doldurulan kategori adı.
+function initialCategory(g: PreviewGroup): string {
+  return g.detectedCategory ?? g.suggestedCategory?.categoryName ?? "";
+}
+
+const sameName = (a: string, b: string) => a.trim().toLocaleLowerCase("tr-TR") === b.trim().toLocaleLowerCase("tr-TR");
+
+// KOD3 -> kategori eşlemesi sadece güvenliyse öğrenilir (bkz. excel-aktar route'u):
+// yönetici o KOD3'ten en az bir ürünün önerisini elle değiştirmiş VE dosyadaki o KOD3'e
+// ait TÜM ürünler aynı (boş olmayan) kategoride olmalı. Karışık KOD3'ler (örn. hem
+// Tişört hem Bluz içeren) asla öğrenilmez. KOD3 anahtarı sunucudaki normalizeKod3 ile aynı.
+function computeLearnableKod3(groups: PreviewGroup[], categoryByCode: Record<string, string>): Record<string, string> {
+  const byKod3 = new Map<string, PreviewGroup[]>();
+  for (const g of groups) {
+    const kod3 = (g.categoryRaw ?? "").trim().toUpperCase();
+    if (!kod3) continue;
+    byKod3.set(kod3, [...(byKod3.get(kod3) ?? []), g]);
+  }
+  const learnable: Record<string, string> = {};
+  for (const [kod3, list] of byKod3) {
+    const first = (categoryByCode[list[0].productCode] ?? "").trim();
+    if (!first) continue;
+    const allSame = list.every((g) => sameName(categoryByCode[g.productCode] ?? "", first));
+    const anyEdited = list.some((g) => !sameName(categoryByCode[g.productCode] ?? "", initialCategory(g)));
+    if (allSame && anyEdited) learnable[kod3] = first;
+  }
+  return learnable;
+}
+
 export function ExcelImportWizard({
   categories,
   categoryNames
@@ -133,12 +163,7 @@ export function ExcelImportWizard({
       setPreview(preview);
       setProductNameByCode(Object.fromEntries(preview.groups.map((g) => [g.productCode, g.productName])));
       setCategoryByCode(
-        Object.fromEntries(
-          preview.groups.map((g) => [
-            g.productCode,
-            g.detectedCategory ?? g.nameGuessedCategory ?? g.suggestedCategory?.categoryName ?? ""
-          ])
-        )
+        Object.fromEntries(preview.groups.map((g) => [g.productCode, initialCategory(g)]))
       );
       setStep("preview");
     } catch {
@@ -163,6 +188,7 @@ export function ExcelImportWizard({
     const allTargets: KotonEnrichmentTarget[] = [];
     let doneGroups = 0;
     skipImagesRef.current = false;
+    const learnableKod3 = computeLearnableKod3(preview.groups, categoryByCode);
 
     try {
       for (const chunk of chunks) {
@@ -172,7 +198,7 @@ export function ExcelImportWizard({
         const res = await fetch("/api/admin/urunler/excel-aktar", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ rows, categoryId: categoryId || null, categoryOverrides: overrides })
+          body: JSON.stringify({ rows, categoryId: categoryId || null, categoryOverrides: overrides, learnableKod3 })
         });
         const data = await res.json();
         if (!res.ok) {
@@ -316,21 +342,19 @@ export function ExcelImportWizard({
 
             {(() => {
               const exactCount = preview.groups.filter((g) => g.detectedCategory).length;
-              const nameGuessCount = preview.groups.filter(
-                (g) => !g.detectedCategory && g.nameGuessedCategory
-              ).length;
-              const suggestedCount = preview.groups.filter(
-                (g) => !g.detectedCategory && !g.nameGuessedCategory && g.suggestedCategory
-              ).length;
-              const noneCount = preview.groups.length - exactCount - nameGuessCount - suggestedCount;
+              const conflictCount = preview.groups.filter((g) => g.conflictCategory).length;
+              const suggestedCount = preview.groups.filter((g) => !g.detectedCategory && g.suggestedCategory).length;
+              const noneCount = preview.groups.length - exactCount - suggestedCount;
               return (
                 <div className="flex flex-wrap gap-4 rounded-md border border-admin-border bg-gray-50 p-3 text-xs">
                   <span className="inline-flex items-center gap-1.5 text-green-700">
-                    <CheckCircle2 size={14} /> {exactCount} kesin eşleşti
+                    <CheckCircle2 size={14} /> {exactCount} eşleşti
                   </span>
-                  <span className="inline-flex items-center gap-1.5 text-indigo-700">
-                    <Sparkles size={14} /> {nameGuessCount} isimden öneri (kontrol bekliyor)
-                  </span>
+                  {conflictCount > 0 && (
+                    <span className="inline-flex items-center gap-1.5 text-orange-700">
+                      <AlertTriangle size={14} /> {conflictCount} ürün kodla çelişiyor (ürün adı esas alındı)
+                    </span>
+                  )}
                   <span className="inline-flex items-center gap-1.5 text-amber-700">
                     <HelpCircle size={14} /> {suggestedCount} AI önerisi (kontrol bekliyor)
                   </span>
@@ -392,11 +416,7 @@ export function ExcelImportWizard({
                         <div className="flex min-w-[11rem] flex-col gap-1">
                           {g.detectedCategory ? (
                             <span className="inline-flex w-fit items-center gap-1 rounded bg-green-50 px-1.5 py-0.5 text-xs text-green-700">
-                              <CheckCircle2 size={12} /> Eşleşti
-                            </span>
-                          ) : g.nameGuessedCategory ? (
-                            <span className="inline-flex w-fit items-center gap-1 rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-700">
-                              <Sparkles size={12} /> Öneri (ürün adından), kontrol et
+                              <CheckCircle2 size={12} /> Eşleşti{g.detectedFrom === "name" ? " (ürün adından)" : ""}
                             </span>
                           ) : g.suggestedCategory ? (
                             <span
@@ -408,6 +428,11 @@ export function ExcelImportWizard({
                           ) : (
                             <span className="inline-flex w-fit items-center gap-1 rounded bg-red-50 px-1.5 py-0.5 text-xs text-red-700">
                               <AlertTriangle size={12} /> Eşleşmedi
+                            </span>
+                          )}
+                          {g.conflictCategory && (
+                            <span className="inline-flex w-fit items-center gap-1 rounded bg-orange-50 px-1.5 py-0.5 text-xs text-orange-700">
+                              <AlertTriangle size={12} /> Kod ile çelişiyor: {g.conflictCategory}
                             </span>
                           )}
                           <input

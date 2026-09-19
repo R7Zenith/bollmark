@@ -4447,3 +4447,31 @@ buton, `sign-out-button.tsx`); tetikleyicide artık sadece baş harf değil tam 
 görünüyor, mobilde (<640px) yalnız avatar. Açılır menüde ad + e-posta başlığı.
 Doğrulama: `tsc` temiz; tarayıcıda görsel doğrulama yapılamadı (`.env`'deki
 admin bilgileri DB'deki hesapla eşleşmiyor).
+
+## Oturum: Excel aktarımda yanlış kategori eşleşmesi (19 Eylul 2026)
+
+Plan: `EXCEL_KATEGORI_YANLIS_ESLESME_PLANI.md`. Teşhis DB'de doğrulandı:
+`CategoryKodMapping`'de `TSHIRT LS -> Hırka` satırı vardı (Tişört ürünlerini Hırka'ya
+düşüren kaynak).
+
+- Yeni öncelik (ürün bazlı): ürün adından tahmin -> sabit `CATEGORY_MAP` ->
+  öğrenilmiş `CategoryKodMapping` (yalnız yedek) -> AI (prompta ürün adı eklendi).
+  Ad tahmini KOD3'ten farklı çıkarsa `conflictCategory` döner, önizlemede turuncu
+  "Kod ile çelişiyor" uyarısı çıkar.
+- `guessCategoryFromProductName`: kelime başı eşleşmesi ("sweatshirt" artık Tişört
+  olmaz), birden fazla anahtar kelimede adın sonunda biten kazanır ("Jean Ceket" ->
+  Ceket, "... Eşofman Altı" -> Eşofman Altı), yalnız DB'de var olan kategori adları
+  döner (çöp kategori oluşmaz).
+- `CATEGORY_MAP`'e TSHIRT LS, BLOUSE LS, JACKETS, BLAZERS, DRESSES, SKIRTS, SWEATERS,
+  SWEATSHIRTS eklendi.
+- KOD3 öğrenmesi artık yalnız yönetici öneriyi elle değiştirdiyse VE dosyadaki o
+  KOD3'ün tüm ürünleri aynı kategorideyse yapılır (karar istemcide, sunucu doğrular).
+- Doğrulama: `tsc` temiz, `npm run build` temiz, eslint'te yalnız eski bir
+  `react/no-unescaped-entities` hatası (excel-import-wizard.tsx, dokunulmadı).
+  KOTON19092026CHECKLIST.xls (30 ürün) simülasyonu: hiçbiri Hırka'ya düşmüyor,
+  2 Sweatshirt -> Sweatshirt, 3 Jean -> Kot Pantolon, 2 çelişki uyarısı beklendiği gibi.
+  Testler (`guessCategoryFromProductName` 10 vaka) geçici script ile geçti; projede
+  test altyapısı yok. Tarayıcıda önizleme ekran görüntüsü alınmadı.
+- DB düzeltmesi (onayla; yedek: `backups/excel-kategori-duzeltme-2026-09-19.json`):
+  `TSHIRT LS -> Hırka` eşlemesi silindi, `7WAL60008IW` Gömlek -> Bluz yapıldı.
+  `TANKTOPS -> Yelek` şüpheli ama dokunulmadı.
