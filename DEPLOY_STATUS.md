@@ -4641,3 +4641,23 @@ Release'de 97px'te, bizde 101px'te (Bollmark header'ı 68px, Release'inki 64px).
   İstenirse ileride ayrı bir `db push` ile kaldırılabilir; ortak Neon olduğu için otomatik yapılmadı.
 - Doğrulama: `tsc` temiz, `npm run build` başarılı, dokunulan dosyalarda lint temiz; API ve form tarayıcıda yeniden
   denendi, test kayıtları silindi (tablo boş).
+
+## Mega menü görsel kartları (bu oturum)
+
+Masaüstü mega menüde Kadın ve Erkek sekmelerinin sağ tarafı, DB'deki kategori görsellerini kullanan eski `PromoCard`
+yerine yapılandırmadan gelen 2'şer portre görsel kartına çevrildi (Release referansı).
+- Yeni `src/lib/mega-menu-cards.ts`: kart içerikleri (görsel, alt, etiket, başlık, href, isteğe bağlı `overlayOpacity`)
+  tek nesnede. `site-nav.ts` prisma import ettiği için client bileşen ondan değer alamaz, bu yüzden ayrı dosya.
+- `site-header.tsx`: yeni `MegaMenuImageCard` (next/image `fill`, `object-top`, aspect 3/4, 12px etiket + 28px başlık,
+  hover efekti yok) ve `GenderPanel` yeniden düzenlendi: solda metin sütunları `flex-1`, sağda kartlar `w-[70%]
+  max-w-[970px] gap-5`. Kartı olmayan sekmede sağ panel render edilmez ve sol sütunlar eski yarım genişliğinde kalır.
+  `PromoCard` mobil menü ve Aksesuar paneli için olduğu gibi duruyor; mobil menüye dokunulmadı.
+- Href'ler gerçek filtre URL'leri: `/urunler?kategori=<elbise|bluz|gomlek|ceket>&cinsiyet=<Kadın|Erkek>` (slug'lar
+  DB'den doğrulandı). Overlay varsayılan 0.2; okunabilirlik için Bluz (yoğun desen) ve Gömlek (açık gömlek) 0.3.
+- Görseller `public/menu/` altında (kullanıcı yerleştirdi), next/image ile optimize ediliyor.
+
+**Doğrulama**
+- `tsc --noEmit` temiz. Tam lint'te `MobileMenu`'daki önceden var olan 2 `set-state-in-effect` hatası dışında sorun yok.
+- Playwright: 1440'ta kartlar 469x625, 1920'de 475x633 (3/4), görseller yüklendi; 4 kartta yazı okunuyor.
+  Aksesuar (kartsız) sekmesi bozulmadan açılıyor. 390 px mobil Kadın alt menüsünde yeni kart yok.
+- Not: önizleme kapısı (PREVIEW_PASSWORD) nedeniyle yerel testte `?preview=` ile cookie alındı.

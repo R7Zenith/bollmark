@@ -8,6 +8,7 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCart } from "@/lib/cart";
 import { hasCatalogBanner } from "@/lib/catalog-banner";
+import { MEGA_MENU_CARDS, type MegaMenuCard } from "@/lib/mega-menu-cards";
 import { CartDrawer } from "@/components/cart-drawer";
 import type { MegaMenuData, MenuCategory } from "@/lib/site-nav";
 
@@ -49,6 +50,31 @@ function PromoCard({
       <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
         <span className="text-sm uppercase text-cream">{category.name}</span>
         <span className="mt-2 text-4xl font-normal leading-[45px] tracking-[-1.44px] text-cream">{headline}</span>
+      </div>
+    </Link>
+  );
+}
+
+// Masaustu Kadin/Erkek mega menusunun sag tarafindaki portre gorsel karti
+// (icerik lib/mega-menu-cards.ts'te). Mobil menu bunu kullanmaz. Hover efekti
+// bilincli olarak yok.
+function MegaMenuImageCard({ card }: { card: MegaMenuCard }) {
+  return (
+    <Link href={card.href} className="relative block aspect-[3/4] min-w-0 flex-1 overflow-hidden">
+      <Image
+        src={card.image}
+        alt={card.alt}
+        fill
+        sizes="(min-width: 1280px) 480px, 0px"
+        loading="eager"
+        className="object-cover object-top"
+      />
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-white"
+        style={{ backgroundColor: `rgba(0, 0, 0, ${card.overlayOpacity ?? 0.2})` }}
+      >
+        <span className="text-xs uppercase tracking-[1.2px]">{card.label}</span>
+        <span className="mt-2 text-[28px] font-medium leading-tight">{card.title}</span>
       </div>
     </Link>
   );
@@ -150,19 +176,16 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
   // sinirli (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1.1).
   const allProductsHref = `/urunler?cinsiyet=${genderLabel}`;
   const isAllProductsActive = !activeSlug && activeGender === genderLabel;
-  const promoImages = categories.filter((c) => c.imageUrl).slice(0, 2);
+  const cards = MEGA_MENU_CARDS[gender];
 
   // Release'de panel iceriginin max-width'i YOK: her ekran genisliginde tam
-  // viewport, yan bosluk sabit 36px (px-9), dikey 32px (py-8); sol ve sag yari
-  // tam ortadan bolunuyor, aralarinda bosluk yok (bkz. 1.1).
+  // viewport, yan bosluk sabit 36px (px-9), dikey 32px (py-8). Solda metin
+  // sutunlari, sagda (varsa) 2 portre kart: kartlar sagda toplanir, aralarinda
+  // 20px bosluk, toplam genislik en fazla 970px (kart basi ~475px).
   return (
     <div className="absolute inset-x-0 top-full w-full border-b border-line bg-cream">
-      {/* Sol/sag yari her ekran genisliginde tam ortadan bolunur (Release'de
-          1280/1440/1600/1920'de olculdu: sol yari = sag yari = icerigin
-          yarisi), promosyon gorseli olmasa bile sol yari yayilmaz - gorsel
-          eklendiginde duzen kaymasin diye. Sol yaridaki 2 sutun arasi 12px. */}
-      <div className="grid grid-cols-2 px-9 py-8">
-        <div className="grid grid-cols-2 gap-x-3 gap-y-3">
+      <div className="flex px-9 py-8">
+        <div className={`grid grid-cols-2 content-start gap-x-3 gap-y-3 ${cards.length > 0 ? "flex-1" : "w-1/2"}`}>
           <div>
             <p className={GROUP_HEADING_CLASS}>Öne Çıkanlar</p>
             <ul className="space-y-2">
@@ -192,15 +215,10 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
             </ul>
           </div>
         </div>
-        {promoImages.length > 0 && (
-          <div className="flex gap-6">
-            {promoImages.map((category) => (
-              <PromoCard
-                key={category.id}
-                category={category}
-                href={`/urunler?kategori=${category.slug}&cinsiyet=${genderLabel}`}
-                headline={`${genderLabel} Koleksiyonu`}
-              />
+        {cards.length > 0 && (
+          <div className="flex w-[70%] max-w-[970px] gap-5">
+            {cards.map((card) => (
+              <MegaMenuImageCard key={card.href} card={card} />
             ))}
           </div>
         )}
