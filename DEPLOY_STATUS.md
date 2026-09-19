@@ -4582,3 +4582,52 @@ Release'de 97px'te, bizde 101px'te (Bollmark header'ı 68px, Release'inki 64px).
 - YAPILAMADI: tarayıcıda doğrulama. `.env`'deki ADMIN_PASSWORD ile giriş 401 verdi (DB'deki şifre farklı), kullanıcı
   bu adımı atlamamı istedi. Yani 1280/1366/1440/1920 px yatay scrollbar ölçümü, sayfa numaraları/adet seçici davranışı,
   stock/photo sıralamasının 1. sayfası ve seçim sıfırlanması elle denenmedi.
+
+## 2026-09-19 — Bize Ulaşın (/iletisim) + admin Mesajlar
+
+**Veritabanı**
+- `prisma/schema.prisma`: yeni `ContactMessage` modeli (ad, soyad, e-posta, telefon?, `contactPrefs String[]`, mesaj,
+  `status` YENI/OKUNDU/YANITLANDI, `ipHash?`, createdAt). Yöntem `npm run db:push` (migrations klasörü yok).
+  Önce `prisma migrate diff` ile SQL önizlendi: yalnızca `CREATE TABLE "ContactMessage"` + 2 index, mevcut tablolara
+  dokunulmadı. `--accept-data-loss` kullanılmadı. Local ve prod aynı Neon olduğu için tablo canlıda da hazır.
+
+**Public sayfa** — `src/app/(site)/iletisim/page.tsx`, `src/components/contact-form.tsx`
+- Breadcrumb Ana Sayfa / Bize Ulaşın, giriş metni, çalışma saatleri, form (Ad/Soyad, "Size nasıl ulaşalım?"
+  E-posta/Telefon/SMS, E-posta, koşullu Telefon, Mesaj), fetch ile gönderim (yükleniyor durumu, başarı/hata mesajı).
+- Tam genişlik Google Maps iframe (anahtarsız `maps.google.com/maps?q=...&output=embed`, `loading="lazy"`). Sorgu
+  Google'da "Koton Leventoğlu, Runguşpaşa, 75. Sk. No:6, 16700 Karacabey/Bursa" kaydına çözülüyor (Yandex kaydı da
+  "75. Sok., 6A"). Koordinat sabitlenmedi, sorgu ile çözülüyor.
+- Footer'da "İletişim" yalnızca başlıktı (link yoktu); altına "Bize Ulaşın" → /iletisim eklendi. Sitemap'e eklendi.
+  Gate (`proxy.ts`) sayfayı otomatik kapsıyor, `/api/iletisim` matcher dışında (public).
+
+**Gönderim** — `src/app/(site)/api/iletisim/route.ts` (projedeki api route + zod kalıbı)
+- Zod: e-posta formatı, mesaj 3–2000 karakter, Telefon/SMS seçiliyse telefon zorunlu ve biçim kontrollü.
+- Honeypot (`website` alanı): doluysa 200 döner, kaydetmez, mail atmaz.
+- Hız sınırı: mevcut altyapı yoktu; sayaç `ContactMessage.ipHash + createdAt` üzerinden (10 dk'da en fazla 3, aşınca 429).
+  Ham IP saklanmıyor, `NEXTAUTH_SECRET` tuzlu SHA-256 özeti saklanıyor. IP çözülemezse sınır uygulanmaz.
+- Sıra: önce DB, sonra mail. Mail hatası kaydı etkilemez, kullanıcıya başarılı dönülür.
+- Mail: mevcut `sendMail` (Resend) kullanıldı, yeni kurulum yok; `replyTo` opsiyonel parametresi eklendi. Alıcı
+  bilgi@bollmark.com, konu "Yeni iletişim formu mesajı - {ad soyad}", girdiler HTML'de escape ediliyor
+  (`src/lib/contact-notifications.ts`). Gönderen `MAIL_FROM` (mevcut).
+
+**Admin** — `src/app/(admin)/admin/mesajlar/` (liste + `[id]` detay), sadece ADMIN (`requireAdmin`)
+- Sidebar "Müşteriler" grubuna "Mesajlar" + okunmamış (YENI) sayısı rozeti (layout'ta sayılıyor, `AdminShell` →
+  `Sidebar` prop'u). Liste: tarih, ad soyad, e-posta, telefon, ilk satır, durum; Tümü/Yeni/Okundu/Yanıtlandı sekmeleri
+  (sayılarla), mevcut `Pagination` (20/sayfa, `?page=`).
+- Detay: tüm bilgiler, mailto "E-posta ile yanıtla", durum değiştirme, onaylı silme. Detay açılınca YENI → OKUNDU
+  (denetim kaydı YAZILMAZ, siparişlerdeki `viewedAt` gibi); rozet için sayfa bir kez `router.refresh()` yapıyor.
+- Denetim: elle durum değişikliği `CONTACT_MESSAGE_STATUS_CHANGED`, silme `CONTACT_MESSAGE_DELETED`
+  (`audit-actions.ts`).
+
+**Doğrulama**
+- `tsc --noEmit` temiz, `npm run build` başarılı. Dokunulan/yeni dosyalarda yeni lint hatası yok; tam `npm run lint`
+  önceden var olan 28 hata / 72 sorun veriyor (değişikliklerden önce de aynı).
+- Yerelde API elle denendi: geçerli gönderim 201 ve DB'ye doğru düştü; geçersiz e-posta, eksik/geçersiz telefon,
+  2001 karakter, bozuk JSON → Türkçe 400; honeypot kaydetmedi; aynı IP'den 4. gönderim 429; RESEND_API_KEY yokken
+  uygulama çökmedi (sadece log). Tarayıcıda (Playwright): telefon alanı koşullu görünüyor/zorunlu, boş form istek
+  atmıyor, gönderirken buton devre dışı + "Gönderiliyor...", başarı ve hata mesajları sayfa yenilenmeden görünüyor,
+  390 px'te yatay taşma yok. Test satırları DB'den silindi (tablo boş).
+- YAPILAMADI: admin Mesajlar sayfalarının tarayıcıda denenmesi. `.env`'deki ADMIN_PASSWORD ile giriş yine reddedildi
+  (DB'deki şifre farklı); oturumu başka yolla üretmedim. Liste/filtre/sayfalama, detay, otomatik okundu, rozet
+  güncellenmesi, durum değiştirme ve silme yalnızca tip/build seviyesinde doğrulandı.
+- YAPILAMADI: gerçek mail gönderimi (yerelde RESEND_API_KEY yok). Reply-To ve escape'in canlıda bir kez denenmesi gerek.

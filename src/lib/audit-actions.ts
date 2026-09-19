@@ -11,7 +11,9 @@ export const auditActions = [
   "KAMPANYA_OTOMATIK_OLUSTURULDU",
   "KAMPANYA_KAPSAM_DEGISTIRILDI",
   "ORDER_DELETED",
-  "ORDER_RESTORED"
+  "ORDER_RESTORED",
+  "CONTACT_MESSAGE_STATUS_CHANGED",
+  "CONTACT_MESSAGE_DELETED"
 ] as const;
 
 export const auditActionLabel: Record<string, string> = {
@@ -24,5 +26,7 @@ export const auditActionLabel: Record<string, string> = {
   KAMPANYA_OTOMATIK_OLUSTURULDU: "Otomatik Kampanya Oluşturuldu",
   KAMPANYA_KAPSAM_DEGISTIRILDI: "Kampanya Kapsamı Değiştirildi",
   ORDER_DELETED: "Sipariş Silindi",
-  ORDER_RESTORED: "Sipariş Geri Yüklendi"
+  ORDER_RESTORED: "Sipariş Geri Yüklendi",
+  CONTACT_MESSAGE_STATUS_CHANGED: "Mesaj Durumu Değişti",
+  CONTACT_MESSAGE_DELETED: "Mesaj Silindi"
 };

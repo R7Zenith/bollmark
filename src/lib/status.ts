@@ -79,6 +79,31 @@ export const returnStatusTone: Record<ReturnStatus, BadgeTone> = {
 // bunun disindaki durumlarda (TALEP_EDILDI, KARGODA) mail atmaz.
 export const returnStatusNotifiable: ReturnStatus[] = ["ONAYLANDI", "REDDEDILDI", "TAMAMLANDI"];
 
+// /iletisim formundan gelen mesajlar (bkz. ContactMessage, /admin/mesajlar).
+export const contactStatuses = ["YENI", "OKUNDU", "YANITLANDI"] as const;
+export type ContactStatus = (typeof contactStatuses)[number];
+
+export const contactStatusLabel: Record<ContactStatus, string> = {
+  YENI: "Yeni",
+  OKUNDU: "Okundu",
+  YANITLANDI: "Yanıtlandı"
+};
+
+export const contactStatusTone: Record<ContactStatus, BadgeTone> = {
+  YENI: "yellow",
+  OKUNDU: "gray",
+  YANITLANDI: "green"
+};
+
+export const contactPrefs = ["EPOSTA", "TELEFON", "SMS"] as const;
+export type ContactPref = (typeof contactPrefs)[number];
+
+export const contactPrefLabel: Record<ContactPref, string> = {
+  EPOSTA: "E-posta",
+  TELEFON: "Telefon",
+  SMS: "SMS"
+};
+
 export const returnTypes = ["IADE", "DEGISIM"] as const;
 export type ReturnType = (typeof returnTypes)[number];
 

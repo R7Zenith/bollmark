@@ -90,6 +90,11 @@ export function SiteFooter() {
               <p className="text-sm uppercase tracking-wide text-cream">İletişim</p>
               <ul className="mt-3 space-y-2 text-sm">
                 <li>
+                  <Link href="/iletisim" className={FOOTER_LINK_CLASS}>
+                    Bize Ulaşın
+                  </Link>
+                </li>
+                <li>
                   <a href="mailto:bilgi@bollmark.com" className={FOOTER_LINK_CLASS}>
                     bilgi@bollmark.com
                   </a>

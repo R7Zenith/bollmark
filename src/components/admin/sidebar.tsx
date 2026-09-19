@@ -20,6 +20,7 @@ import {
   RotateCcw,
   History,
   FileText,
+  Mail,
   ChevronDown
 } from "lucide-react";
 import { isPathAllowedForRole } from "@/lib/roles";
@@ -74,7 +75,8 @@ const navGroups: NavGroup[] = [
     id: "musteriler",
     label: "Müşteriler",
     items: [
-      { href: "/admin/musteriler", label: "Müşteriler", icon: Users }
+      { href: "/admin/musteriler", label: "Müşteriler", icon: Users },
+      { href: "/admin/mesajlar", label: "Mesajlar", icon: Mail }
     ]
   },
   {
@@ -99,11 +101,13 @@ function isItemActive(item: NavItem, pathname: string) {
 function NavLink({
   item,
   isActive,
-  onNavigate
+  onNavigate,
+  badge
 }: {
   item: NavItem;
   isActive: boolean;
   onNavigate?: () => void;
+  badge?: number;
 }) {
   const Icon = item.icon;
   return (
@@ -118,16 +122,23 @@ function NavLink({
     >
       <Icon size={17} />
       {item.label}
+      {badge ? (
+        <span className="ml-auto rounded-full bg-admin-accent px-2 py-0.5 text-xs font-semibold leading-none text-white">
+          {badge}
+        </span>
+      ) : null}
     </Link>
   );
 }
 
 export function Sidebar({
   role,
+  unreadMessages = 0,
   isMobileOpen = false,
   onClose
 }: {
   role?: string;
+  unreadMessages?: number;
   isMobileOpen?: boolean;
   onClose?: () => void;
 }) {
@@ -254,6 +265,7 @@ export function Sidebar({
                         item={item}
                         isActive={isItemActive(item, pathname)}
                         onNavigate={onClose}
+                        badge={item.href === "/admin/mesajlar" ? unreadMessages : undefined}
                       />
                     ))}
                   </div>

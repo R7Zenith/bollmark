@@ -482,6 +482,26 @@ model LegalPage {
   updatedAt DateTime @updatedAt
 }
 
+// /iletisim (Bize Ulasin) formundan gelen mesajlar - admin panelde
+// /admin/mesajlar altinda listelenir. ipHash, hiz siniri (10 dk'da en fazla 3
+// gonderim) icin ham IP yerine tuzlanmis SHA-256 ozeti olarak tutulur
+// (bkz. api/iletisim/route.ts).
+model ContactMessage {
+  id           String   @id @default(cuid())
+  firstName    String
+  lastName     String
+  email        String
+  phone        String?
+  contactPrefs String[] // "EPOSTA" | "TELEFON" | "SMS"
+  message      String
+  status       String   @default("YENI") // "YENI" | "OKUNDU" | "YANITLANDI"
+  ipHash       String?
+  createdAt    DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([ipHash, createdAt])
+}
+
 model Shipment {
   id           String         @id @default(cuid())
   orderId      String         @unique

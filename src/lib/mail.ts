@@ -14,7 +14,7 @@ import { Resend } from "resend";
  * bu dosyayi import eden HER sayfanin build'ini kirar - bu gercekten yasandi
  * (bkz. DEPLOY_STATUS.md, 2026-09-01: "/admin/urunler/[id]" build hatasi).
  */
-export async function sendMail(params: { to: string; subject: string; html: string }): Promise<void> {
+export async function sendMail(params: { to: string; subject: string; html: string; replyTo?: string }): Promise<void> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.error("E-posta gonderilemedi (RESEND_API_KEY tanimli degil, yoksayildi).");
@@ -26,7 +26,8 @@ export async function sendMail(params: { to: string; subject: string; html: stri
       from: process.env.MAIL_FROM ?? "Bollmark <onboarding@resend.dev>",
       to: params.to,
       subject: params.subject,
-      html: params.html
+      html: params.html,
+      replyTo: params.replyTo
     });
   } catch (error) {
     console.error("E-posta gonderilemedi (yoksayildi):", error);
