@@ -4713,3 +4713,46 @@ checkout akışına dokunulmadı.
   iyzico'ya ulaşıyor. Test verileri (sahte anahtarlar, 2 günlük, 2 denetim satırı) sonradan silindi, PaymentSettings varsayılana döndü.
 - Yapılamadı: PERSONEL ile gerçek giriş reddi (geçici hesap oluşturma engellendi; kural birim düzeyinde doğrulandı) ve geçerli
   anahtarla başarılı IYZWSv2 kimlik doğrulaması (sandbox anahtarı henüz yok, ilk gerçek doğrulama Faz 2 öncesi "Bağlantıyı Test Et").
+
+
+## iyzico Sanal POS — Faz 2 (odeme akisi) tamamlandi, canlida sandbox'ta test edildi (2026-09-20/21)
+
+**Yapilanlar**
+- `/api/orders`: Sanal POS hazir degilse 503; siparis `PENDING_PAYMENT` + `paymentStatus=UNPAID` + `paymentExpiresAt`; mail/sepet temizleme/stok
+  dusumu odeme dogrulaninca; orderNumber cakismasinda (P2002) yeniden deneme. Checkout "Odemeye Gec" ile iyzico'ya yonlendirir, sandbox'ta
+  "Test odeme modu: gercek kart cekilmez" uyarisi, POS kapaliyken buton pasif.
+- `src/lib/payment/orders/`: `basket` (largest-remainder indirim dagitimi), `buyer`, `evaluate` (saf karar mantigi), `initialize`, `reconcile`
+  (koşullu updateMany ile tek-sefer yan etki), `expire` (sure dolumu + mutabakat), `state`. Rotalar: `/api/odeme/baslat`, `/api/odeme/iyzico/callback`
+  (303), `/api/odeme/durum`, gunluk cron `/api/cron/odeme-mutabakat` (vercel.json 08:30). Sayfalar: `/odeme/tesekkurler`, `/odeme/basarisiz`
+  (DB durumuna gore), `/odeme` `/api/odeme` noindex + robots.
+- Admin: siparis listesinde Odeme rozeti ve "Dikkat gerekiyor" filtresi, detayda odeme rozeti/uyari, iyzico denenmis siparis elle "Odendi" yapilamaz
+  (detay butonu gizli + sunucu tarafi kural, toplu islem dahil), diger siparislerde elle "Odendi" icin onay + denetim kaydi.
+- `order-notifications.ts`: tek birlesik "siparisiniz alindi, odemeniz onaylandi" maili + admin "odeme dikkat gerektiriyor" maili.
+- Vega: `Servis` rotasinda siparis ucnoktasi yok (plan l), sipariş verisi Vega'ya gitmiyor; ileride eklenirse yalniz PAID siparis verilmeli.
+
+**Sandbox'ta gozlenen (plan 1.9)**
+1. `identityNumber` placeholder `11111111111` sandbox'ta kabul edildi (canlida iyzico'dan teyit gerekir).
+2. CF token omru: baslatma yanitinda `tokenExpireTime: 1800` (30 dk). Terk edilmis tokenin sorgusu `5122 "Gonderilen tokena ait odeme bilgisi bulunamadi"` doner.
+3. **3D Secure ekranindayken sorgu `paymentStatus=FAILURE` doner** (hata kodu yok). Bu yuzden FAILURE yalniz callback/webhook'ta ya da token omru dolunca
+   kesin sayilir; FAILED deneme sonradan SUCCESS olabilir. (Canlida yakalanan gercek hata: erken FAILED yazmak dogru kodu girip odeyen musteriyi "odenmedi" birakirdi.)
+4. `paymentPageUrl` sandbox'ta donuyor (`sandbox-cpp.iyzipay.com?token=...`), `checkoutFormContent` Base64 degil duz HTML script; yonlendirme yontemi secildi, gomulu form yok.
+5. Taksit: yalniz tek cekim denendi (maxInstallment=1); `paidPrice != price` durumu birim testli, gercek taksit sandbox'ta denenmedi.
+6. Yanit imzasi: baslatma ve sorgulama imzalari dokumandaki formulle dogrulandi (`price`/`paidPrice` sondaki sifirlar atilarak). `fraudStatus` ve `itemTransactions` (kalem + kargo `paymentTransactionId`) yanitta geliyor.
+7. Sandbox 3DS mock sayfasi dokumandaki `123456` yerine sayfada gosterilen kodu (`283126`) kabul ediyor, `123456` reddediliyor.
+8. iyzico odeme formu hata kartlarini (4111...1129 vb.) istemci tarafinda reddediyor (kart alani kirmizi), sunucuya gitmez; bu kartlar CF arayuzuyle test edilemiyor. 3DS mdStatus 0/4 kartlari callback ile FAILED'a dusuyor. 4151... (3DS baslatilamadi) iyzico formunda kaliyor.
+9. Banka kartlari (debit) otomatik 3DS ister.
+
+**Canlida (sandbox) gecen senaryolar:** Visa/MasterCard/Troy/AmEx/yabanci kart, Visa+MasterCard debit (3DS), Visa+3DS, yanlis OTP -> basarisiz -> "Tekrar Dene" -> basarili,
+mdStatus 0/4 -> FAILED, callback 3 seri + 5 eszamanli tekrar (tek stok dusumu, tek durum), bilinmeyen/tokensiz callback 303, ayni siparisi iki sekmede odeme (COKLU ODEME isaretlendi),
+tutar uyusmazligi (DB 134100, iyzico 134000 -> PAID sayilmadi, REVIEW + needsAttention), gec odeme (iptal siparise odeme -> CANCELLED+PAID+needsAttention), sure dolumu (siparis iptal, kupon 1->0,
+50 puan iade, tekrar sweep'te cift iade yok), stok tukenince /baslat 409, POS kapaliyken /api/orders 503, admin toplu PAID reddi (400), 1000 rastgele senaryoluk basket testi.
+`npm test` 61/61, tsc temiz, build basarili.
+
+**Test duzeneginden ogrenilenler:** yerel saat sunucudan ~3 dk ileriydi (test komutu sureyi yanlis yazmisti, urun hatasi degil); gozlem icin sweep ozet satiri
+(PaymentLog RECONCILE) kalici eklendi.
+
+**Test verisi:** 61 test siparisi, 593 odeme gunlugu, 29 denetim kaydi, gecici musteri/kupon silindi; test varyantinin stogu ilk degerine (3) yazildi.
+Test siparisleri gercek e-posta gondermemis olabilir ama admin adresine "Yeni siparis"/"Odeme dikkat" mailleri gitmis olabilir.
+
+**Acik / sonraki fazlar:** webhook (Faz 3), iade/iptal ve admin Odeme karti (Faz 3), taksitli gercek odeme testi, PERSONEL ile gercek giris reddi, sidebar'da needsAttention sayaci.
+**Durum:** Sanal POS SANDBOX modunda ACIK birakildi (isEnabled=true) ki checkout calissin; kapatmak icin /admin/sanal-pos > "Sanal POS aktif" kutusunu kaldirin. Bu durumda siparisler test odemesiyle PAID olur, gercek para cekilmez.
