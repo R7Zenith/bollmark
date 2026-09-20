@@ -6,6 +6,7 @@ import { orderStatuses, type OrderStatus } from "@/lib/status";
 import { notifyCustomerStatusChange } from "@/lib/order-notifications";
 import { awardLoyaltyPoints } from "@/lib/loyalty";
 import { logAudit } from "@/lib/audit-log";
+import { checkManualStatusChange } from "@/lib/payment/order-guard";
 
 const allowedStatuses = new Set<string>(orderStatuses);
 
@@ -25,6 +26,8 @@ export async function POST(request: NextRequest) {
 
   if (body.action === "SET_STATUS" && allowedStatuses.has(body.status)) {
     const status = body.status as OrderStatus;
+    const blocked = await checkManualStatusChange(ids, status);
+    if (blocked) return NextResponse.json({ error: blocked }, { status: 400 });
     const orders = await prisma.$transaction(
       ids.map((id) => prisma.order.update({ where: { id }, data: { status } }))
     );

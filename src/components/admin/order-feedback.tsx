@@ -10,7 +10,9 @@ const successMessages: Record<string, string> = {
 };
 
 const errorMessages: Record<string, string> = {
-  guncellenemedi: "Bir hata oluştu, güncellenemedi."
+  guncellenemedi: "Bir hata oluştu, güncellenemedi.",
+  "odeme-kurali":
+    "Ödemesi iyzico ile denenmiş siparişler elle \"Ödendi\" yapılamaz; ödemesi incelenen siparişler hazırlanamaz."
 };
 
 export function OrderFeedback({ basarili, hata }: { basarili?: string; hata?: string }) {

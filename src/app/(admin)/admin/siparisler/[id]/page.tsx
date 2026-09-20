@@ -7,9 +7,12 @@ import { applyShipmentUpdate } from "@/lib/shipment";
 import { notifyCustomerStatusChange } from "@/lib/order-notifications";
 import { awardLoyaltyPoints } from "@/lib/loyalty";
 import { logAudit } from "@/lib/audit-log";
+import { checkManualStatusChange } from "@/lib/payment/order-guard";
 import {
   orderStatusLabel,
   orderStatusTone,
+  paymentStatusLabel,
+  paymentStatusTone,
   shipmentStatuses,
   shipmentStatusLabel,
   shipmentStatusTone,
@@ -18,6 +21,7 @@ import {
 import { Card } from "@/components/admin/card";
 import { Badge } from "@/components/admin/badge";
 import { Button } from "@/components/admin/button";
+import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
 import { OrderFeedback } from "@/components/admin/order-feedback";
 import { OrderDeleteButton, OrderRestoreButton } from "@/components/admin/order-delete-restore-actions";
 
@@ -28,6 +32,8 @@ const labelClass = "text-xs font-medium uppercase tracking-wide text-admin-text-
 async function setOrderStatus(id: string, status: OrderStatus) {
   "use server";
   const session = await getServerSession(authOptions);
+  // Sunucu tarafi odeme kurali (butonu gizlemek yetmez, dogrudan POST de mumkun)
+  if (await checkManualStatusChange([id], status)) redirect(`/admin/siparisler/${id}?hata=odeme-kurali`);
   let previousStatus: string | undefined;
   try {
     const before = await prisma.order.findUnique({ where: { id }, select: { status: true } });
@@ -45,7 +51,7 @@ async function setOrderStatus(id: string, status: OrderStatus) {
       action: "ORDER_STATUS_CHANGED",
       targetType: "Order",
       targetId: order.id,
-      detail: `${previousStatus ?? "?"} -> ${status}`
+      detail: `${previousStatus ?? "?"} -> ${status}${status === "PAID" ? " (elle işaretlendi)" : ""}`
     });
   } catch {
     redirect(`/admin/siparisler/${id}?hata=guncellenemedi`);
@@ -77,7 +83,12 @@ export default async function OrderDetailPage({
   const isAdmin = session?.user?.role === "ADMIN";
   const order = await prisma.order.findUnique({
     where: { id },
-    include: { items: { include: { product: true } }, shipment: true, coupon: { select: { code: true, name: true } } }
+    include: {
+      items: { include: { product: true } },
+      shipment: true,
+      coupon: { select: { code: true, name: true } },
+      _count: { select: { paymentAttempts: true } }
+    }
   });
   if (!order) notFound();
   const isDeleted = order.deletedAt !== null;
@@ -97,6 +108,9 @@ export default async function OrderDetailPage({
           : status === "SHIPPED"
             ? { label: "Teslim Edildi Olarak İşaretle", target: "DELIVERED" as OrderStatus }
             : null;
+  // Odemesi iyzico ile denenmis siparis elle "Odendi" yapilamaz (sunucu da reddeder)
+  const hasPaymentAttempts = order._count.paymentAttempts > 0;
+  const isManualPaidAction = nextStatusAction?.target === "PAID";
   const canCancel = status !== "CANCELLED" && status !== "DELIVERED" && status !== "REFUNDED";
 
   const timeline = [
@@ -124,6 +138,12 @@ export default async function OrderDetailPage({
         </div>
       )}
 
+      {order.needsAttention && (
+        <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+          <strong>Dikkat gerekiyor:</strong> {order.attentionNote ?? "Bu siparişin ödemesinde kontrol edilmesi gereken bir durum var."}
+        </div>
+      )}
+
       <Card className="mt-6">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-2">
@@ -135,15 +155,27 @@ export default async function OrderDetailPage({
             ) : (
               <Badge tone="gray">Kargo Yok</Badge>
             )}
+            <Badge tone={paymentStatusTone[order.paymentStatus] ?? "gray"}>
+              Ödeme: {paymentStatusLabel[order.paymentStatus] ?? order.paymentStatus}
+            </Badge>
             <span className="ml-2 text-lg font-semibold text-admin-text">{formatPrice(order.totalCents)}</span>
           </div>
           {!isDeleted && (
             <div className="flex items-center gap-2">
-              {nextStatusAction && (
+              {nextStatusAction && !(isManualPaidAction && hasPaymentAttempts) && (
                 <form action={setOrderStatus.bind(null, order.id, nextStatusAction.target)}>
-                  <Button type="submit" variant="primary" size="sm">
-                    {nextStatusAction.label}
-                  </Button>
+                  {isManualPaidAction ? (
+                    <ConfirmSubmitButton
+                      confirmMessage="Bu siparişin ödemesini (havale vb.) elle aldığınızı onaylıyor musunuz? İşlem denetim kaydına yazılır."
+                      className="inline-flex items-center justify-center gap-2 rounded-md bg-admin-accent px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-indigo-700"
+                    >
+                      {nextStatusAction.label}
+                    </ConfirmSubmitButton>
+                  ) : (
+                    <Button type="submit" variant="primary" size="sm">
+                      {nextStatusAction.label}
+                    </Button>
+                  )}
                 </form>
               )}
               {canCancel && (

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Package, ShoppingCart, RotateCcw, Truck, Clock, Download, Trash2 } from "lucide-react";
+import { Package, ShoppingCart, RotateCcw, Truck, Clock, Download, Trash2, AlertTriangle } from "lucide-react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -13,6 +13,7 @@ import { Pagination } from "@/components/admin/pagination";
 import { resolvePeriodRange } from "@/lib/order-period";
 import { buildOrdersWhere, resolveTab, broadTabForStatus, type OrderTabKey } from "@/lib/order-query";
 import { getOrdersSummaryStats } from "@/lib/order-stats";
+import { sweepPayments } from "@/lib/payment/orders/expire";
 
 type SortKey = "orderNumber" | "customerName" | "total" | "createdAt";
 const sortKeys: SortKey[] = ["orderNumber", "customerName", "total", "createdAt"];
@@ -30,6 +31,7 @@ interface SearchParams {
   donem?: string;
   sekme?: string;
   sayfa?: string;
+  dikkat?: string;
 }
 
 export default async function AdminOrdersPage({
@@ -37,9 +39,14 @@ export default async function AdminOrdersPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const { q, durum, kargoDurum, baslangic, bitis, sort, dir, donem, sekme, sayfa } = await searchParams;
+  const { q, durum, kargoDurum, baslangic, bitis, sort, dir, donem, sekme, sayfa, dikkat } = await searchParams;
+  const onlyAttention = dikkat === "1";
   const session = await getServerSession(authOptions);
   const isAdmin = session?.user?.role === "ADMIN";
+
+  // Lazy odeme mutabakati/sure dolumu (kucuk parti): callback/webhook ulasmamis odemeler ve suresi
+  // dolan siparisler icin cron'a ek. Hata sayfayi bozmaz.
+  await sweepPayments(10).catch((error) => console.error("Ödeme süpürmesi başarısız (yoksayıldı):", error));
 
   const totalCount = await prisma.order.count({ where: { deletedAt: null } });
 
@@ -71,10 +78,10 @@ export default async function AdminOrdersPage({
   const activeTab: OrderTabKey = resolveTab(sekme);
 
   const periodRange = resolvePeriodRange(donem, baslangic, bitis);
-  const listWhere = buildOrdersWhere({ q, durum, kargoDurum, dateRange: periodRange.current, sekme: activeTab });
-  const badgeWhere = buildOrdersWhere({ q, durum, kargoDurum, dateRange: periodRange.current });
+  const listWhere = buildOrdersWhere({ q, durum, kargoDurum, dateRange: periodRange.current, sekme: activeTab, dikkat: onlyAttention });
+  const badgeWhere = buildOrdersWhere({ q, durum, kargoDurum, dateRange: periodRange.current, dikkat: onlyAttention });
 
-  const [filteredCount, orders, statusGroups, summaryStats] = await Promise.all([
+  const [filteredCount, orders, statusGroups, summaryStats, attentionCount] = await Promise.all([
     prisma.order.count({ where: listWhere }),
     prisma.order.findMany({
       where: listWhere,
@@ -91,7 +98,8 @@ export default async function AdminOrdersPage({
       take: PAGE_SIZE
     }),
     prisma.order.groupBy({ by: ["status"], _count: true, where: badgeWhere }),
-    getOrdersSummaryStats(periodRange)
+    getOrdersSummaryStats(periodRange),
+    prisma.order.count({ where: { deletedAt: null, needsAttention: true } })
   ]);
 
   const tabCounts: Record<OrderTabKey, number> = { tumu: 0, odenmedi: 0, acik: 0, kapatildi: 0 };
@@ -106,6 +114,8 @@ export default async function AdminOrdersPage({
     orderNumber: o.orderNumber,
     customerName: o.customerName,
     status: o.status,
+    paymentStatus: o.paymentStatus,
+    needsAttention: o.needsAttention,
     shipmentStatus: o.shipment?.status ?? null,
     totalCents: o.totalCents,
     createdAt: o.createdAt.toISOString(),
@@ -122,6 +132,7 @@ export default async function AdminOrdersPage({
     if (bitis) sharedParams.set("bitis", bitis);
   }
   if (sekme) sharedParams.set("sekme", sekme);
+  if (onlyAttention) sharedParams.set("dikkat", "1");
 
   const paginationBaseParams = new URLSearchParams(sharedParams);
   if (sort) paginationBaseParams.set("sort", sort);
@@ -194,8 +205,26 @@ export default async function AdminOrdersPage({
         />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
         <OrdersTabs counts={tabCounts} />
+        {(attentionCount > 0 || onlyAttention) && (
+          <Link
+            href={(() => {
+              const params = new URLSearchParams(sharedParams);
+              if (onlyAttention) params.delete("dikkat");
+              else params.set("dikkat", "1");
+              return `/admin/siparisler${params.toString() ? `?${params.toString()}` : ""}`;
+            })()}
+            className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm font-medium ${
+              onlyAttention
+                ? "border-red-300 bg-red-50 text-red-700"
+                : "border-admin-border bg-admin-surface text-admin-text hover:bg-admin-bg"
+            }`}
+          >
+            <AlertTriangle size={16} />
+            Dikkat gerekiyor ({attentionCount})
+          </Link>
+        )}
       </div>
 
       <div className="mt-4">

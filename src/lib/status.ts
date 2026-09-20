@@ -31,6 +31,25 @@ export const orderStatusTone: Record<OrderStatus, BadgeTone> = {
   REFUNDED: "gray"
 };
 
+// Order.paymentStatus (iyzico Sanal POS, bkz. IYZICO_SANAL_POS_PLANI.md bolum 4)
+export const paymentStatusLabel: Record<string, string> = {
+  UNPAID: "Ödenmedi",
+  PAID: "Ödendi",
+  REVIEW: "İnceleniyor",
+  FAILED: "Başarısız",
+  PARTIALLY_REFUNDED: "Kısmi İade",
+  REFUNDED: "İade Edildi"
+};
+
+export const paymentStatusTone: Record<string, BadgeTone> = {
+  UNPAID: "gray",
+  PAID: "green",
+  REVIEW: "yellow",
+  FAILED: "red",
+  PARTIALLY_REFUNDED: "blue",
+  REFUNDED: "gray"
+};
+
 export const shipmentStatuses = [
   "HAZIRLANIYOR",
   "KARGOYA_VERILDI",

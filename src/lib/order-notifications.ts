@@ -19,6 +19,20 @@ export async function notifyAdminNewOrder(order: Order): Promise<void> {
   });
 }
 
+// Odeme sistemi bir siparisin odemesinde dikkat gerektiren bir durum buldugunda (cift/gec odeme,
+// dolandiricilik incelemesi, dogrulama hatasi, stok yetersizligi) admin'e haber verir.
+export async function notifyAdminPaymentAttention(order: Order, note: string): Promise<void> {
+  const to = process.env.ADMIN_NOTIFY_EMAIL || process.env.MAIL_FROM;
+  if (!to) return;
+  await sendMail({
+    to,
+    subject: `Ödeme dikkat gerektiriyor: ${order.orderNumber}`,
+    html: `<p>${order.orderNumber} numaralı siparişte ödeme ile ilgili bir durum var:</p>
+           <p><strong>${note}</strong></p>
+           <p><a href="${getSiteUrl()}/admin/siparisler/${order.id}">Siparişi görüntüle</a></p>`
+  });
+}
+
 export async function notifyCustomerOrderReceived(
   order: Order,
   items: { productName: string; quantity: number; totalCents: number }[]
@@ -28,8 +42,8 @@ export async function notifyCustomerOrderReceived(
     .join("");
   await sendMail({
     to: order.customerEmail,
-    subject: `Siparişiniz alındı - ${order.orderNumber}`,
-    html: `<p>Merhaba ${order.customerName}, ${order.orderNumber} numaralı siparişiniz alındı.</p>
+    subject: `Siparişiniz alındı, ödemeniz onaylandı - ${order.orderNumber}`,
+    html: `<p>Merhaba ${order.customerName}, ${order.orderNumber} numaralı siparişiniz alındı ve ödemeniz onaylandı.</p>
            <ul>${itemsHtml}</ul>
            <p>Toplam: ${formatPrice(order.totalCents)}</p>
            <p>Teslimat Adresi: ${order.shippingAddress}, ${order.district} / ${order.city}${

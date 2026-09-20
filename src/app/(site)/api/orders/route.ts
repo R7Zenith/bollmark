@@ -8,8 +8,8 @@ import { resolveBestDiscount, CouponInvalidError } from "@/lib/coupons";
 import { resolveBundleDiscount } from "@/lib/bundles";
 import { resolveLoyaltyRedemption, LoyaltyInvalidError } from "@/lib/loyalty";
 import { calculateShippingCents } from "@/lib/shipping";
-import { notifyAdminNewOrder, notifyCustomerOrderReceived } from "@/lib/order-notifications";
 import { customerAuthOptions } from "@/lib/customer-auth";
+import { getPaymentSettings, getReadiness } from "@/lib/payment/settings";
 
 const lineSchema = z.object({
   productId: z.string(),
@@ -35,10 +35,25 @@ const orderSchema = z.object({
   lines: z.array(lineSchema).min(1)
 });
 
-// NOT: Bu aşamada gerçek bir ödeme sağlayıcısı (iyzico vb.) bağlanmadığı için
-// sipariş "PENDING_PAYMENT" durumunda oluşturulur. Ödeme entegrasyonu
-// eklendiğinde bu route sağlayıcıdan gelen başarı bildirimiyle güncellenecek.
+// Sipariş "PENDING_PAYMENT" + paymentStatus "UNPAID" olarak oluşturulur; ödeme
+// /api/odeme/baslat ile başlar ve iyzico sonucu doğrulanınca (lib/payment/orders/reconcile.ts)
+// sipariş PAID olur. Mail, sepet temizleme ve stok düşümü ödeme doğrulanınca yapılır.
+// Sanal POS hazır değilse sipariş HİÇ oluşturulmaz (ödemesiz sahte sipariş olmasın).
+const ORDER_NUMBER_RETRIES = 5;
+
+function isUniqueViolation(error: unknown): boolean {
+  return typeof error === "object" && error !== null && (error as { code?: unknown }).code === "P2002";
+}
+
 export async function POST(req: NextRequest) {
+  const paymentSettings = await getPaymentSettings();
+  if (!getReadiness(paymentSettings).ready) {
+    return NextResponse.json(
+      { error: "Ödeme sistemi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin." },
+      { status: 503 }
+    );
+  }
+
   const body = await req.json();
   const parsed = orderSchema.safeParse(body);
   if (!parsed.success) {
@@ -97,7 +112,29 @@ export async function POST(req: NextRequest) {
   const defaultShippingCents = storeSettings?.defaultShippingCents ?? 0;
 
   try {
-    const order = await prisma.$transaction(async (tx) => {
+    // orderNumber günlük 4 haneli rastgele sayıdır (@unique): nadir çakışmada tüm transaction
+    // (kupon/puan düşümü dahil) geri alınır ve yeni numarayla yeniden denenir.
+    let order: Awaited<ReturnType<typeof createOrder>> | undefined;
+    for (let attempt = 1; attempt <= ORDER_NUMBER_RETRIES; attempt++) {
+      try {
+        order = await createOrder();
+        break;
+      } catch (error) {
+        if (!isUniqueViolation(error) || attempt === ORDER_NUMBER_RETRIES) throw error;
+      }
+    }
+    if (!order) throw new Error("Sipariş oluşturulamadı.");
+
+    return NextResponse.json({ orderNumber: order.orderNumber }, { status: 201 });
+  } catch (error) {
+    if (error instanceof CouponInvalidError || error instanceof LoyaltyInvalidError) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
+    throw error;
+  }
+
+  function createOrder() {
+    return prisma.$transaction(async (tx) => {
       // Uc indirim kalemi de HER ZAMAN sunucuda, sirayla hesaplanir - bundle
       // once (urun secimine bagli, otomatik), sonra kupon (kod), sonra puan
       // (bakiye) - boylece uc kalem birlikte kullanildiginda toplam her
@@ -161,6 +198,8 @@ export async function POST(req: NextRequest) {
           shippingCents,
           totalCents,
           termsAcceptedAt: new Date(),
+          paymentStatus: "UNPAID",
+          paymentExpiresAt: new Date(Date.now() + paymentSettings.orderExpiryMinutes * 60 * 1000),
           items: {
             create: resolvedLines.map((l) => ({
               productId: l.productId,
@@ -183,31 +222,5 @@ export async function POST(req: NextRequest) {
 
       return createdOrder;
     });
-
-    // Best-effort, transaction disinda (deleteBlobUrls ile ayni desen): ayni
-    // e-posta icin acik (recoveredAt=null) terk edilmis sepet kayitlari
-    // "kurtarildi" olarak isaretlenir - artik hatirlatma gonderilmez. Hata
-    // olursa sadece loglanir, siparis olusturma basarisini etkilemez.
-    await prisma.abandonedCart
-      .updateMany({ where: { email: data.customerEmail, recoveredAt: null }, data: { recoveredAt: new Date() } })
-      .catch((error) => console.error("Terk edilmiş sepet kurtarma işaretlemesi başarısız (yoksayıldı):", error));
-
-    notifyAdminNewOrder(order).catch((error) => console.error("Yeni sipariş maili başarısız:", error));
-
-    const orderItemsForMail = resolvedLines.map((l) => ({
-      productName: productById.get(l.productId)?.name ?? "Ürün",
-      quantity: l.quantity,
-      totalCents: l.priceCents * l.quantity
-    }));
-    notifyCustomerOrderReceived(order, orderItemsForMail).catch((error) =>
-      console.error("Sipariş onay maili başarısız:", error)
-    );
-
-    return NextResponse.json({ orderNumber: order.orderNumber }, { status: 201 });
-  } catch (error) {
-    if (error instanceof CouponInvalidError || error instanceof LoyaltyInvalidError) {
-      return NextResponse.json({ error: error.message }, { status: 400 });
-    }
-    throw error;
   }
 }

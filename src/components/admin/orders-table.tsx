@@ -7,13 +7,22 @@ import { Badge } from "@/components/admin/badge";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
 import { useToast } from "@/components/admin/toast";
 import { formatPrice } from "@/lib/format";
-import { orderStatusLabel, orderStatusTone, shipmentStatusLabel, shipmentStatusTone } from "@/lib/status";
+import {
+  orderStatusLabel,
+  orderStatusTone,
+  paymentStatusLabel,
+  paymentStatusTone,
+  shipmentStatusLabel,
+  shipmentStatusTone
+} from "@/lib/status";
 
 export interface OrderRow {
   id: string;
   orderNumber: string;
   customerName: string;
   status: string;
+  paymentStatus: string;
+  needsAttention: boolean;
   shipmentStatus: string | null;
   totalCents: number;
   createdAt: string;
@@ -104,6 +113,20 @@ export function OrdersTable({
         <Badge tone={orderStatusTone[row.status as keyof typeof orderStatusTone]}>
           {orderStatusLabel[row.status as keyof typeof orderStatusLabel] ?? row.status}
         </Badge>
+      )
+    },
+    {
+      key: "paymentStatus",
+      header: "Ödeme",
+      hideable: true,
+      hideOnMobile: true,
+      render: (row) => (
+        <div className="flex flex-wrap items-center gap-1">
+          <Badge tone={paymentStatusTone[row.paymentStatus] ?? "gray"}>
+            {paymentStatusLabel[row.paymentStatus] ?? row.paymentStatus}
+          </Badge>
+          {row.needsAttention && <Badge tone="red">Dikkat</Badge>}
+        </div>
       )
     },
     {

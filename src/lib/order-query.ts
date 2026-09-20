@@ -35,15 +35,18 @@ export interface OrderFilterParams {
   kargoDurum?: string;
   dateRange?: DateRange;
   sekme?: OrderTabKey;
+  /** true ise yalnizca odeme tarafinda dikkat gerektiren (needsAttention) siparisler */
+  dikkat?: boolean;
 }
 
-export function buildOrdersWhere({ q, durum, kargoDurum, dateRange, sekme }: OrderFilterParams): Prisma.OrderWhereInput {
+export function buildOrdersWhere({ q, durum, kargoDurum, dateRange, sekme, dikkat }: OrderFilterParams): Prisma.OrderWhereInput {
   const statusConditions: Prisma.OrderWhereInput[] = [];
   if (durum) statusConditions.push({ status: durum });
   if (sekme && sekme !== "tumu") statusConditions.push({ status: { in: tabStatusMap[sekme] } });
 
   return {
     deletedAt: null,
+    ...(dikkat ? { needsAttention: true } : {}),
     ...(q
       ? {
           OR: [

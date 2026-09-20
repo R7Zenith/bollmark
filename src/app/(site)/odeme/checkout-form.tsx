@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
@@ -10,13 +10,23 @@ import { LoyaltyField, type LoyaltyResult } from "@/components/loyalty-field";
 import { useBundleDiscount } from "@/lib/use-bundle-discount";
 import { calculateShippingCents } from "@/lib/shipping";
 
-export default function CheckoutForm({ defaultShippingCents }: { defaultShippingCents: number }) {
-  const { lines, totalCents, couponCode, clear } = useCart();
+export default function CheckoutForm({
+  defaultShippingCents,
+  paymentMode
+}: {
+  defaultShippingCents: number;
+  /** Sanal POS hazir degilse null (odeme alinamaz) */
+  paymentMode: "SANDBOX" | "LIVE" | null;
+}) {
+  const { lines, totalCents, couponCode } = useCart();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [coupon, setCoupon] = useState<CouponResult>(null);
   const [loyalty, setLoyalty] = useState<LoyaltyResult>(null);
+  // Siparis olustu ama odeme baslatilamadiysa (ag hatasi vb.) tekrar denemede ayni siparis
+  // kullanilir - ikinci bir siparis olusturulmaz.
+  const createdOrderNumber = useRef<string | null>(null);
 
   // Sunucudaki (orders/route.ts) ile ayni sirali hesaplama: once bundle,
   // sonra kupon, sonra puan - boylece onizleme nihai tutarla tutarli kalir.
@@ -83,18 +93,36 @@ export default function CheckoutForm({ defaultShippingCents }: { defaultShipping
     };
 
     try {
-      const res = await fetch("/api/orders", {
+      if (!createdOrderNumber.current) {
+        const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(typeof data.error === "string" ? data.error : "Sipariş oluşturulamadı, lütfen tekrar deneyin.");
+          return;
+        }
+        createdOrderNumber.current = data.orderNumber;
+      }
+
+      const payRes = await fetch("/api/odeme/baslat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ orderNumber: createdOrderNumber.current })
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Sipariş oluşturulamadı, lütfen tekrar deneyin.");
+      const payData = await payRes.json().catch(() => ({}));
+      if (!payRes.ok) {
+        setError(typeof payData.error === "string" ? payData.error : "Ödeme başlatılamadı, lütfen tekrar deneyin.");
         return;
       }
-      clear();
-      router.push(`/odeme/tesekkurler?siparis=${data.orderNumber}`);
+      // Sepet burada temizlenmez: odeme dogrulaninca /odeme/tesekkurler temizler.
+      if (payData.free) {
+        router.push(`/odeme/tesekkurler?siparis=${createdOrderNumber.current}`);
+      } else {
+        window.location.href = payData.paymentPageUrl;
+      }
     } catch {
       setError("Bir sorun oluştu, lütfen tekrar deneyin.");
     } finally {
@@ -138,10 +166,21 @@ export default function CheckoutForm({ defaultShippingCents }: { defaultShipping
         </div>
         <textarea name="note" placeholder="Sipariş notu (opsiyonel)" className="w-full border border-line px-4 py-3" rows={3} />
 
-        <div className="border border-dashed border-line bg-white p-4 text-sm text-ink/60">
-          Ödeme adımı henüz test modundadır; gerçek kart tahsilatı yapılmaz. Bir ödeme sağlayıcısı
-          (örn. iyzico) bağlandığında bu alan otomatik olarak değişecektir.
-        </div>
+        {paymentMode === "SANDBOX" && (
+          <div className="border border-dashed border-line bg-white p-4 text-sm text-ink/60">
+            Test ödeme modu: gerçek kart çekilmez.
+          </div>
+        )}
+        {paymentMode === null && (
+          <div className="border border-dashed border-red-300 bg-white p-4 text-sm text-red-600">
+            Ödeme sistemi şu an kullanılamıyor. Lütfen daha sonra tekrar deneyin.
+          </div>
+        )}
+        {paymentMode === "LIVE" && (
+          <p className="text-xs text-ink/50">
+            Ödemeniz iyzico güvencesiyle, 3D Secure doğrulamasıyla alınır. Kart bilgileriniz sitemizde saklanmaz.
+          </p>
+        )}
 
         <label className="flex items-start gap-2 text-sm text-ink/70">
           <input type="checkbox" name="termsAccepted" required className="mt-0.5" />
@@ -162,10 +201,10 @@ export default function CheckoutForm({ defaultShippingCents }: { defaultShipping
 
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || paymentMode === null}
           className="w-full bg-ink py-4 text-sm uppercase tracking-widest2 text-cream hover:bg-clay disabled:opacity-50"
         >
-          {submitting ? "İşleniyor..." : "Siparişi Tamamla"}
+          {submitting ? "İşleniyor..." : "Ödemeye Geç"}
         </button>
       </form>
 
