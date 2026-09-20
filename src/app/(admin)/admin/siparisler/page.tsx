@@ -15,6 +15,9 @@ import { buildOrdersWhere, resolveTab, broadTabForStatus, type OrderTabKey } fro
 import { getOrdersSummaryStats } from "@/lib/order-stats";
 import { sweepPayments } from "@/lib/payment/orders/expire";
 
+// Lazy odeme suprumesi iyzico'ya birkac cagri yapabilir
+export const maxDuration = 60;
+
 type SortKey = "orderNumber" | "customerName" | "total" | "createdAt";
 const sortKeys: SortKey[] = ["orderNumber", "customerName", "total", "createdAt"];
 

@@ -7,14 +7,14 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 // Yalnizca durum doner (kisisel veri yok). `kontrol=1` ise, siparisin acik bir odeme denemesi
-// varsa iyzico'dan yeniden sorgulanir (callback ulasmadiysa "dogrulaniyor" ekranini cozer).
+// (INITIATED) varsa iyzico'dan yeniden sorgulanir; incelemedeki (REVIEW) odemeler webhook/cron/admin ile cozulur (callback ulasmadiysa "dogrulaniyor" ekranini cozer).
 export async function GET(req: NextRequest) {
   const orderNumber = req.nextUrl.searchParams.get("siparis")?.trim();
   if (!orderNumber || orderNumber.length > 40) return NextResponse.json({ state: "UNKNOWN" });
 
   if (req.nextUrl.searchParams.get("kontrol") === "1") {
     const open = await prisma.paymentAttempt.findFirst({
-      where: { order: { orderNumber }, status: { in: ["INITIATED", "REVIEW"] } },
+      where: { order: { orderNumber }, status: "INITIATED" },
       orderBy: { createdAt: "desc" },
       select: { token: true }
     });

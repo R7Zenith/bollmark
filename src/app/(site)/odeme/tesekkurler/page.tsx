@@ -66,7 +66,7 @@ export default async function ThankYouPage({ searchParams }: { searchParams: Pro
       <h1 className="font-display text-3xl">{state === "REVIEW" ? "Ödemeniz inceleniyor" : "Ödemeniz doğrulanıyor…"}</h1>
       <p className="mt-4 text-ink/70">
         {state === "REVIEW"
-          ? "Ödemeniz bankanız tarafından ek incelemeye alındı. Sonuç netleşince e-posta ile bilgilendirileceksiniz."
+          ? "Ödemeniz ek incelemeye alındı. Sonuç netleşince e-posta ile bilgilendirileceksiniz."
           : "Ödeme sonucunuzu kontrol ediyoruz, lütfen bu sayfadan ayrılmayın."}{" "}
         Sipariş numaranız: <strong>{siparis}</strong>
       </p>

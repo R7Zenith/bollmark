@@ -13,6 +13,7 @@ const STALE_ATTEMPT_MS = 2 * 60 * 1000;
 // deneme bu kadar yasa gelmeden EXPIRED sayilmaz: parasi alinmis bir siparis yanlislikla
 // iptal edilmesin.
 const ERROR_GRACE_MS = 6 * 60 * 60 * 1000;
+const RECONCILE_CONCURRENCY = 5;
 
 async function expireAttemptsIfDead(orderId: string) {
   const attempts = await prisma.paymentAttempt.findMany({ where: { orderId, status: "INITIATED" } });
@@ -112,11 +113,13 @@ export async function reconcileStaleAttempts(batch = 20): Promise<{ checked: num
     orderBy: { createdAt: "asc" },
     take: batch
   });
-  for (const attempt of attempts) {
-    try {
-      await reconcileToken(attempt.token, "cron");
-    } catch (error) {
-      console.error("Ödeme mutabakatı başarısız (sonraki turda denenecek):", error);
+  // Her deneme icin ayri bir iyzico cagrisi: sunucusuz fonksiyon suresini asmamak icin 5'erli paralel.
+  for (let i = 0; i < attempts.length; i += RECONCILE_CONCURRENCY) {
+    const results = await Promise.allSettled(
+      attempts.slice(i, i + RECONCILE_CONCURRENCY).map((attempt) => reconcileToken(attempt.token, "cron"))
+    );
+    for (const result of results) {
+      if (result.status === "rejected") console.error("Ödeme mutabakatı başarısız (sonraki turda denenecek):", result.reason);
     }
   }
   return { checked: attempts.length };

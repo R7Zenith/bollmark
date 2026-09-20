@@ -6,6 +6,7 @@ import { sweepPayments } from "@/lib/payment/orders/expire";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
+export const maxDuration = 30;
 
 const bodySchema = z.object({ orderNumber: z.string().min(3).max(40) });
 
