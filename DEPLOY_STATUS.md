@@ -4672,3 +4672,6 @@ iyzico başvuru incelemesi için site geçici olarak herkese açıldı.
   `PREVIEW_PASSWORD`'e dokunulmadı, duruyor.
 - Bu süreçte site herkese açık. İnceleme bitince tekrar kapatmak için: `vercel env rm PREVIEW_GATE production`
   (veya değeri "on" yapıp) + yeniden deploy gerekir; env değişikliği yeni deploy olmadan etkili olmaz.
+- Canlı doğrulama (commit 085bc13, deploy Ready, bollmark.com alias'ı): çerezsiz istekle `/`, `/urunler` ve 3 ürün detay
+  sayfası yönlendirmesiz 200 döndü, `/admin` hâlâ 307 ile `/admin/login?callbackUrl=%2Fadmin`'e gidiyor,
+  `/yapim-asamasinda` sayfası açılıyor.
