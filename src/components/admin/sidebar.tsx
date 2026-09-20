@@ -21,6 +21,7 @@ import {
   History,
   FileText,
   Mail,
+  CreditCard,
   ChevronDown
 } from "lucide-react";
 import { isPathAllowedForRole } from "@/lib/roles";
@@ -87,6 +88,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/raporlar", label: "Raporlar", icon: BarChart3 },
       { href: "/admin/islem-gecmisi", label: "İşlem Geçmişi", icon: History },
       { href: "/admin/yasal-sayfalar", label: "Yasal Sayfalar", icon: FileText },
+      { href: "/admin/sanal-pos", label: "Sanal POS", icon: CreditCard },
       { href: "/admin/ayarlar", label: "Ayarlar", icon: Settings, exact: true }
     ]
   }

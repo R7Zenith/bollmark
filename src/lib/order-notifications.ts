@@ -1,5 +1,6 @@
 import { sendMail } from "@/lib/mail";
 import { formatPrice } from "@/lib/format";
+import { getSiteUrl } from "@/lib/site-url";
 import { orderStatusLabel, returnStatusLabel, returnStatusNotifiable, type OrderStatus, type ReturnStatus } from "@/lib/status";
 import type { Order } from "@/generated/prisma/client";
 
@@ -14,7 +15,7 @@ export async function notifyAdminNewOrder(order: Order): Promise<void> {
     to,
     subject: `Yeni sipariş: ${order.orderNumber}`,
     html: `<p>${order.customerName} - ${formatPrice(order.totalCents)}</p>
-           <p><a href="https://bollmark.com/admin/siparisler/${order.id}">Siparişi görüntüle</a></p>`
+           <p><a href="${getSiteUrl()}/admin/siparisler/${order.id}">Siparişi görüntüle</a></p>`
   });
 }
 
@@ -34,7 +35,7 @@ export async function notifyCustomerOrderReceived(
            <p>Teslimat Adresi: ${order.shippingAddress}, ${order.district} / ${order.city}${
              order.postalCode ? ` ${order.postalCode}` : ""
            }</p>
-           <p>Siparişinizi <a href="https://bollmark.com/siparis-durumu">bollmark.com/siparis-durumu</a> üzerinden takip edebilirsiniz.</p>`
+           <p>Siparişinizi <a href="${getSiteUrl()}/siparis-durumu">${new URL(getSiteUrl()).host}/siparis-durumu</a> üzerinden takip edebilirsiniz.</p>`
   });
 }
 

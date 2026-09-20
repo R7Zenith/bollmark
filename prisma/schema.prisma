@@ -272,7 +272,26 @@ model Order {
   // isaretlendigi an (KVKK/ispat yukumlulugu icin, bkz. HUKUKI_SAYFALAR_ICERIK_VE_PLAN.md).
   termsAcceptedAt DateTime?
 
+  // iyzico Sanal POS alanlari (bkz. IYZICO_SANAL_POS_PLANI.md bolum 4) - hepsi
+  // eklemeli: mevcut siparisler icin varsayilan "UNPAID" ve bos degerler.
+  // paymentStatus: UNPAID | PAID | REVIEW | FAILED | PARTIALLY_REFUNDED | REFUNDED
+  paymentStatus         String    @default("UNPAID")
+  paymentProvider       String?
+  paymentMode           String?
+  paidAt                DateTime?
+  paidCents             Int?
+  installment           Int?
+  paymentExpiresAt      DateTime?
+  needsAttention        Boolean   @default(false)
+  attentionNote         String?
+  shippingPaymentTransactionId String?
+  shippingPaidCents     Int?
+  shippingRefundedCents Int       @default(0)
+  paymentAttempts       PaymentAttempt[]
+  paymentRefunds        PaymentRefund[]
+
   @@index([deletedAt])
+  @@index([paymentStatus])
 }
 
 // Musteri hesabi - opsiyonel katman, misafir siparis akisi bundan bagimsiz
@@ -402,6 +421,10 @@ model OrderItem {
   quantity   Int
   unitPriceCents Int
   totalCents Int
+  // iyzico kalem bazli iade icin (bkz. IYZICO_SANAL_POS_PLANI.md bolum 4)
+  paymentTransactionId String?
+  paidCents            Int?
+  refundedCents        Int     @default(0)
 }
 
 // Magaza geneli ayarlar - tek satirlik "singleton" kayit (id her zaman "singleton")
@@ -513,4 +536,106 @@ model Shipment {
   deliveredAt  DateTime?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
+}
+
+// --- iyzico Sanal POS (bkz. IYZICO_SANAL_POS_PLANI.md bolum 4) ---
+
+// Tek satirlik "singleton" kayit. Anahtarlar AES-256-GCM ile sifrelenmis
+// (iv+tag+ciphertext, base64) saklanir; sifreleme anahtari PAYMENT_ENCRYPTION_KEY
+// env'inde durur, veritabaninda degil (lib/payment/crypto.ts).
+model PaymentSettings {
+  id                  String    @id @default("singleton")
+  provider            String    @default("IYZICO")
+  isEnabled           Boolean   @default(false)
+  // SANDBOX | LIVE - gecerli mod lib/payment/iyzico/mode.ts'teki resolveMode()
+  // ile belirlenir (LIVE yalnizca production ortaminda gecerli).
+  mode                String    @default("SANDBOX")
+  maxInstallment      Int       @default(1)
+  orderExpiryMinutes  Int       @default(60)
+  sandboxApiKeyEnc    String?
+  sandboxSecretKeyEnc String?
+  liveApiKeyEnc       String?
+  liveSecretKeyEnc    String?
+  // Panelde "son 4 hane" gostermek icin (anahtarin kendisi degil)
+  sandboxKeyLast4     String?
+  liveKeyLast4        String?
+  lastTestAt          DateTime?
+  lastTestOk          Boolean?
+  lastTestMode        String?
+  lastTestMessage     String?
+  updatedAt           DateTime  @updatedAt
+}
+
+// Her odeme denemesi icin bir kayit
+model PaymentAttempt {
+  id              String    @id @default(cuid())
+  orderId         String
+  order           Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  mode            String
+  token           String    @unique
+  conversationId  String
+  // INITIATED | SUCCESS | FAILED | REVIEW | EXPIRED
+  status          String    @default("INITIATED")
+  errorCode       String?
+  errorMessage    String?
+  paymentId       String?
+  paidCents       Int?
+  installment     Int?
+  fraudStatus     Int?
+  cardAssociation String?
+  cardType        String?
+  cardFamily      String?
+  binNumber       String?
+  lastFourDigits  String?
+  createdAt       DateTime  @default(now())
+  completedAt     DateTime?
+  refunds         PaymentRefund[]
+
+  @@index([orderId])
+  @@index([status, createdAt])
+}
+
+model PaymentRefund {
+  id                   String         @id @default(cuid())
+  orderId              String
+  order                Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  attemptId            String
+  attempt              PaymentAttempt @relation(fields: [attemptId], references: [id])
+  orderItemId          String?
+  isShipping           Boolean        @default(false)
+  paymentTransactionId String
+  amountCents          Int
+  // REFUND | CANCEL
+  kind                 String
+  // BUYER_REQUEST | DOUBLE_PAYMENT | FRAUD | OTHER
+  reason               String
+  description          String?
+  // PENDING | SUCCESS | FAILED
+  status               String         @default("PENDING")
+  errorCode            String?
+  errorMessage         String?
+  hostReference        String?
+  restock              Boolean        @default(false)
+  createdByEmail       String
+  createdAt            DateTime       @default(now())
+  completedAt          DateTime?
+
+  @@index([orderId])
+}
+
+// Yalnizca gozlem amacli odeme gunlugu - kart, anahtar, secret ve token ASLA yazilmaz.
+model PaymentLog {
+  id         String   @id @default(cuid())
+  createdAt  DateTime @default(now())
+  // INIT | CALLBACK | RETRIEVE | WEBHOOK | REFUND | CANCEL | TEST | RECONCILE | EXPIRE | SETTINGS
+  kind       String
+  orderId    String?
+  attemptId  String?
+  ok         Boolean
+  httpStatus Int?
+  errorCode  String?
+  summary    String
+
+  @@index([createdAt])
+  @@index([orderId])
 }

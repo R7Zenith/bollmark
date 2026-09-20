@@ -4675,3 +4675,38 @@ iyzico başvuru incelemesi için site geçici olarak herkese açıldı.
 - Canlı doğrulama (commit 085bc13, deploy Ready, bollmark.com alias'ı): çerezsiz istekle `/`, `/urunler` ve 3 ürün detay
   sayfası yönlendirmesiz 200 döndü, `/admin` hâlâ 307 ile `/admin/login?callbackUrl=%2Fadmin`'e gidiyor,
   `/yapim-asamasinda` sayfası açılıyor.
+
+
+## iyzico Sanal POS — Faz 1 (altyapı + panel) kodu yazıldı ve deploy edildi (2026-09-20)
+
+Spesifikasyon: `IYZICO_SANAL_POS_PLANI.md`, promptlar: `IYZICO_SANAL_POS_PROMPTLARI.md`. Bu oturumda sadece Faz 1 yapıldı,
+checkout akışına dokunulmadı.
+
+**Yazılanlar**
+- `prisma/schema.prisma`: sadece eklemeli — yeni `PaymentSettings`, `PaymentAttempt`, `PaymentRefund`, `PaymentLog`;
+  `Order`'a ödeme alanları (`paymentStatus` varsayılan "UNPAID", `needsAttention`, `shippingRefundedCents` vb.),
+  `OrderItem`'a `paymentTransactionId`/`paidCents`/`refundedCents`. Prisma client yerelde yeniden üretildi.
+- `src/lib/payment/crypto.ts` (AES-256-GCM), `src/lib/payment/iyzico/{client,money,signature,mode,errors}.ts`,
+  `src/lib/payment/{settings,log}.ts`, `src/lib/site-url.ts` (SITE_URL, yoksa https://bollmark.com).
+  `order-notifications.ts` içindeki sabit adresler SITE_URL'ye bağlandı.
+- Panel: `/admin/sanal-pos` (durum kartı, ayarlar formu, 4 anahtar alanı, bağlantı testi, entegrasyon adresleri,
+  sandbox test rehberi, ödeme günlüğü) + server action'lar; sidebar "Sistem > Sanal POS"; 6 yeni denetim eylemi.
+  `roles.ts` değişmedi: PERSONEL sadece /admin, /admin/siparisler, /admin/kargolar'a girebildiği için sanal-pos'a giremez.
+- Test aracı: yeni bağımlılık yok, `node:test` + mevcut `tsx` (`npm test`, 30 test: şifreleme, para, imza vektörleri, mod, hata eşleme).
+- Kararlar: `resolveMode()`/`getCredentials()` DB'ye bağlı olduğu için `settings.ts`'te, saf mod mantığı `mode.ts`'te
+  (`resolveModeFrom`) tutuldu ki birim testlenebilsin. Canlı bağlantı testi yalnızca production'da çalışır.
+  Anahtar değişince o moda ait son bağlantı testi geçersiz sayılır; canlı moda geçiş canlı test başarılı olmadan reddedilir.
+- Canonical domain: hem `bollmark.com` hem `www.bollmark.com` yönlendirmesiz 200 dönüyor; koddaki mevcut sabit
+  ve sitemap/canonical `https://bollmark.com` olduğu için SITE_URL bu değer olacak.
+
+**Ortam adımları (kullanıcı izniyle yapıldı)**
+- `npm run db:push` uygulandı (eklemeli, ortak Neon). Yeni tablolar ve sütunlar okunarak doğrulandı (şu an 0 sipariş var).
+- Vercel env: `PAYMENT_ENCRYPTION_KEY` (Production + Preview + Development, Secret) ve `SITE_URL=https://bollmark.com`
+  (yalnız Production; diğer ortamlarda kod aynı adrese düşüyor). Yerel `.env`'ye de yazıldı. Değer bu dosyaya yazılmadı.
+
+**Doğrulama**
+- `tsc --noEmit` temiz, `npm test` 30/30, `npm run build` başarılı. Rol kuralı: PERSONEL /admin/sanal-pos için false, ADMIN true.
+- **Yapılamadı:** panelin ADMIN ile tarayıcı testi. `.env`'deki ADMIN_PASSWORD veritabanındaki gerçek şifreyle eşleşmiyor
+  (giriş 401), şifre tahmin edilmedi ve test hesabı oluşturulmadı. Kaydet/anahtar-son-4/test-butonu/secret-sızıntısı
+  kontrolleri ve PERSONEL ile gerçek giriş reddi bu yüzden henüz elle doğrulanmadı. iyzico'ya gerçek istek de atılmadı
+  (sandbox anahtarı yok); IYZWSv2 imzası şimdilik yalnızca birim testli.

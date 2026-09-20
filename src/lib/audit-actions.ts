@@ -13,7 +13,13 @@ export const auditActions = [
   "ORDER_DELETED",
   "ORDER_RESTORED",
   "CONTACT_MESSAGE_STATUS_CHANGED",
-  "CONTACT_MESSAGE_DELETED"
+  "CONTACT_MESSAGE_DELETED",
+  "PAYMENT_SETTINGS_CHANGED",
+  "PAYMENT_MODE_CHANGED",
+  "PAYMENT_CONNECTION_TESTED",
+  "PAYMENT_REFUND_CREATED",
+  "PAYMENT_CANCEL_CREATED",
+  "PAYMENT_MANUAL_RECONCILE"
 ] as const;
 
 export const auditActionLabel: Record<string, string> = {
@@ -28,5 +34,11 @@ export const auditActionLabel: Record<string, string> = {
   ORDER_DELETED: "Sipariş Silindi",
   ORDER_RESTORED: "Sipariş Geri Yüklendi",
   CONTACT_MESSAGE_STATUS_CHANGED: "Mesaj Durumu Değişti",
-  CONTACT_MESSAGE_DELETED: "Mesaj Silindi"
+  CONTACT_MESSAGE_DELETED: "Mesaj Silindi",
+  PAYMENT_SETTINGS_CHANGED: "Sanal POS Ayarları Değişti",
+  PAYMENT_MODE_CHANGED: "Sanal POS Modu Değişti",
+  PAYMENT_CONNECTION_TESTED: "Sanal POS Bağlantı Testi",
+  PAYMENT_REFUND_CREATED: "Ödeme İadesi Yapıldı",
+  PAYMENT_CANCEL_CREATED: "Ödeme İptal Edildi",
+  PAYMENT_MANUAL_RECONCILE: "Ödeme Durumu Elle Sorgulandı"
 };
