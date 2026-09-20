@@ -15,11 +15,13 @@ const STALE_ATTEMPT_MS = 2 * 60 * 1000;
 const ERROR_GRACE_MS = 6 * 60 * 60 * 1000;
 const RECONCILE_CONCURRENCY = 5;
 
-async function expireAttemptsIfDead(orderId: string) {
+async function expireAttemptsIfDead(orderId: string): Promise<{ allowCancel: boolean; reasons: string[] }> {
   const attempts = await prisma.paymentAttempt.findMany({ where: { orderId, status: "INITIATED" } });
   let allowCancel = true;
+  const reasons: string[] = [];
   for (const attempt of attempts) {
     const result = await reconcileToken(attempt.token, "cron");
+    if (result.kind !== "expired" && result.kind !== "already") reasons.push(result.kind);
     if (result.kind === "paid" || result.kind === "double" || result.kind === "late" || result.kind === "review" || result.kind === "invalid") {
       allowCancel = false;
     } else if (result.kind === "pending") {
@@ -29,7 +31,7 @@ async function expireAttemptsIfDead(orderId: string) {
       allowCancel = allowCancel && Date.now() - attempt.createdAt.getTime() > ERROR_GRACE_MS;
     }
   }
-  return allowCancel;
+  return { allowCancel, reasons };
 }
 
 // Kupon hakki ve puani geri verir, denemeleri EXPIRED yapar. Tek kazanan: kosullu updateMany.
@@ -79,7 +81,7 @@ export async function cancelExpiredOrder(orderId: string): Promise<boolean> {
 }
 
 // Suresi dolan, hala odenmemis siparisler: once son bir sorgu (odemis olabilir), sonra iptal.
-export async function expirePendingOrders(batch = 20): Promise<{ checked: number; cancelled: number }> {
+export async function expirePendingOrders(batch = 20): Promise<{ checked: number; cancelled: number; deferred: string[] }> {
   const orders = await prisma.order.findMany({
     where: {
       status: "PENDING_PAYMENT",
@@ -92,15 +94,20 @@ export async function expirePendingOrders(batch = 20): Promise<{ checked: number
     take: batch
   });
   let cancelled = 0;
+  const deferred: string[] = [];
   for (const { id } of orders) {
     try {
-      if (!(await expireAttemptsIfDead(id))) continue;
+      const { allowCancel, reasons } = await expireAttemptsIfDead(id);
+      if (!allowCancel) {
+        deferred.push(reasons.join("+") || "bekliyor");
+        continue;
+      }
       if (await cancelExpiredOrder(id)) cancelled += 1;
     } catch (error) {
       console.error("Sipariş süre dolumu işlenemedi (sonraki turda denenecek):", error);
     }
   }
-  return { checked: orders.length, cancelled };
+  return { checked: orders.length, cancelled, deferred };
 }
 
 // Callback/webhook hic ulasmadiysa (tarayici kapandi vb.) odenmis olabilecek denemeleri sorgular.
@@ -128,5 +135,15 @@ export async function reconcileStaleAttempts(batch = 20): Promise<{ checked: num
 export async function sweepPayments(batch = 20) {
   const reconciled = await reconcileStaleAttempts(batch);
   const expired = await expirePendingOrders(batch);
+  // Gozlenebilirlik: bir sey islendiyse tek satirlik ozet (cok sayida sessiz sweep gurultu yapmasin diye).
+  if (reconciled.checked > 0 || expired.checked > 0) {
+    await logPayment({
+      kind: "RECONCILE",
+      ok: true,
+      summary: `Süpürme: ${reconciled.checked} deneme sorgulandı, ${expired.checked} süresi dolan sipariş incelendi, ${expired.cancelled} iptal${
+        expired.deferred.length > 0 ? `, ertelenen: ${expired.deferred.join(",")}` : ""
+      }`
+    });
+  }
   return { reconciled: reconciled.checked, ...expired };
 }
