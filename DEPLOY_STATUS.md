@@ -4706,7 +4706,10 @@ checkout akışına dokunulmadı.
 
 **Doğrulama**
 - `tsc --noEmit` temiz, `npm test` 30/30, `npm run build` başarılı. Rol kuralı: PERSONEL /admin/sanal-pos için false, ADMIN true.
-- **Yapılamadı:** panelin ADMIN ile tarayıcı testi. `.env`'deki ADMIN_PASSWORD veritabanındaki gerçek şifreyle eşleşmiyor
-  (giriş 401), şifre tahmin edilmedi ve test hesabı oluşturulmadı. Kaydet/anahtar-son-4/test-butonu/secret-sızıntısı
-  kontrolleri ve PERSONEL ile gerçek giriş reddi bu yüzden henüz elle doğrulanmadı. iyzico'ya gerçek istek de atılmadı
-  (sandbox anahtarı yok); IYZWSv2 imzası şimdilik yalnızca birim testli.
+- Panel ADMIN ile yerel dev sunucusunda (ortak DB) Playwright ile test edildi, 21/21 geçti: sayfa açılışı, sidebar, yanlış önek
+  reddi (iki yönde), geçerli kaydetme, panelde yalnız "son 4", HTML ve tüm network yanıtlarında secret yok, anahtar inputları
+  boş dönüyor, taksit kalıcı, günlük/filtre, denetim kaydında anahtar değeri yok, canlı test yerelde reddi, canlı geçiş şartsız reddi.
+  Sahte sandbox anahtarıyla bağlantı testi gerçek iyzico sandbox'tan 1001 ("API Key bulunamadı") aldı ve Türkçe eşlendi; yani istek
+  iyzico'ya ulaşıyor. Test verileri (sahte anahtarlar, 2 günlük, 2 denetim satırı) sonradan silindi, PaymentSettings varsayılana döndü.
+- Yapılamadı: PERSONEL ile gerçek giriş reddi (geçici hesap oluşturma engellendi; kural birim düzeyinde doğrulandı) ve geçerli
+  anahtarla başarılı IYZWSv2 kimlik doğrulaması (sandbox anahtarı henüz yok, ilk gerçek doğrulama Faz 2 öncesi "Bağlantıyı Test Et").
