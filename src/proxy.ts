@@ -30,7 +30,11 @@ async function guardAdmin(request: NextRequest) {
 //   (adres çubuğundaki URL değişmez, sadece gösterilen içerik değişir).
 // - PREVIEW_PASSWORD tanımlı değilse koruma tamamen devre dışı kalır (yanlışlıkla
 //   herkesi kilitlememek için).
+// - PREVIEW_GATE="off" ise kapı hiç çalışmaz, site herkese açık olur (değer yoksa
+//   veya "on" ise yukarıdaki davranış geçerli).
 function guardPreview(request: NextRequest) {
+  if (process.env.PREVIEW_GATE?.trim().toLowerCase() === "off") return NextResponse.next();
+
   const previewPassword = process.env.PREVIEW_PASSWORD;
   if (!previewPassword) return NextResponse.next();
 

@@ -4661,3 +4661,14 @@ yerine yapılandırmadan gelen 2'şer portre görsel kartına çevrildi (Release
 - Playwright: 1440'ta kartlar 469x625, 1920'de 475x633 (3/4), görseller yüklendi; 4 kartta yazı okunuyor.
   Aksesuar (kartsız) sekmesi bozulmadan açılıyor. 390 px mobil Kadın alt menüsünde yeni kart yok.
 - Not: önizleme kapısı (PREVIEW_PASSWORD) nedeniyle yerel testte `?preview=` ile cookie alındı.
+
+## Önizleme kapısı env ile kapatıldı: PREVIEW_GATE=off (2026-09-20)
+
+iyzico başvuru incelemesi için site geçici olarak herkese açıldı.
+- `src/proxy.ts` (`guardPreview`): `PREVIEW_GATE` "off" ise (büyük/küçük harf ve boşluk fark etmez) `/yapim-asamasinda`
+  yönlendirmesi hiç çalışmaz. Değer yoksa veya "on" ise eski davranış (PREVIEW_PASSWORD + `bm_preview` cookie) aynen
+  duruyor. `/admin` ve NextAuth koruması ile `/yapim-asamasinda` sayfası değişmedi. `.env.example`'a `PREVIEW_GATE` eklendi.
+- Vercel production'a `PREVIEW_GATE=off` eklendi (Vercel CLI, "Secret" tipi, değeri dashboard'da görünmez).
+  `PREVIEW_PASSWORD`'e dokunulmadı, duruyor.
+- Bu süreçte site herkese açık. İnceleme bitince tekrar kapatmak için: `vercel env rm PREVIEW_GATE production`
+  (veya değeri "on" yapıp) + yeniden deploy gerekir; env değişikliği yeni deploy olmadan etkili olmaz.
