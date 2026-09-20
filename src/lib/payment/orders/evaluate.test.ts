@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { hmacSha256Hex } from "@/lib/payment/iyzico/signature";
 import { trimTrailingZeros } from "@/lib/payment/iyzico/money";
-import { evaluateRetrieve, type RetrieveResponse } from "./evaluate";
+import { evaluateRetrieve, isFailureFinal, TOKEN_DEAD_AFTER_MS, type RetrieveResponse } from "./evaluate";
 
 const SECRET = "sandbox-secret-test";
 const attempt = { id: "att-1", token: "tok-1" };
@@ -39,8 +39,8 @@ function signedResponse(overrides: Partial<RetrieveResponse> = {}): RetrieveResp
   return { ...res, signature: hmacSha256Hex(data, SECRET) };
 }
 
-// Alan değiştirilen yanıtın imzası eski kalır -> imza uyuşmazlığı da yakalanmalı; ama
-// imzayı yeniden hesaplayan (kötü niyetli olmayan hata) durumlar için ayrıca resign yardımcısı.
+// signedResponse imzayı DOĞRU hesaplar: alanı override edince imza yeniden üretilir, böylece
+// yalnızca ilgili doğrulama kuralı (tutar, token, basketId...) test edilir.
 function evaluate(res: RetrieveResponse, o = order) {
   return evaluateRetrieve({ res, attempt, order: o, secretKey: SECRET });
 }
@@ -120,4 +120,15 @@ test("API düzeyinde hata (status failure) -> ERROR, PAID/FAILED değil", () => 
 
 test("paymentId yoksa REDDEDİLİR", () => {
   assert.equal(evaluate(signedResponse({ paymentId: undefined })).outcome, "INVALID");
+});
+
+test("FAILURE yalnızca callback/webhook'ta veya token ömrü dolunca kesin sayılır (3DS sürerken FAILED yazılmaz)", () => {
+  const young = 60 * 1000;
+  assert.equal(isFailureFinal("callback", young), true);
+  assert.equal(isFailureFinal("webhook", young), true);
+  assert.equal(isFailureFinal("poll", young), false);
+  assert.equal(isFailureFinal("cron", young), false);
+  assert.equal(isFailureFinal("admin", young), false);
+  assert.equal(isFailureFinal("cron", TOKEN_DEAD_AFTER_MS + 1), true);
+  assert.equal(isFailureFinal("poll", TOKEN_DEAD_AFTER_MS + 1), true);
 });

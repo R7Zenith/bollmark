@@ -7,7 +7,13 @@ import { iyzicoPost } from "@/lib/payment/iyzico/client";
 import { decimalToCents } from "@/lib/payment/iyzico/money";
 import { logPayment } from "@/lib/payment/log";
 import { SHIPPING_ITEM_ID } from "@/lib/payment/orders/basket";
-import { evaluateRetrieve, type PaidDetails, type RetrieveResponse } from "@/lib/payment/orders/evaluate";
+import {
+  evaluateRetrieve,
+  isFailureFinal,
+  TOKEN_DEAD_AFTER_MS,
+  type PaidDetails,
+  type RetrieveResponse
+} from "@/lib/payment/orders/evaluate";
 import { notifyAdminNewOrder, notifyAdminPaymentAttention, notifyCustomerOrderReceived } from "@/lib/order-notifications";
 
 // Odeme sonucunun TEK dogruluk kaynagi: yonlendirmedeki/webhook'taki hicbir alana
@@ -18,10 +24,15 @@ import { notifyAdminNewOrder, notifyAdminPaymentAttention, notifyCustomerOrderRe
 
 const RETRIEVE_PATH = "/payment/iyzipos/checkoutform/auth/ecom/detail";
 
+// iyzico CF token'i 30 dk gecerli (tokenExpireTime=1800, sandbox'ta gozlendi). Odeme hic yapilmamis
+// bir token icin sorgu 5122 ("Gonderilen tokena ait odeme bilgisi bulunamadi") doner (sandbox'ta
+// gozlendi). Token omru + tampon gectikten sonra bu hata KESIN "odenmedi" demektir.
+const NO_PAYMENT_ERROR_CODE = "5122";
+
 export type ReconcileSource = "callback" | "webhook" | "cron" | "admin" | "poll";
 
 export type ReconcileResult = {
-  kind: "unknown" | "already" | "paid" | "double" | "late" | "review" | "failed" | "pending" | "invalid" | "error";
+  kind: "unknown" | "already" | "expired" | "paid" | "double" | "late" | "review" | "failed" | "pending" | "invalid" | "error";
   orderNumber?: string;
   orderId?: string;
 };
@@ -90,7 +101,8 @@ type PaidOutcome = { kind: "paid" | "double" | "late"; note: string | null } | {
 async function applyPaid(attemptId: string, details: PaidDetails): Promise<PaidOutcome> {
   return prisma.$transaction(async (tx) => {
     const claimed = await tx.paymentAttempt.updateMany({
-      where: { id: attemptId, status: { in: ["INITIATED", "REVIEW"] } },
+      // FAILED'dan da SUCCESS'e gecilebilir: iyzico'nun son sorgusu gercegi belirler.
+      where: { id: attemptId, status: { in: ["INITIATED", "REVIEW", "FAILED"] } },
       data: {
         status: "SUCCESS",
         paymentId: details.paymentId,
@@ -245,7 +257,10 @@ export async function reconcileToken(token: string, source: ReconcileSource): Pr
   const attempt = await prisma.paymentAttempt.findUnique({ where: { token }, include: { order: true } });
   if (!attempt) return { kind: "unknown" };
   const base = { orderNumber: attempt.order.orderNumber, orderId: attempt.orderId };
-  if (["SUCCESS", "FAILED", "EXPIRED"].includes(attempt.status)) return { kind: "already", ...base };
+  const tokenAgeMs = Date.now() - attempt.createdAt.getTime();
+  // SUCCESS/EXPIRED kesin. FAILED ise token omru icinde yeniden sorgulanir (bkz. yukaridaki not).
+  if (attempt.status === "SUCCESS" || attempt.status === "EXPIRED") return { kind: "already", ...base };
+  if (attempt.status === "FAILED" && tokenAgeMs > TOKEN_DEAD_AFTER_MS) return { kind: "already", ...base };
 
   const settings = await getPaymentSettings();
   const credentials = getCredentials(settings, attempt.mode === "LIVE" ? "LIVE" : "SANDBOX");
@@ -290,6 +305,10 @@ export async function reconcileToken(token: string, source: ReconcileSource): Pr
       return { kind: "review", ...base };
     }
     case "FAILED": {
+      if (!isFailureFinal(source, tokenAgeMs)) {
+        await log(true, "FAILURE görüldü ama ödeme henüz sonuçlanmamış olabilir (3D Secure sürüyor) — durum değişmedi");
+        return { kind: "pending", ...base };
+      }
       const changed = await applyFailed(attempt.id, evaluation.errorCode, evaluation.errorMessage);
       await log(false, `FAILED${changed ? "" : " — zaten kayıtlı"}`, evaluation.errorCode ?? undefined);
       return { kind: changed ? "failed" : "already", ...base };
@@ -303,9 +322,18 @@ export async function reconcileToken(token: string, source: ReconcileSource): Pr
     case "PENDING":
       await log(true, "PENDING — ödeme henüz tamamlanmadı");
       return { kind: "pending", ...base };
-    case "ERROR":
+    case "ERROR": {
+      if (evaluation.errorCode === NO_PAYMENT_ERROR_CODE && tokenAgeMs > TOKEN_DEAD_AFTER_MS) {
+        const expired = await prisma.paymentAttempt.updateMany({
+          where: { id: attempt.id, status: "INITIATED" },
+          data: { status: "EXPIRED", completedAt: new Date() }
+        });
+        await log(false, `token süresi doldu, ödeme yapılmamış${expired.count === 1 ? "" : " — zaten kayıtlı"}`, NO_PAYMENT_ERROR_CODE);
+        return { kind: "expired", ...base };
+      }
       await log(false, `iyzico hatası: ${evaluation.errorMessage ?? ""}`.trim(), evaluation.errorCode ?? undefined);
       return { kind: "error", ...base };
+    }
   }
 }
 

@@ -135,3 +135,15 @@ export function evaluateRetrieve(params: {
   // icin onayli sayilir; sandbox'ta gozlenip DEPLOY_STATUS'a yazilir (plan 1.9).
   return { outcome: "PAID", details };
 }
+
+// iyzico CF token'i 30 dk gecerli; marj ile 35 dk sonra bir deneme kesin "olu" sayilir.
+export const TOKEN_DEAD_AFTER_MS = 35 * 60 * 1000;
+
+// ONEMLI (sandbox'ta gozlendi): musteri 3D Secure ekraninda SMS kodunu girerken sorgu
+// paymentStatus=FAILURE doner (hata kodu yok). Bu yuzden FAILURE, yalnizca iyzico akisin bittigini
+// kendisi bildirdiginde (callback/webhook) ya da token omru dolunca KESIN sayilir. Aksi halde
+// (poll/cron/admin sorgusu) deneme "devam ediyor" kalir; yoksa dogru kodu giren musterinin basarili
+// odemesi "basarisiz" kaydedilirdi.
+export function isFailureFinal(source: string, tokenAgeMs: number): boolean {
+  return source === "callback" || source === "webhook" || tokenAgeMs > TOKEN_DEAD_AFTER_MS;
+}
