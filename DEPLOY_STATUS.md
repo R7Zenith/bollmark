@@ -4991,3 +4991,9 @@ Yeni sira: Hero -> Yeni Gelenler -> **A** editoryal ikili blok -> **B** kategori
 ## Ucretsiz kargo esigi 1.500 TL (2026-09-22)
 
 Sahibinin karariyla `SHIPPING_THRESHOLD_CENTS` 100000 -> 150000 (`src/lib/shipping.ts`). Esik tek yerde tanimli; odeme sayfasi (`checkout-form.tsx`), sunucudaki siparis hesabi (`api/orders/route.ts`) ve ana sayfa SSS cevabi (`faq-and-store.tsx`) ayni sabiti okur, baska sabit kodlu "1.000 TL" metni yok. `tsc` temiz, `npm test` 79/79. Kargo ucreti (350 TL) `StoreSettings`ten gelmeye devam eder. Ustteki ana sayfa notunda gecen "1.000 TL" bu satirla gecersizdir.
+
+---
+
+## Ayakkabi kart gorseli PUMA ile degistirildi (2026-09-22)
+
+Plandaki ilk Ayakkabi gorselinde gorunur Nike markasi vardi; magazada PUMA ve SLAZENGER satildigi icin sahibinin istegiyle `public/anasayfa/koleksiyon-ayakkabi.jpg` beyaz PUMA spor ayakkabi fotografiyla (The DK Photography, Unsplash `1608229751021-ed4bd8677753`) degistirildi; dosya acilip PUMA logosu gozle dogrulandi. Unsplash aramasinda Slazenger sonucu cikmadi. `KAYNAKLAR.md` guncellendi. Ayakkabi karti, kategoride yayinda urun olmadigi surece (sayi 0) ana sayfada GIZLI kalir; urun eklenince kendiliginden gorunur. Ustteki ana sayfa notundaki "Nike/AIR markasi" maddesi bu satirla gecersizdir.
