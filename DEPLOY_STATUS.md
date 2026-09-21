@@ -4860,3 +4860,6 @@ sabit zamanli degil (mevcut desen); `POST /api/orders` gecersiz JSON'da 500.
 **AÇIK: canli DB'de test verisi kaldi** (silme otomatik izin denetiminde reddedildi, asilmadi): siparis BLM260921-1013 (iyzico-test@example.com, PAID) + bagli odeme denemesi,
 1 terk edilmis sepet, 5 odeme gunlugu satiri, 1 denetim satiri (aktor "iyzico"); gomlek BEYAZ/M varyanti (cmu1ru345000y04jv24d894eg) stogu 2 (orijinali 3). Sanal POS tekrar
 KAPATILDI (`isEnabled=false`, `maxInstallment=1`).
+
+**Temizlik tamamlandi (kullanici talimatiyla, ayni gun):** Faz 4 test siparisi BLM260921-1013 (odeme denemesi cascade ile), terk edilmis sepet, 5 odeme gunlugu ve 1 denetim satiri silindi;
+gomlek BEYAZ/M stogu 3'e geri yazildi. Dogrulama: 0 siparis, 0 deneme, 8 gunluk (baslangic degeri), POS `isEnabled=false`. Yukaridaki "AÇIK: canli DB'de test verisi kaldi" notu bu satirla gecersizdir.
