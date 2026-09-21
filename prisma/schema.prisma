@@ -309,6 +309,19 @@ model Customer {
   orders        Order[]
   loyaltyLedger LoyaltyTransaction[]
   wishlistItems WishlistItem[]
+  cart          CustomerCart?
+}
+
+// Giris yapmis musterinin cihazlar arasi sepeti (bkz. lib/cart.tsx, api/sepet).
+// Yalniz productId/variantId/quantity saklanir - fiyat, isim ve gorsel HICBIR
+// zaman kopyalanmaz, her okumada guncel urun kaydindan uretilir.
+model CustomerCart {
+  id         String   @id @default(cuid())
+  customerId String   @unique
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  linesJson  String   @default("[]")
+  couponCode String?
+  updatedAt  DateTime @updatedAt
 }
 
 model CustomerAddress {

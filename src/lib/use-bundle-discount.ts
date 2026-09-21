@@ -32,7 +32,7 @@ export function useBundleDiscount(lines: CartLine[]): number {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(lines.map((l) => [l.productId, l.quantity]))]);
+  }, [JSON.stringify(lines.map((l) => [l.productId, l.priceCents, l.quantity]))]);
 
   return discountCents;
 }

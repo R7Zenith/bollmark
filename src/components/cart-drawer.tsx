@@ -8,13 +8,15 @@ import { Minus, Plus, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { useAutomaticDiscount } from "@/lib/use-automatic-discount";
+import { CartNotices } from "@/components/cart-notices";
 
 // MobileMenu'deki (site-header.tsx) ile ayni mount/visible iki asamali
 // pattern - `open` false olur olmaz DOM'dan kaldirmiyoruz, transform
 // transition'inin (450ms) gercekten oynamasi icin bir sonraki frame'de
 // `visible`'i true'ya cekiyoruz.
 export function CartDrawer() {
-  const { lines, removeLine, updateQuantity, totalCents, totalCount, isDrawerOpen, closeDrawer } = useCart();
+  const { lines, removeLine, updateQuantity, totalCents, totalCount, isDrawerOpen, closeDrawer, hasBlockingIssues } =
+    useCart();
   const { discountCents: automaticDiscountCents, appliedName } = useAutomaticDiscount(lines);
   const [mounted, setMounted] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
@@ -87,7 +89,11 @@ export function CartDrawer() {
             </Link>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto divide-y divide-line px-6">
+          <div className="flex-1 overflow-y-auto px-6">
+            <div className="pt-4 empty:hidden">
+              <CartNotices />
+            </div>
+            <div className="divide-y divide-line">
             {lines.map((line) => (
               <div key={line.variantId} className="flex gap-4 py-6">
                 <div className="relative h-[120px] w-[90px] flex-shrink-0 overflow-hidden bg-line">
@@ -138,6 +144,7 @@ export function CartDrawer() {
                 </div>
               </div>
             ))}
+            </div>
           </div>
         )}
 
@@ -169,13 +176,22 @@ export function CartDrawer() {
               >
                 Sepeti Görüntüle
               </Link>
-              <Link
-                href="/odeme"
-                onClick={closeDrawer}
-                className="flex h-[44px] flex-1 items-center justify-center rounded-[50px] border border-ink bg-ink text-[10px] uppercase tracking-[1px] text-cream transition duration-300 hover:bg-transparent hover:text-ink"
-              >
-                Ödemeye Geç
-              </Link>
+              {hasBlockingIssues ? (
+                <span
+                  aria-disabled="true"
+                  className="flex h-[44px] flex-1 cursor-not-allowed items-center justify-center rounded-[50px] border border-ink bg-ink text-[10px] uppercase tracking-[1px] text-cream opacity-50"
+                >
+                  Ödemeye Geç
+                </span>
+              ) : (
+                <Link
+                  href="/odeme"
+                  onClick={closeDrawer}
+                  className="flex h-[44px] flex-1 items-center justify-center rounded-[50px] border border-ink bg-ink text-[10px] uppercase tracking-[1px] text-cream transition duration-300 hover:bg-transparent hover:text-ink"
+                >
+                  Ödemeye Geç
+                </Link>
+              )}
             </div>
           </div>
         )}

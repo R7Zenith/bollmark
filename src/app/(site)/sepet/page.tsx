@@ -7,9 +7,10 @@ import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { CouponField, type CouponResult } from "@/components/coupon-field";
 import { useBundleDiscount } from "@/lib/use-bundle-discount";
+import { CartNotices } from "@/components/cart-notices";
 
 export default function CartPage() {
-  const { lines, removeLine, updateQuantity, totalCents } = useCart();
+  const { lines, removeLine, updateQuantity, totalCents, hasBlockingIssues } = useCart();
   const [coupon, setCoupon] = useState<CouponResult>(null);
   const discountCents = coupon?.discountCents ?? 0;
   const bundleDiscountCents = useBundleDiscount(lines);
@@ -32,6 +33,10 @@ export default function CartPage() {
   return (
     <div className="mx-auto max-w-4xl px-6 py-16">
       <h1 className="font-display text-3xl">Sepetim</h1>
+
+      <div className="mt-6 empty:hidden">
+        <CartNotices />
+      </div>
 
       <div className="mt-10 divide-y divide-line">
         {lines.map((line) => (
@@ -101,12 +106,21 @@ export default function CartPage() {
         </div>
       </div>
 
-      <Link
-        href="/odeme"
-        className="mt-8 block w-full bg-ink py-4 text-center text-sm uppercase tracking-widest2 text-cream hover:bg-clay"
-      >
-        Ödemeye Geç
-      </Link>
+      {hasBlockingIssues ? (
+        <span
+          aria-disabled="true"
+          className="mt-8 block w-full cursor-not-allowed bg-ink py-4 text-center text-sm uppercase tracking-widest2 text-cream opacity-50"
+        >
+          Ödemeye Geç
+        </span>
+      ) : (
+        <Link
+          href="/odeme"
+          className="mt-8 block w-full bg-ink py-4 text-center text-sm uppercase tracking-widest2 text-cream hover:bg-clay"
+        >
+          Ödemeye Geç
+        </Link>
+      )}
     </div>
   );
 }

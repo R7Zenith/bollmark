@@ -14,7 +14,12 @@ import { getPaymentSettings, getReadiness } from "@/lib/payment/settings";
 const lineSchema = z.object({
   productId: z.string(),
   variantId: z.string(),
-  quantity: z.number().int().positive()
+  quantity: z.number().int().positive(),
+  // Musterinin ekranda gordugu birim fiyat (opsiyonel - eski istemciler
+  // gondermeyebilir). Tutar HER ZAMAN DB fiyatindan hesaplanir; bu deger
+  // yalnizca ekrandaki fiyatla farkli bir tutar tahsil edilmesin diye
+  // uyusmazlikta siparisi durdurmak icin kullanilir.
+  expectedPriceCents: z.number().int().nonnegative().optional()
 });
 
 const orderSchema = z.object({
@@ -94,11 +99,18 @@ export async function POST(req: NextRequest) {
     if (!product || !variant) {
       return NextResponse.json({ error: "Sepetteki bir ürün veya varyant artık mevcut değil." }, { status: 400 });
     }
+    const priceCents = effectivePrice(product, variant);
+    if (line.expectedPriceCents !== undefined && line.expectedPriceCents !== priceCents) {
+      return NextResponse.json(
+        { code: "PRICE_CHANGED", error: "Sepetinizdeki bazı ürünlerin fiyatı güncellendi. Lütfen fiyatları kontrol edip tekrar deneyin." },
+        { status: 409 }
+      );
+    }
     resolvedLines.push({
       productId: line.productId,
       variantId: line.variantId,
       quantity: line.quantity,
-      priceCents: effectivePrice(product, variant),
+      priceCents,
       compareAtCents: effectiveCompareAt(product, variant),
       categoryId: product.categoryId,
       brandId: product.brandId,

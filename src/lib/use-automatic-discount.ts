@@ -37,7 +37,7 @@ export function useAutomaticDiscount(lines: CartLine[]): { discountCents: number
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(lines.map((l) => [l.productId, l.variantId, l.quantity]))]);
+  }, [JSON.stringify(lines.map((l) => [l.productId, l.variantId, l.priceCents, l.quantity]))]);
 
   return result;
 }

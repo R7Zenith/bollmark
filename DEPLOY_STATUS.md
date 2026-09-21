@@ -4888,3 +4888,54 @@ eski UTC-gece-yarisi kayit) kontrol edildi.
 **Dokunulmayanlar / karar bekleyen**: `yapim-asamasinda/page.tsx` lansman tarihi (`"2026-10-14T00:00:00"`, ofsetsiz) sunucuda UTC okunuyor = Istanbul 03:00; Istanbul gece yarisi istenirse
 `+03:00` eklenmeli (lansman aninin 3 saat one cekilmesi demek, ayrica onay bekliyor). Site/gate alt bilgisindeki `new Date().getFullYear()` yalniz 31 Ara 21:00 UTC - 1 Oca 00:00 UTC arasi
 etkilenir, dokunulmadi. `scripts/` altindaki bakim betikleri kapsam disi.
+
+## Vercel deployment temizligi (2026-09-21)
+
+"Function Storage (10 GB) %75" uyarisi uzerine eski deployment'lar temizlendi. Kural: **son 30 deployment tutulur**, gerisi silinir (production alias'ina bagli deployment her zaman korunur). Silmeden onceki deployment sayisi: 261, sonraki: 30 (231 silindi, en eskisi 2026-08-28). Production (`bollmark.com`, `www.bollmark.com`) `bollmark-pfig1ma57` deployment'ina bagli ve temizlik sonrasi HTTP 200 donuyor. Kalici cozum icin Vercel panelinde Settings -> Deployment Retention elle ayarlanmali.
+
+## Vercel Function Storage olcum raporu (2026-09-21, sadece olcum - hicbir sey degistirilmedi/silinmedi)
+
+- **Mevcut deployment**: 31 (hepsi production, preview yok). En eskisi 2026-09-18 23:12 UTC. Hesapta tek proje (bollmark, Hobby). Temizlikten sonra 1 yeni deploy geldigi icin 30 degil 31.
+- **Deployment basina boyut** (Vercel builds API, benzersiz function'lar toplami): son deploy 36,3 MB, 18 Eyl'dekiler 33,3 MB; 31 deployment toplami ~1,04 GB. Function bundle 150 MB'in cok altinda (7 benzersiz function: 4,2 / 11,5 / 12,0 / 2,8 / 2,7 / 2,6 / 0,5 MB). 197 route ciktisi bu 7 function'i paylasiyor.
+- **7,58 GB aciklamasi**: temizlik oncesi 261 deployment x ~29-33 MB = ~7,5-8,6 GB; yani 7,58 GB o donemdeki birikimle tutarli. Simdiki gercek kullanim ~1,04 GB olmali. Grafigin dusmemesi bundan buyuk bir bundle degil, buyuk olasilikla Vercel'in usage metriginin gecikmesi/silinen deployment'larin asenkron temizlenmesi (CLI'dan dogrulanamadi; 24-48 saat sonra Usage sayfasindan kontrol edilmeli).
+- **Sisme sebebi**: bundle "buyuk" degil, ama yaklasik %65'i iki agir function grubunda (~11,5-12 MB): sharp kullanan gorsel rotalari (`admin/upload`, `gorsel-*`, `odeme/baslat` ...) ve xlsx/cheerio/sharp iceren admin/excel rotalari. `sharp` 10 Eyl'de eklendi (d30356b, Blob kotasi icin gorsel sikistirma); 10 Eyl oncesi deployment'lar silindigi icin sicrama olculemedi, bu tahmindir. 20 Eyl 22:03 UTC'de +2,7 MB / +1 function (iyzico odeme-mutabakat cron'u, Faz 2). Prisma 7 istemcisi `src/generated/prisma`'da, postgresql wasm ~4,4 MB ana function'da. `public/` (5,2 MB) statik, function storage'a girmez. `.open-next` (38,7 MB, 28 Agu) eski Cloudflare denemesinden kalma, git'te yok, deploy'a girmiyor.
+- **Tahmini kazanc**: (a) son 10 deployment tutmak: 10 x 36,3 = ~363 MB; simdiki 1,04 GB'a gore ~700 MB (%66) kazanc. Gunde ~9-11 deploy oldugundan 10 deployment ~1 gunluk rollback gecmisi demek. (b) bundle kuculme (outputFileTracingExcludes vb.): gerekli bagimliliklar cikarilamaz, sadece gereksiz dosyalar; tahmini %10-25 = 31 deployment icin ~100-270 MB, 10 deployment icin ~35-90 MB. Riskli (rota kirabilir), ayrica build+test ister; (a)'ya gore kazanc kucuk.
+- **Oneri**: limit tehlikesi gecmis gorunuyor; once grafigin dusmesini bekle. Kalici onlem: panelde Settings -> Deployment Retention. (b) simdilik gereksiz.
+
+## Sepet: hesaba kayit (cihazlar arasi) + guncel fiyat (2026-09-21)
+
+**Sorunlar**: (1) Sepet yalniz `localStorage`'daydi, baska cihaz/tarayicidan girince bos gorunuyordu. (2) Sepet satiri eklendigi andaki fiyati kopyaliyordu; admin fiyat degistirince
+/sepet, cekmece ve /odeme eski fiyati gosteriyor, `/api/orders` ise DB fiyatiyla siparis olusturuyordu (gosterilen tutar != tahsil edilen tutar).
+
+**Veritabani**: yeni `CustomerCart` modeli (`customerId @unique`, `linesJson` = yalniz productId/variantId/quantity, `couponCode?`, `updatedAt`; Customer silinince cascade).
+Yontem `npm run db:push` (migrations klasoru yok). `prisma migrate diff` ile SQL onizlendi: yalniz `CREATE TABLE "CustomerCart"` + unique index + FK; mevcut tablolara dokunulmadi,
+`--accept-data-loss` kullanilmadi. Local ve prod ayni Neon oldugu icin **tablo canlida da hazir; production'a alirken ek sema adimi YOK** (yeni deploy'da `prisma generate` postinstall ile calisir).
+
+**Yeni dosyalar**
+- `src/lib/cart-shared.ts` (limitler: 50 satir, satir basina 99 adet; ortak tipler), `src/lib/cart-lines.ts` (sunucuda satirlari guncel urun kaydindan cozer: fiyat = `effectivePrice`, eski fiyat yalniz gercek indirimse, isim, beden/renk, renk galerisinin ilk gorseli, stok, yayin durumu).
+- `src/app/(site)/api/sepet/route.ts`: GET (oturumdaki musterinin sepeti, guncel fiyatla zenginlestirilmis; cozumlenemeyen satirlar atlanir) ve PUT (sepetin tamami, zod ile dogrulanir; fiyat/isim/gorsel kabul edilmez). Oturum yoksa 401. `Cache-Control: no-store`.
+- `src/app/(site)/api/sepet/dogrula/route.ts`: POST, giris gerekmez; satir basina guncel fiyat/stok/yayin durumu. `no-store`.
+- `src/components/cart-notices.tsx`: fiyat guncellendi uyarisi (kapatilabilir) + stok/yayin sorunu uyarisi; /sepet, cekmece ve /odeme'de gosterilir.
+
+**Degisen dosyalar**
+- `src/lib/cart.tsx` (asil is): misafirde localStorage aynen kaynak; girisliyken kaynak DB. Giriste tek seferlik birlestirme (ayni variantId'de adetler toplanir, stogu asmaz, sonuc DB'ye yazilir, basarili olunca localStorage silinir).
+  Degisiklikler 500 ms debounce ile `PUT /api/sepet`; sekme odagi/gorunurluk degisince bekleyen degisiklik yazilir, sonra `GET` ile diger cihazdaki degisiklik alinir. Cikista ekrandaki sepet temizlenir (DB'ye dokunulmaz; tekrar giriste geri gelir).
+  `clear()` (odeme sonrasi) DB sepetini de bosaltir; oturum henuz cozulmeden cagrilirsa ilk senkronizasyon DB'deki sepeti geri getirmez. Fiyat tazeleme (`/api/sepet/dogrula`): ilk yukleme, sekme odagi, cekmece acilisi, /sepet ve /odeme acilisi;
+  `priceNotices`, `lineIssues`, `hasBlockingIssues`, `refreshPrices()` context'e eklendi. Tazeleme yalniz fiyat/isim/gorsel alanlarini degistirir, DB'ye giden id+adet anahtari degismedigi icin PUT dongusu olusmaz (dogrulandi: 2 PUT).
+- `sepet/page.tsx`, `cart-drawer.tsx`, `odeme/checkout-form.tsx`: uyari bileseni; sorunlu satir varsa "Odemeye Gec" **engellenir** (satir otomatik kaldirilmaz; kullanici uyariyi gorup kendisi kaldirir - secim bu).
+- `checkout-form.tsx` + `api/orders/route.ts`: istemci her satir icin gordugu birim fiyati `expectedPriceCents` (opsiyonel, eski istemciler bozulmaz) gonderir; DB fiyatindan farkliysa siparis OLUSTURULMADAN `409 { code: "PRICE_CHANGED" }` doner, istemci sepeti tazeleyip
+  "Fiyatlar guncellendi, lutfen tekrar kontrol edin" der. Gonderme aninda da (yeni siparis olusturulmadan once) bir kez tazeleme yapilir. Sunucunun fiyati DB'den hesaplama davranisi aynen duruyor.
+- `use-bundle-discount.ts`, `use-automatic-discount.ts`: efekt anahtarina `priceCents` eklendi (fiyat degisince indirim onizlemesi yeniden hesaplanir). Kupon alani zaten `[lines]`'a bagliydi.
+
+**Yan kontrol (`revalidate-catalog.ts`)**: admin urun duzenleme (`admin/urunler/[id]`), toplu fiyat (`api/admin/urunler/bulk`) ve Excel aktarimi zaten `revalidateCatalog()` cagiriyor; eksik yoktu, degisiklik yapilmadi.
+
+**Dogrulama**: `tsc --noEmit` ve `npm run build` temiz. Yerel dev + Playwright (test musterisi + test urunu, sonra silindi):
+misafir eski fiyatli sepet /sepet'te 80->100 TL uyarisiyla guncellendi (localStorage da guncellendi); girişte misafir sepeti DB'ye birlesti ve localStorage bosaldi; ikinci (bos localStorage'li) tarayici baglamiyla ayni hesaba girince sepet dolu geldi;
+bir baglamda adet 2->3 yapinca digerinde odak sonrasi yansidi; acik /odeme'de fiyat 120->130 TL degisince odak sonrasi uyari + yeni toplam; stok 0 olunca uyari + "Odemeye Gec" baglantisi kalkti; cekmecede fiyat uyarisi; cikista sepet ekrandan silindi, tekrar giriste geri geldi;
+odeme sonrasi (`/odeme/tesekkurler`, PAID test siparisi) hem ekran hem `CustomerCart.linesJson` bosaldi. Ekran goruntuleri: `Claude outputs/sepet-senkron/`.
+**Dogrulanamayanlar**: `409 PRICE_CHANGED` yolu uctan uca calistirilmadi - yerelde POS "hazir degil" (SITE_URL https degil, `isEnabled=false`) oldugu icin `/api/orders` daha o noktada 503 donuyor; canli POS ayari test icin acilmadi. Kod incelemesiyle dogrulandi, canlida sandbox ile bir kez denenmeli.
+
+**Bilinen sinirlar**: Fiyat DB'de saklanmadigi icin girisli kullanicida sayfa yenilenince "eski -> yeni" uyarisi cikmaz (ekranda dogrudan guncel fiyat gorunur); uyari misafirde (localStorage'da eski fiyat var) ve acik sekmede fiyat degisince cikar.
+Test verisi (test musterisi `sepet-test@example.com`, urun `zz-sepet-test-urunu`, siparis `ZZTEST-1`, cascade ile sepeti) canli DB'den silindi.
+
+**Production'a alirken**: ek sema adimi yok (tablo hazir). Deploy sonrasi giris yapmis bir hesapla sepet senkronu ve (sandbox) `409` akisi bir kez elle denenmeli.

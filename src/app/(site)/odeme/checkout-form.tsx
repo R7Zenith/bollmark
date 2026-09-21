@@ -9,6 +9,7 @@ import { CouponField, type CouponResult } from "@/components/coupon-field";
 import { LoyaltyField, type LoyaltyResult } from "@/components/loyalty-field";
 import { useBundleDiscount } from "@/lib/use-bundle-discount";
 import { calculateShippingCents } from "@/lib/shipping";
+import { CartNotices } from "@/components/cart-notices";
 
 export default function CheckoutForm({
   defaultShippingCents,
@@ -18,7 +19,7 @@ export default function CheckoutForm({
   /** Sanal POS hazir degilse null (odeme alinamaz) */
   paymentMode: "SANDBOX" | "LIVE" | null;
 }) {
-  const { lines, totalCents, couponCode } = useCart();
+  const { lines, totalCents, couponCode, refreshPrices, hasBlockingIssues } = useCart();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,18 +89,36 @@ export default function CheckoutForm({
       lines: lines.map((l) => ({
         productId: l.productId,
         variantId: l.variantId,
-        quantity: l.quantity
+        quantity: l.quantity,
+        expectedPriceCents: l.priceCents
       }))
     };
 
     try {
       if (!createdOrderNumber.current) {
+        // Gondermeden hemen once fiyatlari tazele: degistiyse (veya urun
+        // satistan kalktiysa) siparis olusturmadan kullaniciya goster.
+        const refreshed = await refreshPrices();
+        if (refreshed.blocked) {
+          setError("Sepetinizde satın alınamayan ürünler var. Lütfen sepetinizi kontrol edin.");
+          return;
+        }
+        if (refreshed.priceChanged) {
+          setError("Fiyatlar güncellendi, lütfen tekrar kontrol edin.");
+          return;
+        }
+
         const res = await fetch("/api/orders", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
         const data = await res.json();
+        if (res.status === 409 && data.code === "PRICE_CHANGED") {
+          await refreshPrices();
+          setError("Fiyatlar güncellendi, lütfen tekrar kontrol edin.");
+          return;
+        }
         if (!res.ok) {
           setError(typeof data.error === "string" ? data.error : "Sipariş oluşturulamadı, lütfen tekrar deneyin.");
           return;
@@ -142,6 +161,8 @@ export default function CheckoutForm({
     <div className="mx-auto grid max-w-6xl gap-12 px-6 py-16 md:grid-cols-[1.4fr,1fr]">
       <form onSubmit={handleSubmit} className="space-y-6">
         <h1 className="font-display text-3xl">Teslimat Bilgileri</h1>
+
+        <CartNotices />
 
         <div className="grid gap-4 md:grid-cols-2">
           <input name="customerName" required placeholder="Ad Soyad" className="border border-line px-4 py-3" />
@@ -201,7 +222,7 @@ export default function CheckoutForm({
 
         <button
           type="submit"
-          disabled={submitting || paymentMode === null}
+          disabled={submitting || paymentMode === null || hasBlockingIssues}
           className="w-full bg-ink py-4 text-sm uppercase tracking-widest2 text-cream hover:bg-clay disabled:opacity-50"
         >
           {submitting ? "İşleniyor..." : "Ödemeye Geç"}
