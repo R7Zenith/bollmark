@@ -4798,3 +4798,33 @@ Commit 1634ae0 main'e push edildi, canlıda `/api/odeme/iyzico/webhook` rotası 
   `/v2/payment/refund` (paymentId + tutar) ile eklenebilir.
 - İadede kupon hakkı (`usedCount`) ve sadakat puanı geri verilmiyor/geri alınmıyor (planda yok).
 - Sanal POS şu an DB'de `isEnabled=false`; checkout `/api/orders` 503 döner.
+
+
+## iyzico Sanal POS — Faz 3 sandbox testleri TAMAMLANDI (production, 2026-09-21)
+
+Kodlar 1634ae0 + düzeltme 444d206 ile canlıda. Testler production alan adında, POS SANDBOX modunda, kullanıcı izniyle yapıldı (POS test süresince geçici açıldı,
+sonunda tekrar KAPATILDI: `isEnabled=false`, `maxInstallment=1` geri alındı).
+
+**Sonuçlar (plan bölüm 8)**
+- 1/madde 5+6 — Callback ulaşmadı (tarayıcıda callback isteği engellendi): sipariş PENDING_PAYMENT/UNPAID kaldı; imzasız webhook → `paid` (tek stok düşümü); aynı webhook tekrar → `already`. GEÇTİ.
+- 11 — İade: aynı gün KISMI iade `/payment/refund` ile başarılı (sandbox; `hostReference` dönüyor) → kalem sayacı, `PARTIALLY_REFUNDED`. Ardışık kısmi (150,50 + 200 + kalan 1.629,50 = 1.980 TL) → `REFUNDED`, sipariş
+  durumu `REFUNDED`, "stoğa geri ekle" ile stok +2. Fazla tutar (kalan 1.829,50'ye 1.900 TL) 3 denemede reddedildi, kayıt/sayaç değişmedi. Aynı gün TAM İPTAL `/payment/cancel` (ürün+kargo, 1.340 TL)
+  başarılı → `REFUNDED`, stok geri eklendi. `5406670000000009` kartı: iade de iptal de iyzico'dan 10220 "Ödeme alınamadı" ile reddedildi → kayıt `FAILED`, sayaçlar ve `PAID` durumu DEĞİŞMEDİ. GEÇTİ.
+  BULGU: aynı gün `/payment/refund` (kısmi) hata VERMİYOR, iptal zorunlu değil; ikisi de sandbox'ta çalışıyor. Canlı bankada aynı gün davranışı iyzico'ya sorulmalı (bkz. sorular).
+- 13 — PERSONEL (geçici hesap, panelden oluşturuldu ve pasifleştirildi): /admin/sanal-pos, /personel, /islem-gecmisi, /mesajlar → /admin'e yönlendirildi; sipariş detayında Ödeme kartı salt okunur,
+  iade/iptal/sorgu düğmesi yok. GEÇTİ (UI düzeyi; server action'lar `requireAdmin` ile korunuyor).
+- 15 — Webhook (canlıda): bozuk JSON 400, farklı olay türü 200 (`ignored`), bilinmeyen token 200 (`unknown`), YANLIŞ imzalı gerçek token 401, imzasız gerçek token işlendi (yukarıda). Ödenmemiş token + imzasız
+  webhook → 500 (iyzico'da 5122 "ödeme bilgisi yok", yeniden denenir; tasarım gereği). GEÇERLİ imzalı webhook canlıda DENENEMEDİ (Secret Key yok); imza doğrulaması yalnızca birim testiyle kanıtlı.
+- Ek: belirsiz (PENDING) iade kaydı arayüzden sonuçlandırma ("yapılmış" → sayaç güncellendi, `PARTIALLY_REFUNDED`; "yapılmamış" → `FAILED`), rezerve tutarın kalan hesabından düşülmesi, "Uyarıyı kapat" (+ sidebar
+  Siparişler rozeti 1 → 0), "iyzico'dan durumu sorgula" (denetim `PAYMENT_MANUAL_RECONCILE`), denetim kayıtları. GEÇTİ.
+- 16 — Taksit: KOŞULAMADI. iyzico sandbox test kartları (Visa 4603…, MasterCard 5526…) ödeme sayfasında yalnızca "Tek Çekim" sunuyor. "Tüm taksit seçenekleri" tablosu `maxInstallment=3` ayarının iyzico'ya
+  doğru iletildiğini gösterdi (1.340 TL için 2 taksit 1.383,14 TL, 3 taksit 1.410,29 TL, yani `paidPrice ≠ price`), ama taksitli bir ödeme tamamlanamadı; taksitli iade tavanı gerçek denenmedi (yalnızca birim düzeyi:
+  tavan = kalemin `paidCents`'i).
+
+**Testte bulunup düzeltilenler (444d206)**: iade tutarları `formatPrice` ile TAM TL'ye yuvarlanıyordu (150,50 → "151 TL", müşteri mailinde de); Ödeme kartı, denetim kaydı ve iade maili artık `formatExactPrice`
+(kuruşlu) kullanıyor. Reddedilen iadede yöneticiye müşteri diliyle "Kartınız bankası tarafından reddedildi" yerine "iyzico iade hatası <kod>: <mesaj>" gösteriliyor.
+
+**AÇIK: test verisi temizliği YAPILAMADI** (canlı DB'de toplu silme otomatik izin denetiminde reddedildi, aşılmadı). Canlı veritabanında şunlar duruyor:
+5 test siparişi (BLM260921-7119, -4676, -3958, -1678, -8124; müşteri iyzico-test@example.com), bunlara bağlı ödeme denemeleri/iade kayıtları, ~29 ödeme günlüğü satırı, 12 denetim satırı,
+`Faz3 Test Personel` (faz3-test-personel@example.com, PASİF) hesabı ve "Sipariş"/"Ödeme" ekranlarında görünen test siparişleri. Stok: gömlek varyantı (cmu1ru345000y04jv24d894eg) 3 (orijinal),
+hırka varyantı (cmu2eg2w0002u04ley9nhc6p5) 1 (orijinali 3, iki test siparişi düşürdü). Test siparişlerinin admin/müşteri mailleri example.com adresine ve admin adresine gitmiş olabilir.
