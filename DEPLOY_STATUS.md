@@ -4953,3 +4953,35 @@ Plan: `FOOTER_BULTEN_KALDIRMA_PLANI.md`. Bülten yalnızca footer'da vardı ve f
 - Not: "Hızlı kargo" ifadesini sitede teslimat süresi bilgisi olmadığı için önce koymamıştık; sahibinin kararıyla eklendi. Teslimat süresi net değilse Kargo Bilgisi sayfasında desteklenmeli.
 
 **Doğrulama**: `prisma generate` sonrası `tsc --noEmit` temiz (pull ile gelen `customerCart` modeli için client yeniden üretilmemişti, footer'la ilgisiz). `eslint` footer dosyasında temiz; `npm run lint` genelinde başka dosyalardan gelen önceden var olan hatalar duruyor (ör. `wishlist.tsx`). Headless Chrome ile 390px ve 1600px'te `/iletisim` footer'ı görsel kontrol edildi: mobilde tek sütun, masaüstünde üç eşit sütun, logo/alt bar bozulmadı (kapıyı geçmek için dev server yalnızca bu oturumda `PREVIEW_GATE=off` ile çalıştırıldı, dosya değişmedi).
+
+---
+
+## Ana sayfa: "Yeni Gelenler" alti bolumleri (2026-09-22)
+
+Plan: `ANASAYFA_ALT_BOLUMLER_PLANI.md`. Hero ve Yeni Gelenler (FeaturedCarousel, ProductCard) DOKUNULMADI; Yeni Gelenler'in kart verisi donusumu yalniz ortak yardimciya (`toProductCardData`) tasindi, ciktisi ayni.
+Yeni sira: Hero -> Yeni Gelenler -> **A** editoryal ikili blok -> **B** kategori kartlari -> **C** lookbook -> **D** cok satanlar -> **E** Instagram -> **F** SSS + magaza -> footer.
+
+**Yapilanlar**
+- `src/app/(site)/page.tsx`: A/B/C bolumleri, tum sorgular tek `Promise.all` icinde (urunler, kampanyalar, cinsiyet/kategori sayilari, kategori `imageUrl`'leri, satis `groupBy`, `StoreSettings`). Unsplash hotlink'leri kalktı; gorseller `public/anasayfa/` altinda yerel (`KAYNAKLAR.md`: fotografci + foto kimligi).
+- B (kategori kartlari): Kadin/Erkek/Cocuk (cinsiyet filtresi), Ayakkabi/Aksesuar (kategori slug `ayakkabi`, `aksesuar`; alt kategoriler dahil - katalog filtresiyle ayni kural). Sayisi 0 olan kart gizli. Kategorinin `imageUrl`'i doluysa o (duz `<img>`, remotePatterns disi kaynak olabilir), yoksa yerel yedek. Masaustunde `lg:grid-flow-col auto-cols-fr` (5 kartta 5 sutun; kart sayisi az ise sagda bos alan kalmaz), tablet 3 sutun, mobil yatay kaydirmali (snap-x, ~44vw).
+  **Gercek veri (bu oturumda okundu)**: yayindaki urun: Kadin 54, Erkek 14; Cocuk ve Ayakkabi 0, Aksesuar 2 (Canta). Yani canlida su an 3 kart gorunur (Kadin, Erkek, Aksesuar); Cocuk (`gender = "Cocuk"`, `excel-import.ts` GENDER_MAP) ve Ayakkabi kartlari urun eklenince kendiliginden cikar.
+- C (lookbook): yerel gorsel + gradient overlay, `Her gune <em>uyan</em> parcalar`, min-h 60vh/70vh. Opsiyonel "Sezon firsati: %X'e varan indirim" etiketi EKLENDI: oran, kartlardaki gercek kampanya indiriminden (`resolveProductDisplayPrice`, `source === "KAMPANYA"`) en yuksegi; kampanya yoksa etiket yok (su an gorunmuyor olabilir). Turkce -e hali eki sayiya gore (`percentWithDative`: %20'ye, %30'a, %70'e ...).
+- D (cok satanlar, `components/home/bestsellers-tabs.tsx` + `lib/home-products.ts`): son 90 gun, `REVENUE_STATUSES` (PAID/PREPARING/SHIPPED/DELIVERED, `lib/orders.ts`), silinmis siparis (`deletedAt`) haric; stokta olmayan haric; sekme basina en fazla 8. Satisi olan urun 4'ten azsa once `isFeatured`, sonra en yeni ile 8'e tamamlanir. Ek urun sorgusu yok (getPublishedProducts zaten hepsini getiriyor). Sekmeler: Tumu/Kadin/Erkek/Cocuk, urunu olmayan gizli (su an Cocuk yok); `role="tablist"`, ok/Home/End tuslari.
+- E (Instagram, `components/home/instagram-grid.tsx`, `lib/instagram-posts.ts`): `NEXT_PUBLIC_INSTAGRAM_URL` bos VEYA `public/instagram/post-1..6.jpg` eksikse bolum HIC render edilmez. `.env.example`'a degisken eklendi; `public/instagram/README.md` yazildi. Vercel'e DEGER EKLENMEDI. `next.config.mjs`'e `outputFileTracingIncludes: { "/": ["./public/instagram/**/*"] }` eklendi (Vercel'de public/ islev paketine girmedigi icin fs kontrolu aksi halde hep "yok" derdi).
+- F (SSS + magaza, `components/home/faq-and-store.tsx`): 5 soru, `<details>`, `FAQPage` JSON-LD. Cevaplar yalniz kodda dogrulanan bilgiden: kargo 1-3 is gunu (Teslimat Sartlari sayfasi), ucret + esik canli `StoreSettings.defaultShippingCents` (350 TL) ve `SHIPPING_THRESHOLD_CENTS` (1.000 TL) degerinden, iade 14 gun (Iade Kosullari), beden tablosu (urun sayfasi), odeme iyzico + 3D Secure (taksit vaadi yok), takip `/siparis-durumu`. Magaza karti: adres, "Yol tarifi al" (Google Maps arama URL'si), "Iletisim". `contactPhone`/`contactEmail` su an DB'de bos oldugu icin satirlar gizli. Calisma saati ve "magazadan teslim" yazilmadi.
+
+**Dogrulama**
+- `npx tsc --noEmit` temiz; `npm run lint` 0 hata (6 uyari onceden var, benim dosyalarimda degil; ilk kosuda `Date.now()` render icinde hata verdi, `bestsellerSince()` yardimcisina alinarak giderildi); `npm run build` basarili (`/` ISR, 1m).
+- Hero + Yeni Gelenler: onceki/sonraki ekran goruntuleri (390 ve 1600px) BAYT BAYT ayni (md5 esit).
+- 390px: yatay tasma yok (scrollWidth = clientWidth), kategori seridi kaydirilabilir (571 > 390), sekmeler sigiyor, basliklar kesilmiyor. 1600px: B/D/F basliklari Yeni Gelenler ile ayni sol kenarda (36px; mobilde 16px).
+- Sekmeler: tiklama, ArrowRight/Home ile degisim, `aria-selected` dogrulandi; SSS `<details>` acilip kapaniyor; konsol hatasi yok.
+- Instagram: env bos -> bolum yok; env dolu + dosya yok -> bolum yok; env dolu + 6 gecici dosya -> 3 sutun (mobil) / 6 sutun (masaustu), `target=_blank rel="noopener noreferrer"` (gecici dosyalar silindi).
+- Bos DB: urunler ve sayaclar 0'a zorlanarak (gecici, geri alindi) sayfa 200 doner; Cok Satanlar ve kategori bolumleri gizli, "Henuz yayinlanmis urun yok" mesaji cikar. `pickBestsellers` (satis / yedek / stok disi / bos liste) ve `percentWithDative` icin gecici betikle birim testleri gecti (betik silindi).
+- Sayfa HTML'inde `images.unsplash.com` yok (urun yedek gorseli `toProductCardData` icinde bilerek duruyor). Yeni gorsellerde `sizes` var, hicbiri `priority` degil.
+- Dogrulanamayan: Lighthouse/CLS olculmedi (yalniz `sizes` + sabit en-boy orani kutulari ile onlem alindi). Canli (Vercel) uzerinde Instagram `fs` kontrolu, dosyalar eklenene kadar denenemez.
+
+**Bekleyen / dikkat**
+- Instagram bolumu su an GIZLI (kabul edilen davranis). Acmak icin: profil adresi (`NEXT_PUBLIC_INSTAGRAM_URL`, Vercel'e eklenip yeniden deploy) + 6 kare fotograf (`public/instagram/post-1..6.jpg`, 1080x1080, bkz. README).
+- `koleksiyon-ayakkabi.jpg` fotografinda gorunur Nike/"AIR" markasi var (plandaki kimlik); Ayakkabi karti su an gizli oldugu icin ekranda yok, kart acilmadan once marka icin uygun bir gorselle degistirilmeli. `koleksiyon-aksesuar.jpg` bir atolye masasindaki kozmetik/kalem cantalari, arka planda kisiler var; gorunuyor, istenirse degistirilebilir.
+- Magaza kartinda adres plandaki gibi "Runguçpaşa Mah. 75. Sk. No:6/A"; `/iletisim` sayfasi "Runguşpaşa, 75. Sk. No: 6" yaziyor ve orada calisma saati de var (kartta plan geregi yok) - tutarsizlik sahibine birakildi.
+- Kategori sayilari: Aksesuar sayisi Ayakkabi'yi da kapsar (Ayakkabi, Aksesuar'in alt kategorisi).
