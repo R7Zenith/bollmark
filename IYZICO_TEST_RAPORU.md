@@ -112,10 +112,7 @@ Bunlara ek gözlemler:
 
 70 dosya, +5473 / −101. Yalnızca ödeme: `src/lib/payment`, `api/odeme`, `api/cron/odeme-mutabakat`, `odeme/`, `admin/sanal-pos`, `prisma` → 40 dosya, +4054 / −33. Faz 4'te tek kod değişikliği: `src/app/(admin)/admin/sanal-pos/page.tsx` içinde OTP metni.
 
-## 9. Açık: canlı DB'de kalan test verisi
+## 9. Test verisi temizliği
 
-Faz 4 regresyonundan sonra POS **tekrar kapatıldı** (`isEnabled=false`, `/api/orders` yine 503). Test verisinin silinmesi otomatik izin denetiminde reddedildi ve aşılmadı. Canlı veritabanında şunlar duruyor:
-- 1 test siparişi `BLM260921-1013` (müşteri iyzico-test@example.com, PAID) ve bağlı ödeme denemesi,
-- 1 terk edilmiş sepet kaydı (aynı e-posta), 5 ödeme günlüğü satırı, 1 denetim satırı (aktör "iyzico"),
-- gömlek BEYAZ/M varyantı (`cmu1ru345000y04jv24d894eg`) stoğu **2** (orijinali 3).
-Admin/müşteri "yeni sipariş" mailleri example.com ve admin adresine gitmiş olabilir.
+Faz 4 regresyonundan sonra POS **tekrar kapatıldı** (`isEnabled=false`, `/api/orders` yine 503). Test verisi kullanıcı talimatıyla silindi: test siparişi `BLM260921-1013` ve bağlı ödeme denemesi, terk edilmiş sepet kaydı, 5 ödeme günlüğü satırı ve 1 denetim satırı. Gömlek BEYAZ/M stoğu 3'e geri yazıldı. Doğrulama: 0 sipariş, 0 ödeme denemesi, 8 günlük (başlangıç değeri), POS ayarları başlangıç durumunda.
+Test siparişinin admin/müşteri "yeni sipariş" mailleri example.com ve admin adresine gitmiş olabilir.
