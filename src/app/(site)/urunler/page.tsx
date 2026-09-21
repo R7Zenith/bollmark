@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { getCatalogEntries } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/product-card";
+import { EmptyCategoryState } from "@/components/empty-category-state";
 import Link from "next/link";
 import { CatalogToolbar } from "@/components/catalog-toolbar";
 import { DEFAULT_CATALOG_BANNER_IMAGE } from "@/lib/catalog-banner";
@@ -49,9 +50,19 @@ export async function generateMetadata({
     });
     if (category) {
       const title = cinsiyet ? `${cinsiyet} ${category.name}` : category.name;
+      // Urunu olmayan kategori sayfasi "yakinda" ekrani gosterir (ince icerik) -
+      // arama motorlari dizinlemesin. Sayim getCatalogEntries ile ayni kapsam.
+      const productCount = await prisma.product.count({
+        where: {
+          status: "PUBLISHED",
+          category: { isActive: true, OR: [{ slug: kategori }, { parent: { slug: kategori } }] },
+          gender: cinsiyet ? cinsiyet : undefined
+        }
+      });
       return {
         title: `${title} | Bollmark`,
-        description: `Bollmark ${title} koleksiyonunu keşfedin.`
+        description: `Bollmark ${title} koleksiyonunu keşfedin.`,
+        ...(productCount === 0 && { robots: { index: false } })
       };
     }
   }
@@ -101,8 +112,19 @@ export default async function ProductsPage({
   const facets = buildCatalogFacets(rawEntries);
   const entries = sortEntries(applyCatalogFilters(rawEntries, filters), sirala);
   // Kategori burada sayilmiyor: kategori+cinsiyet kombinasyonunun bos olmasi
-  // icin zaten ozel bir mesaj var (emptyMessage).
+  // icin zaten ozel bir ekran var (EmptyCategoryState).
   const hasActiveFilters = countActiveFilters(filters, false) > 0;
+  // Urunu olmayan kategori "yakinda" ekranini gosterir. Bu kategori
+  // filterCategories'te (yalniz urunu olanlar) bulunamayacagi icin ayrica
+  // okunur; banner basligi/breadcrumb ile "haber ver" formu bunu kullanir.
+  const showComingSoon = entries.length === 0 && !hasActiveFilters;
+  const emptyCategory =
+    showComingSoon && kategori
+      ? await prisma.category.findUnique({
+          where: { slug: kategori, isActive: true },
+          select: { id: true, name: true, slug: true, imageUrl: true }
+        })
+      : null;
 
   // Bos sonuc durumundaki "Filtreleri temizle" baglantisi - cinsiyet/sirala
   // kalir, kategori dahil tum filtreler kalkar.
@@ -112,9 +134,6 @@ export default async function ProductsPage({
   const clearHref = clearQuery ? `/urunler?${clearQuery}` : "/urunler";
 
   const heading = cinsiyet ? `${cinsiyet} Koleksiyonu` : "Tüm Ürünler";
-  const emptyMessage = cinsiyet
-    ? `${cinsiyet} koleksiyonunda bu kategoride henüz ürün bulunmuyor.`
-    : "Bu kategoride henüz ürün bulunmuyor.";
 
   // Release'de her koleksiyon sayfasinin ustunde tam genislikte bir banner
   // var ve header saydamlasip banner'in uzerine biniyor (bkz.
@@ -124,7 +143,9 @@ export default async function ProductsPage({
   // da saydamligi ayni yardimciyla belirliyor. Gorsel onceligi: secili
   // kategorinin gercek `imageUrl`'i -> site geneli varsayilan gorsel -> (o da
   // yuklenmezse) altindaki duz bg-ink + gradient.
-  const activeCategory = kategori ? filterCategories.find((c) => c.slug === kategori) : null;
+  const activeCategory = kategori
+    ? (filterCategories.find((c) => c.slug === kategori) ?? emptyCategory)
+    : null;
   const bannerImageUrl = activeCategory?.imageUrl ?? DEFAULT_CATALOG_BANNER_IMAGE;
   const bannerTitle = activeCategory?.name ?? heading;
   // "ANA SAYFA / [CINSIYET /] KATEGORI" - son parca sayfanin kendisi, link degil.
@@ -211,7 +232,12 @@ export default async function ProductsPage({
             </Link>
           </div>
         ) : (
-          <p className="mt-10 text-ink/60">{emptyMessage}</p>
+          <EmptyCategoryState
+            categoryName={emptyCategory?.name ?? null}
+            categoryId={emptyCategory?.id ?? null}
+            gender={cinsiyet ?? null}
+            suggestions={filterCategories.filter((c) => c.slug !== kategori).slice(0, 5)}
+          />
         )
       ) : (
         // Mobilde gorseller ekran kenarina yapisik olsun diye grid ust

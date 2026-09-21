@@ -5003,3 +5003,24 @@ Plandaki ilk Ayakkabi gorselinde gorunur Nike markasi vardi; magazada PUMA ve SL
 ## Ayakkabi kategori karti bos olsa da gorunur (2026-09-22)
 
 Sahibinin istegiyle ana sayfadaki "Ozel Koleksiyonlarimiz" bolumunde Ayakkabi karti, kategoride yayinda urun olmasa da gosterilir (`ALWAYS_SHOWN_COLLECTIONS`, `src/app/(site)/page.tsx`). Sayi 0 iken ust simge gizlenir. Diger kartlar (Cocuk dahil) eski kuralla, sayisi 0 ise gizli kalir. Kart `/urunler?kategori=ayakkabi` adresine gider; kategoride urun yokken katalog "Bu kategoride henuz urun bulunmuyor." mesajini gosterir (sayfa 200 doner). `tsc` temiz, `lint` 0 hata; 390/1600px gorsel kontrol yapildi (yatay tasma yok, mobil serit kaydirilabilir). Ustteki "Ayakkabi karti gizli" notlari bu satirla gecersizdir.
+
+---
+
+## Bos kategori "Yeni parcalar yolda" ekrani (2026-09-22)
+
+Plan: `BOS_KATEGORI_YAKINDA_TASARIMI_PLANI.md`. Urunu olmayan kategori sayfasindaki duz "Bu kategoride henuz urun bulunmuyor." satiri yerine tasarimli bir "yakinda" ekrani.
+
+**Dosyalar**
+- `src/components/empty-category-state.tsx` (yeni, client): sallanan askı SVG'si + pirilti isaretleri, "YAKINDA" etiketi, "Yeni parcalar *yolda*", kategori/cinsiyete gore metin, e-posta formu (pill input + "Haber Ver", basari/hata, `aria-live`, honeypot), "Bu arada goz atmak ister misin?" (yayindaki kategoriler, en fazla 5, yatay kaydirmali; oneri yoksa "Tum Urunleri Gor").
+- `src/app/(site)/urunler/page.tsx`: yalniz `hasActiveFilters === false && entries.length === 0` dali degisti (filtreli bos durum ve urun listesi ayni). Bos kategori `filterCategories`te olmadigi icin ayrica okunuyor; boylece banner basligi/breadcrumb de kategori adini gosteriyor (eskiden "Tum Urunler" yaziyordu). `generateMetadata`: kategoride yayinda urun yoksa `robots: noindex`.
+- `src/app/globals.css`: `.empty-hanger-swing`, `.empty-sparkle` animasyonlari. Plandaki `prefers-reduced-motion`'da kapatma BILEREK uygulanmadi (projedeki animasyon kurali: her zaman calissin).
+- `prisma/schema.prisma`: `CategoryAlert` modeli (`categoryId`, `gender` bos string = cinsiyetsiz, `email`, `ipHash`, `notifiedAt`, `createdAt`; `@@unique([categoryId, gender, email])`). `gender` NULL yerine `""` cunku Postgres unique'te NULL'lar birbirinden farkli sayilir, upsert calismazdi. `ipHash` yalniz hiz siniri icin.
+- `src/app/(site)/api/kategori-bildirimi/route.ts` (yeni): zod + upsert (`notifiedAt` sifirlanir), kategori yoksa 404, honeypot dolu ise sessizce basarili, ayni IP'den dakikada en fazla 5 yeni kayit (`iletisim` route'undaki tablo tabanli yontem).
+
+**Migration**: `npm run db:push` (projedeki yontem) Neon'a uygulandi, `prisma generate` calistirildi. Yeni tablo eklendi, mevcut veriye dokunulmadi. Ek env/Vercel degiskeni gerekmiyor.
+
+**Dogrulama**: `tsc` temiz, `npm run build` basarili, `lint` 0 hata (6 onceki uyari). Yerelde `/urunler?kategori=ayakkabi` 1440 ve 390px'te gorsel kontrol (yatay tasma yok); form: gecersiz e-posta -> satir ici hata, gecerli -> basari mesaji, ayni e-posta tekrar -> basari (upsert); cinsiyetli metin ("Kadin koleksiyonunda ..."); noindex meta; urunlu kategori ve filtreli bos durum degismedi. Test kaydi Neon'dan silindi.
+
+**Bilinen not**: Onerilen kategori kartlarinda `imageUrl` bos olanlar gri kutu olarak gorunur (bugun cogu kategori gorselsiz); admin'den kategori gorseli eklenince dolar.
+
+**Sonraki adim**: kategoriye ilk urun yayinlaninca `CategoryAlert` kayitlarina mail gonderimi (`notifiedAt` doldurma) + admin'de kayit listesi. Bu isin kapsami disindaydi.

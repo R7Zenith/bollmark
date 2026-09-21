@@ -241,3 +241,28 @@ body {
   box-shadow: 0 0 0 1000px #fff inset;
   -webkit-text-fill-color: #111;
 }
+
+/* Bos kategori "yakinda" ekrani (bkz. components/empty-category-state.tsx):
+   askı ucundan hafifce sallanir, yanindaki pirilti isaretleri sirayla parlar.
+   prefers-reduced-motion kontrolu bilerek yok - projedeki animasyon kurali
+   (bkz. yukaridaki ticker notu): ayardan bagimsiz her zaman calisir. */
+.empty-hanger-swing {
+  transform-origin: 50% 8%;
+  animation: emptyHangerSwing 4s ease-in-out infinite;
+}
+
+.empty-sparkle {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: emptySparkle 2.4s ease-in-out infinite;
+}
+
+@keyframes emptyHangerSwing {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+@keyframes emptySparkle {
+  0%, 100% { opacity: 0.15; transform: scale(0.6); }
+  50% { opacity: 1; transform: scale(1); }
+}
