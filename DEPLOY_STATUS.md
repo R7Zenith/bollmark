@@ -4997,3 +4997,9 @@ Sahibinin karariyla `SHIPPING_THRESHOLD_CENTS` 100000 -> 150000 (`src/lib/shippi
 ## Ayakkabi kart gorseli PUMA ile degistirildi (2026-09-22)
 
 Plandaki ilk Ayakkabi gorselinde gorunur Nike markasi vardi; magazada PUMA ve SLAZENGER satildigi icin sahibinin istegiyle `public/anasayfa/koleksiyon-ayakkabi.jpg` beyaz PUMA spor ayakkabi fotografiyla (The DK Photography, Unsplash `1608229751021-ed4bd8677753`) degistirildi; dosya acilip PUMA logosu gozle dogrulandi. Unsplash aramasinda Slazenger sonucu cikmadi. `KAYNAKLAR.md` guncellendi. Ayakkabi karti, kategoride yayinda urun olmadigi surece (sayi 0) ana sayfada GIZLI kalir; urun eklenince kendiliginden gorunur. Ustteki ana sayfa notundaki "Nike/AIR markasi" maddesi bu satirla gecersizdir.
+
+---
+
+## Ayakkabi kategori karti bos olsa da gorunur (2026-09-22)
+
+Sahibinin istegiyle ana sayfadaki "Ozel Koleksiyonlarimiz" bolumunde Ayakkabi karti, kategoride yayinda urun olmasa da gosterilir (`ALWAYS_SHOWN_COLLECTIONS`, `src/app/(site)/page.tsx`). Sayi 0 iken ust simge gizlenir. Diger kartlar (Cocuk dahil) eski kuralla, sayisi 0 ise gizli kalir. Kart `/urunler?kategori=ayakkabi` adresine gider; kategoride urun yokken katalog "Bu kategoride henuz urun bulunmuyor." mesajini gosterir (sayfa 200 doner). `tsc` temiz, `lint` 0 hata; 390/1600px gorsel kontrol yapildi (yatay tasma yok, mobil serit kaydirilabilir). Ustteki "Ayakkabi karti gizli" notlari bu satirla gecersizdir.

@@ -32,6 +32,9 @@ function publishedInCategory(slug: string) {
   });
 }
 
+// Urun sayisi 0 olsa da ana sayfada gosterilen kategori kartlari (etiketle).
+const ALWAYS_SHOWN_COLLECTIONS = new Set(["Ayakkabı"]);
+
 export default async function HomePage() {
   const soldSince = bestsellerSince();
   // Tum sorgular tek Promise.all icinde (ardisik await yok). Cok satanlar icin
@@ -70,7 +73,9 @@ export default async function HomePage() {
 
   const featuredProducts = products.slice(0, 8);
 
-  // B) Kategori kartlari. Sayisi 0 olan kart gizlenir. Kategorinin kendi
+  // B) Kategori kartlari. Sayisi 0 olan kart gizlenir (Ayakkabi haric: magaza
+  // PUMA/Slazenger satiyor, sahibinin istegiyle kategori bos olsa da gorunur;
+  // bkz. ALWAYS_SHOWN_COLLECTIONS). Kategorinin kendi
   // imageUrl'i (admin) doluysa o, yoksa public/anasayfa/ altindaki yerel yedek.
   // Kadin/Erkek/Cocuk kategori degil cinsiyet filtresidir, imageUrl'leri yok.
   const categoryImage = (slug: string) => categoryImages.find((c) => c.slug === slug)?.imageUrl ?? null;
@@ -92,7 +97,7 @@ export default async function HomePage() {
       image: categoryImage("aksesuar") ?? "/anasayfa/koleksiyon-aksesuar.jpg",
       remote: categoryImage("aksesuar") !== null
     }
-  ].filter((c) => c.count > 0);
+  ].filter((c) => c.count > 0 || ALWAYS_SHOWN_COLLECTIONS.has(c.label));
 
   // C) Aktif otomatik kampanya etiketi: sayfadaki kartlarin gosterdigi gercek
   // kampanya indiriminin en yuksegi (resolveProductDisplayPrice, kartlarla ayni
@@ -288,7 +293,7 @@ export default async function HomePage() {
                 <div className="absolute inset-0 bg-gradient-to-t from-ink/50 via-transparent to-transparent" />
                 <div className="absolute bottom-4 left-4 text-cream md:bottom-6 md:left-6">
                   <span className="font-display text-xl font-light md:text-2xl">
-                    {c.label} <sup className="text-sm text-cream/70">{c.count}</sup>
+                    {c.label} {c.count > 0 && <sup className="text-sm text-cream/70">{c.count}</sup>}
                   </span>
                 </div>
               </Link>
