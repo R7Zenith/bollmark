@@ -42,27 +42,7 @@ model Category {
   sortOrder       Int        @default(0)
   products        Product[]
   kodMappings     CategoryKodMapping[]
-  alerts          CategoryAlert[]
   createdAt       DateTime   @default(now())
-}
-
-// Urunu olmayan bir kategori sayfasinda "yeni urunler gelince haber ver"
-// kaydi (bkz. BOS_KATEGORI_YAKINDA_TASARIMI_PLANI.md). Yalniz kayit toplanir,
-// mail gonderimi henuz yok. `gender` bos string = cinsiyetsiz (tum koleksiyon);
-// Postgres unique kisitinda NULL'lar birbirinden farkli sayildigi icin
-// null yerine "" tutulur ki ayni e-posta tekrar kayit olunca upsert calissin.
-// `ipHash` yalnizca hiz siniri icindir (bkz. api/kategori-bildirimi/route.ts).
-model CategoryAlert {
-  id         String    @id @default(cuid())
-  categoryId String
-  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-  gender     String    @default("")
-  email      String
-  ipHash     String?
-  notifiedAt DateTime?
-  createdAt  DateTime  @default(now())
-
-  @@unique([categoryId, gender, email])
 }
 
 // Excel ice aktariminda KOD3 (urun tipi kodu) icin ogrenilmis kategori eslemesi -

@@ -1,56 +1,22 @@
-"use client";
-
 import Link from "next/link";
-import { useState } from "react";
-import { Check } from "lucide-react";
 
 type Suggestion = { name: string; slug: string; imageUrl: string | null };
 
 type Props = {
   categoryName: string | null;
-  categoryId: string | null;
   gender: string | null;
   suggestions: Suggestion[];
 };
 
 // Urunu olmayan kategori sayfasinin ekrani (bkz.
-// BOS_KATEGORI_YAKINDA_TASARIMI_PLANI.md). Kategori bilinmiyorsa (yalniz
-// cinsiyet/tum urunler bos) "haber ver" formu gosterilmez.
-export function EmptyCategoryState({ categoryName, categoryId, gender, suggestions }: Props) {
-  const [email, setEmail] = useState("");
-  const [website, setWebsite] = useState("");
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
-  const [errorMessage, setErrorMessage] = useState("");
-
+// BOS_KATEGORI_YAKINDA_TASARIMI_PLANI.md). Kartlardaki gorsel, o kategoriden
+// ornek bir urunun fotografidir (yoksa kategori gorseli).
+export function EmptyCategoryState({ categoryName, gender, suggestions }: Props) {
   const description = categoryName
     ? gender
-      ? `${gender} koleksiyonunda ${categoryName} için yeni parçaları hazırlıyoruz. Ürünler eklendiği gün ilk sen haberdar ol.`
-      : `${categoryName} koleksiyonumuzu şu an hazırlıyoruz. Yeni ürünler eklendiği gün ilk sen haberdar ol.`
+      ? `${gender} koleksiyonunda ${categoryName} için yeni parçaları hazırlıyoruz. Çok yakında burada.`
+      : `${categoryName} koleksiyonumuzu şu an hazırlıyoruz. Çok yakında burada.`
     : "Bu koleksiyonu şu an hazırlıyoruz. Yeni ürünler eklendiğinde burada olacak.";
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (status === "loading" || !categoryId) return;
-    setStatus("loading");
-    setErrorMessage("");
-    try {
-      const res = await fetch("/api/kategori-bildirimi", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ categoryId, gender: gender ?? undefined, email, website })
-      });
-      if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { error?: string } | null;
-        setErrorMessage(data?.error ?? "Bir sorun oluştu, lütfen tekrar deneyin.");
-        setStatus("error");
-        return;
-      }
-      setStatus("success");
-    } catch {
-      setErrorMessage("Bağlantı kurulamadı, lütfen tekrar deneyin.");
-      setStatus("error");
-    }
-  };
 
   const suggestionHref = (slug: string) =>
     gender
@@ -87,64 +53,23 @@ export function EmptyCategoryState({ categoryName, categoryId, gender, suggestio
       </h2>
       <p className="mt-4 max-w-[440px] text-sm text-ink/60">{description}</p>
 
-      {categoryId && (
-        <div className="mt-8 w-full max-w-[440px]" aria-live="polite">
-          {status === "success" ? (
-            <p className="flex items-center justify-center gap-2 text-sm text-ink">
-              <span className="flex h-6 w-6 items-center justify-center rounded-full bg-ink text-cream">
-                <Check size={14} aria-hidden="true" />
-              </span>
-              Tamam, ürünler gelince sana yazacağız.
-            </p>
-          ) : (
-            <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-2 sm:flex-row">
-              <label htmlFor="category-alert-email" className="sr-only">
-                E-posta adresiniz
-              </label>
-              <input
-                id="category-alert-email"
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="E-posta adresiniz"
-                autoComplete="email"
-                className="h-[44px] w-full rounded-[50px] border border-line px-5 text-sm focus:border-ink focus:outline-none"
-              />
-              {/* Gorunmez tuzak alan - gercek kullanici doldurmaz. */}
-              <input
-                type="text"
-                name="website"
-                tabIndex={-1}
-                autoComplete="off"
-                aria-hidden="true"
-                value={website}
-                onChange={(e) => setWebsite(e.target.value)}
-                className="absolute -left-[9999px] h-0 w-0 opacity-0"
-              />
-              <button
-                type="submit"
-                disabled={status === "loading"}
-                className="h-[44px] shrink-0 rounded-[50px] border border-ink bg-ink px-8 text-[10px] uppercase tracking-[1px] text-cream transition duration-300 hover:bg-cream hover:text-ink disabled:opacity-40"
-              >
-                Haber Ver
-              </button>
-            </form>
-          )}
-          {status === "error" && <p className="mt-3 text-xs text-sale">{errorMessage}</p>}
-        </div>
-      )}
-
       <div className="mt-12 w-full border-t border-line pt-10">
         <p className="text-sm text-ink/60">Bu arada göz atmak ister misin?</p>
         {suggestions.length > 0 ? (
-          <ul className="-mx-4 mt-5 flex snap-x gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:justify-center md:px-0">
-            {suggestions.map((s) => (
-              <li key={s.slug} className="w-[120px] shrink-0 snap-start">
+          // Kartlar sigarsa ilk kart soldan baslar (justify-center tasan icerigin
+          // solunu keser); sigarsa auto kenar bosluklari ortalar.
+          <ul className="-mx-4 mt-5 flex snap-x scroll-pl-4 gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] md:mx-0 md:scroll-pl-0 md:px-0 [&::-webkit-scrollbar]:hidden">
+            {suggestions.map((s, i) => (
+              <li
+                key={s.slug}
+                className={`w-[120px] shrink-0 snap-start ${i === 0 ? "ml-auto" : ""} ${
+                  i === suggestions.length - 1 ? "mr-auto" : ""
+                }`}
+              >
                 <Link href={suggestionHref(s.slug)} className="group block">
                   <div className="aspect-[4/5] overflow-hidden rounded-2xl bg-line">
                     {s.imageUrl && (
-                      // Kategori imageUrl'i next/image remotePatterns disinda bir
+                      // Urun/kategori gorseli next/image remotePatterns disinda bir
                       // kaynaktan gelebilir - katalog banner'i ile ayni sebepten duz <img>.
                       // eslint-disable-next-line @next/next/no-img-element
                       <img

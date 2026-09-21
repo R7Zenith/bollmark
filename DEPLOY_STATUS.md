@@ -5024,3 +5024,14 @@ Plan: `BOS_KATEGORI_YAKINDA_TASARIMI_PLANI.md`. Urunu olmayan kategori sayfasind
 **Bilinen not**: Onerilen kategori kartlarinda `imageUrl` bos olanlar gri kutu olarak gorunur (bugun cogu kategori gorselsiz); admin'den kategori gorseli eklenince dolar.
 
 **Sonraki adim**: kategoriye ilk urun yayinlaninca `CategoryAlert` kayitlarina mail gonderimi (`notifiedAt` doldurma) + admin'de kayit listesi. Bu isin kapsami disindaydi.
+
+---
+
+## Bos kategori ekrani: e-posta formu kaldirildi, kartlara ornek urun gorseli (2026-09-22)
+
+Sahibinin karariyla "Haber Ver" e-posta formu kaldirildi (plandaki opsiyonel bolumdu, istenmiyordu). Ustteki "Bos kategori ..." notundaki form, `CategoryAlert`, `/api/kategori-bildirimi` ve "sonraki adim: mail gonderimi + admin listesi" maddeleri bu satirla gecersizdir.
+
+- `src/components/empty-category-state.tsx`: form, honeypot, durum state'i ve `"use client"` silindi (artik sunucu bileseni); metin "... Cok yakinda burada." oldu.
+- `src/app/(site)/api/kategori-bildirimi/route.ts` silindi; `prisma/schema.prisma`'dan `CategoryAlert` modeli cikarildi. **Neon'daki `CategoryAlert` tablosu hala duruyor** (0 satir, hicbir kod kullanmiyor): `prisma db push --accept-data-loss` ile dusurulmesi gerekiyor, bu oturumda izin verilmedigi icin calistirilmadi. Zararsiz; su sekilde temizlenebilir: `npx prisma db push --accept-data-loss`.
+- Oneri kartlari: gorsel artik o kategoriden en yeni urunun ilk fotografi (`firstImageUrl`: once `images`, yoksa `optionImages` - fotograflar cogunlukla renk altinda tutuluyor), yoksa kategori gorseli. Sorgu `urunler/page.tsx` icindeki `withSampleProductImages`, yalniz bos ekran gosterilirken calisir.
+- Sol ilk kartin yarisinin kesilmesi (tasan icerikte `justify-center` solu kesiyordu) giderildi: ilk/son karta `ml-auto`/`mr-auto`. Kaydirma cubugu gizlendi, mobilde `scroll-pl-4`.

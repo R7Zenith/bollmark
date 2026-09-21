@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { getCatalogEntries } from "@/lib/catalog";
+import { firstImageUrl, getCatalogEntries } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import { ProductCard } from "@/components/product-card";
 import { EmptyCategoryState } from "@/components/empty-category-state";
@@ -35,6 +35,35 @@ function sortEntries(entries: CatalogEntry[], sort?: string): CatalogEntry[] {
   return [...entries].sort(
     (a, b) => Number(a.outOfStock) - Number(b.outOfStock) || compare(a, b)
   );
+}
+
+async function withSampleProductImages(
+  categories: { name: string; slug: string; imageUrl: string | null }[],
+  gender?: string
+) {
+  if (categories.length === 0) return [];
+  const products = await prisma.product.findMany({
+    where: {
+      status: "PUBLISHED",
+      category: { slug: { in: categories.map((c) => c.slug) } },
+      gender: gender ? gender : undefined
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      category: { select: { slug: true } },
+      images: { orderBy: { position: "asc" }, take: 1, select: { url: true } },
+      // Fotograflar cogunlukla renk (optionImages) altinda tutuluyor.
+      optionImages: { orderBy: [{ isCover: "desc" }, { position: "asc" }], take: 1, select: { url: true } }
+    }
+  });
+  return categories.map((c) => ({
+    ...c,
+    imageUrl:
+      products
+        .filter((p) => p.category?.slug === c.slug)
+        .map((p) => firstImageUrl(p))
+        .find(Boolean) ?? c.imageUrl
+  }));
 }
 
 export async function generateMetadata({
@@ -116,15 +145,23 @@ export default async function ProductsPage({
   const hasActiveFilters = countActiveFilters(filters, false) > 0;
   // Urunu olmayan kategori "yakinda" ekranini gosterir. Bu kategori
   // filterCategories'te (yalniz urunu olanlar) bulunamayacagi icin ayrica
-  // okunur; banner basligi/breadcrumb ile "haber ver" formu bunu kullanir.
+  // okunur; banner basligi/breadcrumb ile ekran metni bunu kullanir.
   const showComingSoon = entries.length === 0 && !hasActiveFilters;
   const emptyCategory =
     showComingSoon && kategori
       ? await prisma.category.findUnique({
           where: { slug: kategori, isActive: true },
-          select: { id: true, name: true, slug: true, imageUrl: true }
+          select: { name: true, slug: true, imageUrl: true }
         })
       : null;
+  // "Bu arada goz atmak ister misin?" kartlari: yayinda urunu olan kategoriler,
+  // gorsel olarak o kategoriden en yeni urunun ilk fotografi (yoksa kategori gorseli).
+  const emptySuggestions = showComingSoon
+    ? await withSampleProductImages(
+        filterCategories.filter((c) => c.slug !== kategori).slice(0, 5),
+        cinsiyet
+      )
+    : [];
 
   // Bos sonuc durumundaki "Filtreleri temizle" baglantisi - cinsiyet/sirala
   // kalir, kategori dahil tum filtreler kalkar.
@@ -234,9 +271,8 @@ export default async function ProductsPage({
         ) : (
           <EmptyCategoryState
             categoryName={emptyCategory?.name ?? null}
-            categoryId={emptyCategory?.id ?? null}
             gender={cinsiyet ?? null}
-            suggestions={filterCategories.filter((c) => c.slug !== kategori).slice(0, 5)}
+            suggestions={emptySuggestions}
           />
         )
       ) : (
