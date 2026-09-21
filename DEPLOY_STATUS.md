@@ -4939,3 +4939,14 @@ odeme sonrasi (`/odeme/tesekkurler`, PAID test siparisi) hem ekran hem `Customer
 Test verisi (test musterisi `sepet-test@example.com`, urun `zz-sepet-test-urunu`, siparis `ZZTEST-1`, cascade ile sepeti) canli DB'den silindi.
 
 **Production'a alirken**: ek sema adimi yok (tablo hazir). Deploy sonrasi giris yapmis bir hesapla sepet senkronu ve (sandbox) `409` akisi bir kez elle denenmeli.
+
+---
+
+## Footer: "Bültenimize katılın" bölümü kaldırıldı (2026-09-21)
+
+Plan: `FOOTER_BULTEN_KALDIRMA_PLANI.md`. Bülten yalnızca footer'da vardı ve formun arkasında endpoint/DB yoktu (submit hiçbir şey yapmıyordu); kaldırınca veri/işlev kaybı yok. `src/` ve `prisma/` içinde bülten/abone/newsletter grep'i başka kullanım bulmadı (admin tarafında bülten yönetimi de yok).
+
+- `src/components/site-footer.tsx`: bülten sütunu (başlık, açıklama, form) ve import silindi; Kurumsal / İletişim / Alışveriş sütunları artık tam genişlikte (`grid gap-8 sm:grid-cols-3`), yanlarındaki boş sütun kalktı.
+- `src/components/footer-newsletter-form.tsx`: silindi (başka yerde import edilmiyordu).
+
+**Doğrulama**: `prisma generate` sonrası `tsc --noEmit` temiz (pull ile gelen `customerCart` modeli için client yeniden üretilmemişti, footer'la ilgisiz). `eslint` footer dosyasında temiz; `npm run lint` genelinde başka dosyalardan gelen önceden var olan hatalar duruyor (ör. `wishlist.tsx`). Headless Chrome ile 390px ve 1600px'te `/iletisim` footer'ı görsel kontrol edildi: mobilde tek sütun, masaüstünde üç eşit sütun, logo/alt bar bozulmadı (kapıyı geçmek için dev server yalnızca bu oturumda `PREVIEW_GATE=off` ile çalıştırıldı, dosya değişmedi).

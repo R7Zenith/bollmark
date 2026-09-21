@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { FooterNewsletterForm } from "./footer-newsletter-form";
 
 // logo-white.png'nin gercek en-boy orani (bkz. site-header.tsx LOGO_ASPECT_RATIO,
 // 1400x273px).
@@ -35,90 +34,80 @@ export function SiteFooter() {
   return (
     <footer className="mt-section bg-ink text-cream">
       <div className="w-full px-6 py-6 xl:px-9">
-        {/* Üst blok: bülten + link sütunları */}
-        <div className="grid gap-6 md:grid-cols-2 md:gap-10">
+        {/* Üst blok: link sütunları */}
+        <div className="grid gap-8 sm:grid-cols-3">
           <div>
-            <p className="text-sm uppercase tracking-wide text-cream">Bültenimize katılın</p>
-            <p className="mt-3 max-w-sm text-sm text-cream">
-              Yeni koleksiyonlardan ve fırsatlardan ilk siz haberdar olun.
-            </p>
-            <FooterNewsletterForm />
+            <p className="text-sm uppercase tracking-wide text-cream">Kurumsal</p>
+            <ul className="mt-3 space-y-2 text-sm">
+              <li>
+                <Link href="/sayfa/hakkimizda" className={FOOTER_LINK_CLASS}>
+                  Hakkımızda
+                </Link>
+              </li>
+              <li>
+                <Link href="/sayfa/kargo-bilgisi" className={FOOTER_LINK_CLASS}>
+                  Kargo Bilgisi
+                </Link>
+              </li>
+              <li>
+                <Link href="/sayfa/iade-kosullari" className={FOOTER_LINK_CLASS}>
+                  İade Koşulları
+                </Link>
+              </li>
+              {/* /siparis-durumu, iade kosullari metniyle karistirilmasin diye
+                  "İade & Değişim" yerine ne yaptigini soyleyen bir etiketle
+                  ayri tutuluyor - bu sayfa siparis takip + iade/degisim TALEBI
+                  olusturma araci, yukaridaki ise sadece kosullarin metni. */}
+              <li>
+                <Link href="/siparis-durumu" className={FOOTER_LINK_CLASS}>
+                  Sipariş Takip &amp; İade Talebi
+                </Link>
+              </li>
+              <li>
+                <Link href="/sayfa/gizlilik-politikasi" className={FOOTER_LINK_CLASS}>
+                  Gizlilik Politikası
+                </Link>
+              </li>
+              <li>
+                <Link href="/sayfa/mesafeli-satis-sozlesmesi" className={FOOTER_LINK_CLASS}>
+                  Mesafeli Satış Sözleşmesi
+                </Link>
+              </li>
+            </ul>
           </div>
 
-          <div className="grid gap-8 sm:grid-cols-3">
-            <div>
-              <p className="text-sm uppercase tracking-wide text-cream">Kurumsal</p>
-              <ul className="mt-3 space-y-2 text-sm">
-                <li>
-                  <Link href="/sayfa/hakkimizda" className={FOOTER_LINK_CLASS}>
-                    Hakkımızda
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/sayfa/kargo-bilgisi" className={FOOTER_LINK_CLASS}>
-                    Kargo Bilgisi
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/sayfa/iade-kosullari" className={FOOTER_LINK_CLASS}>
-                    İade Koşulları
-                  </Link>
-                </li>
-                {/* /siparis-durumu, iade kosullari metniyle karistirilmasin diye
-                    "İade & Değişim" yerine ne yaptigini soyleyen bir etiketle
-                    ayri tutuluyor - bu sayfa siparis takip + iade/degisim TALEBI
-                    olusturma araci, yukaridaki ise sadece kosullarin metni. */}
-                <li>
-                  <Link href="/siparis-durumu" className={FOOTER_LINK_CLASS}>
-                    Sipariş Takip &amp; İade Talebi
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/sayfa/gizlilik-politikasi" className={FOOTER_LINK_CLASS}>
-                    Gizlilik Politikası
-                  </Link>
-                </li>
-                <li>
-                  <Link href="/sayfa/mesafeli-satis-sozlesmesi" className={FOOTER_LINK_CLASS}>
-                    Mesafeli Satış Sözleşmesi
-                  </Link>
-                </li>
-              </ul>
-            </div>
+          <div>
+            <p className="text-sm uppercase tracking-wide text-cream">İletişim</p>
+            <ul className="mt-3 space-y-2 text-sm">
+              <li>
+                <Link href="/iletisim" className={FOOTER_LINK_CLASS}>
+                  Bize Ulaşın
+                </Link>
+              </li>
+              <li>
+                <a href="mailto:bilgi@bollmark.com" className={FOOTER_LINK_CLASS}>
+                  bilgi@bollmark.com
+                </a>
+              </li>
+            </ul>
+          </div>
 
-            <div>
-              <p className="text-sm uppercase tracking-wide text-cream">İletişim</p>
-              <ul className="mt-3 space-y-2 text-sm">
-                <li>
-                  <Link href="/iletisim" className={FOOTER_LINK_CLASS}>
-                    Bize Ulaşın
+          <div>
+            <p className="text-sm uppercase tracking-wide text-cream">Alışveriş</p>
+            <ul className="mt-3 space-y-2 text-sm">
+              {SHOP_LINKS.map((item) => (
+                <li key={item.slug}>
+                  <Link href={`/urunler?kategori=${item.slug}`} className={FOOTER_LINK_CLASS}>
+                    {item.label}
                   </Link>
                 </li>
-                <li>
-                  <a href="mailto:bilgi@bollmark.com" className={FOOTER_LINK_CLASS}>
-                    bilgi@bollmark.com
-                  </a>
-                </li>
-              </ul>
-            </div>
-
-            <div>
-              <p className="text-sm uppercase tracking-wide text-cream">Alışveriş</p>
-              <ul className="mt-3 space-y-2 text-sm">
-                {SHOP_LINKS.map((item) => (
-                  <li key={item.slug}>
-                    <Link href={`/urunler?kategori=${item.slug}`} className={FOOTER_LINK_CLASS}>
-                      {item.label}
-                    </Link>
-                  </li>
-                ))}
-                <li>
-                  <Link href="/urunler" className={FOOTER_LINK_CLASS}>
-                    Tüm Ürünler
-                  </Link>
-                </li>
-              </ul>
-            </div>
+              ))}
+              <li>
+                <Link href="/urunler" className={FOOTER_LINK_CLASS}>
+                  Tüm Ürünler
+                </Link>
+              </li>
+            </ul>
           </div>
         </div>
 
