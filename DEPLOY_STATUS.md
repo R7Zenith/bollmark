@@ -4828,3 +4828,7 @@ sonunda tekrar KAPATILDI: `isEnabled=false`, `maxInstallment=1` geri alındı).
 5 test siparişi (BLM260921-7119, -4676, -3958, -1678, -8124; müşteri iyzico-test@example.com), bunlara bağlı ödeme denemeleri/iade kayıtları, ~29 ödeme günlüğü satırı, 12 denetim satırı,
 `Faz3 Test Personel` (faz3-test-personel@example.com, PASİF) hesabı ve "Sipariş"/"Ödeme" ekranlarında görünen test siparişleri. Stok: gömlek varyantı (cmu1ru345000y04jv24d894eg) 3 (orijinal),
 hırka varyantı (cmu2eg2w0002u04ley9nhc6p5) 1 (orijinali 3, iki test siparişi düşürdü). Test siparişlerinin admin/müşteri mailleri example.com adresine ve admin adresine gitmiş olabilir.
+
+**Temizlik tamamlandı (kullanıcı onayıyla, aynı gün):** 5 test siparişi (ödeme denemeleri/iade kayıtları cascade ile), bağlı ödeme günlükleri, denetim satırları ve
+`Faz3 Test Personel` hesabı silindi; toplam sipariş 0'a döndü. Stoklar orijinal değerine (3/3) geri yüklendi. Sanal POS `isEnabled=false`, `maxInstallment=1`.
+Yukarıdaki "AÇIK: test verisi temizliği YAPILAMADI" notu bu satırla geçersizdir.
