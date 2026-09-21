@@ -4,7 +4,7 @@
 // StoreSettings.defaultShippingCents'ten (panel > Ayarlar) okunup buraya
 // parametre olarak geciriliyor. Esik hala sabit kodda tutuluyor (StoreSettings'e
 // tasima Faz A kapsami disi).
-export const SHIPPING_THRESHOLD_CENTS = 100000; // 1.000 TL uzeri ucretsiz kargo
+export const SHIPPING_THRESHOLD_CENTS = 150000; // 1.500 TL uzeri ucretsiz kargo
 
 export function calculateShippingCents(
   payableCents: number,

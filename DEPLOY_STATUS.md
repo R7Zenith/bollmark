@@ -4985,3 +4985,9 @@ Yeni sira: Hero -> Yeni Gelenler -> **A** editoryal ikili blok -> **B** kategori
 - `koleksiyon-ayakkabi.jpg` fotografinda gorunur Nike/"AIR" markasi var (plandaki kimlik); Ayakkabi karti su an gizli oldugu icin ekranda yok, kart acilmadan once marka icin uygun bir gorselle degistirilmeli. `koleksiyon-aksesuar.jpg` bir atolye masasindaki kozmetik/kalem cantalari, arka planda kisiler var; gorunuyor, istenirse degistirilebilir.
 - Magaza kartinda adres plandaki gibi "Runguçpaşa Mah. 75. Sk. No:6/A"; `/iletisim` sayfasi "Runguşpaşa, 75. Sk. No: 6" yaziyor ve orada calisma saati de var (kartta plan geregi yok) - tutarsizlik sahibine birakildi.
 - Kategori sayilari: Aksesuar sayisi Ayakkabi'yi da kapsar (Ayakkabi, Aksesuar'in alt kategorisi).
+
+---
+
+## Ucretsiz kargo esigi 1.500 TL (2026-09-22)
+
+Sahibinin karariyla `SHIPPING_THRESHOLD_CENTS` 100000 -> 150000 (`src/lib/shipping.ts`). Esik tek yerde tanimli; odeme sayfasi (`checkout-form.tsx`), sunucudaki siparis hesabi (`api/orders/route.ts`) ve ana sayfa SSS cevabi (`faq-and-store.tsx`) ayni sabiti okur, baska sabit kodlu "1.000 TL" metni yok. `tsc` temiz, `npm test` 79/79. Kargo ucreti (350 TL) `StoreSettings`ten gelmeye devam eder. Ustteki ana sayfa notunda gecen "1.000 TL" bu satirla gecersizdir.
