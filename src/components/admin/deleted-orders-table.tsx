@@ -6,7 +6,7 @@ import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
 import { Button } from "@/components/admin/button";
 import { useToast } from "@/components/admin/toast";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 
 export interface DeletedOrderRow {
   id: string;
@@ -71,7 +71,7 @@ export function DeletedOrdersTable({ orders }: { orders: DeletedOrderRow[] }) {
       key: "deletedAt",
       header: "Silinme Tarihi",
       hideable: true,
-      render: (row) => new Date(row.deletedAt).toLocaleDateString("tr-TR")
+      render: (row) => formatDate(row.deletedAt)
     },
     {
       key: "deletedByEmail",

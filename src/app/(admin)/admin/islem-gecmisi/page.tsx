@@ -5,6 +5,7 @@ import { auditActions } from "@/lib/audit-actions";
 import { EmptyState } from "@/components/admin/empty-state";
 import { IslemGecmisiFilters } from "@/components/admin/islem-gecmisi-filters";
 import { AuditLogTable, type AuditLogRow } from "@/components/admin/audit-log-table";
+import { formatDate, formatTime, istanbulDayEnd, istanbulDayStart } from "@/lib/format";
 
 interface SearchParams {
   aksiyon?: string;
@@ -33,8 +34,8 @@ export default async function AdminIslemGecmisiPage({
   }
 
   const createdAtFilter: { gte?: Date; lte?: Date } = {};
-  if (baslangic) createdAtFilter.gte = new Date(`${baslangic}T00:00:00`);
-  if (bitis) createdAtFilter.lte = new Date(`${bitis}T23:59:59`);
+  if (baslangic) createdAtFilter.gte = istanbulDayStart(baslangic);
+  if (bitis) createdAtFilter.lte = istanbulDayEnd(bitis);
 
   const logs = await prisma.auditLog.findMany({
     where: {
@@ -52,10 +53,7 @@ export default async function AdminIslemGecmisiPage({
     targetType: log.targetType,
     targetId: log.targetId,
     detail: log.detail,
-    createdAtLabel: `${log.createdAt.toLocaleDateString("tr-TR")} ${log.createdAt.toLocaleTimeString("tr-TR", {
-      hour: "2-digit",
-      minute: "2-digit"
-    })}`
+    createdAtLabel: `${formatDate(log.createdAt)} ${formatTime(log.createdAt)}`
   }));
 
   return (

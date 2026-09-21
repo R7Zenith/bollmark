@@ -1,7 +1,14 @@
 import Link from "next/link";
 import { Package, ShoppingCart, Clock, Wallet, AlertTriangle } from "lucide-react";
 import { prisma } from "@/lib/prisma";
-import { formatPrice } from "@/lib/format";
+import {
+  addDaysToDateKey,
+  formatPrice,
+  istanbulDateKey,
+  istanbulDayEnd,
+  istanbulDayStart,
+  monthStartDateKey
+} from "@/lib/format";
 import { StatCard } from "@/components/admin/stat-card";
 import { Card } from "@/components/admin/card";
 import { Badge } from "@/components/admin/badge";
@@ -20,17 +27,19 @@ function trendFrom(current: number, previous: number, formatValue: (n: number) =
 }
 
 export default async function AdminDashboard() {
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const dayOfMonth = now.getDate();
-  const prevMonthDays = new Date(now.getFullYear(), now.getMonth(), 0).getDate();
+  // Ay/gün sınırları Istanbul gününe göre (sunucu UTC'de çalışır).
+  const todayKey = istanbulDateKey(new Date());
+  const monthStartKey = monthStartDateKey(todayKey);
+  const startOfMonth = istanbulDayStart(monthStartKey);
+  const dayOfMonth = Number(todayKey.slice(8));
+  const prevMonthStartKey = monthStartDateKey(todayKey, -1);
+  const prevMonthDays = Number(addDaysToDateKey(monthStartKey, -1).slice(8));
   const endDay = Math.min(dayOfMonth, prevMonthDays);
-  const startOfPrevPeriod = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const endOfPrevPeriod = new Date(now.getFullYear(), now.getMonth() - 1, endDay, 23, 59, 59, 999);
+  const startOfPrevPeriod = istanbulDayStart(prevMonthStartKey);
+  const endOfPrevPeriod = istanbulDayEnd(addDaysToDateKey(prevMonthStartKey, endDay - 1));
 
-  const todayUtcStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  const thirtyDaysAgo = new Date(todayUtcStart);
-  thirtyDaysAgo.setUTCDate(thirtyDaysAgo.getUTCDate() - 29);
+  const thirtyDaysAgoKey = addDaysToDateKey(todayKey, -29);
+  const thirtyDaysAgo = istanbulDayStart(thirtyDaysAgoKey);
 
   const [
     productCount,
@@ -96,15 +105,13 @@ export default async function AdminDashboard() {
   const chartData: DailyOrdersPoint[] = [];
   const dayIndex = new Map<string, DailyOrdersPoint>();
   for (let i = 0; i < 30; i++) {
-    const d = new Date(thirtyDaysAgo);
-    d.setUTCDate(d.getUTCDate() + i);
-    const key = d.toISOString().slice(0, 10);
+    const key = addDaysToDateKey(thirtyDaysAgoKey, i);
     const point: DailyOrdersPoint = { date: key, orders: 0, revenueCents: 0 };
     chartData.push(point);
     dayIndex.set(key, point);
   }
   for (const order of last30DaysOrders) {
-    const key = order.createdAt.toISOString().slice(0, 10);
+    const key = istanbulDateKey(order.createdAt);
     const point = dayIndex.get(key);
     if (!point) continue;
     point.orders += 1;

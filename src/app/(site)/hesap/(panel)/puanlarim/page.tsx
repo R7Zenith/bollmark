@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/require-customer";
+import { formatDate } from "@/lib/format";
 
 const reasonLabel: Record<string, string> = {
   SIPARIS_KAZANC: "Sipariş Kazancı",
@@ -34,7 +35,7 @@ export default async function HesapPuanlarimPage() {
               <div key={t.id} className="flex items-center justify-between px-6 py-3 text-sm">
                 <div>
                   <p>{reasonLabel[t.reason] ?? t.reason}</p>
-                  <p className="text-xs text-ink/50">{t.createdAt.toLocaleDateString("tr-TR")}</p>
+                  <p className="text-xs text-ink/50">{formatDate(t.createdAt)}</p>
                 </div>
                 <p className={t.points >= 0 ? "text-clay" : "text-ink/70"}>
                   {t.points >= 0 ? "+" : ""}

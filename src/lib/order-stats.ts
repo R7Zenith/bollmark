@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { formatDuration, type PeriodRange } from "@/lib/order-period";
+import { istanbulDateKey as dayKey, istanbulDateKeysBetween as enumerateDayKeys } from "@/lib/format";
 
 interface ReturnItemSnapshot {
   orderItemId: string;
@@ -29,23 +30,8 @@ function averageShippingMs(rows: { shippedAt: Date | null; order: { createdAt: D
   return durations.reduce((a, b) => a + b, 0) / durations.length;
 }
 
-// Yerel (tarayıcı/sunucu saat dilimi) güne göre gruplama anahtarı - dönem
-// sınırları da (order-period.ts) yerel gün başlangıcına göre hesaplandığı
-// için tutarlı kalır.
-function dayKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function enumerateDayKeys(start: Date, end: Date): string[] {
-  const keys: string[] = [];
-  const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-  const last = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-  while (cursor <= last) {
-    keys.push(dayKey(cursor));
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return keys;
-}
+// İstanbul gününe göre gruplama anahtarı - dönem sınırları da (order-period.ts)
+// İstanbul gün başlangıcına göre hesaplandığı için tutarlı kalır.
 
 function bucketCount(dates: Date[]): Map<string, number> {
   const map = new Map<string, number>();

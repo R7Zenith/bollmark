@@ -4,7 +4,7 @@ import Link from "next/link";
 import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { Badge } from "@/components/admin/badge";
 import { CustomerPointsAdjust } from "@/components/admin/customer-points-adjust";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 
 export interface CustomerRow {
   id: string | null;
@@ -48,7 +48,7 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
       key: "lastOrderAt",
       header: "Son Sipariş",
       hideOnMobile: true,
-      render: (row) => new Date(row.lastOrderAt).toLocaleDateString("tr-TR")
+      render: (row) => formatDate(row.lastOrderAt)
     },
     {
       key: "actions",

@@ -4863,3 +4863,28 @@ KAPATILDI (`isEnabled=false`, `maxInstallment=1`).
 
 **Temizlik tamamlandi (kullanici talimatiyla, ayni gun):** Faz 4 test siparisi BLM260921-1013 (odeme denemesi cascade ile), terk edilmis sepet, 5 odeme gunlugu ve 1 denetim satiri silindi;
 gomlek BEYAZ/M stogu 3'e geri yazildi. Dogrulama: 0 siparis, 0 deneme, 8 gunluk (baslangic degeri), POS `isEnabled=false`. Yukaridaki "AÇIK: canli DB'de test verisi kaldi" notu bu satirla gecersizdir.
+
+## Tarih/saat: Europe/Istanbul standardi (2026-09-21)
+
+**Sorun**: Vercel sunucusu UTC'de calisiyor; tarih/saat gosterimleri, siparis numarasi, rapor gruplamalari ve kampanya tarih kontrolleri sunucu saat dilimine bagliydi. Turkiye saatiyle
+00:00-03:00 arasi islemler bir gun geri gorunuyordu.
+
+**Yapilanlar** (hepsi `src/lib/format.ts` uzerinden ortak; Turkiye kalici UTC+3 oldugu icin gun sinirlari sabit ofsetle uretiliyor)
+- Yeni yardimcilar: `formatDate`, `formatDateTime`, `formatTime` (hepsi `timeZone: "Europe/Istanbul"`), `istanbulDateKey`, `istanbulDayStart/End`, `addDaysToDateKey`, `monthStartDateKey`,
+  `istanbulDateKeysBetween`.
+- `generateOrderNumber`: tarih Istanbul gunune gore (BLM + yyMMdd).
+- Tum `toLocaleDateString/TimeString/String("tr-TR")` kullanimlari (admin tablolari, siparis detayi, odeme karti, mesajlar, iadeler, islem gecmisi, terk edilmis sepetler, musteri hesabi,
+  siparis durumu, Excel disa aktarim) `formatDate/formatDateTime/formatTime`'a tasindi. Sanal POS sayfasindaki yerel `formatDateTime` ayni yardimciya devrediliyor.
+- Raporlar: `order-period.ts` (Bugun/Dun/Son 7/30 gun/Bu ay/Ozel aralik), `order-stats.ts`, `abandoned-cart-stats.ts` gunluk gruplama ve dönem sinirlari Istanbul gunune gore.
+  Admin Genel Bakis (Bu ay, onceki donem, son 30 gun grafigi; oncesinde UTC gunune gore gruplaniyordu) ve `/admin/raporlar` ("Son N gun" artik Istanbul gun basindan, bugun dahil N gun;
+  oncesinde "simdi - N*24 saat") ve Islem Gecmisi tarih filtresi de ayni sekilde.
+- Kampanya (kupon): tarih alani artik Istanbul gunu olarak kaydediliyor (baslangic 00:00, bitis 23:59:59.999) ve gecerlilik `istanbulDateKey` ile GUN bazinda karsilastiriliyor
+  (`coupons.ts`, `status.ts`). Oncesinde `new Date("YYYY-MM-DD")` UTC gece yarisi = Istanbul 03:00 oldugu icin kampanya bitis gunu 03:00'te sona eriyordu. Mevcut kayitlar
+  (UTC gece yarisi) ayni takvim gunune denk geldigi icin veri migrasyonu gerekmiyor.
+
+**Dogrulama**: `tsc` temiz; `TZ=UTC` altinda sinir durumlari (21 Eyl 22:30 UTC -> 22 Eyl 01:30 Istanbul: gun anahtari, gosterim, gun basi/sonu, donem araliklari, kampanya bugun-basliyor/bugun-bitiyor/dun-bitti,
+eski UTC-gece-yarisi kayit) kontrol edildi.
+
+**Dokunulmayanlar / karar bekleyen**: `yapim-asamasinda/page.tsx` lansman tarihi (`"2026-10-14T00:00:00"`, ofsetsiz) sunucuda UTC okunuyor = Istanbul 03:00; Istanbul gece yarisi istenirse
+`+03:00` eklenmeli (lansman aninin 3 saat one cekilmesi demek, ayrica onay bekliyor). Site/gate alt bilgisindeki `new Date().getFullYear()` yalniz 31 Ara 21:00 UTC - 1 Oca 00:00 UTC arasi
+etkilenir, dokunulmadi. `scripts/` altindaki bakim betikleri kapsam disi.

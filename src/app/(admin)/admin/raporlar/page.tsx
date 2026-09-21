@@ -6,6 +6,7 @@ import { TopProductsChart } from "@/components/admin/top-products-chart";
 import { TopProductsTable, type TopProductRow } from "@/components/admin/top-products-table";
 import { BreakdownTable, type BreakdownRow } from "@/components/admin/breakdown-table";
 import { REVENUE_STATUSES } from "@/lib/orders";
+import { addDaysToDateKey, istanbulDateKey, istanbulDayStart } from "@/lib/format";
 
 const ALLOWED_DAYS = [7, 30, 90];
 
@@ -17,8 +18,8 @@ export default async function RaporlarPage({
   await requireAdmin();
   const { gun } = await searchParams;
   const days = ALLOWED_DAYS.includes(Number(gun)) ? Number(gun) : 30;
-  const since = new Date();
-  since.setDate(since.getDate() - days);
+  // Son N gün: Istanbul gününün başlangıcından geriye (bugün dahil N gün).
+  const since = istanbulDayStart(addDaysToDateKey(istanbulDateKey(new Date()), -(days - 1)));
 
   const grouped = await prisma.orderItem.groupBy({
     by: ["productId"],

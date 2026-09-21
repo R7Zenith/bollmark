@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 
 const returnReasons = ["Beden uymadı", "Ürün hasarlı geldi", "Farklı ürün istiyorum", "Diğer"] as const;
 
@@ -238,7 +238,7 @@ export default function SiparisDurumuPage() {
                       <span className="text-ink/70">{returnStatusLabelTr[rr.status] ?? rr.status}</span>
                     </div>
                     <p className="mt-1 text-xs text-ink/50">
-                      {new Date(rr.createdAt).toLocaleDateString("tr-TR")}
+                      {formatDate(rr.createdAt)}
                     </p>
                     {rr.adminNote && <p className="mt-2 text-sm text-ink/70">Not: {rr.adminNote}</p>}
                   </div>

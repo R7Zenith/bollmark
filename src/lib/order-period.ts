@@ -2,6 +2,8 @@
 // bir önceki eşit uzunluktaki dönemle kıyaslanabilmesi için "current" ve
 // "previous" aralığı birlikte döner (özet kartlardaki trend oku için).
 
+import { istanbulDateKey, istanbulDayEnd, istanbulDayStart, monthStartDateKey } from "@/lib/format";
+
 export type PeriodKey = "bugun" | "dun" | "son7gun" | "son30gun" | "buay" | "ozel";
 
 export const periodOptions: { value: PeriodKey; label: string }[] = [
@@ -28,18 +30,19 @@ export interface PeriodRange {
   previous: DateRange;
 }
 
+// Gun sinirlari sunucu saat dilimine (Vercel'de UTC) degil Istanbul gunune gore
+// hesaplanir. Turkiye'de yaz/kis saati olmadigi icin 24 saatlik kaydirma
+// gun kaydirmaya esittir.
 function startOfDay(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  return istanbulDayStart(istanbulDateKey(d));
 }
 
 function endOfDay(d: Date): Date {
-  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
+  return istanbulDayEnd(istanbulDateKey(d));
 }
 
 function shiftDays(d: Date, days: number): Date {
-  const copy = new Date(d);
-  copy.setDate(copy.getDate() + days);
-  return copy;
+  return new Date(d.getTime() + days * 24 * 60 * 60 * 1000);
 }
 
 export function resolvePeriodRange(
@@ -51,8 +54,8 @@ export function resolvePeriodRange(
   const now = new Date();
 
   if (key === "ozel") {
-    const start = baslangic ? new Date(`${baslangic}T00:00:00.000`) : undefined;
-    const end = bitis ? new Date(`${bitis}T23:59:59.999`) : undefined;
+    const start = baslangic ? istanbulDayStart(baslangic) : undefined;
+    const end = bitis ? istanbulDayEnd(bitis) : undefined;
     if (!start || !end) {
       return { key, current: { start, end }, previous: {} };
     }
@@ -88,10 +91,11 @@ export function resolvePeriodRange(
   }
 
   // buay
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const todayKey = istanbulDateKey(now);
+  const start = istanbulDayStart(monthStartDateKey(todayKey));
   const end = endOfDay(now);
-  const daysSoFar = now.getDate();
-  const prevMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  const daysSoFar = Number(todayKey.slice(8));
+  const prevMonthStart = istanbulDayStart(monthStartDateKey(todayKey, -1));
   const prevMonthEnd = endOfDay(shiftDays(prevMonthStart, daysSoFar - 1));
   return { key, current: { start, end }, previous: { start: prevMonthStart, end: prevMonthEnd } };
 }

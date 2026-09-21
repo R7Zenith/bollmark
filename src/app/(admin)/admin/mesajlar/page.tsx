@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/admin/empty-state";
 import { MessagesTable, type MessageRow } from "@/components/admin/messages-table";
 import { MessageFeedback } from "@/components/admin/message-feedback";
 import { Pagination } from "@/components/admin/pagination";
+import { formatDateTime } from "@/lib/format";
 
 const PAGE_SIZE = 20;
 
@@ -53,11 +54,7 @@ export default async function AdminMessagesPage({ searchParams }: { searchParams
 
   const rows: MessageRow[] = messages.map((m) => ({
     id: m.id,
-    createdAtLabel: m.createdAt.toLocaleString("tr-TR", {
-      dateStyle: "short",
-      timeStyle: "short",
-      timeZone: "Europe/Istanbul"
-    }),
+    createdAtLabel: formatDateTime(m.createdAt, { dateStyle: "short", timeStyle: "short" }),
     fullName: `${m.firstName} ${m.lastName}`,
     email: m.email,
     firstLine: m.message.split("\n")[0],

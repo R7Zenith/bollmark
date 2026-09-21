@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 import { orderStatusLabel, shipmentStatusLabel } from "@/lib/status";
 import { buildOrdersWhere, resolveTab } from "@/lib/order-query";
 import { resolvePeriodRange } from "@/lib/order-period";
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
       orderStatusLabel[order.status as keyof typeof orderStatusLabel] ?? order.status,
       kargoDurumLabel,
       formatPrice(order.totalCents),
-      order.createdAt.toLocaleDateString("tr-TR")
+      formatDate(order.createdAt)
     ];
     lines.push(row.map((v) => csvEscape(String(v))).join(","));
   }

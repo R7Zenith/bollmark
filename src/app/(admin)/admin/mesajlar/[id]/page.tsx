@@ -17,6 +17,7 @@ import { Button } from "@/components/admin/button";
 import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
 import { MessageFeedback } from "@/components/admin/message-feedback";
 import { MessageReadRefresh } from "@/components/admin/message-read-refresh";
+import { formatDateTime } from "@/lib/format";
 
 const selectClass =
   "rounded-md border border-admin-border bg-admin-surface px-3 py-2 text-sm text-admin-text focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
@@ -108,7 +109,7 @@ export default async function AdminMessageDetailPage({
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold text-admin-text">{fullName}</h1>
         <p className="text-sm text-admin-text-muted">
-          {message.createdAt.toLocaleString("tr-TR", { dateStyle: "long", timeStyle: "short", timeZone: "Europe/Istanbul" })}
+          {formatDateTime(message.createdAt, { dateStyle: "long", timeStyle: "short" })}
         </p>
       </div>
 

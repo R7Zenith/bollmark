@@ -15,7 +15,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { buildCategoryOptions } from "@/lib/category-tree";
 import { computeCouponStatus, couponStatuses, type CouponStatus } from "@/lib/status";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice, istanbulDateKey, istanbulDayEnd, istanbulDayStart } from "@/lib/format";
 
 const inputClass =
   "w-full rounded-md border border-admin-border px-3 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
@@ -52,8 +52,8 @@ function readCouponFields(formData: FormData) {
     value,
     minOrderCents,
     usageLimit,
-    startsAt: startsAtRaw ? new Date(startsAtRaw) : null,
-    expiresAt: expiresAtRaw ? new Date(expiresAtRaw) : null,
+    startsAt: startsAtRaw ? istanbulDayStart(startsAtRaw) : null,
+    expiresAt: expiresAtRaw ? istanbulDayEnd(expiresAtRaw) : null,
     isActive,
     categoryIds,
     brandIds,
@@ -128,7 +128,7 @@ async function deleteCoupon(id: string) {
 
 function toDateInputValue(date: Date | null): string | null {
   if (!date) return null;
-  return date.toISOString().slice(0, 10);
+  return istanbulDateKey(date);
 }
 
 export default async function AdminCouponsPage({
@@ -191,7 +191,7 @@ export default async function AdminCouponsPage({
     status: computeCouponStatus(c),
     usageOrders: (usageByCoupon.get(c.id) ?? []).slice(0, 5).map((o) => ({
       orderNumber: o.orderNumber,
-      createdAtLabel: o.createdAt.toLocaleDateString("tr-TR"),
+      createdAtLabel: formatDate(o.createdAt),
       discountCents: o.discountCents
     }))
   }));

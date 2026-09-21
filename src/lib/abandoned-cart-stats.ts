@@ -1,23 +1,9 @@
 import { prisma } from "@/lib/prisma";
 import type { PeriodRange } from "@/lib/order-period";
+import { istanbulDateKey as dayKey, istanbulDateKeysBetween as enumerateDayKeys } from "@/lib/format";
 
 // order-stats.ts ile ayni desen (gun bazli sparkline + onceki doneme kiyas) -
 // terk edilmis sepetler icin ayri tutuldu, iki domain birbirine karismasin.
-
-function dayKey(d: Date): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-
-function enumerateDayKeys(start: Date, end: Date): string[] {
-  const keys: string[] = [];
-  const cursor = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-  const last = new Date(end.getFullYear(), end.getMonth(), end.getDate());
-  while (cursor <= last) {
-    keys.push(dayKey(cursor));
-    cursor.setDate(cursor.getDate() + 1);
-  }
-  return keys;
-}
 
 function bucketCount(dates: Date[]): Map<string, number> {
   const map = new Map<string, number>();

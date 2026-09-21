@@ -6,7 +6,7 @@ import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { Badge } from "@/components/admin/badge";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
 import { useToast } from "@/components/admin/toast";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 import {
   orderStatusLabel,
   orderStatusTone,
@@ -157,7 +157,7 @@ export function OrdersTable({
       sortable: true,
       hideable: true,
       hideOnMobile: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString("tr-TR")
+      render: (row) => formatDate(row.createdAt)
     },
     {
       key: "actions",

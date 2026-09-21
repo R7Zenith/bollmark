@@ -10,6 +10,7 @@ import { CopyButton } from "@/components/admin/copy-button";
 import { Pagination } from "@/components/admin/pagination";
 import { SanalPosFeedback } from "@/components/admin/sanal-pos-feedback";
 import { SanalPosSaveButton } from "@/components/admin/sanal-pos-save-button";
+import { formatDateTime as formatDateTimeIstanbul } from "@/lib/format";
 import { savePaymentSettings, testPaymentConnection } from "./actions";
 
 const LOG_PAGE_SIZE = 25;
@@ -64,7 +65,7 @@ interface SearchParams {
 }
 
 function formatDateTime(date: Date): string {
-  return date.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul", dateStyle: "short", timeStyle: "medium" });
+  return formatDateTimeIstanbul(date, { dateStyle: "short", timeStyle: "medium" });
 }
 
 export default async function AdminSanalPosPage({ searchParams }: { searchParams: Promise<SearchParams> }) {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/require-customer";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 import { orderStatusLabel, type OrderStatus } from "@/lib/status";
 
 export default async function HesapPage() {
@@ -46,7 +46,7 @@ export default async function HesapPage() {
                 <div key={order.id} className="flex items-center justify-between px-6 py-4 text-sm">
                   <div>
                     <p className="font-medium">{order.orderNumber}</p>
-                    <p className="text-ink/50">{order.createdAt.toLocaleDateString("tr-TR")}</p>
+                    <p className="text-ink/50">{formatDate(order.createdAt)}</p>
                   </div>
                   <div className="text-right">
                     <p>{formatPrice(order.totalCents)}</p>

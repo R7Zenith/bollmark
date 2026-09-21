@@ -1,4 +1,5 @@
 import type { BadgeTone } from "@/components/admin/badge";
+import { istanbulDateKey } from "@/lib/format";
 
 export const orderStatuses = [
   "PENDING_PAYMENT",
@@ -170,9 +171,9 @@ export function computeCouponStatus(coupon: {
   usedCount: number;
 }): CouponStatus {
   if (!coupon.isActive) return "PASIF";
-  const now = new Date();
-  if (coupon.expiresAt && coupon.expiresAt < now) return "SURESI_DOLDU";
-  if (coupon.startsAt && coupon.startsAt > now) return "HENUZ_BASLAMADI";
+  const today = istanbulDateKey(new Date());
+  if (coupon.expiresAt && istanbulDateKey(coupon.expiresAt) < today) return "SURESI_DOLDU";
+  if (coupon.startsAt && istanbulDateKey(coupon.startsAt) > today) return "HENUZ_BASLAMADI";
   if (coupon.usageLimit != null && coupon.usedCount >= coupon.usageLimit) return "LIMIT_DOLDU";
   return "AKTIF";
 }

@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice, formatTime } from "@/lib/format";
 import { applyShipmentUpdate } from "@/lib/shipment";
 import { notifyCustomerStatusChange } from "@/lib/order-notifications";
 import { awardLoyaltyPoints } from "@/lib/loyalty";
@@ -126,13 +126,13 @@ export default async function OrderDetailPage({
 
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-admin-text">Sipariş {order.orderNumber}</h1>
-        <p className="text-sm text-admin-text-muted">{order.createdAt.toLocaleDateString("tr-TR")}</p>
+        <p className="text-sm text-admin-text-muted">{formatDate(order.createdAt)}</p>
       </div>
 
       {isDeleted && (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
           <p className="text-sm text-red-700">
-            Bu sipariş {order.deletedAt!.toLocaleDateString("tr-TR")} tarihinde
+            Bu sipariş {formatDate(order.deletedAt!)} tarihinde
             {order.deletedByEmail ? ` ${order.deletedByEmail} tarafından` : ""} silindi. Aşağıdaki bilgiler salt okunur.
           </p>
           {isAdmin && <OrderRestoreButton orderId={order.id} />}
@@ -249,7 +249,7 @@ export default async function OrderDetailPage({
                   <div className="-mt-1 pb-2">
                     <p className="text-sm font-medium text-admin-text">{event.label}</p>
                     <p className="text-xs text-admin-text-muted">
-                      {event.date.toLocaleDateString("tr-TR")} {event.date.toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit" })}
+                      {formatDate(event.date)} {formatTime(event.date)}
                     </p>
                   </div>
                 </li>

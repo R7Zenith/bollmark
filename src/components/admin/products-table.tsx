@@ -9,7 +9,7 @@ import { Badge, type BadgeTone } from "@/components/admin/badge";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
 import { useToast } from "@/components/admin/toast";
 import { IconButton, IconLinkButton } from "@/components/admin/icon-button";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 
 export interface ProductRow {
   id: string;
@@ -316,7 +316,7 @@ export function ProductsTable({
       header: "Oluşturulma",
       sortable: true,
       hideOnMobile: true,
-      render: (row) => new Date(row.createdAt).toLocaleDateString("tr-TR")
+      render: (row) => formatDate(row.createdAt)
     },
     {
       key: "actions",

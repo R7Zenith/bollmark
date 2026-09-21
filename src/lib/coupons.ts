@@ -1,4 +1,5 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
+import { istanbulDateKey } from "@/lib/format";
 
 type Tx = PrismaClient | Prisma.TransactionClient;
 
@@ -70,9 +71,11 @@ function manualDiscountBeatsCoupon(
 // kampanyalar) tarafindan paylasilir - kod tekrarini onler.
 function checkCouponEligibility(coupon: CouponRecord, subtotalCents: number): string | null {
   if (!coupon.isActive) return "Bu kupon artık aktif değil.";
-  const now = new Date();
-  if (coupon.startsAt && coupon.startsAt > now) return "Bu kupon henüz başlamadı.";
-  if (coupon.expiresAt && coupon.expiresAt < now) return "Bu kuponun süresi doldu.";
+  // Kampanya tarihleri Istanbul takvim gunune gore karsilastirilir: bitis
+  // gunu boyunca gecerli, baslangic gununun 00:00'inda aktif.
+  const today = istanbulDateKey(new Date());
+  if (coupon.startsAt && istanbulDateKey(coupon.startsAt) > today) return "Bu kupon henüz başlamadı.";
+  if (coupon.expiresAt && istanbulDateKey(coupon.expiresAt) < today) return "Bu kuponun süresi doldu.";
   if (coupon.usageLimit != null && coupon.usedCount >= coupon.usageLimit) return "Bu kuponun kullanım limiti doldu.";
   if (subtotalCents < coupon.minOrderCents) {
     return `Bu kupon en az ${(coupon.minOrderCents / 100).toFixed(2)} TL'lik sepetlerde geçerli.`;
@@ -349,12 +352,12 @@ export type AutomaticPercentCampaign = {
 // ayri sorgu atmamak amaciyla aktif otomatik PERCENT kampanyalar tek seferde
 // cekilir, sonra matchAutomaticDiscount ile bellekte eslestirilir.
 export async function getActiveAutomaticPercentCampaigns(tx: Tx): Promise<AutomaticPercentCampaign[]> {
-  const now = new Date();
+  const today = istanbulDateKey(new Date());
   const candidates = await tx.coupon.findMany({ where: { code: null, isActive: true, type: "PERCENT" } });
   return candidates.filter(
     (c) =>
-      (!c.startsAt || c.startsAt <= now) &&
-      (!c.expiresAt || c.expiresAt >= now) &&
+      (!c.startsAt || istanbulDateKey(c.startsAt) <= today) &&
+      (!c.expiresAt || istanbulDateKey(c.expiresAt) >= today) &&
       (c.usageLimit == null || c.usedCount < c.usageLimit)
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 
 export interface DailyOrdersPoint {
   date: string;
@@ -20,7 +20,7 @@ function CustomTooltip({
 }) {
   if (!active || !payload || payload.length === 0) return null;
   const point = payload[0].payload;
-  const date = new Date(label ?? point.date).toLocaleDateString("tr-TR", { day: "numeric", month: "long" });
+  const date = formatDate(label ?? point.date, { day: "numeric", month: "long" });
   return (
     <div className="rounded-md border border-admin-border bg-admin-surface px-3 py-2 text-xs shadow-sm">
       <p className="font-medium text-admin-text">{date}</p>
@@ -37,7 +37,7 @@ export function OrdersChart({ data }: { data: DailyOrdersPoint[] }) {
         <CartesianGrid strokeDasharray="3 3" stroke="#e3e3e5" vertical={false} />
         <XAxis
           dataKey="date"
-          tickFormatter={(value: string) => new Date(value).toLocaleDateString("tr-TR", { day: "numeric", month: "short" })}
+          tickFormatter={(value: string) => formatDate(value, { day: "numeric", month: "short" })}
           tick={{ fontSize: 11, fill: "#6b6b6f" }}
           axisLine={{ stroke: "#e3e3e5" }}
           tickLine={false}

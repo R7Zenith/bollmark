@@ -15,6 +15,7 @@ import { OrdersPeriodSelect } from "@/components/admin/orders-period-select";
 import { AbandonedCartFilters } from "@/components/admin/abandoned-cart-filters";
 import { AbandonedCartsTable, type AbandonedCartRow } from "@/components/admin/abandoned-carts-table";
 import { AbandonedCartFeedback } from "@/components/admin/abandoned-cart-feedback";
+import { formatDate } from "@/lib/format";
 
 const PATH = "/admin/terk-edilmis-sepetler";
 
@@ -113,8 +114,8 @@ export default async function AbandonedCartsPage({
       itemCount: lines.reduce((sum, l) => sum + l.quantity, 0),
       totalCents: c.totalCents,
       status: c.recoveredAt ? "KURTARILDI" : c.remindedAt ? "HATIRLATILDI" : "BEKLIYOR",
-      createdAtLabel: c.createdAt.toLocaleDateString("tr-TR"),
-      remindedAtLabel: c.remindedAt ? c.remindedAt.toLocaleDateString("tr-TR") : null,
+      createdAtLabel: formatDate(c.createdAt),
+      remindedAtLabel: c.remindedAt ? formatDate(c.remindedAt) : null,
       canResend: !c.recoveredAt
     };
   });

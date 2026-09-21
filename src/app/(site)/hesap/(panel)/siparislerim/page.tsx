@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/require-customer";
-import { formatPrice } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
 import { orderStatusLabel, returnStatuses, type OrderStatus } from "@/lib/status";
 import { HesapOrderCard, type HesapOrderView } from "@/components/hesap-order-card";
 
@@ -47,7 +47,7 @@ export default async function HesapSiparislerimPage() {
       id: order.id,
       orderNumber: order.orderNumber,
       statusLabel: orderStatusLabel[order.status as OrderStatus] ?? order.status,
-      createdAtLabel: order.createdAt.toLocaleDateString("tr-TR"),
+      createdAtLabel: formatDate(order.createdAt),
       totalLabel: formatPrice(order.totalCents),
       shipment: order.shipment ? { carrier: order.shipment.carrier, trackingCode: order.shipment.trackingCode } : null,
       customerEmail: order.customerEmail,
@@ -64,7 +64,7 @@ export default async function HesapSiparislerimPage() {
         type: rr.type,
         reason: rr.reason,
         status: returnStatuses.includes(rr.status as (typeof returnStatuses)[number]) ? rr.status : "TALEP_EDILDI",
-        createdAtLabel: rr.createdAt.toLocaleDateString("tr-TR"),
+        createdAtLabel: formatDate(rr.createdAt),
         adminNote: rr.adminNote
       }))
     };

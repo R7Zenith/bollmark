@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { formatExactPrice as formatPrice } from "@/lib/format";
+import { formatDateTime, formatExactPrice as formatPrice } from "@/lib/format";
 import { paymentStatusLabel, paymentStatusTone } from "@/lib/status";
 import { getRefundView, refundReasonLabel, refundReasons, type RefundReason } from "@/lib/payment/orders/refund";
 import { remainingCents } from "@/lib/payment/orders/refund-math";
@@ -96,7 +96,7 @@ export async function OrderPaymentCard({ orderId, isAdmin, isDeleted }: { orderI
           <Row label="Dolandırıcılık durumu">
             {success.fraudStatus === 1 ? "Onaylı" : success.fraudStatus === 0 ? "İnceleniyor" : success.fraudStatus === -1 ? "Reddedildi" : "-"}
           </Row>
-          {order.paidAt && <Row label="Ödeme zamanı">{order.paidAt.toLocaleString("tr-TR")}</Row>}
+          {order.paidAt && <Row label="Ödeme zamanı">{formatDateTime(order.paidAt)}</Row>}
         </div>
       )}
 
@@ -106,7 +106,7 @@ export async function OrderPaymentCard({ orderId, isAdmin, isDeleted }: { orderI
           <ul className="mt-1 space-y-1 text-xs text-admin-text-muted">
             {attempts.map((attempt) => (
               <li key={attempt.id}>
-                {attempt.createdAt.toLocaleString("tr-TR")} — {attemptStatusLabel[attempt.status] ?? attempt.status}
+                {formatDateTime(attempt.createdAt)} — {attemptStatusLabel[attempt.status] ?? attempt.status}
                 {attempt.errorMessage ? ` (${attempt.errorMessage})` : ""}
               </li>
             ))}
@@ -141,7 +141,7 @@ export async function OrderPaymentCard({ orderId, isAdmin, isDeleted }: { orderI
             pendingRefunds.map((refund) => (
               <div key={refund.id} className="mt-2 flex flex-wrap items-center gap-2">
                 <span>
-                  {refund.kind === "CANCEL" ? "İptal" : "İade"} {formatPrice(refund.amountCents)} ({refund.createdAt.toLocaleString("tr-TR")})
+                  {refund.kind === "CANCEL" ? "İptal" : "İade"} {formatPrice(refund.amountCents)} ({formatDateTime(refund.createdAt)})
                 </span>
                 <form action={resolvePendingRefundAction.bind(null, orderId, refund.id, "SUCCESS")}>
                   <ConfirmSubmitButton
@@ -269,7 +269,7 @@ export async function OrderPaymentCard({ orderId, isAdmin, isDeleted }: { orderI
                   {refund.kind === "CANCEL" ? "İptal" : refund.isShipping ? "Kargo iadesi" : "Kalem iadesi"} · {formatPrice(refund.amountCents)} ·{" "}
                   {refundReasonLabel[refund.reason as RefundReason] ?? refund.reason}
                   <span className="block text-admin-text-muted">
-                    {refund.createdAt.toLocaleString("tr-TR")} · {refund.createdByEmail}
+                    {formatDateTime(refund.createdAt)} · {refund.createdByEmail}
                     {refund.errorMessage ? ` · ${refund.errorMessage}` : ""}
                   </span>
                 </span>

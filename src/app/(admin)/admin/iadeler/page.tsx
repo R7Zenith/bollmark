@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/admin/empty-state";
 import { IadelerFilters } from "@/components/admin/iadeler-filters";
 import { ReturnsTable, type ReturnRow } from "@/components/admin/returns-table";
 import { ReturnFeedback } from "@/components/admin/return-feedback";
+import { formatDate } from "@/lib/format";
 
 interface ReturnItemSnapshot {
   orderItemId: string;
@@ -120,7 +121,7 @@ export default async function AdminReturnsPage({
       itemsSummary: itemsSummary || "-",
       status: rr.status,
       adminNote: rr.adminNote,
-      createdAtLabel: rr.createdAt.toLocaleDateString("tr-TR")
+      createdAtLabel: formatDate(rr.createdAt)
     };
   });
 
