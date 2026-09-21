@@ -20,10 +20,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
       ? await prisma.contactMessage.count({ where: { status: "YENI" } }).catch(() => 0)
       : 0;
 
+  // Sidebar'daki "Siparişler" rozeti: ödemesinde dikkat gerektiren (needsAttention) siparişler.
+  const attentionOrders = await prisma.order
+    .count({ where: { needsAttention: true, deletedAt: null } })
+    .catch(() => 0);
+
   return (
     <AdminSessionProvider>
       <ToastProvider>
-        <AdminShell role={session.user?.role} unreadMessages={unreadMessages}>{children}</AdminShell>
+        <AdminShell role={session.user?.role} unreadMessages={unreadMessages} attentionOrders={attentionOrders}>{children}</AdminShell>
       </ToastProvider>
     </AdminSessionProvider>
   );

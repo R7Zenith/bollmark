@@ -136,11 +136,13 @@ function NavLink({
 export function Sidebar({
   role,
   unreadMessages = 0,
+  attentionOrders = 0,
   isMobileOpen = false,
   onClose
 }: {
   role?: string;
   unreadMessages?: number;
+  attentionOrders?: number;
   isMobileOpen?: boolean;
   onClose?: () => void;
 }) {
@@ -267,7 +269,13 @@ export function Sidebar({
                         item={item}
                         isActive={isItemActive(item, pathname)}
                         onNavigate={onClose}
-                        badge={item.href === "/admin/mesajlar" ? unreadMessages : undefined}
+                        badge={
+                          item.href === "/admin/mesajlar"
+                            ? unreadMessages
+                            : item.href === "/admin/siparisler"
+                              ? attentionOrders
+                              : undefined
+                        }
                       />
                     ))}
                   </div>

@@ -24,6 +24,7 @@ import { Button } from "@/components/admin/button";
 import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
 import { OrderFeedback } from "@/components/admin/order-feedback";
 import { OrderDeleteButton, OrderRestoreButton } from "@/components/admin/order-delete-restore-actions";
+import { OrderPaymentCard } from "@/components/admin/order-payment-card";
 
 const inputClass =
   "w-full rounded-md border border-admin-border px-3 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
@@ -75,10 +76,10 @@ export default async function OrderDetailPage({
   searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ basarili?: string; hata?: string }>;
+  searchParams: Promise<{ basarili?: string; hata?: string; mesaj?: string }>;
 }) {
   const { id } = await params;
-  const { basarili, hata } = await searchParams;
+  const { basarili, hata, mesaj } = await searchParams;
   const session = await getServerSession(authOptions);
   const isAdmin = session?.user?.role === "ADMIN";
   const order = await prisma.order.findUnique({
@@ -121,7 +122,7 @@ export default async function OrderDetailPage({
 
   return (
     <div className="max-w-5xl">
-      <OrderFeedback basarili={basarili} hata={hata} />
+      <OrderFeedback basarili={basarili} hata={hata} mesaj={mesaj} />
 
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold text-admin-text">Sipariş {order.orderNumber}</h1>
@@ -234,6 +235,8 @@ export default async function OrderDetailPage({
               </div>
             </div>
           </Card>
+
+          <OrderPaymentCard orderId={order.id} isAdmin={isAdmin} isDeleted={isDeleted} />
 
           <Card title="Zaman Çizelgesi">
             <ol className="space-y-4">

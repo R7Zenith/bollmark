@@ -42,6 +42,11 @@ export function ReturnsTable({
             {row.orderNumber}
           </Link>
           <p className="text-xs text-admin-text-muted">{row.customerName}</p>
+          {row.status === "TAMAMLANDI" && (
+            <Link href={`/admin/siparisler/${row.orderId}#odeme`} className="text-xs text-admin-accent hover:underline">
+              Ödeme kartı / iade →
+            </Link>
+          )}
         </div>
       )
     },

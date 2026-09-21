@@ -187,7 +187,12 @@ async function applyPaid(attemptId: string, details: PaidDetails): Promise<PaidO
         shippingPaymentTransactionId: shippingTransactionId,
         shippingPaidCents,
         paymentExpiresAt: null,
-        ...(notes.length > 0 ? { needsAttention: true, attentionNote: appendNote(order.attentionNote, notes.join("; ")) } : {})
+        ...(notes.length > 0
+          ? { needsAttention: true, attentionNote: appendNote(order.attentionNote, notes.join("; ")) }
+          : // Inceleme (REVIEW) sonucu olumlu netlesti: "kargolamayin" uyarisi artik gecersiz.
+            order.paymentStatus === "REVIEW"
+            ? { needsAttention: false, attentionNote: null }
+            : {})
       }
     });
     return { kind: late ? ("late" as const) : ("paid" as const), note: notes.length > 0 ? notes.join("; ") : null };

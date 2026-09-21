@@ -19,7 +19,9 @@ export const auditActions = [
   "PAYMENT_CONNECTION_TESTED",
   "PAYMENT_REFUND_CREATED",
   "PAYMENT_CANCEL_CREATED",
-  "PAYMENT_MANUAL_RECONCILE"
+  "PAYMENT_MANUAL_RECONCILE",
+  "PAYMENT_ATTENTION_CLEARED",
+  "PAYMENT_REFUND_RESOLVED"
 ] as const;
 
 export const auditActionLabel: Record<string, string> = {
@@ -40,5 +42,7 @@ export const auditActionLabel: Record<string, string> = {
   PAYMENT_CONNECTION_TESTED: "Sanal POS Bağlantı Testi",
   PAYMENT_REFUND_CREATED: "Ödeme İadesi Yapıldı",
   PAYMENT_CANCEL_CREATED: "Ödeme İptal Edildi",
-  PAYMENT_MANUAL_RECONCILE: "Ödeme Durumu Elle Sorgulandı"
+  PAYMENT_MANUAL_RECONCILE: "Ödeme Durumu Elle Sorgulandı",
+  PAYMENT_ATTENTION_CLEARED: "Ödeme Uyarısı Kapatıldı",
+  PAYMENT_REFUND_RESOLVED: "Belirsiz İade Kaydı Sonuçlandırıldı"
 };

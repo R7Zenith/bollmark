@@ -63,6 +63,16 @@ export async function notifyCustomerStatusChange(order: Order, status: OrderStat
   });
 }
 
+export async function notifyCustomerRefund(order: Order, amountCents: number, fullyRefunded: boolean): Promise<void> {
+  await sendMail({
+    to: order.customerEmail,
+    subject: `${fullyRefunded ? "İadeniz yapıldı" : "Kısmi iadeniz yapıldı"} - ${order.orderNumber}`,
+    html: `<p>Merhaba ${order.customerName}, ${order.orderNumber} numaralı siparişiniz için ${formatPrice(amountCents)} tutarında
+           ${fullyRefunded ? "" : "kısmi "}iade işlemi başlatıldı.</p>
+           <p>Tutarın kartınıza yansıma süresi bankanıza göre değişir.</p>`
+  });
+}
+
 export async function notifyReturnStatusChange(order: Order, status: ReturnStatus): Promise<void> {
   if (!returnStatusNotifiable.includes(status)) return;
   await sendMail({
