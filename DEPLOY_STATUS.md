@@ -4756,3 +4756,45 @@ Test siparisleri gercek e-posta gondermemis olabilir ama admin adresine "Yeni si
 
 **Acik / sonraki fazlar:** webhook (Faz 3), iade/iptal ve admin Odeme karti (Faz 3), taksitli gercek odeme testi, PERSONEL ile gercek giris reddi, sidebar'da needsAttention sayaci.
 **Durum:** Sanal POS SANDBOX modunda ACIK birakildi (isEnabled=true) ki checkout calissin; kapatmak icin /admin/sanal-pos > "Sanal POS aktif" kutusunu kaldirin. Bu durumda siparisler test odemesiyle PAID olur, gercek para cekilmez.
+
+
+## iyzico Sanal POS — Faz 3 (webhook, iade/iptal, admin Ödeme kartı) kodu yazıldı ve deploy edildi; sandbox uçtan uca testi BEKLİYOR (2026-09-21)
+
+Commit 1634ae0 main'e push edildi, canlıda `/api/odeme/iyzico/webhook` rotası cevap veriyor (geçersiz gövde → 400).
+
+**Yazılanlar**
+- Webhook `POST /api/odeme/iyzico/webhook`: zod gövde doğrulaması; `X-IYZ-SIGNATURE-V3` VARSA `timingSafeEqual` ile doğrulanır (yanlışsa 401), YOKSA yine
+  işlenir çünkü aksiyon gövdedeki hiçbir alana değil `reconcileToken(token, "webhook")` sunucu-sunucu sorgusuna dayanır. `CHECKOUT_FORM_AUTH` dışı olaylar
+  loglanır (200), bilinmeyen/boş token 200, geçici hata (iyzico erişilemez / DB) 5xx (iyzico yeniden dener). Webhook kaynaklı FAILURE kesin sayılır (`isFailureFinal`).
+- İade/iptal çekirdeği `src/lib/payment/orders/refund.ts` (+ saf `refund-math.ts`): sipariş satırı `SELECT ... FOR UPDATE` ile kilitlenir, kalan tutar
+  (ödenen − iade − bekleyen) hesaplanıp `PaymentRefund(PENDING)` rezerve edilir, sonra iyzico çağrılır; SAYAÇLAR YALNIZCA BAŞARIDA değişir. Kalem, kargo ve tam iade
+  (`/payment/refund`, kalem bazlı `paymentTransactionId`), tam tutar iptal (`/payment/cancel`, yalnızca hiç iade yokken). Kalem tamamen iade edilince (ve
+  "stoğa geri ekle" işaretliyse) stok bir kez artar. Tam iadede `Order.status=REFUNDED` (iptal edilmiş/geç ödemeli siparişte durum değişmez, sadece ödeme durumu).
+  Yerel/preview ortam LIVE ödemenin iadesini reddeder. Ağ/zaman aşımında sonuç BELİRSİZ: kayıt PENDING kalır, tutar rezerve kalır, sipariş "dikkat gerekiyor"
+  olur; ADMIN Ödeme kartından "iyzico'da yapılmış / yapılmamış" ile sonuçlandırır (plan dışı ek: takılı PENDING sonsuza dek iadeyi kilitlemesin diye).
+- Sipariş detayında **Ödeme kartı** (`order-payment-card.tsx`, `odeme-actions.ts`): ödeme özeti, denemeler, kalem bazlı iade edilebilir tutar, iade formu (kapsam,
+  tutar, sebep, not, stok), iptal formu, "iyzico'dan durumu sorgula" (`PAYMENT_MANUAL_RECONCILE`), "Uyarıyı kapat" (`PAYMENT_ATTENTION_CLEARED`), iade geçmişi.
+  Tüm eylemler yalnızca ADMIN (`requireAdmin` her action içinde); PERSONEL kartı salt okunur görür. Denetim: `PAYMENT_REFUND_CREATED`, `PAYMENT_CANCEL_CREATED`,
+  `PAYMENT_REFUND_RESOLVED`. Müşteriye iade maili (`notifyCustomerRefund`).
+- Sidebar "Siparişler" rozeti (needsAttention sayısı), İadeler tablosunda TAMAMLANDI taleplerde "Ödeme kartı / iade" bağlantısı.
+- Faz 2 düzeltmesi: REVIEW (dolandırıcılık incelemesi) olumlu sonuçlanınca eski "HAZIRLAMA/KARGOLAMA YAPMAYIN" uyarısı artık temizleniyor (webhook bunu tetikler).
+
+**Doğrulama (yapılanlar)**
+- `npm test` 79/79 (yeni: iade tutar/kalan/ardışık kısmi/durum geçişi/iptal koşulu, TL ayrıştırma, webhook gövde + V3 imza geçerli/yanlış/eksik), `tsc --noEmit` temiz,
+  `npm run build` başarılı, dokunulan dosyalarda yeni lint hatası yok (sidebar'daki 2 `set-state-in-effect` hatası önceden vardı).
+
+**YAPILAMADI (Faz 3'ün bitti sayılması için gerekli)**
+- Sandbox uçtan uca testleri (plan bölüm 8: madde 5, 11, 13, 15, 16) KOŞULMADI. Sebepler: (1) bu makinedeki `.env`'de `PAYMENT_ENCRYPTION_KEY` yok (Faz 1'de Vercel'e "Secret"
+  olarak eklendi, geri okunamaz), yani sandbox anahtarları yerelde çözülemez ve iade çağrıları yerelden iyzico'ya atılamaz; testler production'da yapılmalı. (2) Production'da
+  sandbox siparişi oluşturmak ve `PaymentSettings.isEnabled`'ı geçici açmak (şu an `false`) otomatik izin denetiminde reddedildi, aşılmadı. (3) `.env`'deki ADMIN_PASSWORD ile
+  admin girişi mümkün değil (DB'deki şifre farklı), Ödeme kartı arayüzü tarayıcıda hiç açılmadı.
+- Dolayısıyla HENÜZ BİLİNMEYEN (plan 1.9/3): `/payment/refund`'ın aynı gün davranışı (iptal mi zorunlu?), `/payment/cancel` sandbox davranışı, `5406670000000009` ile başarısız iade,
+  taksitli ödemede iade tavanı, iade yanıtının imza alanı (dokümanda formülü doğrulanmadı, yalnızca `status=success` + HTTPS/IYZWSv2 kimlik doğrulaması ile kabul ediliyor).
+- Geçerli imzalı webhook'un canlıda denenmesi (Secret Key gerekir); imza doğrulaması yalnızca birim testiyle (elle hesaplanmış HMAC) kanıtlı.
+- PERSONEL ile gerçek giriş reddi (kural `roles.ts` + `requireAdmin` düzeyinde).
+
+**Bilinen açıklar / karar bekleyenler**
+- Çift ödeme (ikinci başarılı deneme) için panelde iade yolu YOK: ikinci denemenin `itemTransactions`'ı saklanmıyor. Şimdilik iyzico panelinden iade + "Uyarıyı kapat". İstenirse
+  `/v2/payment/refund` (paymentId + tutar) ile eklenebilir.
+- İadede kupon hakkı (`usedCount`) ve sadakat puanı geri verilmiyor/geri alınmıyor (planda yok).
+- Sanal POS şu an DB'de `isEnabled=false`; checkout `/api/orders` 503 döner.
