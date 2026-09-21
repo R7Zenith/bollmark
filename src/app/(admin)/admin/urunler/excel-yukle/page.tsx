@@ -16,9 +16,9 @@ export default async function ExcelImportPage() {
       <Link href="/admin/urunler" className="inline-flex items-center gap-1 text-sm text-admin-text-muted hover:text-admin-text">
         <ArrowLeft size={14} /> Ürünler
       </Link>
-      <h1 className="mt-2 text-2xl font-semibold text-admin-text">Excel'den Toplu Ürün Yükle</h1>
+      <h1 className="mt-2 text-2xl font-semibold text-admin-text">Excel&apos;den Toplu Ürün Yükle</h1>
       <p className="mt-1 text-sm text-admin-text-muted">
-        Checklist excel'inden ürün ve varyantları içe aktarın. Yeni ürünler için Koton.com'dan renk bazlı
+        Checklist excel&apos;inden ürün ve varyantları içe aktarın. Yeni ürünler için Koton.com&apos;dan renk bazlı
         görseller ve ürün açıklaması otomatik olarak bulunur.
       </p>
 

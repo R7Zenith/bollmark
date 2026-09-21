@@ -63,7 +63,7 @@ export default async function AdminProductsPage({
               <div className="flex items-center gap-2 md:gap-3">
                 <Link href="/admin/urunler/excel-yukle">
                   <Button variant="secondary" size="sm-md">
-                    <FileSpreadsheet size={16} /> Excel'den Yükle
+                    <FileSpreadsheet size={16} /> Excel&apos;den Yükle
                   </Button>
                 </Link>
                 <Link href="/admin/urunler/yeni">
@@ -213,7 +213,7 @@ export default async function AdminProductsPage({
           )}
           <Link href="/admin/urunler/excel-yukle">
             <Button variant="secondary" size="sm-md">
-              <FileSpreadsheet size={16} /> Excel'den Yükle
+              <FileSpreadsheet size={16} /> Excel&apos;den Yükle
             </Button>
           </Link>
           <Link href="/admin/urunler/yeni">

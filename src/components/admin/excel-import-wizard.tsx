@@ -284,7 +284,7 @@ export function ExcelImportWizard({
       <Card title="1. Excel Dosyası Seç">
         <div className="space-y-4">
           <p className="text-sm text-admin-text-muted">
-            Dükkanın checklist sistemi tarafından üretilen .xls veya .xlsx dosyasını seçin. Aynı ÜRÜN KODU'na
+            Dükkanın checklist sistemi tarafından üretilen .xls veya .xlsx dosyasını seçin. Aynı ÜRÜN KODU&apos;na
             sahip satırlar tek bir ürün altında renk/beden varyantı olarak gruplanır.
           </p>
           <label className="flex w-fit cursor-pointer items-center gap-2 rounded-md bg-admin-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
