@@ -58,7 +58,7 @@ export function EmptyCategoryState({ categoryName, gender, suggestions }: Props)
         {suggestions.length > 0 ? (
           // Kartlar sigarsa ilk kart soldan baslar (justify-center tasan icerigin
           // solunu keser); sigarsa auto kenar bosluklari ortalar.
-          <ul className="-mx-4 mt-5 flex snap-x scroll-pl-4 gap-3 overflow-x-auto px-4 pb-2 [scrollbar-width:none] md:mx-0 md:scroll-pl-0 md:px-0 [&::-webkit-scrollbar]:hidden">
+          <ul className="-mx-4 mt-5 flex snap-x scroll-pl-4 gap-3 overflow-x-auto px-4 pb-2 md:mx-0 md:scroll-pl-0 md:px-0">
             {suggestions.map((s, i) => (
               <li
                 key={s.slug}
