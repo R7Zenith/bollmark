@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ShieldCheck, Truck, Undo2 } from "lucide-react";
 
 // logo-white.png'nin gercek en-boy orani (bkz. site-header.tsx LOGO_ASPECT_RATIO,
 // 1400x273px).
@@ -18,6 +19,19 @@ const SHOP_LINKS = [
   { slug: "mont-kaban", label: "Mont & Kaban" }
 ];
 
+// Sol blok: yan yana üç güven kutusu (yalnızca ikon + başlık).
+const TRUST_ITEMS = [
+  { icon: ShieldCheck, title: "Güvenli ödeme" },
+  { icon: Undo2, title: "Kolay iade" },
+  { icon: Truck, title: "Hızlı kargo" }
+];
+
+// iyzico'nun resmi logo paketindeki footer bandı (beyaz varyant, koyu zemin
+// için): "iyzico ile Öde" + Mastercard + Visa + American Express + Troy.
+// iyzico, sitede "iyzico ile Öde", Visa ve Mastercard logolarının yer almasını
+// şart koşuyor (bkz. docs.iyzico.com/ek-bilgiler/iyzico-logo-paketi).
+const IYZICO_LOGO_BAND = { src: "/payment/iyzico-logo-band-white.svg", width: 456, height: 32 };
+
 const FOOTER_LINK_CLASS = "nav-underline inline-block text-cream";
 
 function InstagramIcon() {
@@ -34,80 +48,94 @@ export function SiteFooter() {
   return (
     <footer className="mt-section bg-ink text-cream">
       <div className="w-full px-6 py-6 xl:px-9">
-        {/* Üst blok: link sütunları */}
-        <div className="grid gap-8 sm:grid-cols-3">
-          <div>
-            <p className="text-sm uppercase tracking-wide text-cream">Kurumsal</p>
-            <ul className="mt-3 space-y-2 text-sm">
-              <li>
-                <Link href="/sayfa/hakkimizda" className={FOOTER_LINK_CLASS}>
-                  Hakkımızda
-                </Link>
+        {/* Üst blok: sol yarıda güven kutuları, sağ yarıda link sütunları */}
+        <div className="grid gap-6 md:grid-cols-2 md:gap-10">
+          <ul className="grid max-w-lg grid-cols-3 gap-3 self-start">
+            {TRUST_ITEMS.map(({ icon: Icon, title }) => (
+              <li
+                key={title}
+                className="flex flex-col items-center gap-2 border border-cream/30 px-2 py-5 text-center"
+              >
+                <Icon size={22} strokeWidth={1.5} aria-hidden="true" />
+                <span className="text-xs uppercase tracking-wide text-cream">{title}</span>
               </li>
-              <li>
-                <Link href="/sayfa/kargo-bilgisi" className={FOOTER_LINK_CLASS}>
-                  Kargo Bilgisi
-                </Link>
-              </li>
-              <li>
-                <Link href="/sayfa/iade-kosullari" className={FOOTER_LINK_CLASS}>
-                  İade Koşulları
-                </Link>
-              </li>
-              {/* /siparis-durumu, iade kosullari metniyle karistirilmasin diye
-                  "İade & Değişim" yerine ne yaptigini soyleyen bir etiketle
-                  ayri tutuluyor - bu sayfa siparis takip + iade/degisim TALEBI
-                  olusturma araci, yukaridaki ise sadece kosullarin metni. */}
-              <li>
-                <Link href="/siparis-durumu" className={FOOTER_LINK_CLASS}>
-                  Sipariş Takip &amp; İade Talebi
-                </Link>
-              </li>
-              <li>
-                <Link href="/sayfa/gizlilik-politikasi" className={FOOTER_LINK_CLASS}>
-                  Gizlilik Politikası
-                </Link>
-              </li>
-              <li>
-                <Link href="/sayfa/mesafeli-satis-sozlesmesi" className={FOOTER_LINK_CLASS}>
-                  Mesafeli Satış Sözleşmesi
-                </Link>
-              </li>
-            </ul>
-          </div>
+            ))}
+          </ul>
 
-          <div>
-            <p className="text-sm uppercase tracking-wide text-cream">İletişim</p>
-            <ul className="mt-3 space-y-2 text-sm">
-              <li>
-                <Link href="/iletisim" className={FOOTER_LINK_CLASS}>
-                  Bize Ulaşın
-                </Link>
-              </li>
-              <li>
-                <a href="mailto:bilgi@bollmark.com" className={FOOTER_LINK_CLASS}>
-                  bilgi@bollmark.com
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <p className="text-sm uppercase tracking-wide text-cream">Alışveriş</p>
-            <ul className="mt-3 space-y-2 text-sm">
-              {SHOP_LINKS.map((item) => (
-                <li key={item.slug}>
-                  <Link href={`/urunler?kategori=${item.slug}`} className={FOOTER_LINK_CLASS}>
-                    {item.label}
+          <div className="grid gap-8 sm:grid-cols-3">
+            <div>
+              <p className="text-sm uppercase tracking-wide text-cream">Kurumsal</p>
+              <ul className="mt-3 space-y-2 text-sm">
+                <li>
+                  <Link href="/sayfa/hakkimizda" className={FOOTER_LINK_CLASS}>
+                    Hakkımızda
                   </Link>
                 </li>
-              ))}
-              <li>
-                <Link href="/urunler" className={FOOTER_LINK_CLASS}>
-                  Tüm Ürünler
-                </Link>
-              </li>
-            </ul>
+                <li>
+                  <Link href="/sayfa/kargo-bilgisi" className={FOOTER_LINK_CLASS}>
+                    Kargo Bilgisi
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/sayfa/iade-kosullari" className={FOOTER_LINK_CLASS}>
+                    İade Koşulları
+                  </Link>
+                </li>
+                {/* /siparis-durumu, iade kosullari metniyle karistirilmasin diye
+                    "İade & Değişim" yerine ne yaptigini soyleyen bir etiketle
+                    ayri tutuluyor - bu sayfa siparis takip + iade/degisim TALEBI
+                    olusturma araci, yukaridaki ise sadece kosullarin metni. */}
+                <li>
+                  <Link href="/siparis-durumu" className={FOOTER_LINK_CLASS}>
+                    Sipariş Takip &amp; İade Talebi
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/sayfa/gizlilik-politikasi" className={FOOTER_LINK_CLASS}>
+                    Gizlilik Politikası
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/sayfa/mesafeli-satis-sozlesmesi" className={FOOTER_LINK_CLASS}>
+                    Mesafeli Satış Sözleşmesi
+                  </Link>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-sm uppercase tracking-wide text-cream">İletişim</p>
+              <ul className="mt-3 space-y-2 text-sm">
+                <li>
+                  <Link href="/iletisim" className={FOOTER_LINK_CLASS}>
+                    Bize Ulaşın
+                  </Link>
+                </li>
+                <li>
+                  <a href="mailto:bilgi@bollmark.com" className={FOOTER_LINK_CLASS}>
+                    bilgi@bollmark.com
+                  </a>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <p className="text-sm uppercase tracking-wide text-cream">Alışveriş</p>
+              <ul className="mt-3 space-y-2 text-sm">
+                {SHOP_LINKS.map((item) => (
+                  <li key={item.slug}>
+                    <Link href={`/urunler?kategori=${item.slug}`} className={FOOTER_LINK_CLASS}>
+                      {item.label}
+                    </Link>
+                  </li>
+                ))}
+                <li>
+                  <Link href="/urunler" className={FOOTER_LINK_CLASS}>
+                    Tüm Ürünler
+                  </Link>
+                </li>
+              </ul>
+            </div>
           </div>
         </div>
 
@@ -141,8 +169,16 @@ export function SiteFooter() {
 
       {/* Alt bar */}
       <div className="px-6 py-4 xl:px-9">
-        <div className="flex w-full flex-wrap items-center gap-2 text-xs text-cream">
-          © {new Date().getFullYear()} Bollmark. Tüm hakları saklıdır.
+        <div className="flex w-full flex-wrap items-center justify-between gap-x-6 gap-y-3 text-xs text-cream">
+          <span>© {new Date().getFullYear()} Bollmark. Tüm hakları saklıdır.</span>
+          <Image
+            src={IYZICO_LOGO_BAND.src}
+            alt="iyzico ile Öde, Mastercard, Visa, American Express, Troy"
+            width={IYZICO_LOGO_BAND.width}
+            height={IYZICO_LOGO_BAND.height}
+            unoptimized
+            className="h-5 w-auto"
+          />
         </div>
       </div>
     </footer>
