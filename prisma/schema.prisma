@@ -5,6 +5,9 @@
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
+  // Kucuk (2,3 MB) sorgu derleyicisi: varsayilan "fast" wasm 4,6 MB ve her
+  // Vercel function'ina giriyor (bkz. DEPLOY_STATUS.md, Functions Storage).
+  compilerBuild = "small"
 }
 
 datasource db {

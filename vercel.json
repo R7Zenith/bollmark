@@ -1,4 +1,5 @@
 {
+  "ignoreCommand": "git diff --quiet \"${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}\" HEAD -- . ':(exclude)*.md'",
   "crons": [
     { "path": "/api/cron/sepet-hatirlatma", "schedule": "0 8 * * *" },
     { "path": "/api/cron/odeme-mutabakat", "schedule": "30 8 * * *" }

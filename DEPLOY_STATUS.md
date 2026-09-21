@@ -5035,3 +5035,80 @@ Sahibinin karariyla "Haber Ver" e-posta formu kaldirildi (plandaki opsiyonel bol
 - `src/app/(site)/api/kategori-bildirimi/route.ts` silindi; `prisma/schema.prisma`'dan `CategoryAlert` modeli cikarildi. **Neon'daki `CategoryAlert` tablosu hala duruyor** (0 satir, hicbir kod kullanmiyor): `prisma db push --accept-data-loss` ile dusurulmesi gerekiyor, bu oturumda izin verilmedigi icin calistirilmadi. Zararsiz; su sekilde temizlenebilir: `npx prisma db push --accept-data-loss`.
 - Oneri kartlari: gorsel artik o kategoriden en yeni urunun ilk fotografi (`firstImageUrl`: once `images`, yoksa `optionImages` - fotograflar cogunlukla renk altinda tutuluyor), yoksa kategori gorseli. Sorgu `urunler/page.tsx` icindeki `withSampleProductImages`, yalniz bos ekran gosterilirken calisir.
 - Sol ilk kartin yarisinin kesilmesi (tasan icerikte `justify-center` solu kesiyordu) giderildi: ilk/son karta `ml-auto`/`mr-auto`. Mobilde `scroll-pl-4` (kaydirma cubugu gorunur kalir, sahibi istedi).
+
+---
+
+## Vercel "Functions Storage" kotasi analizi (2026-09-22) - yalniz analiz, kod degismedi
+
+Sorun: kota 7,91/10 GB (30 gunluk pencere), her deploy'da artiyor. Bu not sadece olcum + oneri; hicbir oneri UYGULANMADI.
+
+**Yontem / sinirlar**: `vercel` CLI bu makinede yuklu degil ve oturum acik degil (`vercel build` icin `vercel pull` + giris gerekir), bu yuzden `vercel build` CALISTIRILAMADI. Yerine `.next` uretim build'inin (2026-09-22 01:12) her route icin urettigi nft trace dosyalari (`.next/server/**/*.nft.json`) okundu; Vercel function paketini bu listeden kurar. Fark: yerel Windows build'i oldugu icin `sharp` Linux ikili dosyalari (asagida) olculemedi. Olcum betikleri oturumun gecici klasorundeydi, repoya eklenmedi.
+
+**Sonuc (deploy basina, paylasimsiz toplam)**
+- 90 nft dosyasi; statik onuretilmis sayfalar cikarilinca ~80 gercek lambda, toplam ~600 MB (tum nft'ler: 637 MB). Function basina min 1,7 / medyan 7,1 / maks 14,4 MB (ana sayfa `/`).
+- Kalem dagilimi (tum function'lar toplami): `@prisma/client` ~385 MB (%60), `next` calisma zamani ~119 MB (1,3 MB x 90), `.next/server/chunks` (uygulama kodu) ~104 MB, `public/` ~7,6 MB, `sharp` 5 admin route'unda.
+- En buyukler: `/` 14,4 MB; admin `gorsel-ekle/gorsel-yenile/gorsel-getir/gorsel-renk-ara` ~10,7 MB; `admin/upload` 9,0; `urunler/[slug]` 8,8; diger admin sayfalari ~7,4-8,4 MB.
+
+**Nedenler**
+1. `node_modules/@prisma/client/runtime/query_compiler_fast_bg.postgresql.wasm-base64.mjs` = 4,58 MB, HER lambda'da (~80/80; kok layout/ortak kodlar prisma'ya dokunuyor). Prisma 7 `prisma-client` uretecinin varsayilan "fast" derleyicisi. Ayni klasorde "small" varyanti 2,31 MB.
+2. Ana sayfa function'i `public/` altini (menu 3,4 MB, anasayfa 2,2 MB, hero-model.jpg 1,3 MB, catalog-banner.jpg 0,4 MB = ~8,2 MB) paketliyor. Sebep `next.config.mjs`teki Include DEGIL, `src/components/home/instagram-grid.tsx:24` icindeki `existsSync(path.join(process.cwd(), "public", ...))`: nft bunu `public/*` joker izi olarak okuyor. Bu gorseller Vercel'de CDN'den servis edildigi icin lambda'da gereksiz. Diger 88 lambda'da `public/` yalniz ~0,09 MB (logo/ikon).
+3. `urunler/[slug]` (musteri sayfasi) `description-html.ts` uzerinden cheerio + undici + htmlparser2 (tek 1,46 MB chunk) aliyor; admin gorsel route'lari da ayni chunk'i `koton-images.ts` uzerinden aliyor (orada gercekten gerekli).
+4. `sharp` (5 admin route'u): yerelde 0,6 MB + 0,42 MB win32 `.node`; Vercel'de (Linux) `@img/sharp-linux-x64` + libvips eklenir, tahminen +15 MB/route (OLCULMEDI).
+
+**Config kontrolu**
+- `next.config.mjs`: yalniz `outputFileTracingIncludes: { "/": ["./public/instagram/**/*"] }` var (izlenen: yalniz 2 README.md, 0 MB - sorun degil). `outputFileTracingExcludes` YOK.
+- Prisma `binaryTargets`: schema'da yok; uretec `prisma-client` (Rust motoru yok, wasm derleyici + Neon adapter). Hicbir lambda'da query-engine/`.node` binary'si izlenmiyor (tek `.node` sharp'in). Yani "fazla platform binary'si" sorunu YOK; asil kalem wasm derleyicisi.
+
+**Oneriler (tahmini kazanc, uygulanmadi)**
+1. `prisma/schema.prisma` generator'a `compilerBuild = "small"` + `prisma generate`: -2,27 MB x ~80 lambda = **~-170 MB deploy basina (~%29)**. En buyuk ve en kolay kazanc. Risk: sorgu derleme biraz yavaslayabilir; canliya cikmadan admin/urun listesi ile denenmeli.
+2. Ana sayfa icin `outputFileTracingExcludes: { "/": ["./public/menu/**", "./public/anasayfa/**", "./public/hero-model.jpg", "./public/catalog-banner.jpg", "./public/payment/**"] }`: **~-8 MB** (yalniz 1 lambda, ~%1,4). Include/Exclude birlikte `public/instagram` izini koruyor mu build'de dogrulanmali. Kalici cozum: `existsSync` kontrolunu `public` joker izi birakmayacak sekilde (sabit liste / env) degistirmek.
+3. `description-html.ts`ten cheerio'yu ayirmak (render yolunda yalniz sanitize-html kalsin): `urunler/[slug]`ta **~-1,4 MB** (1 route, kucuk).
+4. Deploy sayisini azaltmak: son 30 gunde 339 commit, bunun 55'i (%16) yalniz `.md`; her push deploy uretiyorsa bos yere kota harciyor. Vercel > Settings > Git > Ignored Build Step: `git diff HEAD^ HEAD --quiet -- . ':(exclude)*.md'` (0 = build atla). Ayrica commit'leri toplu push etmek.
+5. Kalibrasyon (once bu yapilmali): Vercel > son deployment > Functions/Build Summary'deki gercek function boyutlari ile bu nft olcumu karsilastirilmali; ayrica tek bir deploy sonrasi kota artisi (MB) ~600 MB mi (ham) yoksa ~150-200 MB mi (sikistirilmis) bakilmali. 339 commit x 600 MB kotadan cok buyuk oldugundan Vercel'in olcumu ham toplam degil (sikistirma/tekilleme/tum push'lar deploy degil); "kota / deploy" oranini bilmeden kazanc mutlak GB olarak degil, **oransal (~%30)** okunmali.
+
+**Toplam beklenti**: 1+2+3 ile deploy basina ~600 MB -> ~420 MB (~%30 azalma); 4 ile deploy sayisi ~%15 daha az. Function sayisini azaltmak (admin ~50 sayfa = ~350 MB) mimari degisiklik gerektirir, onerilmedi. Edge runtime'a gecis de (bcryptjs/sharp/Prisma) riskli oldugu icin onerilmedi.
+
+**Gerekirse gercek `vercel build`**: `npm i -g vercel` -> `vercel login` -> `vercel pull --yes` (NOT: `.vercel/.env.*.local` icine gercek env yazar, gitignore'da) -> `vercel build` -> `du -sh .vercel/output/functions/*.func`.
+
+---
+
+## Functions Storage: 4 oneri uygulandi (2026-09-22)
+
+Ustteki "Vercel Functions Storage kotasi analizi" notundaki 4 oneri sirayla uygulandi; her adimdan sonra `tsc --noEmit`, `npm test` (79/79) ve `npm run build` calistirildi, hepsi temiz (lint: 0 hata, onceki 6 uyari). Boyutlar yine yerel `.next` nft izlerinden olculdu (gercek `vercel build` yapilamadi, Windows izi); gercek Vercel boyutu ilk deploy'da panelden dogrulanmali.
+
+| Adim | Degisiklik | Olculen sonuc (paylasimsiz toplam nft) |
+|---|---|---|
+| Baslangic | - | 637,6 MB (~80 lambda ~600 MB) |
+| 1 | `prisma/schema.prisma` generator'a `compilerBuild = "small"` + `prisma generate` | 455,7 MB (-182 MB, %28,5); medyan function 7,1 -> 4,9 MB |
+| 2 | `next.config.mjs`: `outputFileTracingExcludes` ("/" icin menu, anasayfa, hero-model.jpg, catalog-banner.jpg, payment) | 448,3 MB; ana sayfa 14,4 -> 4.88 MB |
+| 3 | `description-html.ts` cheerio'suz (yalniz sanitize-html); cheerio normalize adimi `koton-images.ts`'e tasindi (`normalizeKotonDescription`) | 447,0 MB; `urunler/[slug]` 8,8 -> 5,3 MB, cheerio/undici bloku pakette yok |
+| 4 | `vercel.json` `ignoreCommand` | deploy sayisini azaltir, boyutu degistirmez |
+
+**Toplam**: 637,6 -> 447,0 MB (**-190 MB, %29,9**); gercek lambda'lar ~600 -> ~418 MB. En buyuk function 14,4 -> 8,6 MB (admin gorsel route'lari, sharp/cheerio gerekli).
+
+**Dogrulamalar**
+- Adim 1: Neon'a karsi admin urun listesi sorgusu (include ile, 20 satir) ve siparis listesi sorgusu hatasiz calisti (Neon'da siparis yok, 0 satir dondu). "fast" ile "small" ayni sorgularla karsilastirildi: soguk ilk sorgu ~300 ms, urun listesi medyan ~300 ms, siparis ~122 ms - iki varyantta fark yok (ag gecikmesi baskin).
+- Adim 2: build sonrasi ana sayfa izinde `public/instagram/*` (gecici bir `post-1.jpg` ile denendi, sonra silindi) hala var; menu/anasayfa/hero/banner/payment yok. Include ile Exclude cakismadi. Logo/ikon dosyalari (~0,09 MB) izde kaliyor.
+- Adim 3: eski (cheerio'lu) ve yeni uygulama Neon'daki 68 urun aciklamasinda + 11 bozuk-HTML/XSS ornegiyle karsilastirildi: HTML farki 0 (DB'de yalniz `\r\n` -> `\n` satir sonu, gorsel etkisiz), duz metin farki yalniz `<script>/<style>` icerigi artik metne sizmiyor (iyilesme). Bozuk `<p><p>` girdilerinde eski davranisi korumak icin sanitize sonrasi `<p></p>` temizligi eklendi. Koton import yolu (cheerio -> sanitize) eskisiyle ayni sonucu verir.
+- Adim 4: komut gercek commit'lerde denendi: yalniz `.md` degistiren commit'lerde cikis 0 (build atlanir), kod commit'lerinde 1 (build calisir); `vercel.json` gecerli JSON, `crons`/`rewrites` aynen duruyor.
+
+**DIKKAT (ignoreCommand)**: komut yalniz SON commit'i (`HEAD^` -> `HEAD`) karsilastirir. Bir push'ta birden fazla commit varsa ve sonuncusu yalniz `.md` ise (ornegin kod commit'i + DEPLOY_STATUS commit'i birlikte push edilirse) kod degisiklikleri DEPLOY EDILMEZ, bir sonraki kod push'una kadar canliya cikmaz. Daha guvenli alternatif (Vercel'in "son basarili deploy" SHA'si; ortam degiskeni Vercel'de dogrulanmadi): `git diff --quiet "${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}" HEAD -- . ':(exclude)*.md'`. Ayrica Vercel'de Settings > Git > Ignored Build Step alani doluysa vercel.json'u ezebilir; panelde bos olmali.
+
+**Bekleyen**: degisiklikler commit/push EDILMEDI. Gercek etki ilk deploy sonrasi Vercel panelinde (Functions boyutlari + kota artisi) dogrulanmali; `sharp` Linux ikilileri (5 admin route'u) hala olculemedi.
+
+---
+
+## ignoreCommand guvenli surume gecti + eski deployment temizligi (2026-09-22)
+
+**1. `vercel.json` `ignoreCommand`**
+- Eski: `git diff HEAD^ HEAD --quiet -- . ':(exclude)*.md'` (yalniz son commit'e bakiyordu)
+- Yeni: `git diff --quiet "${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}" HEAD -- . ':(exclude)*.md'` (son basarili deploy'dan bu yana TUM commit'lere bakar; degisken yoksa `HEAD^`'e duser). Boylece "kod commit'i + sonda .md commit'i" ayni push'ta olsa da kod deploy edilir. Bu, yukaridaki "DIKKAT (ignoreCommand)" uyarisinin cozumudur.
+- Dogrulama: `tsc --noEmit` temiz, `npm run build` basarili. Komut gecici worktree'de gercek commit'lerle denendi: ucu yalniz `.md` olan commit'te eski komut cikis 0 (build ATLAR, kod kaybi riski), yeni komut onceki SHA kod commit'inden onceyse cikis 1 (build calisir), fark yoksa 0, gecersiz SHA'da 128 (build calisir, guvenli yon). `VERCEL_GIT_PREVIOUS_SHA` degiskeninin Vercel'de gercekten tanimli oldugu ilk deploy'da hala dogrulanmadi (tanimsizsa `HEAD^` fallback'i eski davranisla ayni). Panelde Settings > Git > Ignored Build Step bos olmali.
+- Degisiklik commit/push EDILMEDI.
+
+**2. Vercel deployment temizligi (Vercel CLI, `r7zenith` hesabi, login gerekmedi)**
+- Onceki durum: 42 deployment (hepsi production, READY; 2026-09-18 23:12 - 2026-09-21 22:14). `bollmark.com` ve `www.bollmark.com` en yeni deployment'a bagliydi.
+- Kullanici onayiyla en yeni 3 disinda **39 deployment silindi** (`vercel remove <id> --yes`, 0 basarisiz).
+- Kalan deployment ID'leri: `dpl_CvWdLrVN2gduNxnovPmQXrim4L7q` (production alias'lari bunda), `dpl_8Z4hBTToWe53jmDkAX8RH6cwCNxq`, `dpl_37i4KueQSmThUqbbjzJNrAFCux2t`.
+- Silme sonrasi: `bollmark.com`, `www.bollmark.com`, `bollmark.com/urunler` -> HTTP 200; alias'lar hala `dpl_CvWdLrVN...`'de.
+- Not: bu, silinenlere ait rollback secenegini de kaldirir; geri donus yalniz kalan 3 deployment'a mumkun.

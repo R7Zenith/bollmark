@@ -6,6 +6,7 @@
 // arama başarısız olursa (bulunamadı/ağ hatası) hata yutulur, diğer ürünlerin aktarımı
 // durmaz.
 import { put } from "@vercel/blob";
+import * as cheerio from "cheerio";
 import { prisma } from "@/lib/prisma";
 import type { KotonEnrichmentTarget } from "@/lib/excel-import";
 import { sanitizeDescriptionHtml } from "@/lib/description-html";
@@ -16,6 +17,21 @@ const REQUEST_DELAY_MS = 900;
 const MAX_IMAGES_PER_COLOR = 6;
 const USER_AGENT = "Mozilla/5.0 (compatible; BollmarkImportBot/1.0; +https://www.bollmark.com)";
 const FETCH_TIMEOUT_MS = 8000;
+
+// Koton'dan gelen açıklamalar çoğu zaman bozuk HTML içeriyor: çift açılan <p><p>, boş
+// <p></p> çiftleri, kapanmamış/fazladan kapanan etiketler. cheerio (parse5 tabanlı) HTML5
+// ağaç kurma algoritmasını uyguladığı için bunları otomatik düzeltir; ardından boş
+// paragraflar kaldırılıp sanitizeDescriptionHtml ile izinli etiketlere indirilir.
+function normalizeKotonDescription(raw: string): string {
+  const $ = cheerio.load(raw, null, false);
+  $("p").each((_, el) => {
+    const $el = $(el);
+    if ($el.children().length === 0 && ($el.html() ?? "").trim().length === 0) {
+      $el.remove();
+    }
+  });
+  return sanitizeDescriptionHtml($.root().html() ?? "");
+}
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -130,7 +146,7 @@ async function fetchKotonProductData(
 
   const rawDescription =
     typeof data?.product?.attributes?.urun_aciklama === "string" ? data.product.attributes.urun_aciklama : null;
-  const description = rawDescription ? sanitizeDescriptionHtml(rawDescription) : null;
+  const description = rawDescription ? normalizeKotonDescription(rawDescription) : null;
 
   const colorImageUrls = new Map<string, string[]>();
   const variantGroups: unknown[] = Array.isArray(data?.variants) ? data.variants : [];
