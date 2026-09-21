@@ -4832,3 +4832,31 @@ hırka varyantı (cmu2eg2w0002u04ley9nhc6p5) 1 (orijinali 3, iki test siparişi 
 **Temizlik tamamlandı (kullanıcı onayıyla, aynı gün):** 5 test siparişi (ödeme denemeleri/iade kayıtları cascade ile), bağlı ödeme günlükleri, denetim satırları ve
 `Faz3 Test Personel` hesabı silindi; toplam sipariş 0'a döndü. Stoklar orijinal değerine (3/3) geri yüklendi. Sanal POS `isEnabled=false`, `maxInstallment=1`.
 Yukarıdaki "AÇIK: test verisi temizliği YAPILAMADI" notu bu satırla geçersizdir.
+
+
+## iyzico Sanal POS — Faz 4 (sertlestirme, tam test raporu, canliya gecis dokumani) (2026-09-21)
+
+Ayrintili sonuclar: `IYZICO_TEST_RAPORU.md`. Kullanici icin canliya gecis: `IYZICO_CANLIYA_GECIS.md`.
+
+**Sonuc (plan bolum 8, 16 madde):** 13 gecti, 2 kismen (3: hata kartlari iyzico formunda tarayicida reddediliyor, sunucu yolu yalniz birim testli; 15: gecerli imzali webhook
+canlida denenemedi), 1 kosulamadi (16: taksit, sandbox test kartlari taksit sunmuyor), 0 kaldi. Faz 2/3'te gecenler tekrar kosulmadi ("Faz 2/3'te dogrulandi").
+`npm test` 79/79, `tsc` temiz, `build` basarili. `npm run lint` projede temiz degil (74 hata: `.open-next` uretilmis cikti + odeme disi onceden var olan dosyalar);
+odeme dosyalarinda 0 hata.
+
+**Bu fazda yapilanlar**
+- Guvenlik gecisi (plan bolum 7) kod uzerinde: istemci paketi (`.next/static`, 83 dosya) taramasi temiz, `.env` degerleri istemci ciktisinda yok, tum imza karsilastirmalari
+  `timingSafeEqual`, tutar hicbir yerde istemciden alinmiyor, LIVE yalniz production, noindex tamam, yetkisiz erisimler 401/307.
+- Canli regresyon (production, SANDBOX, kullanici onayiyla): siparis BLM260921-1013 (990+350 = 1.340 TL) Visa + 3DS ile PAID oldu; stok 3->2; ayni callback 2 kez tekrar POST
+  edildi -> `already`, stok degismedi; POS kapali/acik/kapali gecisinde `/api/orders` 503 -> 400 -> 503.
+- Tek kod degisikligi: panelin Test Rehberi'ndeki OTP metni. Sandbox 3DS sahte sayfasi dokumandaki `123456`'yi reddediyor, sayfada gosterilen kodu kabul ediyor.
+- `IYZICO_SANAL_POS_PLANI.md` bolum 1.1'deki `123456` ifadesine dokunulmadi.
+
+**"iyzico'ya sorulacaklar"**: gecerli imzali webhook + imza ozelliginin acilmasi, taksitli odemede paidPrice/iade tavani, identityNumber placeholder, canli bankada ayni gun
+iade/iptal, iade yanitinin imza alani, callback alan adi (www) kisiti. Ayrinti: rapor bolum 7.
+
+**Bilinen acik / karar bekleyen**: cift odeme icin panelde iade yolu yok (iyzico panelinden iade + "Uyariyi kapat"); iadede kupon/puan geri verilmiyor; `CRON_SECRET` karsilastirmasi
+sabit zamanli degil (mevcut desen); `POST /api/orders` gecersiz JSON'da 500.
+
+**AÇIK: canli DB'de test verisi kaldi** (silme otomatik izin denetiminde reddedildi, asilmadi): siparis BLM260921-1013 (iyzico-test@example.com, PAID) + bagli odeme denemesi,
+1 terk edilmis sepet, 5 odeme gunlugu satiri, 1 denetim satiri (aktor "iyzico"); gomlek BEYAZ/M varyanti (cmu1ru345000y04jv24d894eg) stogu 2 (orijinali 3). Sanal POS tekrar
+KAPATILDI (`isEnabled=false`, `maxInstallment=1`).

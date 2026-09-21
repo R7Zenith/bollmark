@@ -301,7 +301,8 @@ export default async function AdminSanalPosPage({ searchParams }: { searchParams
         <Card title="Test Rehberi (Sandbox)">
           <p className="mb-3 text-sm text-admin-text-muted">
             Son kullanma tarihi olarak gelecekte herhangi bir ay/yıl, CVC olarak herhangi bir 3 hane girin. 3D Secure
-            doğrulama kodu (OTP): <strong className="text-admin-text">123456</strong>
+            doğrulama sayfası kodu ekranda gösterir (OTP): o kodu girin. iyzico dokümanındaki{" "}
+            <strong className="text-admin-text">123456</strong> sandbox&apos;ta kabul edilmedi.
           </p>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <CardTable title="Başarılı ödeme kartları" rows={testCards} />
