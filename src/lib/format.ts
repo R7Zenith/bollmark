@@ -8,6 +8,16 @@ export function formatPrice(cents: number): string {
   return `${amount} TL`;
 }
 
+// Odeme/iade tutarlari kurus hassasiyetiyle gosterilir (formatPrice tam TL'ye yuvarlar: 150,50 -> 151).
+export function formatExactPrice(cents: number): string {
+  const isWhole = cents % 100 === 0;
+  const amount = new Intl.NumberFormat("tr-TR", {
+    minimumFractionDigits: isWhole ? 0 : 2,
+    maximumFractionDigits: 2
+  }).format(cents / 100);
+  return `${amount} TL`;
+}
+
 export function generateOrderNumber(): string {
   const date = new Date();
   const y = date.getFullYear().toString().slice(-2);

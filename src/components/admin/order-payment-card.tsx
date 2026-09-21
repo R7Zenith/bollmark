@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { formatPrice } from "@/lib/format";
+import { formatExactPrice as formatPrice } from "@/lib/format";
 import { paymentStatusLabel, paymentStatusTone } from "@/lib/status";
 import { getRefundView, refundReasonLabel, refundReasons, type RefundReason } from "@/lib/payment/orders/refund";
 import { remainingCents } from "@/lib/payment/orders/refund-math";

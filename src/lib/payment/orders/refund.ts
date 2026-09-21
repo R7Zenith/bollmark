@@ -3,7 +3,6 @@ import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getCredentials, getPaymentSettings } from "@/lib/payment/settings";
 import { iyzicoPost, IyzicoTransportError, type IyzicoCredentials } from "@/lib/payment/iyzico/client";
-import { describeAdminError } from "@/lib/payment/iyzico/errors";
 import { centsToDecimalString } from "@/lib/payment/iyzico/money";
 import type { PaymentMode } from "@/lib/payment/iyzico/mode";
 import { logPayment } from "@/lib/payment/log";
@@ -57,6 +56,11 @@ export type RefundOutcome =
   | { ok: false; code: RefundFailureCode; message: string };
 
 const failure = (code: RefundFailureCode, message: string): RefundOutcome => ({ code, message, ok: false });
+
+// Yoneticiye gosterilen iade/iptal hatasi: musteri diliyle yazilmis eslemeler ("Kartiniz...") yerine acik iyzico hatasi.
+function describeRefundError(errorCode: string | null, rawMessage?: string): string {
+  return `iyzico iade hatası${errorCode ? ` ${errorCode}` : ""}${rawMessage ? `: ${rawMessage}` : ""}`.slice(0, 250);
+}
 
 interface RefundApiResponse {
   status?: string;
@@ -339,7 +343,7 @@ async function executeRefund(params: {
   }
 
   const errorCode = data.errorCode ? String(data.errorCode) : null;
-  const message = describeAdminError(errorCode, data.errorMessage);
+  const message = describeRefundError(errorCode, data.errorMessage);
   await failRefund(refund.id, errorCode, message);
   await logPayment({
     kind: "REFUND",
@@ -452,7 +456,7 @@ export async function requestCancel(params: RefundRequest): Promise<RefundOutcom
   }
 
   const errorCode = data.errorCode ? String(data.errorCode) : null;
-  const message = describeAdminError(errorCode, data.errorMessage);
+  const message = describeRefundError(errorCode, data.errorMessage);
   await failRefund(refund.id, errorCode, message);
   await logPayment({ kind: "CANCEL", ok: false, orderId: refund.orderId, httpStatus, errorCode: errorCode ?? undefined, summary: `İptal reddedildi: ${message}` });
   return failure("iyzico-error", message);

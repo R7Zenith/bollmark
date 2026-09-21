@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { requireAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit-log";
-import { formatPrice } from "@/lib/format";
+import { formatExactPrice as formatPrice } from "@/lib/format";
 import { notifyCustomerRefund } from "@/lib/order-notifications";
 import { extractIp } from "@/lib/payment/orders/buyer";
 import { reconcileToken } from "@/lib/payment/orders/reconcile";

@@ -1,5 +1,5 @@
 import { sendMail } from "@/lib/mail";
-import { formatPrice } from "@/lib/format";
+import { formatExactPrice, formatPrice } from "@/lib/format";
 import { getSiteUrl } from "@/lib/site-url";
 import { orderStatusLabel, returnStatusLabel, returnStatusNotifiable, type OrderStatus, type ReturnStatus } from "@/lib/status";
 import type { Order } from "@/generated/prisma/client";
@@ -67,7 +67,7 @@ export async function notifyCustomerRefund(order: Order, amountCents: number, fu
   await sendMail({
     to: order.customerEmail,
     subject: `${fullyRefunded ? "İadeniz yapıldı" : "Kısmi iadeniz yapıldı"} - ${order.orderNumber}`,
-    html: `<p>Merhaba ${order.customerName}, ${order.orderNumber} numaralı siparişiniz için ${formatPrice(amountCents)} tutarında
+    html: `<p>Merhaba ${order.customerName}, ${order.orderNumber} numaralı siparişiniz için ${formatExactPrice(amountCents)} tutarında
            ${fullyRefunded ? "" : "kısmi "}iade işlemi başlatıldı.</p>
            <p>Tutarın kartınıza yansıma süresi bankanıza göre değişir.</p>`
   });
