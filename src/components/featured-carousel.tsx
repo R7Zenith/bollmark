@@ -75,7 +75,11 @@ export function FeaturedCarousel({ products }: { products: ProductCardData[] }) 
           serit. Mobil: Release temasinin "Just arrived" carousel'i gibi
           snap-x kaydirmali tek-kart-buyuk gorunum (Ozel Koleksiyonlar
           bolumundeki teknikle ayni, bkz. app/(site)/page.tsx) - kart ekranin
-          buyuk kismini kaplar, sagda bir sonrakinin kenari gorunur. */}
+          buyuk kismini kaplar, sagda bir sonrakinin kenari gorunur.
+          scroll-px-4: scroll-snap-mandatory olmadan container'in kendi
+          px-4'u snap noktasinda gormezden geliniyor - tarayici sayfa
+          yuklenir yuklenmez ilk karti sol kenara "yapistirmak" icin
+          otomatik 16px kaydiriyordu, sol bosluk gorunmez oluyordu. */}
       <div className="hidden overflow-hidden md:block">
         <div
           className="flex w-full transition-transform duration-500 ease-out"
@@ -92,9 +96,9 @@ export function FeaturedCarousel({ products }: { products: ProductCardData[] }) 
         </div>
       </div>
 
-      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden">
+      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden scroll-px-4">
         {products.map((p) => (
-          <div key={p.productId} className="w-[82vw] shrink-0 snap-start">
+          <div key={p.productId} className="w-[75vw] shrink-0 snap-start">
             <ProductCard product={p} />
           </div>
         ))}
