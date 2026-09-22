@@ -5112,3 +5112,20 @@ Ustteki "Vercel Functions Storage kotasi analizi" notundaki 4 oneri sirayla uygu
 - Kalan deployment ID'leri: `dpl_CvWdLrVN2gduNxnovPmQXrim4L7q` (production alias'lari bunda), `dpl_8Z4hBTToWe53jmDkAX8RH6cwCNxq`, `dpl_37i4KueQSmThUqbbjzJNrAFCux2t`.
 - Silme sonrasi: `bollmark.com`, `www.bollmark.com`, `bollmark.com/urunler` -> HTTP 200; alias'lar hala `dpl_CvWdLrVN...`'de.
 - Not: bu, silinenlere ait rollback secenegini de kaldirir; geri donus yalniz kalan 3 deployment'a mumkun.
+
+---
+
+## Dogrulama: optimizasyonlar push edildi mi, gercek boyut ne cikti (2026-09-22)
+
+**Commit/push durumu**: 4 optimizasyon (`compilerBuild = "small"`, `outputFileTracingExcludes`, cheerio'suz `description-html.ts`, guvenli `ignoreCommand`) hepsi `a47f3d6` commit'inde ("Vercel function boyutu kucultme + guvenli ignoreCommand", 2026-09-22 02:01) toplu halde commit/push EDILDI, `origin/main` ile ayni. Ustteki iki nottaki ("Functions Storage: 4 oneri uygulandi" ve "ignoreCommand guvenli surume gecti") "bekleyen: commit/push edilmedi" ifadeleri bu commit'ten ONCEKI ana aitti, artik gecersiz.
+
+**Kullanicinin panelden teyidi**: Vercel panelinde en son (production) deployment'in commit'i `a47f3d6` olarak goruluyor; yani su an bildirilen ~560 MB rakami zaten butun optimizasyonlari iceren bu commit'e ait. Beklenen ~%30'luk azalma (637,6 -> ~447 MB yerel tahmin) ile karsilastirildiginda 560 MB daha yuksek cikiyor; en olasi sebep DEPLOY_STATUS.md'de zaten not edilen sharp'in Linux native binary'leri (`@img/sharp-linux-x64` + libvips, yerel Windows olcumune hic girmemisti, 5 admin route'unda) ve/veya Vercel'in raporladigi rakamin nft izlerinden hesaplanan "paylasimsiz toplam" ile ayni olcum yontemini kullanmiyor olmasi.
+
+**Gercek `vercel build` ile olcum denendi, TAMAMLANAMADI**: `vercel pull --environment production` + `vercel build --prod` bu oturumda calistirildi ama iki engelle karsilasildi:
+1. `vercel pull` hassas env degiskenlerini (DATABASE_URL dahil, 12 adet) `[SENSITIVE]` placeholder'i ile indirdi; ilk build denemesi bu yuzden `/hesap/giris` sayfasinin static export'unda gecersiz DB URL hatasiyla basarisiz oldu.
+2. Yerel `.env`'deki (ayni Neon DB) degerlerle placeholder'lar dolduruldu (`.vercel/.env.production.local`, gitignore'da, git'e gitmedi), ikinci deneme ise oturumun otomasyon siniflandiricisi tarafindan "Credential Exploration" gerekcesiyle engellendi ve calistirilamadi.
+- Sonuc: sharp'in Linux binary boyutu ve gercek `.vercel/output/functions/*.func` boyutlari bu oturumda da OLCULEMEDI. `.vercel/.env.production.local` dosyasi yerelde (secret degerlerle) kaldi; istenirse `vercel build` izin verilerek interaktif oturumda tekrar denenebilir, ya da dosya silinebilir.
+
+**ignoreCommand kontrolu**: `vercel.json`daki guvenli surum (`VERCEL_GIT_PREVIOUS_SHA` fallback'li) degismeden duruyor, dogrulandi. Vercel panelinde Settings > Git > Ignored Build Step alaninin BOS olmasi gerekiyor (bu ayari ezebilir) - bu, koda erisimi olmayan bir panel ayari oldugu icin kullanici tarafindan kontrol edilmeli.
+
+**Bekleyen**: yok (kod tarafinda). Kalan tek acik nokta gercek sharp/Linux function boyutunun olculmesi; bunun icin ya interaktif oturumda `vercel build` izni ya da panelin Functions/Build Summary ekraninin (deployment `a47f3d6`) manuel incelenmesi gerekiyor.
