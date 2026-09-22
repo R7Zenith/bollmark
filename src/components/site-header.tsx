@@ -567,7 +567,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-40 transition-colors duration-300 ${
+        className={`fixed inset-x-0 top-0 z-40 h-[72px] transition-colors duration-300 ${
           transparent
             ? "border-b border-white/[0.12] bg-transparent text-cream"
             : "border-b border-line bg-cream text-ink"
@@ -587,7 +587,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
             butonu logoyu kapatiyordu). "auto" orta sutun logoya tam genisligini
             verir, iki yandaki 1fr birbirine esit kaldigi icin logo yine tam
             ortada durur (Adim 0c'nin garantisi korunuyor). */}
-        <div className="grid w-full grid-cols-[1fr_auto_1fr] items-center px-6 py-5 xl:px-9">
+        <div className="grid h-full w-full grid-cols-[1fr_auto_1fr] items-center px-6 xl:px-9">
           <div className="flex items-center">
             <DesktopNav menuData={menuData} openMenu={openMenu} setOpenMenu={setOpenMenu} />
           </div>

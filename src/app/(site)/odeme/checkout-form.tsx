@@ -295,11 +295,7 @@ export default function CheckoutForm({
       }
     : {};
   return (
-    // -mt-px: header'in border-b'si (1px) ile sabit h-[72px] spacer'i tam
-    // ortusmuyor, bu da /odeme'de (gri ozet panelinin arka planiyla) belli
-    // olan 1px'lik bir bosluk birakiyor - sadece bu sayfada kapatiliyor,
-    // paylasilan site-header.tsx/layout.tsx'e dokunulmuyor.
-    <div className="-mt-px py-10 lg:grid lg:grid-cols-2 lg:py-0">
+    <div className="py-10 lg:grid lg:grid-cols-2 lg:py-0">
       <h1 className="sr-only">Ödeme</h1>
 
       {/* Sag ozet kolonu: mobilde mx-6 ile ortalanmis yuvarlak kutu, lg'de
