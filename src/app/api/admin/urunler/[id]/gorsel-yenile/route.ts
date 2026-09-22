@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { enrichOne } from "@/lib/koton-images";
+import { resolveImageSourceForBrand } from "@/lib/brand-image-sources";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 export const maxDuration = 30;
@@ -21,14 +22,16 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   const product = await prisma.product.findUnique({
     where: { id },
     include: {
+      brand: true,
       variants: { include: { options: { include: { value: { include: { attribute: true } } } } } },
       optionImages: { select: { valueId: true } }
     }
   });
   if (!product) return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
   if (!product.code) {
-    return NextResponse.json({ error: "Bu ürünün ürün kodu kayıtlı değil, Koton'da aranamaz." }, { status: 400 });
+    return NextResponse.json({ error: "Bu ürünün ürün kodu kayıtlı değil, otomatik aranamaz." }, { status: 400 });
   }
+  const imageSource = resolveImageSourceForBrand(product.brand?.name);
   const firstBarcode = product.variants.find((v) => v.barcode)?.barcode ?? null;
   if (!firstBarcode) {
     return NextResponse.json({ error: "Bu ürünün barkodlu bir varyantı yok." }, { status: 400 });
@@ -63,7 +66,9 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       productCode: product.code,
       productName: product.name,
       firstBarcode,
-      colorValueIdByLabel
+      colorValueIdByLabel,
+      imageSourceBaseUrl: imageSource?.baseUrl ?? null,
+      imageSourceDisplayName: imageSource?.displayName ?? null
     },
     { overwriteDescription: false }
   );

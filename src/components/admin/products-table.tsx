@@ -97,7 +97,7 @@ export function ProductsTable({
 
   async function handleGorselEkle(id: string) {
     const url = window.prompt(
-      "Koton ürün sayfasının linkini yapıştırın (koton.com'da ürünü bulup adres çubuğundaki linki kopyalayın). Görseller otomatik olarak eklenecek:"
+      "Ürünün markasının sitesindeki ürün sayfasının linkini yapıştırın (adres çubuğundaki linki kopyalayın). Görseller otomatik olarak eklenecek:"
     );
     if (!url || !url.trim()) return;
 
@@ -124,6 +124,8 @@ export function ProductsTable({
         router.refresh();
       } else if (data.found) {
         showToast("Sayfa bulundu ama bu renkler için görsel bulunamadı.", "error");
+      } else if (data.sourceDisplayName) {
+        showToast(`Bu linkten ${data.sourceDisplayName} ürün verisi alınamadı (kod eşleşmedi ya da sayfa açılamadı).`, "error");
       } else {
         showToast("Bu linkten ürün verisi alınamadı (kod eşleşmedi ya da sayfa açılamadı).", "error");
       }
@@ -157,9 +159,14 @@ export function ProductsTable({
         );
         router.refresh();
       } else if (data.found) {
-        showToast("Ürün Koton'da bulundu ama bu renkler için görsel bulunamadı.", "error");
+        showToast(
+          `Ürün ${data.sourceDisplayName ?? "markanın sitesinde"} bulundu ama bu renkler için görsel bulunamadı.`,
+          "error"
+        );
+      } else if (data.sourceDisplayName) {
+        showToast(`${data.sourceDisplayName}'da bulunamadı.`, "error");
       } else {
-        showToast("Koton'da bulunamadı.", "error");
+        showToast("Bu marka için otomatik görsel kaynağı tanımlı değil, linkle ekleyebilirsiniz.", "error");
       }
     } catch {
       showToast("Görsel arama sırasında bir hata oluştu.", "error");
@@ -351,7 +358,7 @@ export function ProductsTable({
           )}
           {(!row.imageUrl || row.missingColorCount > 0) && (
             <IconButton
-              title="Koton Linkiyle Ekle"
+              title="Linkle Ekle"
               onClick={() => handleGorselEkle(row.id)}
               disabled={addingImageIds.has(row.id)}
               className="h-9 w-9 md:h-8 md:w-8"

@@ -60,6 +60,7 @@ type KotonResult = {
   found: boolean;
   imagesAdded: number;
   descriptionUpdated: boolean;
+  sourceDisplayName: string | null;
 };
 
 type KotonEnrichmentTarget = {
@@ -68,6 +69,8 @@ type KotonEnrichmentTarget = {
   productName: string;
   firstBarcode: string;
   colorValueIdByLabel: Record<string, string>;
+  imageSourceBaseUrl: string | null;
+  imageSourceDisplayName: string | null;
 };
 
 type ImportResponse = {
@@ -228,7 +231,8 @@ export function ExcelImportWizard({
               productCode: skippedTarget.productCode,
               found: false,
               imagesAdded: 0,
-              descriptionUpdated: false
+              descriptionUpdated: false,
+              sourceDisplayName: skippedTarget.imageSourceDisplayName
             });
           }
           break;
@@ -253,10 +257,24 @@ export function ExcelImportWizard({
           kotonResults.push(
             res.ok
               ? data
-              : { productId: target.productId, productCode: target.productCode, found: false, imagesAdded: 0, descriptionUpdated: false }
+              : {
+                  productId: target.productId,
+                  productCode: target.productCode,
+                  found: false,
+                  imagesAdded: 0,
+                  descriptionUpdated: false,
+                  sourceDisplayName: target.imageSourceDisplayName
+                }
           );
         } catch {
-          kotonResults.push({ productId: target.productId, productCode: target.productCode, found: false, imagesAdded: 0, descriptionUpdated: false });
+          kotonResults.push({
+            productId: target.productId,
+            productCode: target.productCode,
+            found: false,
+            imagesAdded: 0,
+            descriptionUpdated: false,
+            sourceDisplayName: target.imageSourceDisplayName
+          });
         }
         setProgress({ phase: "gorseller", doneGroups: totalGroups, totalGroups, doneProducts: i + 1, totalProducts: allTargets.length });
       }
@@ -524,7 +542,7 @@ export function ExcelImportWizard({
             <div>
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">
-                  Koton görsel eşleştirme (yeni ürünler)
+                  Görsel eşleştirme (yeni ürünler)
                 </p>
                 {result.kotonResults.some((r) => !r.found) && (
                   <Link href="/admin/urunler?fotograf=yok" className="text-xs text-admin-accent hover:underline">
@@ -545,7 +563,9 @@ export function ExcelImportWizard({
                     <span className="text-admin-text-muted">
                       {r.found
                         ? `— ${r.imagesAdded} görsel eklendi${r.descriptionUpdated ? ", açıklama güncellendi" : ""}`
-                        : "— Koton'da bulunamadı, görseller elle eklenmeli"}
+                        : r.sourceDisplayName
+                          ? `— ${r.sourceDisplayName}'da bulunamadı, görseller elle eklenmeli`
+                          : "— Bu marka için otomatik görsel kaynağı tanımlı değil, görseller elle eklenmeli"}
                     </span>
                     <Link href={`/admin/urunler/${r.productId}`} className="ml-auto text-admin-accent hover:underline">
                       Ürünü aç

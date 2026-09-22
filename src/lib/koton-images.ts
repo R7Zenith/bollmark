@@ -1,10 +1,11 @@
-// Koton.com'dan barkod ile ürün sayfası bulup, renk bazlı görselleri ve ürün açıklamasını
-// çekip Vercel Blob'a taşıyan fonksiyonlar (bkz. EXCEL_URUN_AKTARIM_PLANI.md bölüm 4).
-// Sadece bu importla YENİ oluşturulan ürünler için çağrılır - mevcut ürünün fotoğrafı/
-// açıklaması zaten varsa asla dokunulmaz. İstekler sıralı ve hız sınırlı atılır (ürün
-// başına ~1 istek, aralarda kısa bekleme) - toplu/paralel tarama yapılmaz. Bir üründe
-// arama başarısız olursa (bulunamadı/ağ hatası) hata yutulur, diğer ürünlerin aktarımı
-// durmaz.
+// Bir markanın kendi sitesinden (bkz. brand-image-sources.ts - Koton, Slazenger, ...)
+// barkod ile ürün sayfası bulup, renk bazlı görselleri ve ürün açıklamasını çekip
+// Vercel Blob'a taşıyan fonksiyonlar (bkz. EXCEL_URUN_AKTARIM_PLANI.md bölüm 4,
+// COK_MARKALI_GORSEL_BULMA_PLANI.md). Sadece bu importla YENİ oluşturulan ürünler için
+// çağrılır - mevcut ürünün fotoğrafı/açıklaması zaten varsa asla dokunulmaz. İstekler
+// sıralı ve hız sınırlı atılır (ürün başına ~1 istek, aralarda kısa bekleme) - toplu/
+// paralel tarama yapılmaz. Bir üründe arama başarısız olursa (bulunamadı/ağ hatası)
+// hata yutulur, diğer ürünlerin aktarımı durmaz.
 import { put } from "@vercel/blob";
 import * as cheerio from "cheerio";
 import { prisma } from "@/lib/prisma";
@@ -12,7 +13,6 @@ import type { KotonEnrichmentTarget } from "@/lib/excel-import";
 import { sanitizeDescriptionHtml } from "@/lib/description-html";
 import { compressImage } from "@/lib/image-compress";
 
-const KOTON_BASE = "https://www.koton.com";
 const REQUEST_DELAY_MS = 900;
 const MAX_IMAGES_PER_COLOR = 6;
 const USER_AGENT = "Mozilla/5.0 (compatible; BollmarkImportBot/1.0; +https://www.bollmark.com)";
@@ -65,12 +65,12 @@ function normalizeColorLabel(label: string): string {
   return label.trim().toLocaleUpperCase("tr-TR");
 }
 
-async function fetchAutocompleteUrl(searchText: string): Promise<string | null> {
-  const res = await fetchWithTimeout(`${KOTON_BASE}/autocomplete/?search_text=${encodeURIComponent(searchText)}`, {
+async function fetchAutocompleteUrl(searchText: string, baseUrl: string): Promise<string | null> {
+  const res = await fetchWithTimeout(`${baseUrl}/autocomplete/?search_text=${encodeURIComponent(searchText)}`, {
     headers: { "User-Agent": USER_AGENT }
   });
   if (!res.ok) {
-    console.error(`Koton autocomplete başarısız (${searchText}): HTTP ${res.status}`);
+    console.error(`Marka autocomplete başarısız (${baseUrl}, ${searchText}): HTTP ${res.status}`);
     return null;
   }
   const data = await res.json();
@@ -99,7 +99,13 @@ async function fetchAutocompleteUrl(searchText: string): Promise<string | null> 
 // donduruyordu (bkz. DEPLOY_STATUS.md) - Google'in resmi API'si (gunluk 100 sorgu
 // ucretsiz) bu sorunu yasamiyor. `GOOGLE_CSE_API_KEY`/`GOOGLE_CSE_CX` tanimli degilse
 // bu adim sessizce atlaniyor (ozellik devre disi kalir, hata vermez).
-async function fetchGoogleCseUrl(query: string): Promise<string | null> {
+function domainPatternFor(baseUrl: string): RegExp {
+  const host = baseUrl.replace(/^https?:\/\//i, "").replace(/\/$/, "").replace(/^www\./i, "");
+  const escapedHost = host.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^https?:\\/\\/(www\\.)?${escapedHost}\\/`, "i");
+}
+
+async function fetchGoogleCseUrl(query: string, baseUrl: string): Promise<string | null> {
   const apiKey = process.env.GOOGLE_CSE_API_KEY;
   const cx = process.env.GOOGLE_CSE_CX;
   if (!apiKey || !cx) return null;
@@ -113,9 +119,10 @@ async function fetchGoogleCseUrl(query: string): Promise<string | null> {
     }
     const data = await res.json();
     const items: unknown[] = Array.isArray(data?.items) ? data.items : [];
+    const domainPattern = domainPatternFor(baseUrl);
     for (const item of items) {
       const link = (item as { link?: string })?.link;
-      if (typeof link === "string" && /^https?:\/\/(www\.)?koton\.com\//i.test(link)) {
+      if (typeof link === "string" && domainPattern.test(link)) {
         return link;
       }
     }
@@ -128,9 +135,10 @@ async function fetchGoogleCseUrl(query: string): Promise<string | null> {
 
 async function fetchKotonProductData(
   productUrl: string,
-  expectedProductCode: string
+  expectedProductCode: string,
+  baseUrl: string
 ): Promise<KotonProductData | null> {
-  const absoluteUrl = productUrl.startsWith("http") ? productUrl : `${KOTON_BASE}${productUrl}`;
+  const absoluteUrl = productUrl.startsWith("http") ? productUrl : `${baseUrl}${productUrl}`;
   const separator = absoluteUrl.includes("?") ? "&" : "?";
   const res = await fetchWithTimeout(`${absoluteUrl}${separator}format=json`, {
     headers: { "User-Agent": USER_AGENT }
@@ -140,7 +148,7 @@ async function fetchKotonProductData(
 
   const baseCode = data?.product?.base_code;
   if (baseCode !== expectedProductCode) {
-    console.error(`Koton base_code eşleşmedi: beklenen ${expectedProductCode}, gelen ${baseCode}`);
+    console.error(`Marka base_code eşleşmedi (${baseUrl}): beklenen ${expectedProductCode}, gelen ${baseCode}`);
     return null;
   }
 
@@ -174,41 +182,45 @@ async function fetchKotonProductData(
   return { description, colorImageUrls, fallbackImageUrls };
 }
 
-async function findKotonProductData(barcode: string, productCode: string): Promise<KotonProductData | null> {
+async function findKotonProductData(
+  barcode: string,
+  productCode: string,
+  baseUrl: string
+): Promise<KotonProductData | null> {
   try {
-    const barcodeUrl = await fetchAutocompleteUrl(barcode);
+    const barcodeUrl = await fetchAutocompleteUrl(barcode, baseUrl);
     if (barcodeUrl) {
-      const data = await fetchKotonProductData(barcodeUrl, productCode);
+      const data = await fetchKotonProductData(barcodeUrl, productCode, baseUrl);
       if (data) {
-        console.log(`Koton eşleşmesi (${productCode}): barkod ile bulundu`);
+        console.log(`Marka eşleşmesi (${baseUrl}, ${productCode}): barkod ile bulundu`);
         return data;
       }
     }
 
-    const productCodeUrl = await fetchAutocompleteUrl(productCode);
+    const productCodeUrl = await fetchAutocompleteUrl(productCode, baseUrl);
     if (productCodeUrl) {
-      const data = await fetchKotonProductData(productCodeUrl, productCode);
+      const data = await fetchKotonProductData(productCodeUrl, productCode, baseUrl);
       if (data) {
-        console.log(`Koton eşleşmesi (${productCode}): ürün kodu ile bulundu`);
+        console.log(`Marka eşleşmesi (${baseUrl}, ${productCode}): ürün kodu ile bulundu`);
         return data;
       }
     }
 
-    // Koton'un kendi aramasi (autocomplete) hicbir sonuc vermedi - son care olarak
-    // Google Custom Search'te urun kodu aranip ilk koton.com sonucu deneniyor.
-    const webSearchUrl = await fetchGoogleCseUrl(productCode);
+    // Markanin kendi aramasi (autocomplete) hicbir sonuc vermedi - son care olarak
+    // Google Custom Search'te urun kodu aranip ilk marka sitesi sonucu deneniyor.
+    const webSearchUrl = await fetchGoogleCseUrl(productCode, baseUrl);
     if (webSearchUrl) {
-      const data = await fetchKotonProductData(webSearchUrl, productCode);
+      const data = await fetchKotonProductData(webSearchUrl, productCode, baseUrl);
       if (data) {
-        console.log(`Koton eşleşmesi (${productCode}): Google araması ile bulundu (${webSearchUrl})`);
+        console.log(`Marka eşleşmesi (${baseUrl}, ${productCode}): Google araması ile bulundu (${webSearchUrl})`);
         return data;
       }
     }
 
-    console.log(`Koton eşleşmesi (${productCode}): bulunamadı`);
+    console.log(`Marka eşleşmesi (${baseUrl}, ${productCode}): bulunamadı`);
     return null;
   } catch (error) {
-    console.error(`Koton'dan ürün verisi alınamadı (barkod: ${barcode}, ürün kodu: ${productCode}):`, error);
+    console.error(`Marka sitesinden ürün verisi alınamadı (${baseUrl}, barkod: ${barcode}, ürün kodu: ${productCode}):`, error);
     return null;
   }
 }
@@ -249,6 +261,9 @@ export interface KotonEnrichmentResult {
   // gorsel seti bos gelenlerin etiket listesi - admin panelinde hangi renklerin
   // hala fotografsiz kaldigini gostermek icin.
   missingColors: string[];
+  // Aranan markanin gorunen adi (bkz. brand-image-sources.ts) - arayuzde "Slazenger'da
+  // arandi" gibi marka bazli mesajlar icin. Marka tabloda kayitli degilse null.
+  sourceDisplayName: string | null;
 }
 
 // `findKotonProductData` (arama ile) veya dogrudan verilen bir URL (`enrichFromUrl`)
@@ -266,7 +281,8 @@ async function applyKotonProductData(
     found: true,
     imagesAdded: 0,
     descriptionUpdated: false,
-    missingColors: []
+    missingColors: [],
+    sourceDisplayName: target.imageSourceDisplayName
   };
 
   if (data.description && overwriteDescription) {
@@ -330,23 +346,28 @@ export async function enrichOne(
   target: KotonEnrichmentTarget,
   options?: { overwriteDescription?: boolean }
 ): Promise<KotonEnrichmentResult> {
-  const data = await findKotonProductData(target.firstBarcode, target.productCode);
-  if (!data) {
-    return {
-      productId: target.productId,
-      productCode: target.productCode,
-      found: false,
-      imagesAdded: 0,
-      descriptionUpdated: false,
-      missingColors: Object.keys(target.colorValueIdByLabel)
-    };
-  }
+  const emptyResult: KotonEnrichmentResult = {
+    productId: target.productId,
+    productCode: target.productCode,
+    found: false,
+    imagesAdded: 0,
+    descriptionUpdated: false,
+    missingColors: Object.keys(target.colorValueIdByLabel),
+    sourceDisplayName: target.imageSourceDisplayName
+  };
+  // Marka BRAND_IMAGE_SOURCES'ta kayitli degilse hic ag istegi atmadan erken don
+  // (bkz. brand-image-sources.ts) - boylece kayitsiz markalarda bosuna istek atilmaz.
+  if (!target.imageSourceBaseUrl) return emptyResult;
+
+  const data = await findKotonProductData(target.firstBarcode, target.productCode, target.imageSourceBaseUrl);
+  if (!data) return emptyResult;
   return applyKotonProductData(target, data, options?.overwriteDescription ?? true);
 }
 
 // Otomatik arama (autocomplete/list) hicbir sonuc vermedigi urunler icin: admin'in
-// koton.com'da elle bulup verdigi dogrudan urun sayfasi URL'inden gorselleri/aciklamayi
-// ceker. Arama adimini tamamen atlar, sadece verilen URL'i `?format=json` ile okur.
+// marka sitesinde elle bulup verdigi dogrudan urun sayfasi URL'inden gorselleri/
+// aciklamayi ceker. Arama adimini tamamen atlar, sadece verilen URL'i `?format=json`
+// ile okur.
 export async function enrichFromUrl(
   target: KotonEnrichmentTarget,
   productUrl: string,
@@ -358,13 +379,14 @@ export async function enrichFromUrl(
     found: false,
     imagesAdded: 0,
     descriptionUpdated: false,
-    missingColors: Object.keys(target.colorValueIdByLabel)
+    missingColors: Object.keys(target.colorValueIdByLabel),
+    sourceDisplayName: target.imageSourceDisplayName
   };
   let data: KotonProductData | null;
   try {
-    data = await fetchKotonProductData(productUrl, target.productCode);
+    data = await fetchKotonProductData(productUrl, target.productCode, target.imageSourceBaseUrl ?? "");
   } catch (error) {
-    console.error(`Koton URL'inden ürün verisi alınamadı (${productUrl}):`, error);
+    console.error(`Marka URL'inden ürün verisi alınamadı (${productUrl}):`, error);
     return emptyResult;
   }
   if (!data) return emptyResult;
@@ -389,7 +411,8 @@ export async function enrichProductsFromKoton(
         found: false,
         imagesAdded: 0,
         descriptionUpdated: false,
-        missingColors: Object.keys(targets[i].colorValueIdByLabel)
+        missingColors: Object.keys(targets[i].colorValueIdByLabel),
+        sourceDisplayName: targets[i].imageSourceDisplayName
       });
     }
   }

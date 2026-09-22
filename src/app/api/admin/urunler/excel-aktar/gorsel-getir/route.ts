@@ -16,7 +16,9 @@ function isValidTarget(v: unknown): v is KotonEnrichmentTarget {
     typeof t.productName === "string" &&
     typeof t.firstBarcode === "string" &&
     typeof t.colorValueIdByLabel === "object" &&
-    t.colorValueIdByLabel !== null
+    t.colorValueIdByLabel !== null &&
+    (t.imageSourceBaseUrl === null || typeof t.imageSourceBaseUrl === "string") &&
+    (t.imageSourceDisplayName === null || typeof t.imageSourceDisplayName === "string")
   );
 }
 
@@ -47,7 +49,8 @@ export async function POST(request: NextRequest) {
       found: false,
       imagesAdded: 0,
       descriptionUpdated: false,
-      missingColors: Object.keys(target.colorValueIdByLabel)
+      missingColors: Object.keys(target.colorValueIdByLabel),
+      sourceDisplayName: target.imageSourceDisplayName
     };
   }
   if (result.imagesAdded > 0 || result.descriptionUpdated) revalidateCatalog();

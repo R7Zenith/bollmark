@@ -3,13 +3,14 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { enrichFromUrl } from "@/lib/koton-images";
+import { resolveImageSourceForBrand } from "@/lib/brand-image-sources";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 export const maxDuration = 30;
 
-// Ürünler sayfasındaki "Koton linkiyle ekle" butonu için: otomatik arama (autocomplete/
-// list) hiçbir sonuç vermeyen ürünlerde (bkz. DEPLOY_STATUS.md - arama indeksinden
-// tamamen düşmüş ürünler) admin, koton.com'da elle bulduğu ürün sayfasının linkini
+// Ürünler sayfasındaki "Linkle ekle" butonu için: otomatik arama (autocomplete/list)
+// hiçbir sonuç vermeyen ürünlerde (bkz. DEPLOY_STATUS.md - arama indeksinden tamamen
+// düşmüş ürünler) admin, markanın kendi sitesinde elle bulduğu ürün sayfasının linkini
 // yapıştırabiliyor. Arama adımı tamamen atlanıp doğrudan bu URL'den ürün verisi
 // (renk bazlı görseller + açıklama) çekiliyor - `gorsel-yenile` route'undaki
 // `enrichOne` ile aynı `enrichFromUrl` mantığını kullanır, sadece kaynak farklı.
@@ -21,14 +22,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const { id } = await context.params;
   const body = await request.json().catch(() => null);
   const url = typeof body?.url === "string" ? body.url.trim() : "";
-  if (!url) return NextResponse.json({ error: "Bir Koton ürün sayfası linki girin." }, { status: 400 });
-  if (!/^https:\/\/(www\.)?koton\.com\//i.test(url)) {
-    return NextResponse.json({ error: "Bu bir koton.com ürün linki gibi görünmüyor." }, { status: 400 });
-  }
+  if (!url) return NextResponse.json({ error: "Bir ürün sayfası linki girin." }, { status: 400 });
 
   const product = await prisma.product.findUnique({
     where: { id },
     include: {
+      brand: true,
       variants: { include: { options: { include: { value: { include: { attribute: true } } } } } },
       optionImages: { select: { valueId: true } }
     }
@@ -36,6 +35,24 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (!product) return NextResponse.json({ error: "Ürün bulunamadı." }, { status: 404 });
   if (!product.code) {
     return NextResponse.json({ error: "Bu ürünün ürün kodu kayıtlı değil." }, { status: 400 });
+  }
+  const imageSource = resolveImageSourceForBrand(product.brand?.name);
+
+  // Marka BRAND_IMAGE_SOURCES'ta kayitliysa sadece o markanin domain'i kabul edilir
+  // (yanlis markaya ait bir link yapistirilip yanlis eslesme olusmasini engeller).
+  // Marka tabloda yoksa herhangi bir https:// linki kabul edilir - kullanici elle
+  // bulduğu görseli/ürün sayfasını yapıştırabilsin.
+  if (imageSource) {
+    const host = imageSource.baseUrl.replace(/^https?:\/\//i, "").replace(/^www\./i, "");
+    const domainPattern = new RegExp(`^https:\\/\\/(www\\.)?${host.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\/`, "i");
+    if (!domainPattern.test(url)) {
+      return NextResponse.json(
+        { error: `Bu bir ${imageSource.displayName} (${imageSource.baseUrl}) ürün linki gibi görünmüyor.` },
+        { status: 400 }
+      );
+    }
+  } else if (!/^https:\/\//i.test(url)) {
+    return NextResponse.json({ error: "Geçerli bir https:// linki girin." }, { status: 400 });
   }
 
   // Sadece hic gorseli olmayan renkler icin eslestirme yapiliyor - aksi halde
@@ -66,7 +83,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       productCode: product.code,
       productName: product.name,
       firstBarcode: product.variants.find((v) => v.barcode)?.barcode ?? "",
-      colorValueIdByLabel
+      colorValueIdByLabel,
+      imageSourceBaseUrl: imageSource?.baseUrl ?? null,
+      imageSourceDisplayName: imageSource?.displayName ?? null
     },
     url,
     { overwriteDescription: false }

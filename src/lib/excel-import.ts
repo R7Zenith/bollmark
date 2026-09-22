@@ -6,6 +6,7 @@ import * as XLSX from "xlsx";
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { resolveOptionValueIds } from "@/lib/variant-attributes";
+import { resolveImageSourceForBrand } from "@/lib/brand-image-sources";
 
 type Tx = PrismaClient | Prisma.TransactionClient;
 
@@ -335,12 +336,25 @@ export function groupExcelRows(rows: ExcelImportRow[]): ProductGroup[] {
   return Array.from(map.values());
 }
 
+// Excel'den marka adı hep büyük harfle gelir ("SLAZENGER") - yeni oluşturulurken
+// görünüm için Title Case'e çevrilir ("Slazenger"). Türkçe "İ"/"I" çiftini doğru
+// küçültmek için "tr-TR" locale kullanılıyor (aksi halde "İSTANBUL" -> "Istanbul"
+// gibi yanlış sonuç çıkar).
+function titleCaseTr(text: string): string {
+  return text
+    .toLocaleLowerCase("tr-TR")
+    .split(" ")
+    .map((word) => (word ? word.charAt(0).toLocaleUpperCase("tr-TR") + word.slice(1) : word))
+    .join(" ");
+}
+
 async function resolveBrandId(tx: Tx, brandName: string): Promise<string | null> {
   const trimmed = brandName.trim();
   if (!trimmed) return null;
   const existing = await tx.brand.findFirst({ where: { name: { equals: trimmed, mode: "insensitive" } } });
   if (existing) return existing.id;
-  const created = await tx.brand.create({ data: { name: trimmed, slug: slugifyTr(trimmed) } });
+  const displayName = titleCaseTr(trimmed);
+  const created = await tx.brand.create({ data: { name: displayName, slug: slugifyTr(displayName) } });
   return created.id;
 }
 
@@ -396,6 +410,10 @@ export interface KotonEnrichmentTarget {
   productName: string;
   firstBarcode: string;
   colorValueIdByLabel: Record<string, string>;
+  // Marka BRAND_IMAGE_SOURCES'ta kayıtlı değilse null - bu durumda enrichOne/enrichFromUrl
+  // hiç ağ isteği atmadan doğrudan found:false döner (bkz. brand-image-sources.ts).
+  imageSourceBaseUrl: string | null;
+  imageSourceDisplayName: string | null;
 }
 
 export interface ImportSummary {
@@ -530,12 +548,15 @@ export async function importProductGroups(
         }
 
         if (isNew) {
+          const imageSource = resolveImageSourceForBrand(group.brandName);
           summary.newProductTargets.push({
             productId,
             productCode: group.productCode,
             productName: group.productName,
             firstBarcode: group.variants[0].barcode,
-            colorValueIdByLabel
+            colorValueIdByLabel,
+            imageSourceBaseUrl: imageSource?.baseUrl ?? null,
+            imageSourceDisplayName: imageSource?.displayName ?? null
           });
         }
       }

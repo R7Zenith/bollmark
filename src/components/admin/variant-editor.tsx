@@ -166,7 +166,7 @@ export function VariantEditor({
   attributes: AttributeOption[];
   defaultPriceLabel: string;
   defaultCompareAtLabel: string;
-  // Sadece mevcut (kaydedilmis) urunlerde dolu - "Bu renk için Koton'da ara"
+  // Sadece mevcut (kaydedilmis) urunlerde dolu - "Bu renk için ara"
   // butonu icin gerekli, yeni urun olusturma sayfasinda henuz productId yok.
   productId?: string;
 }) {
@@ -209,9 +209,14 @@ export function VariantEditor({
       if (data.found && data.imagesAdded > 0) {
         showToast(`${label} için ${data.imagesAdded} görsel eklendi. Sayfayı yenileyin.`, "success");
       } else if (data.found) {
-        showToast(`Ürün Koton'da bulundu ama "${label}" için görsel bulunamadı.`, "error");
+        showToast(
+          `Ürün ${data.sourceDisplayName ?? "markanın sitesinde"} bulundu ama "${label}" için görsel bulunamadı.`,
+          "error"
+        );
+      } else if (data.sourceDisplayName) {
+        showToast(`${data.sourceDisplayName}'da bulunamadı.`, "error");
       } else {
-        showToast("Koton'da bulunamadı.", "error");
+        showToast("Bu marka için otomatik görsel kaynağı tanımlı değil, linkle ekleyebilirsiniz.", "error");
       }
     } catch {
       showToast("Görsel arama sırasında bir hata oluştu.", "error");
@@ -607,7 +612,7 @@ export function VariantEditor({
                       className="ml-1 inline-flex items-center gap-1 rounded border border-admin-border px-1.5 py-0.5 text-xs text-admin-text-muted hover:bg-admin-bg disabled:opacity-50"
                     >
                       {isSearching ? <Loader2 size={12} className="animate-spin" /> : <Search size={12} />}
-                      Bu renk için Koton&apos;da ara
+                      Bu renk için ara
                     </button>
                   )}
                 </p>
