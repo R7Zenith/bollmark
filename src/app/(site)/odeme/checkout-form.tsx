@@ -299,7 +299,9 @@ export default function CheckoutForm({
   // aksi halde "main flex-1" sadece kisa icerigi kadar yer kaplayip footer'i
   // sabitlemek icin altta bos beyaz alan birakiyor, bu bosluk beyaz zeminde
   // hic belli olmuyordu ama gri panel gorunur hale getirdi.
-  const rowStyle: React.CSSProperties = isDesktop ? { minHeight: "calc(100vh - 72px)" } : {};
+  const rowStyle: React.CSSProperties = isDesktop
+    ? { minHeight: "calc(100vh - 72px)", alignContent: "stretch" }
+    : {};
 
   return (
     <div className="py-10 lg:grid lg:grid-cols-2 lg:py-0" style={rowStyle}>

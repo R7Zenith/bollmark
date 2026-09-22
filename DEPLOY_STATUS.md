@@ -4607,6 +4607,22 @@ Release'de 97px'te, bizde 101px'te (Bollmark header'ı 68px, Release'inki 64px).
   Ham IP saklanmıyor, `NEXTAUTH_SECRET` tuzlu SHA-256 özeti saklanıyor. IP çözülemezse sınır uygulanmaz.
 - Sıra: önce DB, sonra mail. Mail hatası kaydı etkilemez, kullanıcıya başarılı dönülür.
 - Mail: mevcut `sendMail` (Resend) kullanıldı, yeni kurulum yok; `replyTo` opsiyonel parametresi eklendi. Alıcı
+
+## 2026-09-22 — Ödeme sayfası footer boşluğu düzeltmesi
+
+- `src/app/(site)/odeme/checkout-form.tsx`: `rowStyle` (satır ~302) masaüstünde `minHeight: "calc(100vh - 72px)"`
+  veriyordu ama grid'in tek satırı içeriğe göre `auto` boyutlandığı için container'ın fazladan yüksekliği satırın
+  ALTINDA boşluk olarak kalıyor, gri özet paneline/form sütununa yansımıyordu. `isDesktop` true iken `rowStyle`'a
+  `alignContent: "stretch"` eklendi; satır artık container'ın tüm yüksekliğine yayılıyor.
+- Doğrulama: Playwright ile `/odeme` (1440×900, dolu ama kısa sepet içeriği — tek satır sonlanmış ürün) açıldı,
+  tam sayfa ekran görüntüsü alındı. Gri özet paneli ve sol form sütunu gerçekten footer'a kadar (boşluksuz)
+  uzanıyor, taşma/kaydırma sorunu görünmüyor.
+- DÜZELTME 2 (yukarıdaki tek başına yetmedi): asıl boşluk `src/components/site-footer.tsx`'teki footer'ın
+  kendi `mt-section` class'ından (Tailwind'de `6rem`, `tailwind.config.ts` satır ~65) geliyordu — bu, footer'ı
+  `main`'den her zaman 6rem aşağı iten SİTE GENELİ bir margin, checkout'a özgü değil. Kullanıcı DevTools'ta
+  tespit etti. `SiteFooter` `"use client"` + `usePathname()` ile /odeme'yi algılayıp yalnızca o sayfada
+  `mt-section` class'ını uygulamıyor; diğer tüm sayfalarda (sepet dahil, elle doğrulandı) 6rem boşluk aynen
+  duruyor. Bu genel spacing sadece checkout'a has kaldırılsın diye tercih edildi (kullanıcı talebi).
   bilgi@bollmark.com, konu "Yeni iletişim formu mesajı - {ad soyad}", girdiler HTML'de escape ediliyor
   (`src/lib/contact-notifications.ts`). Gönderen `MAIL_FROM` (mevcut).
 

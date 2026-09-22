@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { ShieldCheck, Truck, Undo2 } from "lucide-react";
 
 // logo-white.png'nin gercek en-boy orani (bkz. site-header.tsx LOGO_ASPECT_RATIO,
@@ -45,8 +48,15 @@ function InstagramIcon() {
 }
 
 export function SiteFooter() {
+  // Odeme sayfasi, gri ozet panelini/form sutununu footer'a kadar boslugu
+  // birebir bitiren kendi rowStyle mantigina sahip (bkz. checkout-form.tsx);
+  // footer'in genel mt-section (6rem) bosluğu orada bu bitisikligi bozup
+  // gorunur bir bosluk yaratiyordu, o yuzden yalnizca /odeme'de kaldiriliyor.
+  const pathname = usePathname();
+  const isCheckout = pathname === "/odeme";
+
   return (
-    <footer className="mt-section bg-ink text-cream">
+    <footer className={`${isCheckout ? "" : "mt-section"} bg-ink text-cream`}>
       <div className="w-full px-6 py-6 xl:px-9">
         {/* Üst blok: sol yarıda güven kutuları, sağ yarıda link sütunları */}
         <div className="grid gap-6 md:grid-cols-2 md:gap-10">
