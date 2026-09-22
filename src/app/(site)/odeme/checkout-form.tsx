@@ -294,17 +294,12 @@ export default function CheckoutForm({
         paddingLeft: 32
       }
     : {};
-  // Icerik (sepet) kisa oldugunda bile gri panel footer'a kadar dolsun diye
-  // satira viewport-header yuksekligi kadar minimum yukseklik veriliyor -
-  // aksi halde "main flex-1" sadece kisa icerigi kadar yer kaplayip footer'i
-  // sabitlemek icin altta bos beyaz alan birakiyor, bu bosluk beyaz zeminde
-  // hic belli olmuyordu ama gri panel gorunur hale getirdi.
-  const rowStyle: React.CSSProperties = isDesktop
-    ? { minHeight: "calc(100vh - 72px)", alignContent: "stretch" }
-    : {};
-
   return (
-    <div className="py-10 lg:grid lg:grid-cols-2 lg:py-0" style={rowStyle}>
+    // -mt-px: header'in border-b'si (1px) ile sabit h-[72px] spacer'i tam
+    // ortusmuyor, bu da /odeme'de (gri ozet panelinin arka planiyla) belli
+    // olan 1px'lik bir bosluk birakiyor - sadece bu sayfada kapatiliyor,
+    // paylasilan site-header.tsx/layout.tsx'e dokunulmuyor.
+    <div className="-mt-px py-10 lg:grid lg:grid-cols-2 lg:py-0">
       <h1 className="sr-only">Ödeme</h1>
 
       {/* Sag ozet kolonu: mobilde mx-6 ile ortalanmis yuvarlak kutu, lg'de
@@ -331,14 +326,6 @@ export default function CheckoutForm({
       <div className="lg:order-1 lg:flex lg:justify-end lg:py-16 lg:pl-6 lg:pr-8 xl:pl-9">
         <form onSubmit={handleSubmit} className="mx-auto w-full max-w-[580px] space-y-10 px-6 lg:mx-0 lg:px-0">
           <CartNotices />
-
-          <section className="space-y-4">
-            <h2 className="text-xl font-semibold">İletişim</h2>
-            <label className="flex items-center gap-3 text-sm text-ink/70">
-              <input type="checkbox" name="newsletterOptIn" className="h-5 w-5 rounded-lg border border-line" />
-              Kampanya ve fırsatlardan haberdar ol
-            </label>
-          </section>
 
           <section className="space-y-4">
             <h2 className="text-xl font-semibold">Teslimat</h2>

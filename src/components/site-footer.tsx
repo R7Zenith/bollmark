@@ -48,15 +48,16 @@ function InstagramIcon() {
 }
 
 export function SiteFooter() {
-  // Odeme sayfasi, gri ozet panelini/form sutununu footer'a kadar boslugu
-  // birebir bitiren kendi rowStyle mantigina sahip (bkz. checkout-form.tsx);
-  // footer'in genel mt-section (6rem) bosluğu orada bu bitisikligi bozup
-  // gorunur bir bosluk yaratiyordu, o yuzden yalnizca /odeme'de kaldiriliyor.
+  // Odeme sayfasinda (aktif checkout formu) footer tamamen kaldiriliyor -
+  // /odeme/basarisiz, /odeme/tesekkurler gibi alt sayfalar etkilenmesin diye
+  // kontrol kesin "/odeme" ile sinirli, startsWith kullanilmiyor.
   const pathname = usePathname();
   const isCheckout = pathname === "/odeme";
 
+  if (isCheckout) return null;
+
   return (
-    <footer className={`${isCheckout ? "" : "mt-section"} bg-ink text-cream`}>
+    <footer className="mt-section bg-ink text-cream">
       <div className="w-full px-6 py-6 xl:px-9">
         {/* Üst blok: sol yarıda güven kutuları, sağ yarıda link sütunları */}
         <div className="grid gap-6 md:grid-cols-2 md:gap-10">
