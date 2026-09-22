@@ -14,7 +14,6 @@ import { CartNotices } from "@/components/cart-notices";
 export default function CartPage() {
   const { lines, removeLine, updateQuantity, totalCents, totalCount, hasBlockingIssues } = useCart();
   const [coupon, setCoupon] = useState<CouponResult>(null);
-  const [termsAccepted, setTermsAccepted] = useState(false);
   const discountCents = coupon?.discountCents ?? 0;
   const bundleDiscountCents = useBundleDiscount(lines);
 
@@ -37,7 +36,7 @@ export default function CartPage() {
 
   const remainingForFreeShippingCents = Math.max(0, SHIPPING_THRESHOLD_CENTS - totalCents);
   const shippingProgressPercent = Math.min(100, (totalCents / SHIPPING_THRESHOLD_CENTS) * 100);
-  const checkoutDisabled = hasBlockingIssues || !termsAccepted;
+  const checkoutDisabled = hasBlockingIssues;
 
   return (
     <div className="mx-auto max-w-[1680px] px-6 py-12 lg:px-9">
@@ -210,26 +209,6 @@ export default function CartPage() {
               <span className="text-lg font-medium">{formatPrice(totalCents - bundleDiscountCents - discountCents)}</span>
             </div>
           </div>
-
-          <label className="mt-6 flex items-start gap-2 text-xs text-ink/70">
-            <input
-              type="checkbox"
-              checked={termsAccepted}
-              onChange={(e) => setTermsAccepted(e.target.checked)}
-              className="mt-0.5"
-            />
-            <span>
-              <Link
-                href="/sayfa/mesafeli-satis-sozlesmesi"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-clay"
-              >
-                Mesafeli Satış Sözleşmesi
-              </Link>
-              &apos;ni okudum, kabul ediyorum.
-            </span>
-          </label>
 
           {checkoutDisabled ? (
             <span

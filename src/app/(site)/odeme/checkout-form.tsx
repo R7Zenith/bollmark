@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
@@ -46,6 +47,7 @@ export default function CheckoutForm({
   const [coupon, setCoupon] = useState<CouponResult>(null);
   const [loyalty, setLoyalty] = useState<LoyaltyResult>(null);
   const [addressChoice, setAddressChoice] = useState<string>(savedAddresses[0]?.id ?? "new");
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const selectedAddress = savedAddresses.find((a) => a.id === addressChoice) ?? null;
   // Siparis olustu ama odeme baslatilamadiysa (ag hatasi vb.) tekrar denemede ayni siparis
   // kullanilir - ikinci bir siparis olusturulmaz.
@@ -130,9 +132,7 @@ export default function CheckoutForm({
       note: String(form.get("note") || ""),
       couponCode: couponCode || undefined,
       pointsToRedeem: loyalty?.pointsRedeemed || undefined,
-      // Sozlesme onayi artik sepet adiminda (/sepet) aliniyor - odeme
-      // adimina buradan gecebilmis olmak onayin verildigi anlamina gelir.
-      termsAccepted: true,
+      termsAccepted,
       lines: lines.map((l) => ({
         productId: l.productId,
         variantId: l.variantId,
@@ -492,11 +492,31 @@ export default function CheckoutForm({
               </p>
             )}
 
+            <label className="flex items-start gap-2 text-xs text-ink/70">
+              <input
+                type="checkbox"
+                checked={termsAccepted}
+                onChange={(e) => setTermsAccepted(e.target.checked)}
+                className="mt-0.5"
+              />
+              <span>
+                <Link
+                  href="/sayfa/mesafeli-satis-sozlesmesi"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="underline hover:text-clay"
+                >
+                  Mesafeli Satış Sözleşmesi
+                </Link>
+                &apos;ni okudum, kabul ediyorum.
+              </span>
+            </label>
+
             {error && <p className="text-sm text-red-600">{error}</p>}
 
             <button
               type="submit"
-              disabled={submitting || paymentMode === null || hasBlockingIssues}
+              disabled={submitting || paymentMode === null || hasBlockingIssues || !termsAccepted}
               className="w-full bg-ink py-4 text-sm uppercase tracking-widest2 text-cream hover:bg-clay disabled:opacity-50"
             >
               {submitting ? "İşleniyor..." : "Ödemeye Geç"}
