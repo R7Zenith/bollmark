@@ -12,7 +12,14 @@ export type CouponResult = { discountCents: number; freeShipping: boolean; appli
 // yapilir (bkz. lib/coupons.ts). Kod hic girilmemis olsa bile sepete uyan
 // aktif bir OTOMATIK kampanya varsa yine burada gosterilir - bu yuzden
 // dogrula her zaman (kod bos olsa dahi) cagrilir.
-export function CouponField({ onDiscountChange }: { onDiscountChange: (result: CouponResult) => void }) {
+export function CouponField({
+  onDiscountChange,
+  variant = "default"
+}: {
+  onDiscountChange: (result: CouponResult) => void;
+  /** "segmented": odeme sayfasinin birlesik input+buton gorunumu icin - sepet sayfasindaki varsayilan stili etkilemez. */
+  variant?: "default" | "segmented";
+}) {
   const { lines, couponCode, setCouponCode } = useCart();
   const [input, setInput] = useState(couponCode ?? "");
   const [status, setStatus] = useState<"idle" | "loading" | "applied" | "error">("idle");
@@ -73,20 +80,30 @@ export function CouponField({ onDiscountChange }: { onDiscountChange: (result: C
     checkDiscount("", false);
   };
 
+  const segmented = variant === "segmented";
+
   return (
     <div className="space-y-2">
-      <div className="flex gap-2">
+      <div className={segmented ? "flex" : "flex gap-2"}>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value.toUpperCase())}
           placeholder="İndirim kodu"
-          className="w-full border border-line px-3 py-2 text-sm uppercase focus:border-ink focus:outline-none"
+          className={
+            segmented
+              ? "w-full rounded-l-xl border border-r-0 border-line px-4 py-3.5 text-sm uppercase focus:border-ink focus:outline-none"
+              : "w-full border border-line px-3 py-2 text-sm uppercase focus:border-ink focus:outline-none"
+          }
         />
         {couponCode ? (
           <button
             type="button"
             onClick={handleRemove}
-            className="shrink-0 border border-line px-4 py-2 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
+            className={
+              segmented
+                ? "shrink-0 rounded-r-xl border border-l-0 border-line bg-ink/5 px-4 py-3.5 text-sm font-semibold uppercase tracking-wide hover:bg-ink hover:text-cream"
+                : "shrink-0 border border-line px-4 py-2 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
+            }
           >
             Kaldır
           </button>
@@ -95,7 +112,11 @@ export function CouponField({ onDiscountChange }: { onDiscountChange: (result: C
             type="button"
             onClick={() => checkDiscount(input, true)}
             disabled={status === "loading"}
-            className="shrink-0 border border-ink px-4 py-2 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream disabled:opacity-40"
+            className={
+              segmented
+                ? "shrink-0 rounded-r-xl border border-l-0 border-line bg-ink/5 px-4 py-3.5 text-sm font-semibold uppercase tracking-wide hover:bg-ink hover:text-cream disabled:opacity-40"
+                : "shrink-0 border border-ink px-4 py-2 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream disabled:opacity-40"
+            }
           >
             Uygula
           </button>

@@ -58,13 +58,13 @@ export function LoyaltyField({
           value={input}
           onChange={(e) => applyPoints(e.target.value)}
           placeholder="Kullanılacak puan"
-          className="w-full border border-line px-3 py-2 text-sm focus:border-ink focus:outline-none"
+          className="w-full rounded-xl border border-line px-4 py-3.5 text-sm focus:border-ink focus:outline-none"
         />
         {Number(input) > 0 && (
           <button
             type="button"
             onClick={() => applyPoints("0")}
-            className="shrink-0 border border-line px-4 py-2 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
+            className="shrink-0 rounded-xl border border-line px-4 py-3.5 text-sm uppercase tracking-wide hover:bg-ink hover:text-cream"
           >
             Temizle
           </button>
