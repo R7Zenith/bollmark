@@ -5128,4 +5128,18 @@ Ustteki "Vercel Functions Storage kotasi analizi" notundaki 4 oneri sirayla uygu
 
 **ignoreCommand kontrolu**: `vercel.json`daki guvenli surum (`VERCEL_GIT_PREVIOUS_SHA` fallback'li) degismeden duruyor, dogrulandi. Vercel panelinde Settings > Git > Ignored Build Step alaninin BOS olmasi gerekiyor (bu ayari ezebilir) - bu, koda erisimi olmayan bir panel ayari oldugu icin kullanici tarafindan kontrol edilmeli.
 
+---
+
+## Odeme sayfasinda kayitli adres secimi (2026-09-22)
+
+`ODEME_KAYITLI_ADRES_SECIMI_PLANI.md`'deki plan uygulandi.
+
+- `src/app/(site)/odeme/page.tsx`: Musteri oturumu artik **opsiyonel** okunuyor (`getServerSession(customerAuthOptions)`, redirect YOK - misafir siparisi bozulmadi). Oturum varsa `prisma.customerAddress.findMany({ where: { customerId }, orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] })` ile adresler cekilip `CheckoutForm`'a `savedAddresses` prop'u olarak, `session.user.email` de `customerEmail` prop'u olarak geciliyor.
+- `src/app/(site)/odeme/checkout-form.tsx`: "Teslimat Bilgileri" basliginin altina, kayitli adresler varsa her biri icin secilebilir bir radyo karti (etiket + kisa ozet) + ayri bir "Yeni adres kullan" secenegi eklendi; varsayilan adres (ilk siradaki, `isDefault` once siralaniyor) baslangicta secili. Bir adres seciliyken alttaki `customerName/customerPhone/shippingAddress/city/district/postalCode` alanlari o adresin degerleriyle doluyor ve **salt-okunur** oluyor (planin (a) secenegi); "Yeni adres kullan" secilince alanlar bosalip normal duzenlenebilir hale donuyor. `customerEmail` alani oturumdaki e-posta ile onceden doluyor ama her zaman duzenlenebilir kaliyor.
+  - Onemli detay: alanlar `disabled` degil `readOnly` yapildi - `disabled` input'lar `FormData`'ya dahil olmuyor, bu da `/api/orders`'a giden payload'da adres alanlarinin bos gitmesine yol acardi. `readOnly` hem gorsel olarak salt-okunur hem de submit'te deger tasiyor.
+  - Secim degisince inputlara dogru `defaultValue` yansisin diye her input'a `addressChoice`'a bagli bir `key` verildi (secim degisince input remount olup yeni degerle acilir) - React'in uncontrolled input + degisen `defaultValue` sorununu bu sekilde asildi.
+- `/api/orders` route'unda hicbir degisiklik YOK (plana gore) - payload sekli ayni, sadece alanlarin ilk degeri degisti.
+- Dogrulama: `npx tsc --noEmit` temiz. Tarayicida gorsel/fonksiyonel test bu oturumda YAPILMADI (dev server calistirilmadi) - onerilir: giris yapmis bir musteri hesabiyla `/odeme`'ye gidip kayitli adres karti secilince alanlarin dolup salt-okunur oldugunu, "Yeni adres kullan" ile bosalip duzenlenebilir oldugunu, misafir modunda (oturumsuz) adres blogu hic gorunmedigini kontrol et.
+- Degisiklik commit/push EDILMEDI.
+
 **Bekleyen**: yok (kod tarafinda). Kalan tek acik nokta gercek sharp/Linux function boyutunun olculmesi; bunun icin ya interaktif oturumda `vercel build` izni ya da panelin Functions/Build Summary ekraninin (deployment `a47f3d6`) manuel incelenmesi gerekiyor.

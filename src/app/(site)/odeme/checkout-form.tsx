@@ -11,13 +11,29 @@ import { useBundleDiscount } from "@/lib/use-bundle-discount";
 import { calculateShippingCents } from "@/lib/shipping";
 import { CartNotices } from "@/components/cart-notices";
 
+export interface SavedAddress {
+  id: string;
+  label: string;
+  name: string;
+  phone: string;
+  address: string;
+  city: string;
+  district: string;
+  postalCode: string | null;
+  isDefault: boolean;
+}
+
 export default function CheckoutForm({
   defaultShippingCents,
-  paymentMode
+  paymentMode,
+  savedAddresses = [],
+  customerEmail
 }: {
   defaultShippingCents: number;
   /** Sanal POS hazir degilse null (odeme alinamaz) */
   paymentMode: "SANDBOX" | "LIVE" | null;
+  savedAddresses?: SavedAddress[];
+  customerEmail?: string;
 }) {
   const { lines, totalCents, couponCode, refreshPrices, hasBlockingIssues } = useCart();
   const router = useRouter();
@@ -25,6 +41,8 @@ export default function CheckoutForm({
   const [error, setError] = useState<string | null>(null);
   const [coupon, setCoupon] = useState<CouponResult>(null);
   const [loyalty, setLoyalty] = useState<LoyaltyResult>(null);
+  const [addressChoice, setAddressChoice] = useState<string>(savedAddresses[0]?.id ?? "new");
+  const selectedAddress = savedAddresses.find((a) => a.id === addressChoice) ?? null;
   // Siparis olustu ama odeme baslatilamadiysa (ag hatasi vb.) tekrar denemede ayni siparis
   // kullanilir - ikinci bir siparis olusturulmaz.
   const createdOrderNumber = useRef<string | null>(null);
@@ -164,13 +182,92 @@ export default function CheckoutForm({
 
         <CartNotices />
 
+        {savedAddresses.length > 0 && (
+          <div className="grid gap-3 sm:grid-cols-2">
+            {savedAddresses.map((a) => {
+              const selected = addressChoice === a.id;
+              return (
+                <label
+                  key={a.id}
+                  className={`group relative cursor-pointer border p-4 pr-10 text-sm transition-all duration-200 ${
+                    selected ? "border-ink bg-ink/[0.03] shadow-sm" : "border-line hover:border-ink/40"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="addressChoice"
+                    className="sr-only"
+                    checked={selected}
+                    onChange={() => setAddressChoice(a.id)}
+                  />
+                  <span
+                    className={`absolute right-4 top-4 flex h-5 w-5 items-center justify-center rounded-full border transition-colors duration-200 ${
+                      selected ? "border-ink bg-ink" : "border-line group-hover:border-ink/50"
+                    }`}
+                  >
+                    <svg
+                      viewBox="0 0 12 10"
+                      fill="none"
+                      className={`h-2.5 w-2.5 transition-transform duration-200 ${selected ? "scale-100" : "scale-0"}`}
+                    >
+                      <path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <p className="font-medium">
+                    {a.label} {a.isDefault && <span className="ml-2 text-xs text-clay">(Varsayılan)</span>}
+                  </p>
+                  <p className="mt-1 text-ink/60">
+                    {a.address}, {a.district} / {a.city}
+                  </p>
+                </label>
+              );
+            })}
+            <label
+              className={`group relative cursor-pointer border p-4 pr-10 text-sm transition-all duration-200 flex items-center ${
+                addressChoice === "new" ? "border-ink bg-ink/[0.03] shadow-sm" : "border-line hover:border-ink/40"
+              }`}
+            >
+              <input
+                type="radio"
+                name="addressChoice"
+                className="sr-only"
+                checked={addressChoice === "new"}
+                onChange={() => setAddressChoice("new")}
+              />
+              <span
+                className={`absolute right-4 top-4 flex h-5 w-5 items-center justify-center rounded-full border transition-colors duration-200 ${
+                  addressChoice === "new" ? "border-ink bg-ink" : "border-line group-hover:border-ink/50"
+                }`}
+              >
+                <svg
+                  viewBox="0 0 12 10"
+                  fill="none"
+                  className={`h-2.5 w-2.5 transition-transform duration-200 ${addressChoice === "new" ? "scale-100" : "scale-0"}`}
+                >
+                  <path d="M1 5L4.5 8.5L11 1.5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
+              <span className="font-medium">Yeni adres kullan</span>
+            </label>
+          </div>
+        )}
+
         <div className="grid gap-4 md:grid-cols-2">
-          <input name="customerName" required placeholder="Ad Soyad" className="border border-line px-4 py-3" />
+          <input
+            key={`name-${addressChoice}`}
+            name="customerName"
+            required
+            placeholder="Ad Soyad"
+            defaultValue={selectedAddress?.name ?? ""}
+            readOnly={!!selectedAddress}
+            className={`border border-line px-4 py-3 ${selectedAddress ? "bg-ink/5" : ""}`}
+          />
           <input
             name="customerEmail"
             required
             type="email"
             placeholder="E-posta"
+            defaultValue={customerEmail ?? ""}
             onBlur={handleEmailBlur}
             className="border border-line px-4 py-3"
           />
@@ -178,12 +275,51 @@ export default function CheckoutForm({
         <p className="text-xs text-ink/50">
           Ödemenizi tamamlamazsanız sepetinizi hatırlatmak için size e-posta gönderebiliriz.
         </p>
-        <input name="customerPhone" required placeholder="Telefon" className="w-full border border-line px-4 py-3" />
-        <input name="shippingAddress" required placeholder="Adres" className="w-full border border-line px-4 py-3" />
+        <input
+          key={`phone-${addressChoice}`}
+          name="customerPhone"
+          required
+          placeholder="Telefon"
+          defaultValue={selectedAddress?.phone ?? ""}
+          readOnly={!!selectedAddress}
+          className={`w-full border border-line px-4 py-3 ${selectedAddress ? "bg-ink/5" : ""}`}
+        />
+        <input
+          key={`address-${addressChoice}`}
+          name="shippingAddress"
+          required
+          placeholder="Adres"
+          defaultValue={selectedAddress?.address ?? ""}
+          readOnly={!!selectedAddress}
+          className={`w-full border border-line px-4 py-3 ${selectedAddress ? "bg-ink/5" : ""}`}
+        />
         <div className="grid gap-4 md:grid-cols-3">
-          <input name="city" required placeholder="İl" className="border border-line px-4 py-3" />
-          <input name="district" required placeholder="İlçe" className="border border-line px-4 py-3" />
-          <input name="postalCode" placeholder="Posta Kodu" className="border border-line px-4 py-3" />
+          <input
+            key={`city-${addressChoice}`}
+            name="city"
+            required
+            placeholder="İl"
+            defaultValue={selectedAddress?.city ?? ""}
+            readOnly={!!selectedAddress}
+            className={`border border-line px-4 py-3 ${selectedAddress ? "bg-ink/5" : ""}`}
+          />
+          <input
+            key={`district-${addressChoice}`}
+            name="district"
+            required
+            placeholder="İlçe"
+            defaultValue={selectedAddress?.district ?? ""}
+            readOnly={!!selectedAddress}
+            className={`border border-line px-4 py-3 ${selectedAddress ? "bg-ink/5" : ""}`}
+          />
+          <input
+            key={`postal-${addressChoice}`}
+            name="postalCode"
+            placeholder="Posta Kodu"
+            defaultValue={selectedAddress?.postalCode ?? ""}
+            readOnly={!!selectedAddress}
+            className={`border border-line px-4 py-3 ${selectedAddress ? "bg-ink/5" : ""}`}
+          />
         </div>
         <textarea name="note" placeholder="Sipariş notu (opsiyonel)" className="w-full border border-line px-4 py-3" rows={3} />
 
