@@ -275,6 +275,22 @@ export default function CheckoutForm({
           <span>{formatPrice(grandTotalCents)}</span>
         </div>
       </div>
+
+      {/* Footer /odeme'de kaldirildigi icin oradaki iyzico guven bandi burada,
+          sag ozet panelinin altinda gosteriliyor - logo beyaz oldugu icin
+          footer'daki gibi koyu (bg-ink) bir serit icinde. */}
+      <div className="flex justify-center border-t border-line/60 pt-4 lg:justify-start">
+        <div className="inline-flex items-center rounded-full bg-ink px-4 py-2">
+          <Image
+            src="/payment/iyzico-logo-band-white.svg"
+            alt="iyzico ile Öde, Mastercard, Visa, American Express, Troy"
+            width={456}
+            height={32}
+            unoptimized
+            className="h-4 w-auto"
+          />
+        </div>
+      </div>
     </div>
   );
 
