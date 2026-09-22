@@ -72,9 +72,10 @@ export function FeaturedCarousel({ products }: { products: ProductCardData[] }) 
       </div>
 
       {/* Masaustu: overflow-hidden sarmalayici icinde translateX ile kayan
-          serit. Mobil: carousel etkilesimi yerine dogal dikey scroll ile
-          katalogun mobil grid'iyle (kenara yaslanmis, -mx-4 gap-x-0.5)
-          birebir ayni 2 sutunlu sabit grid'e geri dusuluyor. */}
+          serit. Mobil: Release temasinin "Just arrived" carousel'i gibi
+          snap-x kaydirmali tek-kart-buyuk gorunum (Ozel Koleksiyonlar
+          bolumundeki teknikle ayni, bkz. app/(site)/page.tsx) - kart ekranin
+          buyuk kismini kaplar, sagda bir sonrakinin kenari gorunur. */}
       <div className="hidden overflow-hidden md:block">
         <div
           className="flex w-full transition-transform duration-500 ease-out"
@@ -91,9 +92,11 @@ export function FeaturedCarousel({ products }: { products: ProductCardData[] }) 
         </div>
       </div>
 
-      <div className="-mx-4 grid grid-cols-2 gap-x-0.5 gap-y-3 md:hidden">
+      <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden">
         {products.map((p) => (
-          <ProductCard key={p.productId} product={p} />
+          <div key={p.productId} className="w-[82vw] shrink-0 snap-start">
+            <ProductCard product={p} />
+          </div>
         ))}
       </div>
     </>

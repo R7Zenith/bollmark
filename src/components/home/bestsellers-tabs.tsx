@@ -9,17 +9,23 @@ export type BestsellerTab = { key: string; label: string; products: ProductCardD
 // Cok Satanlar: veri sunucuda hazirlanir (bkz. app/(site)/page.tsx), sekme
 // degisimi yalniz istemcide - fetch yok. Sekmeler WAI-ARIA tablist deseniyle:
 // aktif sekme tabIndex=0, oklar/Home/End sekme degistirir. Tek sekme varsa
-// (yalniz "Tumu") sekme cubugu hic gosterilmez. Kart izgarasi katalog
-// sayfasiyla (bkz. urunler/page.tsx) ayni: mobilde kenardan kenara 2 sutun,
-// masaustunde 4 sutun.
+// (yalniz "Tumu") sekme cubugu hic gosterilmez. Kart izgarasi mobilde
+// Release'in "Just arrived" carousel'i gibi snap-x kaydirmali tek-kart-buyuk
+// (Ozel Koleksiyonlar bolumundeki teknikle ayni), masaustunde 4 sutun.
 export function BestsellersTabs({ tabs }: { tabs: BestsellerTab[] }) {
   const [activeKey, setActiveKey] = useState(tabs[0]?.key);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const scrollRef = useRef<HTMLDivElement | null>(null);
   const active = tabs.find((t) => t.key === activeKey) ?? tabs[0];
   if (!active) return null;
 
-  function focusTab(key: string) {
+  function selectTab(key: string) {
     setActiveKey(key);
+    if (scrollRef.current) scrollRef.current.scrollLeft = 0;
+  }
+
+  function focusTab(key: string) {
+    selectTab(key);
     tabRefs.current[key]?.focus();
   }
 
@@ -61,7 +67,7 @@ export function BestsellersTabs({ tabs }: { tabs: BestsellerTab[] }) {
                 aria-selected={selected}
                 aria-controls="bestsellers-panel"
                 tabIndex={selected ? 0 : -1}
-                onClick={() => setActiveKey(t.key)}
+                onClick={() => selectTab(t.key)}
                 className={`border-b pb-1 text-[10px] font-medium uppercase tracking-[0.1em] transition-colors ${
                   selected ? "border-ink text-ink" : "border-transparent text-ink/50 hover:text-ink"
                 }`}
@@ -74,13 +80,16 @@ export function BestsellersTabs({ tabs }: { tabs: BestsellerTab[] }) {
       )}
 
       <div
+        ref={scrollRef}
         role="tabpanel"
         id="bestsellers-panel"
         aria-labelledby={tabs.length > 1 ? `bestsellers-tab-${active.key}` : undefined}
-        className="-mx-4 grid grid-cols-2 gap-x-0.5 gap-y-3 md:mx-0 md:grid-cols-4 md:gap-6"
+        className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-4 md:gap-6 md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden"
       >
         {active.products.map((p) => (
-          <ProductCard key={p.productId} product={p} />
+          <div key={p.productId} className="w-[82vw] shrink-0 snap-start md:w-auto">
+            <ProductCard product={p} />
+          </div>
         ))}
       </div>
     </>

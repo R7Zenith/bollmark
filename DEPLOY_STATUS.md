@@ -5273,3 +5273,14 @@ Iki ayri sorun bildirildi. (1) `/sepet`teki adet input'unda iki haneli sayilar (
 - `sepet/page.tsx` ve `cart-drawer.tsx`: "+" butonu adet stoga esitlenince pasiflesiyor (aynı `Minus` butonunun adet<=1'de pasiflesmesi gibi), input'a `max={line.stock}` eklendi.
 - **Dogrulama**: `npx tsc --noEmit` temiz. Playwright ile "Son 1 adet kaldı" uyarisi olan gercek bir varyant sepete eklendi, `/sepet`te input'a "9999" yazilip degistirilince adet 1'de kaldigi, "+" butonuna 5 kez basilinca da 1'de kaldigi ve butonun `disabled` oldugu dogrulandi; ayni varyantla iki haneli adet gorunumu de (baska bir testte, 10 adede kadar) kesilmeden dogrulandi.
 - **Commit/push**: Yerel commit atildi (`d6571bd`), push EDILMEDI.
+
+---
+
+## Anasayfa mobil urun bolumleri: kaydirmali "tek tek buyuk kart" gorunumu (ayni gun, ANASAYFA_MOBIL_KAYDIRMALI_URUN_PLANI.md uygulandi)
+
+Kullanici istegi: Shopify Release temasindaki gibi, mobilde "Yeni Gelenler" ve "Cok Satanlar" bolumlerinde urunler tek tek buyuk gorunsun, yaninda bir sonrakinin kenari gorunsun, kaydirinca gecsin - onceden ikisi de mobilde sabit 2 sutunlu grid kullaniyordu (kaydirma yok, kart kucuk).
+
+- `src/components/featured-carousel.tsx`: mobil (`md:hidden`) grid'i, sayfadaki "Ozel Koleksiyonlarimiz" bolumunun kullandigi ayni `snap-x snap-mandatory` + `overflow-x-auto` teknigine cevrildi, her `ProductCard` `w-[82vw] shrink-0 snap-start` ile sarmalandi. Masaustu (`md:block`) ok/slider mantigina dokunulmadi.
+- `src/components/home/bestsellers-tabs.tsx`: ayni teknik `#bestsellers-panel`e uygulandi (mobilde snap-x/w-[82vw], masaustunde eski 4 sutunlu grid korunuyor - `md:` class'lari ayni kaldi). Ek olarak sekme (Tumu/Kadin/Erkek) degistiginde mobil kaydirma pozisyonu artik sifirlaniyor: yeni bir `scrollRef` + `selectTab()` fonksiyonu (`setActiveKey` + `scrollLeft = 0`) eklendi, hem sekme butonlarinin `onClick`i hem klavye navigasyonundaki `focusTab` bunu kullaniyor.
+- **Dogrulama**: `npx tsc --noEmit` temiz. Bu makinede Python yok ama Node.js Playwright (scratchpad'e gecici kuruldu, projeye eklenmedi, test sonrasi silindi) ile 390px genislikte gercek ekran goruntusu alindi: kart genisligi olculdu (~320px / 390px viewport = %82, hedeflenen `w-[82vw]` ile birebir uyumlu), sagda bir sonraki urunun kenari goruluyor, `scrollBy` ile kaydirinca bir sonraki karta geciyor, Cok Satanlar'da sekme degistirince `scrollLeft` 0'a (baslangic konumuna) donuyor dogrulandi. Site su an `PREVIEW_PASSWORD` ile korunan "Coming Soon" kapisinin arkasinda oldugundan, testte `.env`deki sifreyle `bm_preview` cookie'si set edilerek gecildi (sifre hicbir dosyaya yazilmadi).
+- **Commit/push**: Yerel commit atilacak, push EDILMEDI (onceki oturumlardaki gibi kullanici onayi bekleniyor).
