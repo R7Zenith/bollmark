@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
@@ -103,7 +102,9 @@ export default function CheckoutForm({
       note: String(form.get("note") || ""),
       couponCode: couponCode || undefined,
       pointsToRedeem: loyalty?.pointsRedeemed || undefined,
-      termsAccepted: form.get("termsAccepted") === "on",
+      // Sozlesme onayi artik sepet adiminda (/sepet) aliniyor - odeme
+      // adimina buradan gecebilmis olmak onayin verildigi anlamina gelir.
+      termsAccepted: true,
       lines: lines.map((l) => ({
         productId: l.productId,
         variantId: l.variantId,
@@ -338,21 +339,6 @@ export default function CheckoutForm({
             Ödemeniz iyzico güvencesiyle, 3D Secure doğrulamasıyla alınır. Kart bilgileriniz sitemizde saklanmaz.
           </p>
         )}
-
-        <label className="flex items-start gap-2 text-sm text-ink/70">
-          <input type="checkbox" name="termsAccepted" required className="mt-0.5" />
-          <span>
-            <Link
-              href="/sayfa/mesafeli-satis-sozlesmesi"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-clay"
-            >
-              Mesafeli Satış Sözleşmesi
-            </Link>
-            &apos;ni okudum, kabul ediyorum.
-          </span>
-        </label>
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 

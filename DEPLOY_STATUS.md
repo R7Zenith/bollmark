@@ -5143,3 +5143,27 @@ Ustteki "Vercel Functions Storage kotasi analizi" notundaki 4 oneri sirayla uygu
 - Degisiklik commit/push EDILMEDI.
 
 **Bekleyen**: yok (kod tarafinda). Kalan tek acik nokta gercek sharp/Linux function boyutunun olculmesi; bunun icin ya interaktif oturumda `vercel build` izni ya da panelin Functions/Build Summary ekraninin (deployment `a47f3d6`) manuel incelenmesi gerekiyor.
+
+---
+
+## Sepet sayfasi (/sepet) Release temasina birebir uyum (2026-09-22)
+
+`SEPET_SAYFASI_RELEASE_BIREBIR_PLANI.md`'deki plan uygulandi. `src/app/(site)/sepet/page.tsx` tamamen yeniden yazildi.
+
+- Ust kisim: ortalanmis breadcrumb ("Ana Sayfa / Sepetim"), 36px/400/-1.44px baslik + sayac (cart-drawer.tsx ile ayni olcek), masaustunde sagda "Alisverise Devam Et" linki (mobilde bu link listenin altina, checkout butonunun ustune tasindi).
+- Iki kolonlu govde: sol `lg:flex-1 lg:min-w-0` (urun listesi), sag `lg:w-[432px] lg:shrink-0` sabit ozet karti (`bg-ink/5`, `rounded-none`, `p-8`).
+- Masaustunde 4 sutunlu tablo basligi (URUN/FIYAT/ADET/TOPLAM); mobilde ayri bir kart duzeni (gorsel+isim+fiyat ust satirda, adet secici+cop kutusu altta) - iki duzen de ayni satir icinde `hidden lg:grid` / `lg:hidden` ile ayrildi (ayni `<div>`da grid `contents` triki denenmisti, sutun hizalamasini bozdugu icin iki ayri markup'a gecildi).
+- Adet secici: `border-line`, `rounded` (4px, plan onerisi - pill degil), ince `Minus`/`Plus` (lucide-react) + ayri `Trash2` ikon buton (`removeLine`).
+- Sag kartin en ustunde ucretsiz kargo ilerleme cubugu: `SHIPPING_THRESHOLD_CENTS` ile `totalCents` kiyaslanip kalan tutar gosteriliyor, esik dolunca "Ucretsiz kargo kazandiniz" mesajina donuyor, `bg-stone` dolu cubuk.
+- Mevcut `CouponField`, `useBundleDiscount`, `CartNotices` bilesenleri korunup yeni yerlesime tasindi.
+- **Siparis notu eklenmedi** (kullanici acikca istemedi).
+- **YENI**: "Mesafeli Satis Sozlesmesi'ni okudum, kabul ediyorum" checkbox'i eklendi - `/odeme`daki checkout-form.tsx'teki ayni link/metinle tutarli (`/sayfa/kullanim-kosullari` diye bir sayfa yok, projede zaten `/sayfa/mesafeli-satis-sozlesmesi` kullaniliyor). Checkbox isaretlenmeden Odemeye Gec butonu `hasBlockingIssues` mantigina ek bir kosulla (`checkoutDisabled = hasBlockingIssues || !termsAccepted`) pasif kaliyor.
+- Bos sepet durumu cart-drawer.tsx'teki buyuk/italik `font-accent` tipografisiyle tutarli hale getirildi.
+- "Complete the set" tamamlayici urun onerisi bu iterasyona DAHIL EDILMEDI (plana gore ayri gorev).
+- **Dogrulama**: `npx tsc --noEmit` temiz. Playwright ile calisan dev server'da (`localhost:3000`, sepete gercek bir urun + mevcut bir test satiri eklenerek) hem 1600px masaustu hem 375px mobil goruntulendi - iki sutunlu masaustu duzeni, tablo basliklari, adet secici + cop kutusu, ucretsiz kargo cubugu, kupon/ozet/checkbox/buton, mobil kart duzeni ve "Alisverise Devam Et" konumu gozle dogrulandi. Ilk denemede masaustunde satir toplam fiyati ozet kartiyla cakisiyormus gibi gorunuyordu; `getBoundingClientRect` ile olculdugunde gercek bir overflow olmadigi (sag sutun tam da kartin sol kenarinda bitiyor, plan zaten "aralarinda ekstra bosluk yok" diyordu) dogrulandi.
+- **Degisiklik commit/push EDILMEDI** - kullanici onayi bekleniyor.
+
+**Kullanici geri bildirimiyle 3 duzeltme (ayni oturum, ayni gun)**:
+1. Baslik/"Alisverise Devam Et" satiri `items-end` yerine `items-center` yapildi - link artik "Sepetim" basligiyla dikey ortalanmis, eskiden alt hizada kaliyordu.
+2. Sol urun listesi ile sag ozet karti arasina `lg:gap-16` (64px) eklendi - kullanicinin ekran goruntusu karsilastirmasinda Release'de gercekte bir bosluk oldugu, plandaki "bitisik" notunun yanlis olculdugu ortaya cikti.
+3. `/odeme` (checkout-form.tsx) icindeki "Mesafeli Satis Sozlesmesi" onay checkbox'i kaldirildi - kullanici artik onayi yalniz `/sepet` adiminda bir kez veriyor (iki kez sorulmasin istendi). `/api/orders` hala `termsAccepted: true` bekliyor (schema/DB degismedi), checkout-form artik bunu sabit `true` gonderiyor - cunku `/sepet`teki checkbox isaretlenmeden "Odemeye Gec" linki zaten pasif kalip kullaniciyi `/odeme`ye hic gecirmiyor. Not: bu onay durumu kalici bir yerde (DB/cart context) saklanmiyor, yalniz sepet sayfasindaki React state - kullanici sepete ugramadan dogrudan `/odeme` URL'sine giderse (ör. eski sekme/bookmark) UI'da tekrar sorulmadan siparis olusabilir; kullanici bunu bilerek tercih etti.
