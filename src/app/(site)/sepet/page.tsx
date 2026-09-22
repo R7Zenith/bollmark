@@ -86,15 +86,17 @@ export default function CartPage() {
                     <input
                       type="number"
                       min={1}
+                      max={line.stock}
                       value={line.quantity}
                       onChange={(e) => updateQuantity(line.variantId, Number(e.target.value))}
-                      className="w-5 border-none bg-transparent text-center text-xs focus:outline-none"
+                      className="w-7 appearance-none border-none bg-transparent text-center text-xs focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                     />
                     <button
                       type="button"
                       onClick={() => updateQuantity(line.variantId, line.quantity + 1)}
+                      disabled={line.stock !== undefined && line.quantity >= line.stock}
                       aria-label="Adedi artır"
-                      className="flex h-5 w-5 items-center justify-center"
+                      className="flex h-5 w-5 items-center justify-center disabled:opacity-30"
                     >
                       <Plus size={12} strokeWidth={1} />
                     </button>

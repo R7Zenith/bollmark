@@ -117,8 +117,9 @@ export function CartDrawer() {
                       <button
                         type="button"
                         onClick={() => updateQuantity(line.variantId, line.quantity + 1)}
+                        disabled={line.stock !== undefined && line.quantity >= line.stock}
                         aria-label="Adedi artır"
-                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition duration-300 hover:bg-line"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition duration-300 hover:bg-line disabled:opacity-30"
                       >
                         <Plus size={14} />
                       </button>

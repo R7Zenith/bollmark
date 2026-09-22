@@ -20,6 +20,8 @@ export type CartLine = {
   compareAtCents?: number | null;
   image: string;
   quantity: number;
+  /** Son bilinen stok (fiyat tazelemesinde/ekleme aninda gelir) - adet secicisini sinirlamak icin kullanilir. */
+  stock?: number;
 };
 
 export type PriceNotice = {
@@ -111,7 +113,8 @@ function toCartLine(f: ResolvedCartLine): CartLine {
     priceCents: f.priceCents,
     compareAtCents: f.compareAtCents,
     image: f.image,
-    quantity: f.quantity
+    quantity: f.quantity,
+    stock: f.stock
   };
 }
 
@@ -176,7 +179,8 @@ function applyFresh(base: CartLine[], fresh: ResolvedCartLine[]) {
       color: f.color || line.color,
       image: f.image,
       priceCents: f.priceCents,
-      compareAtCents: f.compareAtCents
+      compareAtCents: f.compareAtCents,
+      stock: f.stock
     };
     const same =
       updated.name === line.name &&
@@ -184,7 +188,8 @@ function applyFresh(base: CartLine[], fresh: ResolvedCartLine[]) {
       updated.color === line.color &&
       updated.image === line.image &&
       updated.priceCents === line.priceCents &&
-      (updated.compareAtCents ?? null) === (line.compareAtCents ?? null);
+      (updated.compareAtCents ?? null) === (line.compareAtCents ?? null) &&
+      updated.stock === line.stock;
     if (same) return line;
     changed = true;
     return updated;
@@ -500,11 +505,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setLines((prev) => {
       const existing = prev.find((l) => l.variantId === line.variantId);
       if (existing) {
+        const stock = line.stock ?? existing.stock;
+        const max = stock !== undefined ? Math.min(stock, MAX_LINE_QUANTITY) : MAX_LINE_QUANTITY;
         return prev.map((l) =>
-          l.variantId === line.variantId ? { ...l, quantity: l.quantity + line.quantity } : l
+          l.variantId === line.variantId
+            ? { ...l, stock, quantity: Math.min(l.quantity + line.quantity, max) }
+            : l
         );
       }
-      return [...prev, line];
+      return [...prev, { ...line, quantity: Math.min(line.quantity, line.stock ?? MAX_LINE_QUANTITY) }];
     });
   };
 
@@ -523,7 +532,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const updateQuantity = (variantId: string, quantity: number) => {
     versionRef.current++;
     setLines((prev) =>
-      prev.map((l) => (l.variantId === variantId ? { ...l, quantity: Math.max(1, quantity) } : l))
+      prev.map((l) => {
+        if (l.variantId !== variantId) return l;
+        const max = l.stock !== undefined ? Math.min(l.stock, MAX_LINE_QUANTITY) : MAX_LINE_QUANTITY;
+        return { ...l, quantity: Math.max(1, Math.min(quantity, max)) };
+      })
     );
   };
 
