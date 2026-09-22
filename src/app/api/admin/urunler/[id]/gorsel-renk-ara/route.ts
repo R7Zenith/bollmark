@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { enrichOne } from "@/lib/koton-images";
+import { enrichOneSlazenger } from "@/lib/slazenger-images";
 import { resolveImageSourceForBrand } from "@/lib/brand-image-sources";
 
 export const maxDuration = 30;
@@ -51,18 +52,20 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: "Bu renk, ürünün varyantları arasında bulunamadı." }, { status: 400 });
   }
 
-  const result = await enrichOne(
-    {
-      productId: product.id,
-      productCode: product.code,
-      productName: product.name,
-      firstBarcode,
-      colorValueIdByLabel: { [colorLabel]: valueId },
-      imageSourceBaseUrl: imageSource?.baseUrl ?? null,
-      imageSourceDisplayName: imageSource?.displayName ?? null
-    },
-    { overwriteDescription: false }
-  );
+  const target = {
+    productId: product.id,
+    productCode: product.code,
+    productName: product.name,
+    firstBarcode,
+    colorValueIdByLabel: { [colorLabel]: valueId },
+    imageSourceBaseUrl: imageSource?.baseUrl ?? null,
+    imageSourceDisplayName: imageSource?.displayName ?? null,
+    imageSourceStrategy: imageSource?.strategy ?? null
+  };
+  const result =
+    imageSource?.strategy === "slazenger-arama"
+      ? await enrichOneSlazenger(target, { overwriteDescription: false })
+      : await enrichOne(target, { overwriteDescription: false });
 
   return NextResponse.json(result);
 }

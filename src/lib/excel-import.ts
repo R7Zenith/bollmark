@@ -6,7 +6,7 @@ import * as XLSX from "xlsx";
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { resolveOptionValueIds } from "@/lib/variant-attributes";
-import { resolveImageSourceForBrand } from "@/lib/brand-image-sources";
+import { resolveImageSourceForBrand, type ImageSourceStrategy } from "@/lib/brand-image-sources";
 
 type Tx = PrismaClient | Prisma.TransactionClient;
 
@@ -414,6 +414,10 @@ export interface KotonEnrichmentTarget {
   // hiç ağ isteği atmadan doğrudan found:false döner (bkz. brand-image-sources.ts).
   imageSourceBaseUrl: string | null;
   imageSourceDisplayName: string | null;
+  // "koton" -> koton-images.ts'teki JSON tabanli motor, "slazenger-arama" ->
+  // slazenger-images.ts'teki arama+HTML tabanli motor. Cagiran taraf (route'lar)
+  // buna gore hangi enrichOne/enrichFromUrl implementasyonunu cagiracagina karar verir.
+  imageSourceStrategy: ImageSourceStrategy | null;
 }
 
 export interface ImportSummary {
@@ -556,7 +560,8 @@ export async function importProductGroups(
             firstBarcode: group.variants[0].barcode,
             colorValueIdByLabel,
             imageSourceBaseUrl: imageSource?.baseUrl ?? null,
-            imageSourceDisplayName: imageSource?.displayName ?? null
+            imageSourceDisplayName: imageSource?.displayName ?? null,
+            imageSourceStrategy: imageSource?.strategy ?? null
           });
         }
       }

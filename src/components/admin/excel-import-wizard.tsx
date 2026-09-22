@@ -71,6 +71,7 @@ type KotonEnrichmentTarget = {
   colorValueIdByLabel: Record<string, string>;
   imageSourceBaseUrl: string | null;
   imageSourceDisplayName: string | null;
+  imageSourceStrategy: "koton" | "slazenger-arama" | null;
 };
 
 type ImportResponse = {
@@ -89,7 +90,17 @@ type ImportProgress = {
   totalProducts: number;
 };
 
-type Step = "upload" | "preview" | "result";
+type Step = "brand" | "upload" | "preview" | "result";
+
+// Excel içe aktarımı zaten marka bağımsız çalışıyor (satırlardaki FIRMAADI sütunundan
+// marka otomatik okunuyor, görsel arama stratejisi de her ürün için ayrı ayrı doğru
+// motora yönleniyor - bkz. gorsel-getir route'u). Bu seçim ekranı sadece netlik için:
+// admin hangi markanın checklist'ini yüklediğini bilerek baslasin, baslik/aciklama ona
+// gore degisir.
+const BRAND_OPTIONS: { key: "KOTON" | "SLAZENGER"; label: string }[] = [
+  { key: "KOTON", label: "Koton" },
+  { key: "SLAZENGER", label: "Slazenger" }
+];
 
 // Sunucudaki 30sn'lik transaction limitinin altında kalmak için ürün gruplarını
 // bu boyutta parçalara bölüp sırayla /excel-aktar'a gönderiyoruz (bkz.
@@ -137,7 +148,8 @@ export function ExcelImportWizard({
   categoryNames: string[];
 }) {
   const { showToast } = useToast();
-  const [step, setStep] = useState<Step>("upload");
+  const [step, setStep] = useState<Step>("brand");
+  const [brand, setBrand] = useState<"KOTON" | "SLAZENGER" | null>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [categoryId, setCategoryId] = useState("");
@@ -297,9 +309,49 @@ export function ExcelImportWizard({
     setCategoryByCode({});
   }
 
-  if (step === "upload") {
+  if (step === "brand") {
     return (
-      <Card title="1. Excel Dosyası Seç">
+      <Card title="1. Marka Seç">
+        <div className="space-y-4">
+          <p className="text-sm text-admin-text-muted">
+            Hangi markanın checklist&apos;ini yükleyeceksiniz? Excel içindeki her satır zaten kendi markasıyla
+            (FIRMAADI sütunu) doğru şekilde içe aktarılır - bu seçim sadece görsel arama adımının hangi siteye
+            bakacağını netleştirmek içindir.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            {BRAND_OPTIONS.map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => {
+                  setBrand(opt.key);
+                  setStep("upload");
+                }}
+                className="rounded-md border border-admin-border bg-admin-bg/40 px-5 py-3 text-sm font-medium text-admin-text hover:border-admin-accent hover:bg-admin-accent/5"
+              >
+                {opt.label} Ürünleri Ekle
+              </button>
+            ))}
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (step === "upload") {
+    const brandLabel = BRAND_OPTIONS.find((o) => o.key === brand)?.label ?? "";
+    return (
+      <Card
+        title={`2. ${brandLabel} Excel Dosyası Seç`}
+        action={
+          <button
+            onClick={() => setStep("brand")}
+            className="inline-flex items-center gap-1 text-xs text-admin-text-muted hover:text-admin-text"
+          >
+            <ArrowLeft size={14} /> Marka değiştir
+          </button>
+        }
+      >
         <div className="space-y-4">
           <p className="text-sm text-admin-text-muted">
             Dükkanın checklist sistemi tarafından üretilen .xls veya .xlsx dosyasını seçin. Aynı ÜRÜN KODU&apos;na
@@ -319,7 +371,7 @@ export function ExcelImportWizard({
     return (
       <div className="space-y-6">
         <Card
-          title="2. Önizleme"
+          title="3. Önizleme"
           action={
             <button onClick={reset} className="inline-flex items-center gap-1 text-xs text-admin-text-muted hover:text-admin-text">
               <ArrowLeft size={14} /> Başka dosya seç
@@ -517,7 +569,7 @@ export function ExcelImportWizard({
 
   if (step === "result" && result) {
     return (
-      <Card title="3. Sonuç">
+      <Card title="4. Sonuç">
         <div className="space-y-5">
           <div className="grid grid-cols-2 gap-4 text-sm sm:grid-cols-4">
             <div>

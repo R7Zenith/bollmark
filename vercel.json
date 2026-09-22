@@ -1,5 +1,5 @@
 {
-  "ignoreCommand": "git diff --quiet \"${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}\" HEAD -- . ':(exclude)*.md'",
+  "ignoreCommand": "git cat-file -e \"${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}\" 2>/dev/null && git diff --quiet \"${VERCEL_GIT_PREVIOUS_SHA:-HEAD^}\" HEAD -- . ':(exclude)*.md' || exit 1",
   "crons": [
     { "path": "/api/cron/sepet-hatirlatma", "schedule": "0 8 * * *" },
     { "path": "/api/cron/odeme-mutabakat", "schedule": "30 8 * * *" }

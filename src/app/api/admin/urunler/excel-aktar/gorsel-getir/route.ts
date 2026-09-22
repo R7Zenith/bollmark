@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { enrichOne, type KotonEnrichmentResult } from "@/lib/koton-images";
+import { enrichOneSlazenger } from "@/lib/slazenger-images";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import type { KotonEnrichmentTarget } from "@/lib/excel-import";
 
@@ -18,7 +19,8 @@ function isValidTarget(v: unknown): v is KotonEnrichmentTarget {
     typeof t.colorValueIdByLabel === "object" &&
     t.colorValueIdByLabel !== null &&
     (t.imageSourceBaseUrl === null || typeof t.imageSourceBaseUrl === "string") &&
-    (t.imageSourceDisplayName === null || typeof t.imageSourceDisplayName === "string")
+    (t.imageSourceDisplayName === null || typeof t.imageSourceDisplayName === "string") &&
+    (t.imageSourceStrategy === null || t.imageSourceStrategy === "koton" || t.imageSourceStrategy === "slazenger-arama")
   );
 }
 
@@ -40,9 +42,9 @@ export async function POST(request: NextRequest) {
 
   let result: KotonEnrichmentResult;
   try {
-    result = await enrichOne(target);
+    result = target.imageSourceStrategy === "slazenger-arama" ? await enrichOneSlazenger(target) : await enrichOne(target);
   } catch (error) {
-    console.error(`Koton görsel eşleştirme başarısız (ürün kodu: ${target.productCode}):`, error);
+    console.error(`Görsel eşleştirme başarısız (ürün kodu: ${target.productCode}):`, error);
     result = {
       productId: target.productId,
       productCode: target.productCode,

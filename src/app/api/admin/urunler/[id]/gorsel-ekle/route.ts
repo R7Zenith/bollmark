@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { enrichFromUrl } from "@/lib/koton-images";
+import { enrichFromUrlSlazenger } from "@/lib/slazenger-images";
 import { resolveImageSourceForBrand } from "@/lib/brand-image-sources";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
@@ -77,19 +78,20 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     });
   }
 
-  const result = await enrichFromUrl(
-    {
-      productId: product.id,
-      productCode: product.code,
-      productName: product.name,
-      firstBarcode: product.variants.find((v) => v.barcode)?.barcode ?? "",
-      colorValueIdByLabel,
-      imageSourceBaseUrl: imageSource?.baseUrl ?? null,
-      imageSourceDisplayName: imageSource?.displayName ?? null
-    },
-    url,
-    { overwriteDescription: false }
-  );
+  const target = {
+    productId: product.id,
+    productCode: product.code,
+    productName: product.name,
+    firstBarcode: product.variants.find((v) => v.barcode)?.barcode ?? "",
+    colorValueIdByLabel,
+    imageSourceBaseUrl: imageSource?.baseUrl ?? null,
+    imageSourceDisplayName: imageSource?.displayName ?? null,
+    imageSourceStrategy: imageSource?.strategy ?? null
+  };
+  const result =
+    imageSource?.strategy === "slazenger-arama"
+      ? await enrichFromUrlSlazenger(target, url, { overwriteDescription: false })
+      : await enrichFromUrl(target, url, { overwriteDescription: false });
 
   if (result.imagesAdded > 0 || result.descriptionUpdated) revalidateCatalog(product.slug);
   return NextResponse.json(result);
