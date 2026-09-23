@@ -1,4 +1,4 @@
-import { firstImageUrl, isOutOfStock, type getPublishedProducts } from "@/lib/catalog";
+import { buildColorSwatches, firstImageUrl, isOutOfStock, type getPublishedProducts } from "@/lib/catalog";
 import { resolveProductDisplayPrice, type AutomaticPercentCampaign } from "@/lib/coupons";
 import type { ProductCardData } from "@/components/product-card";
 
@@ -17,7 +17,8 @@ export function toProductCardData(p: PublishedProduct, campaigns: AutomaticPerce
     image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800",
     priceResolution: resolveProductDisplayPrice(campaigns, p),
     outOfStock: isOutOfStock(p.variants),
-    quickAddVariants: p.quickAddVariants
+    quickAddVariants: p.quickAddVariants,
+    colors: buildColorSwatches(p)
   };
 }
 

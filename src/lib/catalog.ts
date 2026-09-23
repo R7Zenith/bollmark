@@ -54,6 +54,34 @@ function totalStock(variants: { stock: number }[]): number {
   return variants.reduce((sum, v) => sum + Math.max(v.stock, 0), 0);
 }
 
+// Urunun varyantlarinda gercekten var olan renkleri (Renk ekseni, isColor:true,
+// hex kodu tanimli) kartin renk swatch onizlemesi icin toplar - hem katalog
+// hem ana sayfa kartlari ayni mantigi kullanir (bkz. getCatalogEntries,
+// home-products.ts toProductCardData).
+export function buildColorSwatches(product: {
+  variants: {
+    options: { valueId: string; value: { value: string; hexColor: string | null; attribute: { isColor: boolean } } }[];
+  }[];
+  optionImages: { valueId: string; url: string }[];
+}): { name: string; hex: string; imageUrl: string | null }[] {
+  const colorLabelByValueId = new Map<string, { label: string; hex: string | null }>();
+  for (const v of product.variants) {
+    for (const o of v.options) {
+      if (o.value.attribute.isColor) {
+        colorLabelByValueId.set(o.valueId, { label: o.value.value, hex: o.value.hexColor });
+      }
+    }
+  }
+
+  return [...colorLabelByValueId.entries()]
+    .filter(([, { hex }]) => hex)
+    .map(([valueId, { label, hex }]) => ({
+      name: label,
+      hex: hex as string,
+      imageUrl: product.optionImages.find((img) => img.valueId === valueId)?.url ?? null
+    }));
+}
+
 export async function getPublishedProducts(
   categorySlug?: string,
   options?: { featuredFirst?: boolean; genderLabel?: string }
@@ -72,7 +100,9 @@ export async function getPublishedProducts(
     },
     include: {
       images: { orderBy: { position: "asc" } },
-      optionImages: { orderBy: { position: "asc" }, take: 1 },
+      // take limiti yok - renk swatch'lari icin renk basina gorsel gerekiyor
+      // (bkz. buildColorSwatches / home-products.ts toProductCardData).
+      optionImages: { orderBy: { position: "asc" } },
       variants: { include: variantOptionsInclude }
     },
     orderBy: options?.featuredFirst
@@ -171,6 +201,7 @@ export async function getCatalogEntries(
 
   const entries: CatalogEntry[] = [];
   for (const p of products) {
+    const colors = buildColorSwatches(p);
     // Urunun varyantlarinda gercekten var olan renkler (Renk ekseni, isColor:true).
     const colorLabelByValueId = new Map<string, { label: string; hex: string | null }>();
     for (const v of p.variants) {
@@ -180,16 +211,6 @@ export async function getCatalogEntries(
         }
       }
     }
-
-    // Kartin renk swatch onizlemesi icin - hex kodu tanimsiz renkler (havuzda
-    // hex girilmemis) swatch'ta gosterilemeyecegi icin disarida birakilir.
-    const colors = [...colorLabelByValueId.entries()]
-      .filter(([, { hex }]) => hex)
-      .map(([valueId, { label, hex }]) => ({
-        name: label,
-        hex: hex as string,
-        imageUrl: p.optionImages.find((img) => img.valueId === valueId)?.url ?? null
-      }));
 
     if (colorLabelByValueId.size <= 1) {
       const outOfStock = isOutOfStock(p.variants);
