@@ -285,7 +285,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
               onClick={(e) => handleSwatchClick(e, index)}
               aria-label={color.name}
               title={color.name}
-              className="flex h-6 w-6 shrink-0 items-center justify-center"
+              className="flex h-7 w-7 shrink-0 items-center justify-center"
             >
               <span
                 className={`block h-[18px] w-[18px] rounded-full border ${
