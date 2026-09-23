@@ -49,6 +49,7 @@ export async function POST(req: NextRequest) {
     }
     lines.push({
       productId: line.productId,
+      variantId: line.variantId,
       priceCents: effectivePrice(product, variant),
       compareAtCents: effectiveCompareAt(product, variant),
       quantity: line.quantity,

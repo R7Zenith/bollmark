@@ -7,6 +7,10 @@ export class CouponInvalidError extends Error {}
 
 export interface CouponLine {
   productId: string;
+  // Sepetteki satiri benzersiz tanimlar (ayni urunun farkli varyantlari -
+  // renk/beden - ayri satirlar olarak dogru degerlendirilsin diye
+  // computeCouponDiscount/resolveBestDiscount icinde anahtar olarak kullanilir).
+  variantId: string;
   priceCents: number;
   // Urunun/varyantin manuel indirim karsilastirma fiyati (bkz.
   // lib/variant.ts effectiveCompareAt) - priceCents'ten buyukse satir zaten
@@ -97,7 +101,7 @@ function computeCouponDiscount(
   // "her satira en avantajli TEK otomatik kampanyayi ata" mantigi icin (bkz.
   // asagida). PERCENT'te satir bazinda gercek deger, FIXED'te fiyat payina
   // gore bolustürülmüş bir yaklasim (matchingCents == 0 ise bos).
-  lineDiscounts: { productId: string; discountCents: number }[];
+  lineDiscounts: { productId: string; variantId: string; discountCents: number }[];
 } {
   const hasRestriction = coupon.categoryIds.length > 0 || coupon.brandIds.length > 0 || coupon.genders.length > 0;
   const matchingLines = lines.filter(
@@ -132,7 +136,7 @@ function computeCouponDiscount(
         const esasFiyat = l.compareAtCents ?? l.priceCents;
         const kampanyaBirimFiyati = Math.round((esasFiyat * (100 - coupon.value)) / 100);
         const birimIndirim = Math.max(0, l.priceCents - kampanyaBirimFiyati);
-        return { productId: l.productId, discountCents: birimIndirim * l.quantity };
+        return { productId: l.productId, variantId: l.variantId, discountCents: birimIndirim * l.quantity };
       })
       .filter((d) => d.discountCents > 0);
     const discountCents = lineDiscounts.reduce((sum, d) => sum + d.discountCents, 0);
@@ -152,6 +156,7 @@ function computeCouponDiscount(
       ? []
       : matchingLines.map((l) => ({
           productId: l.productId,
+          variantId: l.variantId,
           discountCents: Math.round((discountCents * (l.priceCents * l.quantity)) / manuelToplam)
         }));
 
@@ -257,10 +262,10 @@ export async function resolveBestDiscount(
     if (freeShipping) automaticFreeShipping = true;
     if (coupon.type === "FREE_SHIPPING") continue;
 
-    for (const { productId, discountCents: lineShareCents } of lineDiscounts) {
-      const current = bestPerLine.get(productId);
+    for (const { variantId, discountCents: lineShareCents } of lineDiscounts) {
+      const current = bestPerLine.get(variantId);
       if (!current || lineShareCents > current.discountCents) {
-        bestPerLine.set(productId, { coupon, discountCents: lineShareCents });
+        bestPerLine.set(variantId, { coupon, discountCents: lineShareCents });
       }
     }
   }
