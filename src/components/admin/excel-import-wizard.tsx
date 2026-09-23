@@ -234,6 +234,7 @@ export function ExcelImportWizard({
 
       setProgress({ phase: "gorseller", doneGroups: totalGroups, totalGroups, doneProducts: 0, totalProducts: allTargets.length });
       const kotonResults: KotonResult[] = [];
+      let madeRealRequest = false;
       for (let i = 0; i < allTargets.length; i++) {
         if (skipImagesRef.current) {
           for (let j = i; j < allTargets.length; j++) {
@@ -249,8 +250,25 @@ export function ExcelImportWizard({
           }
           break;
         }
-        if (i > 0) await sleep(900);
         const target = allTargets[i];
+        // Marka BRAND_IMAGE_SOURCES'ta kayıtlı değilse (imageSourceStrategy null - artık
+        // Koton dahil) zaten enrichOne/enrichOneSlazenger hiç ağ isteği atmadan boş sonuç
+        // dönüyor - o zaman gorsel-getir'i çağırmanın ve aralara 900ms bekleme koymanın
+        // hiçbir faydası yok, sadece içe aktarımı gereksiz yere yavaşlatıyor.
+        if (!target.imageSourceStrategy) {
+          kotonResults.push({
+            productId: target.productId,
+            productCode: target.productCode,
+            found: false,
+            imagesAdded: 0,
+            descriptionUpdated: false,
+            sourceDisplayName: target.imageSourceDisplayName
+          });
+          setProgress({ phase: "gorseller", doneGroups: totalGroups, totalGroups, doneProducts: i + 1, totalProducts: allTargets.length });
+          continue;
+        }
+        if (madeRealRequest) await sleep(900);
+        madeRealRequest = true;
         try {
           const controller = new AbortController();
           const timeoutId = setTimeout(() => controller.abort(), 12000);
