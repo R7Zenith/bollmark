@@ -29,7 +29,6 @@ export interface ImageSource {
 }
 
 export const BRAND_IMAGE_SOURCES: Record<string, ImageSource> = {
-  KOTON: { baseUrl: "https://www.koton.com", displayName: "Koton", strategy: "koton" },
   SLAZENGER: { baseUrl: "https://www.slazenger.com.tr", displayName: "Slazenger", strategy: "slazenger-arama" }
 };
 
