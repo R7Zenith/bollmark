@@ -89,7 +89,7 @@ export function FeaturedCarousel({ products }: { products: ProductCardData[] }) 
           }}
         >
           {products.map((p) => (
-            <div key={p.productId} className="shrink-0" style={{ width: itemWidthCss }}>
+            <div key={`${p.productId}-${p.colorLabel ?? "tek"}`} className="shrink-0" style={{ width: itemWidthCss }}>
               <ProductCard product={p} />
             </div>
           ))}
@@ -98,7 +98,7 @@ export function FeaturedCarousel({ products }: { products: ProductCardData[] }) 
 
       <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 [scrollbar-width:none] md:hidden [&::-webkit-scrollbar]:hidden scroll-px-4">
         {products.map((p) => (
-          <div key={p.productId} className="w-[75vw] shrink-0 snap-start">
+          <div key={`${p.productId}-${p.colorLabel ?? "tek"}`} className="w-[75vw] shrink-0 snap-start">
             <ProductCard product={p} />
           </div>
         ))}

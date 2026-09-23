@@ -1,24 +1,31 @@
-import { buildColorSwatches, firstImageUrl, isOutOfStock, type getPublishedProducts } from "@/lib/catalog";
+import { isOutOfStock, type CatalogEntry, type getPublishedProducts } from "@/lib/catalog";
 import { resolveProductDisplayPrice, type AutomaticPercentCampaign } from "@/lib/coupons";
 import type { ProductCardData } from "@/components/product-card";
 
 type PublishedProduct = Awaited<ReturnType<typeof getPublishedProducts>>[number];
 
+const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800";
+
 // Ana sayfadaki iki urun bolumu (Yeni Gelenler + Cok Satanlar) ayni kart
 // verisini kullanir; donusum iki yerde ayri yazilip sapmasin diye burada tek.
-// Yeni Gelenler'in ciktisi bu fonksiyona tasinmadan onceki haliyle birebir ayni.
-export function toProductCardData(p: PublishedProduct, campaigns: AutomaticPercentCampaign[]): ProductCardData {
+// productToCatalogEntries ile uretilen girisleri (renk basina ayri kart -
+// katalog sayfasindaki gibi) ProductCard'in bekledigi sekle cevirir.
+export function catalogEntryToCardData(entry: CatalogEntry, campaigns: AutomaticPercentCampaign[]): ProductCardData {
   return {
-    productId: p.id,
-    slug: p.slug,
-    name: p.name,
-    priceCents: p.priceCents,
-    compareAtCents: p.compareAtCents,
-    image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800",
-    priceResolution: resolveProductDisplayPrice(campaigns, p),
-    outOfStock: isOutOfStock(p.variants),
-    quickAddVariants: p.quickAddVariants,
-    colors: buildColorSwatches(p)
+    productId: entry.productId,
+    slug: entry.slug,
+    name: entry.name,
+    priceCents: entry.priceCents,
+    compareAtCents: entry.compareAtCents,
+    image: entry.image ?? FALLBACK_IMAGE,
+    secondImage: entry.secondImage,
+    colorLabel: entry.colorLabel,
+    priceResolution: resolveProductDisplayPrice(campaigns, entry),
+    outOfStock: entry.outOfStock,
+    lowStockCount: entry.lowStockCount,
+    isNew: entry.isNew,
+    quickAddVariants: entry.quickAddVariants,
+    colors: entry.colors
   };
 }
 
@@ -43,7 +50,10 @@ const BESTSELLER_DAYS = 90;
 export function bestsellerSince(): Date {
   return new Date(Date.now() - BESTSELLER_DAYS * 24 * 60 * 60 * 1000);
 }
-const BESTSELLER_TAB_LIMIT = 8;
+// Ayni sayi, sekme basina PRODUCT secimini (pickBestsellers) hem de sonradan
+// renklere bolununce gosterilecek toplam KART sayisini sinirlamak icin
+// disariya (page.tsx) da aciliyor.
+export const BESTSELLER_TAB_LIMIT = 8;
 // Satisi olan urun bu sayidan azsa sekme yedekle (one cikan, sonra en yeni)
 // tamamlanir - bolum hic bos/tek kartlik gorunmesin.
 const BESTSELLER_MIN_SOLD = 4;

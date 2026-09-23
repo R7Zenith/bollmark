@@ -87,7 +87,7 @@ export function BestsellersTabs({ tabs }: { tabs: BestsellerTab[] }) {
         className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-4 md:gap-6 md:overflow-visible md:px-0 [&::-webkit-scrollbar]:hidden scroll-px-4"
       >
         {active.products.map((p) => (
-          <div key={p.productId} className="w-[75vw] shrink-0 snap-start md:w-auto">
+          <div key={`${p.productId}-${p.colorLabel ?? "tek"}`} className="w-[75vw] shrink-0 snap-start md:w-auto">
             <ProductCard product={p} />
           </div>
         ))}

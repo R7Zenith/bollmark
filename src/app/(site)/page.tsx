@@ -1,14 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { getPublishedProducts } from "@/lib/catalog";
+import { getPublishedProducts, productToCatalogEntries } from "@/lib/catalog";
 import { FeaturedCarousel } from "@/components/featured-carousel";
 import { BestsellersTabs, type BestsellerTab } from "@/components/home/bestsellers-tabs";
 import { FaqAndStore } from "@/components/home/faq-and-store";
 import { InstagramGrid } from "@/components/home/instagram-grid";
 import { prisma } from "@/lib/prisma";
 import { getActiveAutomaticPercentCampaigns, resolveProductDisplayPrice } from "@/lib/coupons";
-import { bestsellerSince, percentWithDative, pickBestsellers, toProductCardData } from "@/lib/home-products";
+import {
+  BESTSELLER_TAB_LIMIT,
+  bestsellerSince,
+  catalogEntryToCardData,
+  percentWithDative,
+  pickBestsellers
+} from "@/lib/home-products";
 import { REVENUE_STATUSES } from "@/lib/orders";
 
 export const metadata: Metadata = {
@@ -71,7 +77,12 @@ export default async function HomePage() {
     prisma.storeSettings.findUnique({ where: { id: "singleton" } })
   ]);
 
-  const featuredProducts = products.slice(0, 8);
+  // Coklu rengi olan bir urun burada rengi kadar ayri kart olarak gorunur
+  // (katalog sayfasindaki gibi) - bkz. lib/catalog.ts productToCatalogEntries.
+  // "Yeni Gelenler" listenin BAŞINDAN itibaren en yeni 8 KARTI gosterir;
+  // `products` zaten en yeniden en eskiye sirali oldugu icin slice(0,8)
+  // dogrudan uygulanabilir.
+  const featuredEntries = products.flatMap(productToCatalogEntries).slice(0, 8);
 
   // B) Kategori kartlari. Sayisi 0 olan kart gizlenir (Ayakkabi haric: magaza
   // PUMA/Slazenger satiyor, sahibinin istegiyle kategori bos olsa da gorunur;
@@ -123,10 +134,16 @@ export default async function HomePage() {
     .map(({ key, label, gender }) => ({
       key,
       label,
+      // Urun secimi (satis adedi/one cikan/en yeni) hep urun bazinda kalir
+      // (pickBestsellers degismedi) - sadece secilen urunler renk basina
+      // ayri karta bolunuyor, toplam kart sayisi yine ayni limitte kesiliyor.
       products: pickBestsellers(
         gender ? products.filter((p) => p.gender === gender) : products,
         soldByProductId
-      ).map((p) => toProductCardData(p, automaticCampaigns))
+      )
+        .flatMap(productToCatalogEntries)
+        .slice(0, BESTSELLER_TAB_LIMIT)
+        .map((entry) => catalogEntryToCardData(entry, automaticCampaigns))
     }))
     .filter((t) => t.products.length > 0);
 
@@ -209,7 +226,7 @@ export default async function HomePage() {
             </p>
           </>
         ) : (
-          <FeaturedCarousel products={featuredProducts.map((p) => toProductCardData(p, automaticCampaigns))} />
+          <FeaturedCarousel products={featuredEntries.map((entry) => catalogEntryToCardData(entry, automaticCampaigns))} />
         )}
       </section>
 

@@ -199,25 +199,57 @@ export async function getCatalogEntries(
       : { createdAt: "desc" }
   });
 
-  const entries: CatalogEntry[] = [];
-  for (const p of products) {
-    const colors = buildColorSwatches(p);
-    // Urunun varyantlarinda gercekten var olan renkler (Renk ekseni, isColor:true).
-    const colorLabelByValueId = new Map<string, { label: string; hex: string | null }>();
-    for (const v of p.variants) {
-      for (const o of v.options) {
-        if (o.value.attribute.isColor) {
-          colorLabelByValueId.set(o.valueId, { label: o.value.value, hex: o.value.hexColor });
-        }
+  const entries = products.flatMap(productToCatalogEntries);
+  // Stoğu tamamen bitmiş renk/ürün girişleri, mevcut sıralama korunarak
+  // listenin sonuna atılır (bkz. getPublishedProducts'taki ayni yorum).
+  return entries.sort((a, b) => Number(a.outOfStock) - Number(b.outOfStock));
+}
+
+// getCatalogEntries'in tek bir urunu (renk sayisi kadar) CatalogEntry'e
+// bolen mantigi - ana sayfadaki "Yeni Gelenler"/"Cok Satanlar" da (bkz.
+// home-products.ts) coklu renkli bir urunu tek kart yerine renk basina ayri
+// kart olarak gostermek icin ayni fonksiyonu kullanir.
+type CatalogEntryProduct = {
+  id: string;
+  slug: string;
+  name: string;
+  priceCents: number;
+  compareAtCents: number | null;
+  categoryId: string | null;
+  brandId: string | null;
+  gender: string | null;
+  createdAt: Date;
+  images: { url: string }[];
+  optionImages: { url: string; valueId: string; isCover: boolean }[];
+  variants: {
+    id: string;
+    stock: number;
+    options: {
+      valueId: string;
+      value: { value: string; position: number; hexColor: string | null; attribute: { name: string; isColor: boolean } };
+    }[];
+  }[];
+};
+
+export function productToCatalogEntries(p: CatalogEntryProduct): CatalogEntry[] {
+  const colors = buildColorSwatches(p);
+  // Urunun varyantlarinda gercekten var olan renkler (Renk ekseni, isColor:true).
+  const colorLabelByValueId = new Map<string, { label: string; hex: string | null }>();
+  for (const v of p.variants) {
+    for (const o of v.options) {
+      if (o.value.attribute.isColor) {
+        colorLabelByValueId.set(o.valueId, { label: o.value.value, hex: o.value.hexColor });
       }
     }
+  }
 
-    if (colorLabelByValueId.size <= 1) {
-      const outOfStock = isOutOfStock(p.variants);
-      const stock = totalStock(p.variants);
-      const cover = pickCoverImage(p.optionImages);
-      const secondOptionImage = p.optionImages.find((img) => img !== cover);
-      entries.push({
+  if (colorLabelByValueId.size <= 1) {
+    const outOfStock = isOutOfStock(p.variants);
+    const stock = totalStock(p.variants);
+    const cover = pickCoverImage(p.optionImages);
+    const secondOptionImage = p.optionImages.find((img) => img !== cover);
+    return [
+      {
         productId: p.id,
         slug: p.slug,
         name: p.name,
@@ -235,41 +267,39 @@ export async function getCatalogEntries(
         isNew: isNewProduct(p.createdAt),
         quickAddVariants: pickQuickAddVariants(p.variants),
         colors
-      });
-      continue;
-    }
-
-    for (const [valueId, { label }] of colorLabelByValueId) {
-      const colorImages = p.optionImages.filter((img) => img.valueId === valueId);
-      const colorVariants = p.variants.filter((v) => v.options.some((o) => o.valueId === valueId));
-      const outOfStock = isOutOfStock(colorVariants);
-      const stock = totalStock(colorVariants);
-      const cover = pickCoverImage(colorImages);
-      const secondColorImage = colorImages.find((img) => img !== cover);
-      entries.push({
-        productId: p.id,
-        slug: p.slug,
-        name: p.name,
-        priceCents: p.priceCents,
-        compareAtCents: p.compareAtCents,
-        image: cover?.url ?? p.images[0]?.url ?? null,
-        secondImage: secondColorImage?.url ?? p.images[1]?.url ?? null,
-        colorLabel: label,
-        colorName: label,
-        categoryId: p.categoryId,
-        brandId: p.brandId,
-        gender: p.gender,
-        colors,
-        outOfStock,
-        lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,
-        isNew: isNewProduct(p.createdAt),
-        quickAddVariants: pickQuickAddVariants(colorVariants)
-      });
-    }
+      }
+    ];
   }
-  // Stoğu tamamen bitmiş renk/ürün girişleri, mevcut sıralama korunarak
-  // listenin sonuna atılır (bkz. getPublishedProducts'taki ayni yorum).
-  return entries.sort((a, b) => Number(a.outOfStock) - Number(b.outOfStock));
+
+  const entries: CatalogEntry[] = [];
+  for (const [valueId, { label }] of colorLabelByValueId) {
+    const colorImages = p.optionImages.filter((img) => img.valueId === valueId);
+    const colorVariants = p.variants.filter((v) => v.options.some((o) => o.valueId === valueId));
+    const outOfStock = isOutOfStock(colorVariants);
+    const stock = totalStock(colorVariants);
+    const cover = pickCoverImage(colorImages);
+    const secondColorImage = colorImages.find((img) => img !== cover);
+    entries.push({
+      productId: p.id,
+      slug: p.slug,
+      name: p.name,
+      priceCents: p.priceCents,
+      compareAtCents: p.compareAtCents,
+      image: cover?.url ?? p.images[0]?.url ?? null,
+      secondImage: secondColorImage?.url ?? p.images[1]?.url ?? null,
+      colorLabel: label,
+      colorName: label,
+      categoryId: p.categoryId,
+      brandId: p.brandId,
+      gender: p.gender,
+      colors,
+      outOfStock,
+      lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,
+      isNew: isNewProduct(p.createdAt),
+      quickAddVariants: pickQuickAddVariants(colorVariants)
+    });
+  }
+  return entries;
 }
 
 export async function getCategories() {
