@@ -16,6 +16,7 @@ export default function CartPage() {
   const [coupon, setCoupon] = useState<CouponResult>(null);
   const discountCents = coupon?.discountCents ?? 0;
   const bundleDiscountCents = useBundleDiscount(lines);
+  const couponLineDiscounts = new Map((coupon?.lineDiscounts ?? []).map((d) => [d.variantId, d.discountCents]));
 
   if (lines.length === 0) {
     return (
@@ -71,6 +72,13 @@ export default function CartPage() {
 
           <div>
             {lines.map((line) => {
+              // Manuel indirim (compareAtCents) varsa satir bazinda oncelikli -
+              // sunucu tarafinda ikisi zaten asla ayni anda pozitif olmuyor.
+              const lineCouponDiscountCents = line.compareAtCents ? 0 : (couponLineDiscounts.get(line.variantId) ?? 0);
+              const lineTotalCents = line.priceCents * line.quantity;
+              const lineNetTotalCents = lineTotalCents - lineCouponDiscountCents;
+              const hasLineDiscount = Boolean(line.compareAtCents) || lineCouponDiscountCents > 0;
+
               const quantityControl = (
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1 rounded border border-line px-2">
@@ -127,9 +135,14 @@ export default function CartPage() {
                             {line.color} · {line.size}
                           </p>
                         </div>
-                        <p className={`shrink-0 text-sm font-medium ${line.compareAtCents ? "text-sale" : ""}`}>
-                          {formatPrice(line.priceCents * line.quantity)}
-                        </p>
+                        <div className="shrink-0 text-right">
+                          <p className={`text-sm font-medium ${hasLineDiscount ? "text-sale" : ""}`}>
+                            {formatPrice(lineNetTotalCents)}
+                          </p>
+                          {hasLineDiscount && (
+                            <p className="text-xs text-ink/40 line-through">{formatPrice(lineTotalCents)}</p>
+                          )}
+                        </div>
                       </div>
                       <div className="mt-3">{quantityControl}</div>
                     </div>
@@ -148,15 +161,15 @@ export default function CartPage() {
                         </p>
                       </div>
                     </div>
-                    <p className={`text-sm ${line.compareAtCents ? "text-sale" : ""}`}>{formatPrice(line.priceCents)}</p>
+                    <p className={`text-sm ${hasLineDiscount ? "text-sale" : ""}`}>{formatPrice(line.priceCents)}</p>
                     {quantityControl}
                     <div className="text-right">
-                      <p className={`text-sm font-medium ${line.compareAtCents ? "text-sale" : ""}`}>
-                        {formatPrice(line.priceCents * line.quantity)}
+                      <p className={`text-sm font-medium ${hasLineDiscount ? "text-sale" : ""}`}>
+                        {formatPrice(lineNetTotalCents)}
                       </p>
-                      {line.compareAtCents && (
+                      {hasLineDiscount && (
                         <p className="text-xs text-ink/40 line-through">
-                          {formatPrice(line.compareAtCents * line.quantity)}
+                          {formatPrice(line.compareAtCents ? line.compareAtCents * line.quantity : lineTotalCents)}
                         </p>
                       )}
                     </div>

@@ -45,6 +45,7 @@ export default function CheckoutForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [coupon, setCoupon] = useState<CouponResult>(null);
+  const couponLineDiscounts = new Map((coupon?.lineDiscounts ?? []).map((d) => [d.variantId, d.discountCents]));
   const [loyalty, setLoyalty] = useState<LoyaltyResult>(null);
   const [addressChoice, setAddressChoice] = useState<string>(savedAddresses[0]?.id ?? "new");
   const [termsAccepted, setTermsAccepted] = useState(false);
@@ -217,25 +218,41 @@ export default function CheckoutForm({
   const summaryPanel = (
     <div className="space-y-4 px-4 pb-4 lg:px-0 lg:pb-0 lg:pt-8">
       <div className="space-y-4">
-        {lines.map((l) => (
-          <div key={l.variantId} className="flex items-center gap-4">
-            <div className="relative shrink-0" style={{ height: 96, width: 72 }}>
-              <div className="h-full w-full overflow-hidden rounded-lg bg-line shadow-[0_0_0_2px_#ffffff,0_8px_16px_rgba(0,0,0,0.18)]">
-                <Image src={l.image} alt={l.name} fill className="object-cover" sizes="72px" />
+        {lines.map((l) => {
+          const lineCouponDiscountCents = l.compareAtCents ? 0 : (couponLineDiscounts.get(l.variantId) ?? 0);
+          const lineTotalCents = l.priceCents * l.quantity;
+          const lineNetTotalCents = lineTotalCents - lineCouponDiscountCents;
+          const hasLineDiscount = Boolean(l.compareAtCents) || lineCouponDiscountCents > 0;
+
+          return (
+            <div key={l.variantId} className="flex items-center gap-4">
+              <div className="relative shrink-0" style={{ height: 96, width: 72 }}>
+                <div className="h-full w-full overflow-hidden rounded-lg bg-line shadow-[0_0_0_2px_#ffffff,0_8px_16px_rgba(0,0,0,0.18)]">
+                  <Image src={l.image} alt={l.name} fill className="object-cover" sizes="72px" />
+                </div>
+                <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[11px] font-medium text-cream">
+                  {l.quantity}
+                </span>
               </div>
-              <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-ink text-[11px] font-medium text-cream">
-                {l.quantity}
-              </span>
+              <div className="flex-1">
+                <p className="text-sm font-medium">{l.name}</p>
+                <p className="text-xs text-ink/60">
+                  {l.color} · {l.size}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className={`text-sm font-semibold ${hasLineDiscount ? "text-sale" : ""}`}>
+                  {formatPrice(lineNetTotalCents)}
+                </p>
+                {hasLineDiscount && (
+                  <p className="text-xs text-ink/40 line-through">
+                    {formatPrice(l.compareAtCents ? l.compareAtCents * l.quantity : lineTotalCents)}
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="flex-1">
-              <p className="text-sm font-medium">{l.name}</p>
-              <p className="text-xs text-ink/60">
-                {l.color} · {l.size}
-              </p>
-            </div>
-            <p className="text-sm font-semibold">{formatPrice(l.priceCents * l.quantity)}</p>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="space-y-4 border-t border-line/60 pt-4">

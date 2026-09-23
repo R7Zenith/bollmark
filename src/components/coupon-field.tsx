@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart";
 
-export type CouponResult = { discountCents: number; freeShipping: boolean; appliedName: string | null } | null;
+export type CouponResult = {
+  discountCents: number;
+  freeShipping: boolean;
+  appliedName: string | null;
+  lineDiscounts: { variantId: string; discountCents: number }[];
+} | null;
 
 // Sepet ve odeme sayfalarinin ikisinde de kullanilan "indirim kodu" alani -
 // kod cart context'te (localStorage) tutulur, burada sadece dogrulanip
@@ -51,7 +56,8 @@ export function CouponField({
       onDiscountChange({
         discountCents: data.discountCents,
         freeShipping: data.freeShipping,
-        appliedName: data.appliedName ?? null
+        appliedName: data.appliedName ?? null,
+        lineDiscounts: data.lineDiscounts ?? []
       });
     } catch {
       if (isExplicitApply) {

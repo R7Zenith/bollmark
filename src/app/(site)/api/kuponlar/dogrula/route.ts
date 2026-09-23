@@ -72,6 +72,7 @@ export async function POST(req: NextRequest) {
       discountCents: result.discountCents,
       freeShipping: result.freeShipping,
       appliedName: result.appliedName,
+      lineDiscounts: result.lineDiscounts,
       message: result.codeMessage
     });
   }
@@ -81,6 +82,7 @@ export async function POST(req: NextRequest) {
     discountCents: result.discountCents,
     freeShipping: result.freeShipping,
     appliedName: result.appliedName,
+    lineDiscounts: result.lineDiscounts,
     message: result.couponId
       ? result.appliedName === parsed.data.code.trim().toUpperCase()
         ? "Kupon uygulandı."

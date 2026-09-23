@@ -24,7 +24,13 @@ export interface CouponLine {
 }
 
 export type CouponValidation =
-  | { valid: true; couponId: string; discountCents: number; freeShipping: boolean }
+  | {
+      valid: true;
+      couponId: string;
+      discountCents: number;
+      freeShipping: boolean;
+      lineDiscounts: { productId: string; variantId: string; discountCents: number }[];
+    }
   | { valid: false; message: string };
 
 type CouponRecord = {
@@ -188,7 +194,7 @@ export async function validateCoupon(tx: Tx, rawCode: string, lines: CouponLine[
   const eligibilityError = checkCouponEligibility(coupon, subtotalCents);
   if (eligibilityError) return { valid: false, message: eligibilityError };
 
-  const { discountCents, freeShipping } = computeCouponDiscount(coupon, lines);
+  const { discountCents, freeShipping, lineDiscounts } = computeCouponDiscount(coupon, lines);
   const hasRestriction = coupon.categoryIds.length > 0 || coupon.brandIds.length > 0 || coupon.genders.length > 0;
   // Kategori/marka/cinsiyet kisitina uyan urunler - computeCouponDiscount'un
   // manuel-indirim filtresinden ONCEKI hali (asagidaki mesaj icin, o
@@ -219,7 +225,7 @@ export async function validateCoupon(tx: Tx, rawCode: string, lines: CouponLine[
     };
   }
 
-  return { valid: true, couponId: coupon.id, discountCents, freeShipping };
+  return { valid: true, couponId: coupon.id, discountCents, freeShipping, lineDiscounts };
 }
 
 export type BestDiscountResult = {
@@ -231,6 +237,9 @@ export type BestDiscountResult = {
   // otomatik kampanya yine de sonuca yansir, sadece kullaniciya kodun neden
   // kazanmadigi ayrica bildirilir.
   codeMessage: string | null;
+  // Kazanan (otomatik ya da kodlu) indirimin satir bazli kirilimi - sepet
+  // sayfasinda her urun satirinda ayri ayri gosterilebilsin diye.
+  lineDiscounts: { variantId: string; discountCents: number }[];
 };
 
 // Kodsuz (otomatik) kampanyalar ile elle girilen kupon kodu arasindan
@@ -297,12 +306,18 @@ export async function resolveBestDiscount(
     automaticName = shippingOnly?.name ?? null;
   }
 
+  const automaticLineDiscounts = Array.from(bestPerLine.entries()).map(([variantId, { discountCents }]) => ({
+    variantId,
+    discountCents
+  }));
+
   const automaticResult: BestDiscountResult = {
     couponId: automaticCouponId,
     discountCents: automaticDiscountCents,
     freeShipping: automaticFreeShipping,
     appliedName: automaticName,
-    codeMessage: null
+    codeMessage: null,
+    lineDiscounts: automaticLineDiscounts
   };
 
   if (!enteredCode || !enteredCode.trim()) {
@@ -334,7 +349,8 @@ export async function resolveBestDiscount(
     discountCents: codeValidation.discountCents,
     freeShipping: codeValidation.freeShipping,
     appliedName: codedCoupon?.code ?? null,
-    codeMessage: null
+    codeMessage: null,
+    lineDiscounts: codeValidation.lineDiscounts.map(({ variantId, discountCents }) => ({ variantId, discountCents }))
   };
 }
 
