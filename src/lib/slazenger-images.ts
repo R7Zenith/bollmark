@@ -100,7 +100,9 @@ async function searchCandidates(baseUrl: string, query: string): Promise<SearchC
 function candidateMatchesColor(title: string, colorLabel: string): boolean {
   const t = normalizeColorLabel(title);
   const c = normalizeColorLabel(colorLabel);
-  if (!c || t.includes("/")) return false;
+  // Hedef renk de çoklu renkse ("Beyaz / Lacivert") başlıktaki "/" beklenen bir durumdur;
+  // "Siyah / Siyah" gibi aynı rengin tekrarı da tekil renk sayılır.
+  if (!c || (t.includes("/") && !c.includes("/") && !t.includes(`${c} / ${c}`))) return false;
   const idx = t.indexOf(c);
   if (idx === -1) return false;
   const isWordChar = (ch: string | undefined) => !!ch && /[A-ZÇĞİÖŞÜ0-9]/.test(ch);
