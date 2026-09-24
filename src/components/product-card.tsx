@@ -166,7 +166,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
 
   return (
     <Link href={href} className="group block" onMouseLeave={resetSwatchPreview}>
-      <div className="relative aspect-[3/4] overflow-hidden bg-line">
+      <div className="relative aspect-[3/4] overflow-hidden bg-image-bg">
         <Image
           src={previewImage ?? product.image}
           alt={product.name}
@@ -174,8 +174,8 @@ export function ProductCard({ product }: { product: ProductCardData }) {
           sizes="(min-width: 1024px) 25vw, 50vw"
           className={
             !previewImage && product.secondImage
-              ? "object-cover transition duration-700 [transition-timing-function:ease] group-hover:opacity-0"
-              : "object-cover transition duration-700 [transition-timing-function:ease] group-hover:scale-105"
+              ? "object-cover mix-blend-multiply transition duration-700 [transition-timing-function:ease] group-hover:opacity-0"
+              : "object-cover mix-blend-multiply transition duration-700 [transition-timing-function:ease] group-hover:scale-105"
           }
         />
         {!previewImage && product.secondImage && (
@@ -184,7 +184,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             alt={product.name}
             fill
             sizes="(min-width: 1024px) 25vw, 50vw"
-            className="object-cover opacity-0 transition duration-700 [transition-timing-function:ease] group-hover:opacity-100"
+            className="object-cover opacity-0 mix-blend-multiply transition duration-700 [transition-timing-function:ease] group-hover:opacity-100"
           />
         )}
         {product.outOfStock && (

@@ -24,6 +24,9 @@ const config: Config = {
         clay: "#111111",
         stone: "#65706e",
         line: "#ebebeb",
+        // Katalog kartinda beyaz arkaplanli urun fotograflari icin gri zemin
+        // (mix-blend-multiply ile) - ton globals.css'teki --image-bg'den.
+        "image-bg": "var(--image-bg)",
         // Indirimli fiyat/rozetler icin ayri bir kirmizi ton - Release'in
         // kendi --color-error'una (#C25151) yakin, marka semantik kirmizisi
         // olarak korundu.

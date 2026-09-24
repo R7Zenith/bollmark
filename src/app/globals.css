@@ -10,6 +10,7 @@
      (ornegin bir basligin bir kelimesi) --font-accent (Cormorant, italik). */
   --font-sans: var(--font-poppins, "Poppins"), system-ui, sans-serif;
   --font-accent: var(--font-cormorant, "Cormorant"), Georgia, serif;
+  --image-bg: #f2f1ef;
 }
 
 @layer base {

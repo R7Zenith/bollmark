@@ -5413,3 +5413,8 @@ Kullanici bildirdi: ana sayfadaki "Yeni Gelenler" bolumunde coklu rengi olan bir
 - **`src/lib/client-image-resize.ts`** (yeni): uzun kenar 2000 px'i ya da dosya 4.5 MB'i asarsa tarayicida canvas ile kucultup JPEG (0.9) yapiyor, EXIF yonu korunuyor; hata olursa orijinal gidiyor.
 - **`src/app/api/admin/upload/route.ts`**: `MAX_SIZE_BYTES` 4.5 MB'a cekildi. Admin korumali `DELETE` eklendi (`deleteBlobUrls`); bilesen sadece bu oturumda kendi yukledigi URL'ler kaydetmeden silinince cagiriyor.
 - **Dogrulama**: `npx tsc --noEmit` ve `npm run lint` temiz (0 hata, 6 eski uyari). Localhost'ta test kullanicidan bekleniyor. Commit/push atilmadi.
+## Oturum: Katalog kartinda gri zemin testi — onaylandi (BEYAZ_ARKAPLAN_GRI_ZEMIN_TEST_PLANI.md)
+- **`tailwind.config.ts`**: `colors`e `"image-bg": "var(--image-bg)"` eklendi. **`src/app/globals.css`**: `:root`a `--image-bg: #f2f1ef;` eklendi (ton denemesi icin tek deger).
+- **`src/components/product-card.tsx`**: gorsel kapsayicisi `bg-line` -> `bg-image-bg`, ana ve hover (`secondImage`) `<Image>`lara `mix-blend-multiply` eklendi. Rozetler, favori butonu, "Stokta Yok" katmani, urun detay sayfasi, sepet cekmecesi degismedi. `isolate` eklenmedi (kapsayicinin opak zemini blend icin yeterli).
+- Degisiklik `ProductCard`i kullanan her yerde gecerli: `/urunler`, urun detay "benzer urunler", ana sayfa karuselleri/Cok Satanlar sekmeleri, favorilerim.
+- **Dogrulama**: `npx tsc --noEmit` temiz, `npm run lint` 0 hata (6 eski uyari). Localhost:3000'de derlenmis CSS'te `.bg-image-bg` / `.mix-blend-multiply` ve `--image-bg` goruldu. Kullanici localhost'ta onayladi, yerel commit atildi, push atilmadi.
