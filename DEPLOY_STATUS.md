@@ -5397,3 +5397,7 @@ Kullanici bildirdi: ana sayfadaki "Yeni Gelenler" bolumunde coklu rengi olan bir
 ## Oturum: KOTON_TARAYICIDAN_GORSEL_ACIKLAMA_PLANI.md push'landi
 - Sadece `KOTON_TARAYICIDAN_GORSEL_ACIKLAMA_PLANI.md` commit'lendi (`9877431`) ve `main`e push'landi (`73c1fdb..9877431`). Baska dosya eklenmedi (`gorsel-test/` ve diger untracked dosyalara dokunulmadi).
 - Push oncesi `git log origin/main..HEAD --stat` kontrol edildi: pushlanan tek commit sadece bu `.md` dosyasini iceriyordu, dolayisiyla `vercel.json` ignoreCommand geregi Vercel deploy'u atlanmasi bekleniyor (kod degisikligi yok).
+## Oturum: Urunler listesinde urun kodu kopyala butonu (URUNLER_KOD_KOPYALA_BUTONU_PLANI.md)
+- **`src/components/admin/copy-code-button.tsx`** (yeni): ikon-only kucuk `CopyCodeButton`. Tiklaninca kodu panoya kopyalar, 1.5 sn yesil `Check` gosterir, `stopPropagation` cagirir.
+- **`src/components/admin/products-table.tsx`**: "Urun" kolonundaki tek `<Link>` sarmalayici `div` yapildi; gorsel ve urun adi ayri `Link` olarak kaldi, urun kodu satiri Link'in DISINA alinip yanina kopyala butonu eklendi (kod yoksa gorunmez).
+- **Dogrulama**: `npx tsc --noEmit` ve eslint (degisen dosyalar) temiz. Localhost'ta gorsel dogrulama kullanicidan bekleniyor. Commit/push atilmadi.

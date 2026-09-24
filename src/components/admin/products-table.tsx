@@ -9,6 +9,7 @@ import { Badge, type BadgeTone } from "@/components/admin/badge";
 import type { BulkAction } from "@/components/admin/bulk-action-bar";
 import { useToast } from "@/components/admin/toast";
 import { IconButton, IconLinkButton } from "@/components/admin/icon-button";
+import { CopyCodeButton } from "@/components/admin/copy-code-button";
 import { formatDate, formatPrice } from "@/lib/format";
 
 export interface ProductRow {
@@ -221,8 +222,11 @@ export function ProductsTable({
       header: "Ürün",
       sortable: true,
       render: (row) => (
-        <Link href={`/admin/urunler/${row.id}`} className="flex items-center gap-3 hover:underline">
-          <span
+        <div className="flex items-center gap-3">
+          <Link
+            href={`/admin/urunler/${row.id}`}
+            tabIndex={-1}
+            aria-hidden="true"
             className={`flex h-10 w-10 flex-shrink-0 items-center justify-center overflow-hidden rounded-md border ${
               row.imageUrl ? "border-admin-border bg-admin-bg" : "border-red-300 bg-red-50"
             }`}
@@ -233,19 +237,28 @@ export function ProductsTable({
             ) : (
               <ImageOff size={14} className="text-red-400" />
             )}
-          </span>
+          </Link>
           <span className="flex min-w-0 max-w-xl flex-col">
-            <span className="line-clamp-2 font-medium text-admin-text" title={row.name}>
+            <Link
+              href={`/admin/urunler/${row.id}`}
+              className="line-clamp-2 font-medium text-admin-text hover:underline"
+              title={row.name}
+            >
               {row.name}
-            </span>
-            {row.code && <span className="text-xs text-admin-text-muted">{row.code}</span>}
+            </Link>
+            {row.code && (
+              <span className="flex flex-wrap items-center gap-1 text-xs text-admin-text-muted">
+                {row.code}
+                <CopyCodeButton value={row.code} />
+              </span>
+            )}
             {!row.imageUrl && (
               <span className="mt-0.5">
                 <Badge tone="red">Fotoğraf Yok</Badge>
               </span>
             )}
           </span>
-        </Link>
+        </div>
       )
     },
     {
