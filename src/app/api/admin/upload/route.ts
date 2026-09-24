@@ -3,9 +3,11 @@ import { getServerSession } from "next-auth";
 import { put } from "@vercel/blob";
 import { authOptions } from "@/lib/auth";
 import { compressImage } from "@/lib/image-compress";
+import { deleteBlobUrls } from "@/lib/blob";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-const MAX_SIZE_BYTES = 5 * 1024 * 1024;
+// Vercel fonksiyon istek govdesi siniri (~4.5 MB) ile tutarli.
+const MAX_SIZE_BYTES = 4.5 * 1024 * 1024;
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -22,7 +24,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Sadece JPG, PNG veya WEBP yükleyebilirsiniz." }, { status: 400 });
   }
   if (file.size > MAX_SIZE_BYTES) {
-    return NextResponse.json({ error: "Dosya boyutu en fazla 5MB olabilir." }, { status: 400 });
+    return NextResponse.json({ error: "Dosya boyutu en fazla 4.5MB olabilir." }, { status: 400 });
   }
 
   try {
@@ -38,4 +40,22 @@ export async function POST(request: NextRequest) {
   } catch {
     return NextResponse.json({ error: "Yükleme başarısız oldu, lütfen tekrar deneyin." }, { status: 500 });
   }
+}
+
+// Bu oturumda yuklenip kaydedilmeden silinen gorselleri Blob'dan temizler.
+// deleteBlobUrls sadece bizim Vercel Blob URL'lerimizi siler, digerlerini atlar.
+export async function DELETE(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Yetkisiz istek." }, { status: 401 });
+  }
+
+  const body = await request.json().catch(() => null);
+  const url = body?.url;
+  if (typeof url !== "string" || !url) {
+    return NextResponse.json({ error: "URL bulunamadı." }, { status: 400 });
+  }
+
+  await deleteBlobUrls([url]);
+  return NextResponse.json({ ok: true });
 }
