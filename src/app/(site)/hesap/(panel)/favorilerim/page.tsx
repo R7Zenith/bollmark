@@ -4,6 +4,7 @@ import { FavorilerimGrid } from "@/components/favorilerim-grid";
 import type { ProductCardData } from "@/components/product-card";
 import { firstImageUrl } from "@/lib/catalog";
 import { resolveProductDisplayPrice } from "@/lib/coupons";
+import { usesGreyBackdrop } from "@/lib/image-backdrop";
 
 export default async function HesapFavorilerimPage() {
   const session = await requireCustomer();
@@ -15,7 +16,8 @@ export default async function HesapFavorilerimPage() {
       product: {
         include: {
           images: { orderBy: { position: "asc" }, take: 1 },
-          optionImages: { orderBy: { position: "asc" }, take: 1 }
+          optionImages: { orderBy: { position: "asc" }, take: 1 },
+          brand: { select: { name: true } }
         }
       }
     },
@@ -32,7 +34,8 @@ export default async function HesapFavorilerimPage() {
     // Bu liste otomatik kampanyalari sorgulamiyor - sadece elle indirim
     // (compareAtCents) varsa yansitilir (bkz. lib/coupons.ts
     // resolveProductDisplayPrice, product-card.tsx'in tek fiyat kaynagi).
-    priceResolution: resolveProductDisplayPrice([], item.product)
+    priceResolution: resolveProductDisplayPrice([], item.product),
+    greyBackdrop: usesGreyBackdrop(item.product.brand?.name)
   }));
 
   return (

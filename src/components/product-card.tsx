@@ -52,6 +52,9 @@ export type ProductCardData = {
   // Bir swatch'a tiklamak yalnizca kartin gosterdigi gorseli degistirir;
   // kartin kendi rengini/hedef linkini (colorLabel/href) etkilemez.
   colors?: { name: string; hex: string; imageUrl: string | null }[];
+  // Doluysa gorsel gri zemin + mix-blend-multiply ile gosterilir (beyaz
+  // arkaplanli marka fotograflari icin - bkz. lib/image-backdrop.ts).
+  greyBackdrop?: boolean;
 };
 
 export function ProductCard({ product }: { product: ProductCardData }) {
@@ -166,17 +169,17 @@ export function ProductCard({ product }: { product: ProductCardData }) {
 
   return (
     <Link href={href} className="group block" onMouseLeave={resetSwatchPreview}>
-      <div className="relative aspect-[3/4] overflow-hidden bg-image-bg">
+      <div className={`relative aspect-[3/4] overflow-hidden ${product.greyBackdrop ? "bg-image-bg" : "bg-line"}`}>
         <Image
           src={previewImage ?? product.image}
           alt={product.name}
           fill
           sizes="(min-width: 1024px) 25vw, 50vw"
-          className={
+          className={`${
             !previewImage && product.secondImage
-              ? "object-cover mix-blend-multiply transition duration-700 [transition-timing-function:ease] group-hover:opacity-0"
-              : "object-cover mix-blend-multiply transition duration-700 [transition-timing-function:ease] group-hover:scale-105"
-          }
+              ? "object-cover transition duration-700 [transition-timing-function:ease] group-hover:opacity-0"
+              : "object-cover transition duration-700 [transition-timing-function:ease] group-hover:scale-105"
+          }${product.greyBackdrop ? " mix-blend-multiply" : ""}`}
         />
         {!previewImage && product.secondImage && (
           <Image
@@ -184,7 +187,7 @@ export function ProductCard({ product }: { product: ProductCardData }) {
             alt={product.name}
             fill
             sizes="(min-width: 1024px) 25vw, 50vw"
-            className="object-cover opacity-0 mix-blend-multiply transition duration-700 [transition-timing-function:ease] group-hover:opacity-100"
+            className={`object-cover opacity-0 transition duration-700 [transition-timing-function:ease] group-hover:opacity-100${product.greyBackdrop ? " mix-blend-multiply" : ""}`}
           />
         )}
         {product.outOfStock && (

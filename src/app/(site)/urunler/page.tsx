@@ -300,7 +300,8 @@ export default async function ProductsPage({
                 lowStockCount: entry.lowStockCount,
                 isNew: entry.isNew,
                 quickAddVariants: entry.quickAddVariants,
-                colors: entry.colors
+                colors: entry.colors,
+                greyBackdrop: entry.greyBackdrop
               }}
             />
           ))}

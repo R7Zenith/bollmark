@@ -15,6 +15,7 @@ import { formatPrice } from "@/lib/format";
 import { effectivePrice } from "@/lib/variant";
 import { resolveProductDisplayPrice, type AutomaticPercentCampaign } from "@/lib/coupons";
 import { ProductBadge } from "@/components/product-badge";
+import { usesGreyBackdrop } from "@/lib/image-backdrop";
 import { InfoDrawer } from "@/components/info-drawer";
 import { SizeGuideModal } from "@/components/size-guide-modal";
 
@@ -177,6 +178,7 @@ export function ProductViewer({
   // Gecersiz/eslesmeyen bir deger gelirse sessizce ilk renge dusulur.
   initialColor?: string;
 }) {
+  const greyBackdrop = usesGreyBackdrop(brandName);
   const { addLine, openDrawer } = useCart();
   const { ids: wishlistIds, isAuthenticated, toggle: toggleWishlist } = useWishlist();
   const router = useRouter();
@@ -426,9 +428,16 @@ export function ProductViewer({
                 <button
                   type="button"
                   onClick={() => handleSlideClick(i)}
-                  className="relative block aspect-[3/4] w-full cursor-zoom-in overflow-hidden bg-line"
+                  className={`relative block aspect-[3/4] w-full cursor-zoom-in overflow-hidden ${greyBackdrop ? "bg-image-bg" : "bg-line"}`}
                 >
-                  <Image src={img.url} alt={img.alt} fill sizes="100vw" className="object-cover" priority={i === 0} />
+                  <Image
+                    src={img.url}
+                    alt={img.alt}
+                    fill
+                    sizes="100vw"
+                    className={greyBackdrop ? "object-cover mix-blend-multiply" : "object-cover"}
+                    priority={i === 0}
+                  />
                 </button>
               </div>
             ))}
@@ -450,7 +459,7 @@ export function ProductViewer({
                   aria-current={i === activeImage}
                   className={`pointer-events-auto h-[2px] flex-1 rounded-full transition-colors duration-300 ${
                     i === activeImage ? "bg-white" : "bg-white/40"
-                  }`}
+                  }${greyBackdrop ? " shadow-[0_0_2px_rgba(0,0,0,0.35)]" : ""}`}
                 />
               ))}
             </div>
@@ -477,9 +486,14 @@ export function ProductViewer({
             key={`${img.url}-${i}`}
             type="button"
             onClick={() => setLightboxIndex(i)}
-            className="group relative aspect-[3/4] cursor-zoom-in overflow-hidden bg-line"
+            className={`group relative aspect-[3/4] cursor-zoom-in overflow-hidden ${greyBackdrop ? "bg-image-bg" : "bg-line"}`}
           >
-            <Image src={img.url} alt={img.alt} fill className="object-cover transition-transform duration-300 group-hover:scale-[1.03]" />
+            <Image
+              src={img.url}
+              alt={img.alt}
+              fill
+              className={`object-cover transition-transform duration-300 group-hover:scale-[1.03]${greyBackdrop ? " mix-blend-multiply" : ""}`}
+            />
             <span className="pointer-events-none absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-cream/90 opacity-0 shadow transition-opacity duration-200 group-hover:opacity-100">
               <ZoomIn size={16} className="text-ink" />
             </span>

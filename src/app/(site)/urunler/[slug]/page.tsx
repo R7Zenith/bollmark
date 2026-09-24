@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProductBySlug, getRelatedProducts, firstImageUrl, isNewProduct } from "@/lib/catalog";
+import { usesGreyBackdrop } from "@/lib/image-backdrop";
 import { getBundleForProduct } from "@/lib/bundles";
 import { prisma } from "@/lib/prisma";
 import { getActiveAutomaticPercentCampaigns, resolveProductDisplayPrice } from "@/lib/coupons";
@@ -157,7 +158,8 @@ export default async function ProductPage({
                   compareAtCents: p.compareAtCents,
                   image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800",
                   priceResolution: resolveProductDisplayPrice(automaticCampaigns, p),
-                  quickAddVariants: p.quickAddVariants
+                  quickAddVariants: p.quickAddVariants,
+                  greyBackdrop: usesGreyBackdrop(p.brand?.name)
                 }}
               />
             ))}

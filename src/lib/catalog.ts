@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { optionPosition, optionValue, variantOptionsInclude, type VariantOptionInclude } from "@/lib/variant-attributes";
+import { usesGreyBackdrop } from "@/lib/image-backdrop";
 
 // Katalog/kart gorunumunde "+" hizli sepete ekle butonu icin - stokta olan
 // TUM varyantlari (bedenleri, secili renk grubu icinde) doner. Stokta hicbir
@@ -103,7 +104,8 @@ export async function getPublishedProducts(
       // take limiti yok - renk swatch'lari icin renk basina gorsel gerekiyor
       // (bkz. buildColorSwatches / home-products.ts toProductCardData).
       optionImages: { orderBy: { position: "asc" } },
-      variants: { include: variantOptionsInclude }
+      variants: { include: variantOptionsInclude },
+      brand: { select: { name: true } }
     },
     orderBy: options?.featuredFirst
       ? [{ isFeatured: "desc" }, { createdAt: "desc" }]
@@ -169,6 +171,9 @@ export type CatalogEntry = {
   // o rengin galerisindeki ilk fotograf (ProductOptionImage), yoksa null -
   // swatch'a tiklaninca gorsel degismez, sadece aktif olarak isaretlenir.
   colors: { name: string; hex: string; imageUrl: string | null }[];
+  // Kart gorseli gri zemin + mix-blend-multiply ile mi gosterilsin (bkz.
+  // lib/image-backdrop.ts usesGreyBackdrop).
+  greyBackdrop: boolean;
 };
 
 export async function getCatalogEntries(
@@ -192,7 +197,8 @@ export async function getCatalogEntries(
       // (bkz. secondImage / product-card.tsx).
       images: { orderBy: { position: "asc" }, take: 2 },
       optionImages: { orderBy: { position: "asc" } },
-      variants: { include: variantOptionsInclude }
+      variants: { include: variantOptionsInclude },
+      brand: { select: { name: true } }
     },
     orderBy: options?.featuredFirst
       ? [{ isFeatured: "desc" }, { createdAt: "desc" }]
@@ -219,6 +225,7 @@ type CatalogEntryProduct = {
   brandId: string | null;
   gender: string | null;
   createdAt: Date;
+  brand: { name: string } | null;
   images: { url: string }[];
   optionImages: { url: string; valueId: string; isCover: boolean }[];
   variants: {
@@ -233,6 +240,7 @@ type CatalogEntryProduct = {
 
 export function productToCatalogEntries(p: CatalogEntryProduct): CatalogEntry[] {
   const colors = buildColorSwatches(p);
+  const greyBackdrop = usesGreyBackdrop(p.brand?.name);
   // Urunun varyantlarinda gercekten var olan renkler (Renk ekseni, isColor:true).
   const colorLabelByValueId = new Map<string, { label: string; hex: string | null }>();
   for (const v of p.variants) {
@@ -266,7 +274,8 @@ export function productToCatalogEntries(p: CatalogEntryProduct): CatalogEntry[] 
         lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,
         isNew: isNewProduct(p.createdAt),
         quickAddVariants: pickQuickAddVariants(p.variants),
-        colors
+        colors,
+        greyBackdrop
       }
     ];
   }
@@ -296,7 +305,8 @@ export function productToCatalogEntries(p: CatalogEntryProduct): CatalogEntry[] 
       outOfStock,
       lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,
       isNew: isNewProduct(p.createdAt),
-      quickAddVariants: pickQuickAddVariants(colorVariants)
+      quickAddVariants: pickQuickAddVariants(colorVariants),
+      greyBackdrop
     });
   }
   return entries;
@@ -319,7 +329,8 @@ export async function getRelatedProducts(product: { id: string; categoryId: stri
     include: {
       images: { orderBy: { position: "asc" }, take: 1 },
       optionImages: { orderBy: { position: "asc" }, take: 1 },
-      variants: { include: variantOptionsInclude }
+      variants: { include: variantOptionsInclude },
+      brand: { select: { name: true } }
     },
     orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
     take: 4
