@@ -343,7 +343,8 @@ export function ProductViewer({
       compareAtCents: compareAtCents && compareAtCents > selectedPriceCents ? compareAtCents : null,
       image: galleryImages[0].url,
       quantity,
-      stock: selected.stock
+      stock: selected.stock,
+      greyBackdrop
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);

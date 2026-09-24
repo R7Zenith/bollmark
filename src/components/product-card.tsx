@@ -124,7 +124,8 @@ export function ProductCard({ product }: { product: ProductCardData }) {
       priceCents: product.priceCents,
       compareAtCents: compareAtDiscountPercent ? product.compareAtCents : null,
       image: product.image,
-      quantity: 1
+      quantity: 1,
+      greyBackdrop: product.greyBackdrop
     });
     setSizePickerOpen(false);
     setJustAdded(true);

@@ -96,8 +96,13 @@ export function CartDrawer() {
             <div className="divide-y divide-line">
             {lines.map((line) => (
               <div key={line.variantId} className="flex gap-4 py-6">
-                <div className="relative h-[120px] w-[90px] flex-shrink-0 overflow-hidden bg-line">
-                  <Image src={line.image} alt={line.name} fill className="object-cover" />
+                <div className={`relative h-[120px] w-[90px] flex-shrink-0 overflow-hidden ${line.greyBackdrop ? "bg-image-bg" : "bg-line"}`}>
+                  <Image
+                    src={line.image}
+                    alt={line.name}
+                    fill
+                    className={line.greyBackdrop ? "object-cover mix-blend-multiply" : "object-cover"}
+                  />
                 </div>
                 <div className="flex flex-1 flex-col">
                   <p className="text-xs font-semibold uppercase tracking-[0.24px]">{line.name}</p>

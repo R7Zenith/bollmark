@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { effectivePrice, effectiveCompareAt } from "@/lib/variant";
 import { optionValue, variantOptionsInclude } from "@/lib/variant-attributes";
 import { MAX_CART_LINES, MAX_LINE_QUANTITY, type CartLineIssue, type ResolvedCartLine } from "@/lib/cart-shared";
+import { usesGreyBackdrop } from "@/lib/image-backdrop";
 
 // Sepet satirlarinin sunucu tarafi ortak katmani (api/sepet ve
 // api/sepet/dogrula). Sepette DB'ye/istekle yalniz id + adet gider; isim,
@@ -29,7 +30,8 @@ export async function resolveCartLines(inputs: CartLineInput[]): Promise<Resolve
     include: {
       variants: { include: variantOptionsInclude },
       images: { orderBy: { position: "asc" }, select: { url: true } },
-      optionImages: { orderBy: { position: "asc" }, select: { valueId: true, url: true } }
+      optionImages: { orderBy: { position: "asc" }, select: { valueId: true, url: true } },
+      brand: { select: { name: true } }
     }
   });
   const productById = new Map(products.map((p) => [p.id, p]));
@@ -38,7 +40,7 @@ export async function resolveCartLines(inputs: CartLineInput[]): Promise<Resolve
     const product = productById.get(line.productId);
     const variant = product?.variants.find((v) => v.id === line.variantId);
     if (!product || !variant) {
-      return { ...line, name: "", size: "", color: "", image: "", priceCents: 0, compareAtCents: null, stock: 0, issue: "UNAVAILABLE" };
+      return { ...line, name: "", size: "", color: "", image: "", priceCents: 0, compareAtCents: null, stock: 0, greyBackdrop: false, issue: "UNAVAILABLE" };
     }
 
     // Sepete eklerken product-viewer.tsx ile ayni secim: varyantin rengine ait
@@ -64,6 +66,7 @@ export async function resolveCartLines(inputs: CartLineInput[]): Promise<Resolve
       // Sepette "eski fiyat" yalniz gercek bir indirim varsa tutulur (bkz. product-viewer.tsx addToCart).
       compareAtCents: compareAt && compareAt > priceCents ? compareAt : null,
       stock: variant.stock,
+      greyBackdrop: usesGreyBackdrop(product.brand?.name),
       issue
     };
   });

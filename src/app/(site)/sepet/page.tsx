@@ -124,8 +124,13 @@ export default function CartPage() {
                 <div key={line.variantId} className="border-b border-line last:border-b-0">
                   {/* Mobil kart */}
                   <div className="flex gap-4 py-6 lg:hidden">
-                    <div className="relative h-28 w-24 flex-shrink-0 overflow-hidden bg-line">
-                      <Image src={line.image} alt={line.name} fill className="object-cover" />
+                    <div className={`relative h-28 w-24 flex-shrink-0 overflow-hidden ${line.greyBackdrop ? "bg-image-bg" : "bg-line"}`}>
+                      <Image
+                        src={line.image}
+                        alt={line.name}
+                        fill
+                        className={line.greyBackdrop ? "object-cover mix-blend-multiply" : "object-cover"}
+                      />
                     </div>
                     <div className="flex flex-1 flex-col">
                       <div className="flex items-start justify-between gap-2">
@@ -151,8 +156,13 @@ export default function CartPage() {
                   {/* Masaüstü satırı */}
                   <div className="hidden py-6 lg:grid lg:grid-cols-[2fr_1fr_1fr_1fr] lg:items-center lg:gap-4">
                     <div className="flex gap-4">
-                      <div className="relative h-28 w-24 flex-shrink-0 overflow-hidden bg-line">
-                        <Image src={line.image} alt={line.name} fill className="object-cover" />
+                      <div className={`relative h-28 w-24 flex-shrink-0 overflow-hidden ${line.greyBackdrop ? "bg-image-bg" : "bg-line"}`}>
+                        <Image
+                          src={line.image}
+                          alt={line.name}
+                          fill
+                          className={line.greyBackdrop ? "object-cover mix-blend-multiply" : "object-cover"}
+                        />
                       </div>
                       <div className="flex flex-col justify-center">
                         <p className="text-xs font-semibold uppercase tracking-[0.24px]">{line.name}</p>

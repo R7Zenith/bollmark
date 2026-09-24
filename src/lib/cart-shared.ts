@@ -19,5 +19,7 @@ export type ResolvedCartLine = {
   priceCents: number;
   compareAtCents: number | null;
   stock: number;
+  // Gorsel gri zemin + mix-blend-multiply ile mi gosterilsin (bkz. lib/image-backdrop.ts).
+  greyBackdrop: boolean;
   issue: CartLineIssue | null;
 };

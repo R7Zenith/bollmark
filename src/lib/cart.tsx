@@ -22,6 +22,8 @@ export type CartLine = {
   quantity: number;
   /** Son bilinen stok (fiyat tazelemesinde/ekleme aninda gelir) - adet secicisini sinirlamak icin kullanilir. */
   stock?: number;
+  /** Gorsel gri zemin + mix-blend-multiply ile mi gosterilsin (bkz. lib/image-backdrop.ts). */
+  greyBackdrop?: boolean;
 };
 
 export type PriceNotice = {
@@ -114,7 +116,8 @@ function toCartLine(f: ResolvedCartLine): CartLine {
     compareAtCents: f.compareAtCents,
     image: f.image,
     quantity: f.quantity,
-    stock: f.stock
+    stock: f.stock,
+    greyBackdrop: f.greyBackdrop
   };
 }
 
@@ -180,7 +183,8 @@ function applyFresh(base: CartLine[], fresh: ResolvedCartLine[]) {
       image: f.image,
       priceCents: f.priceCents,
       compareAtCents: f.compareAtCents,
-      stock: f.stock
+      stock: f.stock,
+      greyBackdrop: f.greyBackdrop
     };
     const same =
       updated.name === line.name &&
@@ -189,7 +193,8 @@ function applyFresh(base: CartLine[], fresh: ResolvedCartLine[]) {
       updated.image === line.image &&
       updated.priceCents === line.priceCents &&
       (updated.compareAtCents ?? null) === (line.compareAtCents ?? null) &&
-      updated.stock === line.stock;
+      updated.stock === line.stock &&
+      updated.greyBackdrop === line.greyBackdrop;
     if (same) return line;
     changed = true;
     return updated;
