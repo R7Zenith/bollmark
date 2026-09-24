@@ -5401,3 +5401,8 @@ Kullanici bildirdi: ana sayfadaki "Yeni Gelenler" bolumunde coklu rengi olan bir
 - **`src/components/admin/copy-code-button.tsx`** (yeni): ikon-only kucuk `CopyCodeButton`. Tiklaninca kodu panoya kopyalar, 1.5 sn yesil `Check` gosterir, `stopPropagation` cagirir.
 - **`src/components/admin/products-table.tsx`**: "Urun" kolonundaki tek `<Link>` sarmalayici `div` yapildi; gorsel ve urun adi ayri `Link` olarak kaldi, urun kodu satiri Link'in DISINA alinip yanina kopyala butonu eklendi (kod yoksa gorunmez).
 - **Dogrulama**: `npx tsc --noEmit` ve eslint (degisen dosyalar) temiz. Localhost'ta gorsel dogrulama kullanicidan bekleniyor. Commit/push atilmadi.
+## Oturum: Excel aktarimi - slug/SKU cakismasi, Ayakkabi/Corap esleme (EXCEL_SLAZENGER_SLUG_CAKISMASI_VE_AYAKKABI_CORAP_ESLEME_PLANI.md)
+- **`src/lib/excel-import.ts`**: `generateUniqueSlug` opsiyonel `reserved` setini de kontrol ediyor; `importProductGroups` tek bir `usedSlugs` seti veriyor (ayni parcadaki ayni adli urunler `-2` soneki alir, `Product.slug @unique` ihlali biter). Ayni kod+renk+beden farkli barkod icin SKU'ya barkodun son 4 hanesi ekleniyor. `CATEGORY_MAP` ve `PRODUCT_NAME_CATEGORY_KEYWORDS`'e Ayakkabi/Corap eklendi.
+- **`excel-import-wizard.tsx` / `toast.tsx`**: toast'a `data.detail` eklendi, uzun mesaj kelime kaydiriyor.
+- **Dogrulama**: `tsc --noEmit` temiz, degisen dosyalarda eslint temiz. SLAZENGER13042026 dosyasi localhost'ta iceri aktarildi (20 urun, 182 varyant). `npm run build` calistirilmadi.
+- **Not**: `generateUniqueSlug` test icin `export` edildi. Gorsel eslesmede ayni model adli iki urun kodu (ZEKKO, ZEX) ve `/` iceren cok renkli basliklar Slazenger aramasinda tam eslesmiyor, kalan gorseller elle eklenmeli. Commit atildi, push atilmadi.

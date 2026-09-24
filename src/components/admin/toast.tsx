@@ -43,14 +43,14 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
         {toasts.map((t) => (
           <div
             key={t.id}
-            className={`flex items-center gap-2 rounded-md border px-4 py-3 text-sm shadow-lg ${
+            className={`flex max-w-md items-center gap-2 break-words rounded-md border px-4 py-3 text-sm shadow-lg ${
               t.kind === "success"
                 ? "border-green-200 bg-white text-green-800"
                 : "border-red-200 bg-white text-red-800"
             }`}
           >
             {t.kind === "success" ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
-            <span>{t.message}</span>
+            <span className="min-w-0 break-words">{t.message}</span>
             <button onClick={() => dismiss(t.id)} className="ml-2 text-admin-text-muted hover:text-admin-text">
               <X size={14} />
             </button>

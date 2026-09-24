@@ -218,7 +218,7 @@ export function ExcelImportWizard({
         const data = await res.json();
         if (!res.ok) {
           showToast(
-            `${doneGroups}/${totalGroups} ürün grubu aktarıldıktan sonra hata oluştu: ${data.error ?? "İçe aktarım başarısız oldu."}`,
+            `${doneGroups}/${totalGroups} ürün grubu aktarıldıktan sonra hata oluştu: ${data.error ?? "İçe aktarım başarısız oldu."}${data.detail ? ` (${data.detail})` : ""}`,
             "error"
           );
           return;

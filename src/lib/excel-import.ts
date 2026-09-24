@@ -73,7 +73,10 @@ const CATEGORY_MAP: Record<string, string> = {
   DRESSES: "Elbise",
   SKIRTS: "Etek",
   SWEATERS: "Kazak & Süveter",
-  SWEATSHIRTS: "Sweatshirt"
+  SWEATSHIRTS: "Sweatshirt",
+  "SPOR AYAKKABI": "Ayakkabı",
+  ÇORAP: "Çorap",
+  CORAP: "Çorap"
 };
 
 export function mapCategoryName(categoryRaw: string): string | null {
@@ -115,7 +118,9 @@ const PRODUCT_NAME_CATEGORY_KEYWORDS: Array<{ category: string; keywords: string
   { category: "Eşofman", keywords: ["eşofman", "jogger"] },
   { category: "Polo Yaka", keywords: ["polo yaka", "polo"] },
   { category: "Atlet", keywords: ["atlet"] },
-  { category: "Boxer", keywords: ["boxer"] }
+  { category: "Boxer", keywords: ["boxer"] },
+  { category: "Ayakkabı", keywords: ["ayakkabı", "sneaker", "sandalet", "terlik", "çizme"] },
+  { category: "Çorap", keywords: ["çorap", "patik"] }
 ];
 
 function escapeRegExp(text: string): string {
@@ -391,14 +396,17 @@ export async function getOrCreateCategoryId(tx: Tx, categoryName: string): Promi
   return created.id;
 }
 
-async function generateUniqueSlug(tx: Tx, name: string): Promise<string> {
+// reserved: aynı import parçasında henüz DB'ye yazılmamış slug'lar - aynı adlı iki yeni
+// ürün DB'de birbirini göremediği için çakışırdı (Product.slug @unique).
+export async function generateUniqueSlug(tx: Tx, name: string, reserved?: Set<string>): Promise<string> {
   const base = slugifyTr(name) || "urun";
   let candidate = base;
   let suffix = 2;
-  while (await tx.product.findUnique({ where: { slug: candidate } })) {
+  while (reserved?.has(candidate) || (await tx.product.findUnique({ where: { slug: candidate } }))) {
     candidate = `${base}-${suffix}`;
     suffix++;
   }
+  reserved?.add(candidate);
   return candidate;
 }
 
@@ -470,10 +478,11 @@ export async function importProductGroups(
 
   const brandIdByProductCode = new Map<string, string | null>();
   const slugByProductCode = new Map<string, string>();
+  const usedSlugs = new Set<string>();
   for (const group of groups) {
     if (!groupIsNew.get(group.productCode)) continue;
     brandIdByProductCode.set(group.productCode, await resolveBrandId(prisma, group.brandName));
-    slugByProductCode.set(group.productCode, await generateUniqueSlug(prisma, group.productName));
+    slugByProductCode.set(group.productCode, await generateUniqueSlug(prisma, group.productName, usedSlugs));
   }
 
   const summary: ImportSummary = {
@@ -483,6 +492,8 @@ export async function importProductGroups(
     variantsUpdated: 0,
     newProductTargets: []
   };
+
+  const usedSkus = new Set<string>();
 
   await prisma.$transaction(
     async (tx) => {
@@ -537,7 +548,10 @@ export async function importProductGroups(
             });
             summary.variantsUpdated++;
           } else {
-            const sku = `${group.productCode}-${variant.color.replace(/\s+/g, "-")}-${variant.size}`;
+            let sku = `${group.productCode}-${variant.color.replace(/\s+/g, "-")}-${variant.size}`;
+            // Aynı kod+renk+beden farklı barkodla tekrar ederse ProductVariant.sku @unique ihlali olur.
+            if (usedSkus.has(sku)) sku = `${sku}-${variant.barcode.slice(-4)}`;
+            usedSkus.add(sku);
             await tx.productVariant.create({
               data: {
                 productId,
