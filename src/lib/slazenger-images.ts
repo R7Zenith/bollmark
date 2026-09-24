@@ -314,6 +314,8 @@ export async function enrichFromUrlSlazenger(
   const colorEntries = Object.entries(target.colorValueIdByLabel);
   const matchedEntry =
     colorEntries.find(([label]) => candidateMatchesColor(productName, label)) ??
+    // Elle verilen linkte, ürün DB'de ikili rengin ilk rengiyle kayıtlıysa ("Beyaz" ↔ "Beyaz / Bordo").
+    colorEntries.find(([label]) => candidateMatchesColor(productName.split("/")[0], label)) ??
     (colorEntries.length === 1 ? colorEntries[0] : undefined);
   if (!matchedEntry) return emptyResult;
   const [label, valueId] = matchedEntry;
