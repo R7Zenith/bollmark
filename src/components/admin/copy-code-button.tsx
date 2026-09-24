@@ -23,7 +23,7 @@ export function CopyCodeButton({ value }: { value: string }) {
       onClick={copy}
       title={copied ? "Kopyalandı" : "Kodu Kopyala"}
       aria-label="Kodu Kopyala"
-      className="inline-flex h-7 w-7 items-center justify-center rounded border border-transparent text-admin-text-muted transition-colors hover:border-admin-border hover:bg-admin-bg hover:text-admin-accent md:h-6 md:w-6"
+      className="inline-flex -my-1.5 h-7 w-7 items-center justify-center rounded border border-transparent text-admin-text-muted transition-colors hover:border-admin-border hover:bg-admin-bg hover:text-admin-accent md:-my-1 md:h-6 md:w-6"
     >
       {copied ? <Check size={13} className="text-green-600" /> : <Copy size={13} />}
     </button>
