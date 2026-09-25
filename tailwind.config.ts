@@ -73,10 +73,15 @@ const config: Config = {
         "search-in": {
           from: { opacity: "0", transform: "translateY(4px)" },
           to: { opacity: "1", transform: "translateY(0)" }
+        },
+        "catalog-in": {
+          from: { opacity: "0", transform: "translateY(12px)" },
+          to: { opacity: "1", transform: "translateY(0)" }
         }
       },
       animation: {
-        "search-in": "search-in 260ms ease-out both"
+        "search-in": "search-in 260ms ease-out both",
+        "catalog-in": "catalog-in 400ms ease-out both"
       }
     }
   },

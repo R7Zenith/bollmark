@@ -5,6 +5,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { FilterDrawer } from "@/components/filter-drawer";
 import {
+  CATALOG_SHOW_PARAM,
   EMPTY_FILTERS,
   STOCK_IN,
   countActiveFilters,
@@ -147,6 +148,7 @@ export function CatalogToolbar({
     const params = new URLSearchParams(searchParams.toString());
     if (value) params.set(key, value);
     else params.delete(key);
+    params.delete(CATALOG_SHOW_PARAM);
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
   };
@@ -158,6 +160,7 @@ export function CatalogToolbar({
     writeCatalogFilters(params, next);
     if (category) params.set("kategori", category);
     else params.delete("kategori");
+    params.delete(CATALOG_SHOW_PARAM);
     const query = params.toString();
     router.push(query ? `${pathname}?${query}` : pathname);
   };

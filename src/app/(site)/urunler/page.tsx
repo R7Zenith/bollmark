@@ -1,66 +1,18 @@
 import type { Metadata } from "next";
-import { firstImageUrl, getCatalogEntries } from "@/lib/catalog";
+import { firstImageUrl } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
-import { ProductCard } from "@/components/product-card";
 import { EmptyCategoryState } from "@/components/empty-category-state";
 import Link from "next/link";
 import { CatalogToolbar } from "@/components/catalog-toolbar";
+import { CatalogGrid } from "@/components/catalog-grid";
 import { DEFAULT_CATALOG_BANNER_IMAGE } from "@/lib/catalog-banner";
 import {
+  CATALOG_PAGE_SIZE,
+  CATALOG_SHOW_PARAM,
   FILTER_PARAM_KEYS,
-  applyCatalogFilters,
-  buildCatalogFacets,
-  countActiveFilters,
-  parseCatalogFilters,
   toURLSearchParams
 } from "@/lib/catalog-filters";
-import { getActiveAutomaticPercentCampaigns, resolveProductDisplayPrice } from "@/lib/coupons";
-import type { CatalogEntry } from "@/lib/catalog";
-import { getSearchIndex, matchProducts } from "@/lib/search";
-import { SEARCH_MAX_LENGTH } from "@/lib/search-text";
-
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800";
-
-// Ust cubuktaki siralama secimi. Stogu biten girisler her durumda listenin
-// sonunda kalir (bkz. lib/catalog.ts) - siralama yalnizca stokta olanlar
-// arasinda uygulanir, yoksa "fiyat: dusukten yuksege" secildiginde satilamayan
-// urunler basa cikardi.
-// Arama (?ara=) sonucu: header'daki canli aramayla (api/arama) ayni eslestirme
-// kurali. Sorgudaki bir kelime urunun rengine uyuyorsa ("siyah gomlek")
-// yalnizca o rengin girisi kalir. Siralama secili degilse en yakin sonuc ustte.
-async function applySearch(entries: CatalogEntry[], ara: string, sort?: string): Promise<CatalogEntry[]> {
-  const matches = matchProducts(await getSearchIndex(), ara);
-  const byProduct = new Map(matches.map((m) => [m.item.id, m]));
-  const filtered = entries.filter((entry) => {
-    const match = byProduct.get(entry.productId);
-    if (!match) return false;
-    return match.matchedColors.length === 0 || !entry.colorName || match.matchedColors.includes(entry.colorName);
-  });
-  if (sort) return filtered;
-  return filtered.sort(
-    (a, b) =>
-      Number(a.outOfStock) - Number(b.outOfStock) ||
-      (byProduct.get(b.productId)?.score ?? 0) - (byProduct.get(a.productId)?.score ?? 0)
-  );
-}
-
-function parseSearchQuery(value: string | null | undefined): string | undefined {
-  return value?.trim().slice(0, SEARCH_MAX_LENGTH) || undefined;
-}
-
-function sortEntries(entries: CatalogEntry[], sort?: string): CatalogEntry[] {
-  if (!sort) return entries;
-  const comparators: Record<string, (a: CatalogEntry, b: CatalogEntry) => number> = {
-    "fiyat-artan": (a, b) => a.priceCents - b.priceCents,
-    "fiyat-azalan": (a, b) => b.priceCents - a.priceCents,
-    isim: (a, b) => a.name.localeCompare(b.name, "tr")
-  };
-  const compare = comparators[sort];
-  if (!compare) return entries;
-  return [...entries].sort(
-    (a, b) => Number(a.outOfStock) - Number(b.outOfStock) || compare(a, b)
-  );
-}
+import { getCatalogListing, parseSearchQuery, toCatalogCardProps } from "@/lib/catalog-listing";
 
 async function withSampleProductImages(
   categories: { name: string; slug: string; imageUrl: string | null }[],
@@ -144,38 +96,33 @@ export default async function ProductsPage({
 }) {
   const query = await searchParams;
   const params = toURLSearchParams(query);
-  const kategori = params.get("kategori") || undefined;
-  const cinsiyet = params.get("cinsiyet") || undefined;
-  const sirala = params.get("sirala") || undefined;
-  const ara = parseSearchQuery(params.get("ara"));
-  const filters = parseCatalogFilters(params);
+  const {
+    entries,
+    facets,
+    filters,
+    hasActiveFilters,
+    kategori,
+    cinsiyet,
+    sirala,
+    ara,
+    automaticCampaigns,
+    filterCategories
+  } = await getCatalogListing(params);
 
-  // Birden fazla rengi olan urunler burada renk basina ayri bir giris olarak
-  // gelir (bkz. lib/catalog.ts getCatalogEntries) - musteri kataloga bakarken
-  // her rengi urune tiklamadan ayri bir urunmus gibi gorur.
-  const [scopedEntries, automaticCampaigns, filterCategories] = await Promise.all([
-    getCatalogEntries(kategori, { genderLabel: cinsiyet }),
-    getActiveAutomaticPercentCampaigns(prisma),
-    // Ust cubuktaki "Filtrele" listesi - yalnizca su anki cinsiyet kapsaminda
-    // gercekten yayinda urunu olan kategoriler (bos filtre secenegi gosterilmez).
-    prisma.category.findMany({
-      where: {
-        isActive: true,
-        products: { some: { status: "PUBLISHED", gender: cinsiyet ? cinsiyet : undefined } }
-      },
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      select: { name: true, slug: true, imageUrl: true }
-    })
-  ]);
-  // Arama varsa facet'ler ve filtreler arama sonuclari uzerinden calisir.
-  const rawEntries = ara ? await applySearch(scopedEntries, ara, sirala) : scopedEntries;
-  // Cekmece secenekleri filtrelenmemis (kategori/cinsiyet kapsamindaki)
-  // girislerden uretilir, yoksa bir renk secince diger renkler kaybolurdu.
-  const facets = buildCatalogFacets(rawEntries);
-  const entries = sortEntries(applyCatalogFilters(rawEntries, filters), sirala);
-  // Kategori burada sayilmiyor: kategori+cinsiyet kombinasyonunun bos olmasi
-  // icin zaten ozel bir ekran var (EmptyCategoryState).
-  const hasActiveFilters = countActiveFilters(filters, false) > 0;
+  // ?goster=N: kac kartin acik oldugu ("Daha Fazla Goster", bkz.
+  // components/catalog-grid.tsx). Ustteki 24'un katina yuvarlanir (son parti
+  // yarimsa ?goster=131 gibi degerler 120'ye dusmesin); en az 24, en fazla
+  // toplam giris sayisi.
+  const requestedShow = Number(params.get(CATALOG_SHOW_PARAM));
+  const show = Math.min(
+    entries.length,
+    Number.isFinite(requestedShow)
+      ? Math.max(CATALOG_PAGE_SIZE, Math.ceil(requestedShow / CATALOG_PAGE_SIZE) * CATALOG_PAGE_SIZE)
+      : CATALOG_PAGE_SIZE
+  );
+  const gridParams = new URLSearchParams(params);
+  gridParams.delete(CATALOG_SHOW_PARAM);
+  const gridQuery = gridParams.toString();
   // Urunu olmayan kategori "yakinda" ekranini gosterir. Bu kategori
   // filterCategories'te (yalniz urunu olanlar) bulunamayacagi icin ayrica
   // okunur; banner basligi/breadcrumb ile ekran metni bunu kullanir.
@@ -325,36 +272,14 @@ export default async function ProductsPage({
           />
         )
       ) : (
-        // Mobilde gorseller ekran kenarina yapisik olsun diye grid ust
-        // konteynerin px-4'unu -mx-4 ile iptal ediyor (bkz.
-        // MOBIL_KATALOG_GORSEL_BOSLUK_PLANI.md); masaustunde mx-0 ile eski
-        // hale donuyor. Sutunlar arasi bosluk mobilde ince (gap-x-0.5),
-        // satirlar arasi kart metni icin daha genis (gap-y-3); masaustunde
-        // Release'de olculmus gercek deger olan gap-6 korunuyor.
-        <div className="mt-8 -mx-4 grid grid-cols-2 gap-x-0.5 gap-y-3 md:mx-0 md:grid-cols-4 md:gap-6">
-          {entries.map((entry) => (
-            <ProductCard
-              key={`${entry.productId}-${entry.colorLabel ?? "tek"}`}
-              product={{
-                productId: entry.productId,
-                slug: entry.slug,
-                name: entry.name,
-                priceCents: entry.priceCents,
-                compareAtCents: entry.compareAtCents,
-                image: entry.image ?? FALLBACK_IMAGE,
-                secondImage: entry.secondImage,
-                colorLabel: entry.colorLabel,
-                priceResolution: resolveProductDisplayPrice(automaticCampaigns, entry),
-                outOfStock: entry.outOfStock,
-                lowStockCount: entry.lowStockCount,
-                isNew: entry.isNew,
-                quickAddVariants: entry.quickAddVariants,
-                colors: entry.colors,
-                greyBackdrop: entry.greyBackdrop
-              }}
-            />
-          ))}
-        </div>
+        // key: filtre/siralama/arama degisince grid durumu (eklenmis
+        // partiler) sifirlanir, liste 24'ten baslar.
+        <CatalogGrid
+          key={gridQuery}
+          initialItems={entries.slice(0, show).map((entry) => toCatalogCardProps(entry, automaticCampaigns))}
+          total={entries.length}
+          query={gridQuery}
+        />
       )}
       </div>
     </div>

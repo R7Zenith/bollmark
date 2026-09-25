@@ -33,6 +33,13 @@ export const EMPTY_FILTERS: CatalogFilters = {
 // olduklari gibi kalir.
 export const FILTER_PARAM_KEYS = ["renk", "beden", "fiyat-min", "fiyat-max", "stok", "indirimli"];
 
+// Katalogda "Daha Fazla Goster" ile bir seferde eklenen kart sayisi ve kac
+// kartin acik oldugunu tutan query param'i (bkz. components/catalog-grid.tsx).
+// Filtre degildir: FILTER_PARAM_KEYS'te yok, filtre sayisina katilmaz; ama
+// filtre/siralama degisince silinir ki liste bastan (24) baslasin.
+export const CATALOG_PAGE_SIZE = 24;
+export const CATALOG_SHOW_PARAM = "goster";
+
 function parsePrice(value: string | null): number | null {
   if (!value) return null;
   const n = Number(value);
