@@ -130,6 +130,7 @@ async function updateProduct(id: string, formData: FormData) {
   const categoryId = String(formData.get("categoryId") || "") || null;
   const status = String(formData.get("status") || "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
   const brandId = String(formData.get("brandId") || "") || null;
+  const seasonId = String(formData.get("seasonId") || "") || null;
   const material = String(formData.get("material") || "").trim() || null;
   const origin = String(formData.get("origin") || "").trim() || null;
   const careInstructions = String(formData.get("careInstructions") || "").trim() || null;
@@ -205,6 +206,7 @@ async function updateProduct(id: string, formData: FormData) {
           categoryId,
           status,
           brandId,
+          seasonId,
           material,
           origin,
           careInstructions,
@@ -330,7 +332,7 @@ export default async function EditProductPage({
   await requireAdmin();
   const { id } = await params;
   const { basarili, hata } = await searchParams;
-  const [product, categories, attributes, brands, tags] = await Promise.all([
+  const [product, categories, attributes, brands, tags, seasons] = await Promise.all([
     prisma.product.findUnique({
       where: { id },
       include: {
@@ -346,7 +348,8 @@ export default async function EditProductPage({
       include: { values: { orderBy: { position: "asc" } } }
     }),
     prisma.brand.findMany({ orderBy: { name: "asc" } }),
-    prisma.tag.findMany({ orderBy: { name: "asc" } })
+    prisma.tag.findMany({ orderBy: { name: "asc" } }),
+    prisma.season.findMany({ orderBy: [{ rank: "desc" }, { name: "asc" }], select: { id: true, name: true } })
   ]);
   if (!product) notFound();
   const attributeOptions: AttributeOption[] = attributes;
@@ -533,6 +536,17 @@ export default async function EditProductPage({
                 {brands.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>Sezon</label>
+              <select name="seasonId" defaultValue={product.seasonId ?? ""} className={`mt-1 ${inputClass}`}>
+                <option value="">Sezon yok</option>
+                {seasons.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
                   </option>
                 ))}
               </select>

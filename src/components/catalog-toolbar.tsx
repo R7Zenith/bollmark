@@ -24,8 +24,9 @@ import {
 export type CatalogFilterCategory = { name: string; slug: string };
 
 // Katalogda gercekten uygulanabilen siralamalar. "En yeniler" ayri bir secenek
-// degil cunku getCatalogEntries zaten varsayilan olarak createdAt desc doner
-// (bkz. lib/catalog.ts) - olmayan bir sort parametresi icat edilmedi.
+// degil cunku getCatalogEntries zaten varsayilan olarak once sezon, sonra
+// createdAt desc doner (bkz. lib/catalog.ts) - olmayan bir sort parametresi
+// icat edilmedi.
 export const CATALOG_SORTS = [
   { key: "", label: "Önerilen" },
   { key: "fiyat-artan", label: "Fiyat: Düşükten yükseğe" },

@@ -2,6 +2,7 @@ import { cache } from "react";
 import { prisma } from "@/lib/prisma";
 import { optionPosition, optionValue, variantOptionsInclude, type VariantOptionInclude } from "@/lib/variant-attributes";
 import { usesGreyBackdrop } from "@/lib/image-backdrop";
+import { sortBySeason } from "@/lib/seasons";
 
 // Katalog/kart gorunumunde "+" hizli sepete ekle butonu icin - stokta olan
 // TUM varyantlari (bedenleri, secili renk grubu icinde) doner. Stokta hicbir
@@ -105,17 +106,20 @@ export async function getPublishedProducts(
       // (bkz. buildColorSwatches / home-products.ts toProductCardData).
       optionImages: { orderBy: { position: "asc" } },
       variants: { include: variantOptionsInclude },
-      brand: { select: { name: true } }
+      brand: { select: { name: true } },
+      // isCurrent: anasayfa "Yeni Gelenler" (bkz. home-products.ts pickNewArrivals).
+      season: { select: { rank: true, isCurrent: true } }
     },
-    orderBy: options?.featuredFirst
-      ? [{ isFeatured: "desc" }, { createdAt: "desc" }]
-      : { createdAt: "desc" }
+    orderBy: [{ createdAt: "desc" }, { id: "asc" }]
   });
 
-  // Stoğu tamamen bitmiş ürünler, mevcut sıralama korunarak listenin sonuna
-  // atılır (Prisma tarafında hesaplanmış bir alan olmadığı için burada,
-  // JS'in stabil sort'una güvenilerek yapılıyor).
-  return products
+  // Önce sezon (yeni sezon önde, sezonsuz en sonda), sezon içinde en yeni
+  // eklenen önde - bkz. lib/seasons.ts sortBySeason. Stoğu tamamen bitmiş
+  // ürünler, mevcut sıralama korunarak listenin sonuna atılır (Prisma
+  // tarafında hesaplanmış bir alan olmadığı için burada, JS'in stabil
+  // sort'una güvenilerek yapılıyor).
+  return sortBySeason(products)
+    .sort((a, b) => (options?.featuredFirst ? Number(b.isFeatured) - Number(a.isFeatured) : 0))
     .sort((a, b) => Number(isOutOfStock(a.variants)) - Number(isOutOfStock(b.variants)))
     .map((p) => ({ ...p, quickAddVariants: pickQuickAddVariants(p.variants) }));
 }
@@ -198,14 +202,19 @@ export async function getCatalogEntries(
       images: { orderBy: { position: "asc" }, take: 2 },
       optionImages: { orderBy: { position: "asc" } },
       variants: { include: variantOptionsInclude },
-      brand: { select: { name: true } }
+      brand: { select: { name: true } },
+      season: { select: { rank: true } }
     },
-    orderBy: options?.featuredFirst
-      ? [{ isFeatured: "desc" }, { createdAt: "desc" }]
-      : { createdAt: "desc" }
+    // id: ayni createdAt'li (toplu Excel) urunlerde sira her istekte ayni
+    // kalsin - "Daha Fazla Goster" partileri offset ile kesiyor.
+    orderBy: [{ createdAt: "desc" }, { id: "asc" }]
   });
 
-  const entries = products.flatMap(productToCatalogEntries);
+  // Önce sezon, sonra eklenme tarihi (bkz. getPublishedProducts).
+  const ordered = sortBySeason(products).sort((a, b) =>
+    options?.featuredFirst ? Number(b.isFeatured) - Number(a.isFeatured) : 0
+  );
+  const entries = ordered.flatMap(productToCatalogEntries);
   // Stoğu tamamen bitmiş renk/ürün girişleri, mevcut sıralama korunarak
   // listenin sonuna atılır (bkz. getPublishedProducts'taki ayni yorum).
   return entries.sort((a, b) => Number(a.outOfStock) - Number(b.outOfStock));

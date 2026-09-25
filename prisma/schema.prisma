@@ -71,6 +71,19 @@ model Brand {
   createdAt DateTime  @default(now())
 }
 
+// Excel KOD6'daki urun sezonu ("2027 Kış"). Katalogdaki varsayilan siralama
+// once rank DESC, sonra createdAt DESC - boylece eski sezon stogu sonradan
+// aktarilsa bile yeni sezonun onune gecmez (bkz. SEZON_BAZLI_SIRALAMA_PLANI.md,
+// lib/seasons.ts). rank otomatik hesaplanir, admin Sezonlar ekranindan degisir.
+model Season {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  rank      Int
+  isCurrent Boolean   @default(false)
+  products  Product[]
+  createdAt DateTime  @default(now())
+}
+
 model Tag {
   id       String    @id @default(cuid())
   name     String    @unique
@@ -95,6 +108,8 @@ model Product {
   category    Category?     @relation(fields: [categoryId], references: [id])
   brandId     String?
   brand       Brand?        @relation(fields: [brandId], references: [id])
+  seasonId    String?
+  season      Season?       @relation(fields: [seasonId], references: [id])
   material    String?
   origin      String?
   careInstructions String?
@@ -109,6 +124,8 @@ model Product {
   bundles       Bundle[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
+
+  @@index([seasonId])
 }
 
 // Bundle/set indirimi - sepette bir bundle'a dahil TUM urunlerden en az

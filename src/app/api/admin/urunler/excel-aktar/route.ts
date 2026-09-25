@@ -23,6 +23,7 @@ function isValidRow(v: unknown): v is ExcelImportRow {
     typeof r.barcode === "string" &&
     typeof r.genderRaw === "string" &&
     typeof r.categoryRaw === "string" &&
+    typeof r.seasonRaw === "string" &&
     typeof r.color === "string" &&
     typeof r.size === "string" &&
     (r.costCents === null || typeof r.costCents === "number") &&

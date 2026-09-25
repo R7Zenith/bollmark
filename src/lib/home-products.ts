@@ -59,8 +59,21 @@ export const BESTSELLER_TAB_LIMIT = 8;
 // tamamlanir - bolum hic bos/tek kartlik gorunmesin.
 const BESTSELLER_MIN_SOLD = 4;
 
-// `products` createdAt DESC gelir (getPublishedProducts); yedek sirasi bu
-// sayede "one cikanlar, sonra en yeniler" olur. Stokta olmayanlar hep disarida.
+// "Yeni Gelenler": admin'in guncel (isCurrent) isaretledigi sezonun urunleri
+// once, gerisi katalog sirasiyla (sezon rank DESC, sonra en yeni) - guncel
+// sezonda yeterli urun yoksa bolum bir onceki sezondan tamamlanir. Guncel
+// sezon isaretli degilse zaten en yuksek rank'li sezon basta. Stogu bitenler
+// yine en sonda (getPublishedProducts ile ayni kural).
+export function pickNewArrivals(products: PublishedProduct[]): PublishedProduct[] {
+  return [...products].sort(
+    (a, b) =>
+      Number(isOutOfStock(a.variants)) - Number(isOutOfStock(b.variants)) ||
+      Number(!!b.season?.isCurrent) - Number(!!a.season?.isCurrent)
+  );
+}
+
+// `products` katalog sirasiyla gelir (getPublishedProducts: sezon, sonra en
+// yeni); yedek sirasi bu sayede "one cikanlar, sonra en yeniler" olur. Stokta olmayanlar hep disarida.
 export function pickBestsellers(products: PublishedProduct[], soldByProductId: Map<string, number>): PublishedProduct[] {
   const inStock = products.filter((p) => !isOutOfStock(p.variants));
   const sold = inStock

@@ -22,6 +22,7 @@ import {
   FileText,
   Mail,
   CreditCard,
+  CalendarRange,
   ChevronDown
 } from "lucide-react";
 import { isPathAllowedForRole } from "@/lib/roles";
@@ -51,6 +52,7 @@ const navGroups: NavGroup[] = [
       { href: "/admin/urunler", label: "Ürünler", icon: ShoppingBag },
       { href: "/admin/kategoriler", label: "Kategoriler", icon: Tag },
       { href: "/admin/markalar", label: "Markalar", icon: Award },
+      { href: "/admin/sezonlar", label: "Sezonlar", icon: CalendarRange },
       { href: "/admin/ayarlar/varyant-ozellikleri", label: "Varyant Özellikleri", icon: SlidersHorizontal }
     ]
   },

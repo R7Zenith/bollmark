@@ -13,7 +13,8 @@ import {
   bestsellerSince,
   catalogEntryToCardData,
   percentWithDative,
-  pickBestsellers
+  pickBestsellers,
+  pickNewArrivals
 } from "@/lib/home-products";
 import { REVENUE_STATUSES } from "@/lib/orders";
 
@@ -79,10 +80,9 @@ export default async function HomePage() {
 
   // Coklu rengi olan bir urun burada rengi kadar ayri kart olarak gorunur
   // (katalog sayfasindaki gibi) - bkz. lib/catalog.ts productToCatalogEntries.
-  // "Yeni Gelenler" listenin BAŞINDAN itibaren en yeni 8 KARTI gosterir;
-  // `products` zaten en yeniden en eskiye sirali oldugu icin slice(0,8)
-  // dogrudan uygulanabilir.
-  const featuredEntries = products.flatMap(productToCatalogEntries).slice(0, 8);
+  // "Yeni Gelenler" listenin BAŞINDAN itibaren 8 KARTI gosterir: once guncel
+  // sezon, sonra katalog sirasi (bkz. home-products.ts pickNewArrivals).
+  const featuredEntries = pickNewArrivals(products).flatMap(productToCatalogEntries).slice(0, 8);
 
   // B) Kategori kartlari. Sayisi 0 olan kart gizlenir (Ayakkabi haric: magaza
   // PUMA/Slazenger satiyor, sahibinin istegiyle kategori bos olsa da gorunur;

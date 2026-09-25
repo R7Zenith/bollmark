@@ -7,6 +7,7 @@ import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { resolveOptionValueIds } from "@/lib/variant-attributes";
 import { resolveImageSourceForBrand, type ImageSourceStrategy } from "@/lib/brand-image-sources";
+import { getOrCreateSeasonId } from "@/lib/seasons";
 
 type Tx = PrismaClient | Prisma.TransactionClient;
 
@@ -17,6 +18,7 @@ export interface ExcelImportRow {
   barcode: string; // BARKOD
   genderRaw: string; // KOD4
   categoryRaw: string; // KOD3
+  seasonRaw: string; // KOD6 (sezon, orn. "2026 YAZ")
   color: string; // RENK
   size: string; // BEDEN
   costCents: number | null; // AFIYATI
@@ -232,6 +234,7 @@ export function parseExcelFile(buffer: ArrayBuffer | Buffer): ExcelParseResult {
     const size = String(raw["BEDEN"] ?? "").trim();
     const genderRaw = String(raw["KOD4"] ?? "").trim();
     const categoryRaw = String(raw["KOD3"] ?? "").trim();
+    const seasonRaw = String(raw["KOD6"] ?? "").trim();
     const brandName = String(raw["FIRMAADI"] ?? "").trim() || "Koton";
 
     if (!productCode) {
@@ -277,6 +280,7 @@ export function parseExcelFile(buffer: ArrayBuffer | Buffer): ExcelParseResult {
       barcode,
       genderRaw,
       categoryRaw,
+      seasonRaw,
       color,
       size,
       costCents,
@@ -302,6 +306,7 @@ export interface ProductGroup {
   productName: string;
   genderRaw: string;
   categoryRaw: string;
+  seasonRaw: string;
   brandName: string;
   priceCents: number;
   costCents: number | null;
@@ -321,6 +326,7 @@ export function groupExcelRows(rows: ExcelImportRow[]): ProductGroup[] {
         productName: row.productName,
         genderRaw: row.genderRaw,
         categoryRaw: row.categoryRaw,
+        seasonRaw: row.seasonRaw,
         brandName: row.brandName,
         priceCents: row.priceCents,
         costCents: row.costCents,
@@ -476,6 +482,16 @@ export async function importProductGroups(
     if (id) valueIdCache.set(`${pair.attributeName}::${pair.value}`, id);
   }
 
+  // KOD6 sezonu - yoksa otomatik olusturulur (bkz. lib/seasons.ts). Mevcut
+  // urunlerde de uygulanir, boylece eski Excel'i yeniden aktarmak sezonu
+  // geriye donuk doldurur/gunceller. KOD6 bos ise mevcut sezona dokunulmaz.
+  const seasonIdByRaw = new Map<string, string | null>();
+  for (const group of groups) {
+    if (!seasonIdByRaw.has(group.seasonRaw)) {
+      seasonIdByRaw.set(group.seasonRaw, await getOrCreateSeasonId(prisma, group.seasonRaw));
+    }
+  }
+
   const brandIdByProductCode = new Map<string, string | null>();
   const slugByProductCode = new Map<string, string>();
   const usedSlugs = new Set<string>();
@@ -504,11 +520,17 @@ export async function importProductGroups(
 
         let productId: string;
         const isNew = !matchedExisting;
+        const seasonId = seasonIdByRaw.get(group.seasonRaw) ?? null;
 
         if (matchedExisting) {
           await tx.product.update({
             where: { id: matchedExisting.productId },
-            data: { priceCents: group.priceCents, costCents: group.costCents, code: group.productCode }
+            data: {
+              priceCents: group.priceCents,
+              costCents: group.costCents,
+              code: group.productCode,
+              ...(seasonId ? { seasonId } : {})
+            }
           });
           productId = matchedExisting.productId;
           summary.productsUpdated++;
@@ -524,6 +546,7 @@ export async function importProductGroups(
               status: "DRAFT",
               categoryId: categoryIdByProductCode.get(group.productCode) ?? null,
               brandId: brandIdByProductCode.get(group.productCode) ?? null,
+              seasonId,
               gender: mapGender(group.genderRaw)
             }
           });

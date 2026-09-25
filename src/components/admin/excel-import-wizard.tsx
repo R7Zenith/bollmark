@@ -17,6 +17,7 @@ type ExcelImportRow = {
   barcode: string;
   genderRaw: string;
   categoryRaw: string;
+  seasonRaw: string;
   color: string;
   size: string;
   costCents: number | null;
@@ -38,6 +39,8 @@ type PreviewGroup = {
   detectedFrom: "name" | "kod" | null;
   conflictCategory: string | null;
   suggestedCategory: CategorySuggestion | null;
+  season: string | null;
+  seasonRecognized: boolean;
   brandName: string;
   priceCents: number;
   costCents: number | null;
@@ -433,6 +436,8 @@ export function ExcelImportWizard({
               const conflictCount = preview.groups.filter((g) => g.conflictCategory).length;
               const suggestedCount = preview.groups.filter((g) => !g.detectedCategory && g.suggestedCategory).length;
               const noneCount = preview.groups.length - exactCount - suggestedCount;
+              const noSeasonCount = preview.groups.filter((g) => !g.season).length;
+              const unknownSeasonCount = preview.groups.filter((g) => !g.seasonRecognized).length;
               return (
                 <div className="flex flex-wrap gap-4 rounded-md border border-admin-border bg-gray-50 p-3 text-xs">
                   <span className="inline-flex items-center gap-1.5 text-green-700">
@@ -449,6 +454,16 @@ export function ExcelImportWizard({
                   <span className="inline-flex items-center gap-1.5 text-red-700">
                     <AlertTriangle size={14} /> {noneCount} eşleşmedi, elle girilmeli
                   </span>
+                  {noSeasonCount > 0 && (
+                    <span className="inline-flex items-center gap-1.5 text-orange-700">
+                      <AlertTriangle size={14} /> {noSeasonCount} ürünün sezonu (KOD6) boş
+                    </span>
+                  )}
+                  {unknownSeasonCount > 0 && (
+                    <span className="inline-flex items-center gap-1.5 text-orange-700">
+                      <AlertTriangle size={14} /> {unknownSeasonCount} ürünün sezonu tanınmadı (olduğu gibi aktarılacak)
+                    </span>
+                  )}
                 </div>
               );
             })()}
@@ -487,6 +502,7 @@ export function ExcelImportWizard({
                     <th className="px-4 py-3">Ürün Kodu</th>
                     <th className="px-4 py-3">Ürün Adı</th>
                     <th className="px-4 py-3">Cinsiyet</th>
+                    <th className="px-4 py-3">Sezon</th>
                     <th className="px-4 py-3">Kategori</th>
                     <th className="px-4 py-3">Renkler</th>
                     <th className="px-4 py-3 text-right">Varyant</th>
@@ -500,6 +516,20 @@ export function ExcelImportWizard({
                       <td className="px-4 py-3 font-mono text-xs text-admin-text">{g.productCode}</td>
                       <td className="px-4 py-3 text-admin-text">{g.productName}</td>
                       <td className="px-4 py-3 text-admin-text-muted">{g.gender ?? "—"}</td>
+                      <td className="px-4 py-3">
+                        {!g.season ? (
+                          <span className="text-admin-text-muted">—</span>
+                        ) : g.seasonRecognized ? (
+                          <span className="text-admin-text">{g.season}</span>
+                        ) : (
+                          <span
+                            className="inline-flex items-center gap-1 rounded bg-orange-50 px-1.5 py-0.5 text-xs text-orange-700"
+                            title="Sezon adı tanınmadı; olduğu gibi aktarılacak, sırasını Sezonlar ekranından ayarlayın."
+                          >
+                            <AlertTriangle size={12} /> {g.season}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <div className="flex min-w-[11rem] flex-col gap-1">
                           {g.detectedCategory ? (

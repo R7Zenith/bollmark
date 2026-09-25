@@ -11,6 +11,7 @@ import {
   guessCategoryFromProductName
 } from "@/lib/excel-import";
 import { suggestCategory, type CategorySuggestion } from "@/lib/category-suggest";
+import { normalizeSeason } from "@/lib/seasons";
 
 // Excel dosyasını ayrıştırıp önizleme döner - hiçbir veritabanı yazma işlemi yapmaz.
 // Gerçek aktarım /api/admin/urunler/excel-aktar'da, burada dönen `rows` listesi
@@ -94,6 +95,7 @@ export async function POST(request: NextRequest) {
   const groups = rawGroups.map((g) => {
     const { detectedCategory, detectedFrom, conflictCategory } = resolved.get(g.productCode)!;
     const suggestedCategory = detectedCategory ? null : suggestionByProductCode.get(g.productCode) ?? null;
+    const season = normalizeSeason(g.seasonRaw);
     return {
       productCode: g.productCode,
       productName: g.productName,
@@ -103,6 +105,10 @@ export async function POST(request: NextRequest) {
       detectedFrom,
       conflictCategory,
       suggestedCategory,
+      // KOD6 - onizlemede "Sezon" sutunu; taninmayan deger ham haliyle
+      // aktarilir, seasonRecognized:false ile uyari gosterilir.
+      season: season?.name ?? null,
+      seasonRecognized: season?.recognized ?? true,
       brandName: g.brandName,
       priceCents: g.priceCents,
       costCents: g.costCents,

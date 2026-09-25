@@ -29,6 +29,8 @@ export interface ProductRow {
   // (imageUrl) bir gorsel bulunsa bile, cok renkli bir urunde bazi renkler hala
   // fotografsiz olabilir. Buton gorunurlugu ve "N renk fotografsiz" rozeti icin.
   missingColorCount: number;
+  // Urunun sezonu (bkz. lib/seasons.ts) - arsiv listesinde gonderilmiyor.
+  seasonName?: string | null;
 }
 
 const statusLabel: Record<string, string> = { DRAFT: "Taslak", PUBLISHED: "Yayında", ARCHIVED: "Arşiv" };
@@ -46,9 +48,12 @@ async function bulkRequest(body: Record<string, unknown>) {
 
 export function ProductsTable({
   products,
+  seasons,
   initialSort
 }: {
   products: ProductRow[];
+  // Doluysa toplu "Sezon Ata" islemi gosterilir.
+  seasons?: { id: string; name: string }[];
   initialSort?: { key: string; direction: "asc" | "desc" } | null;
 }) {
   const router = useRouter();
@@ -61,6 +66,31 @@ export function ProductsTable({
   const [priceDraft, setPriceDraft] = useState("");
   const [priceError, setPriceError] = useState<string | null>(null);
   const [savingPrice, setSavingPrice] = useState(false);
+  const [seasonTarget, setSeasonTarget] = useState<{ ids: string[]; clearSelection: () => void } | null>(null);
+  const [seasonDraft, setSeasonDraft] = useState("");
+  const [savingSeason, setSavingSeason] = useState(false);
+
+  async function handleSezonAta() {
+    if (!seasonTarget) return;
+    setSavingSeason(true);
+    try {
+      const { ok, error } = await bulkRequest({
+        ids: seasonTarget.ids,
+        action: "SET_SEASON",
+        seasonId: seasonDraft || null
+      });
+      if (ok) {
+        showToast("Sezon güncellendi.", "success");
+        seasonTarget.clearSelection();
+        setSeasonTarget(null);
+        router.refresh();
+      } else {
+        showToast(error ?? "Bir hata oluştu.", "error");
+      }
+    } finally {
+      setSavingSeason(false);
+    }
+  }
 
   function handleFiyatDuzenleAc(row: ProductRow) {
     setEditingPriceId(row.id);
@@ -282,6 +312,17 @@ export function ProductsTable({
       )
     },
     {
+      key: "season",
+      header: "Sezon",
+      hideOnMobile: true,
+      render: (row) =>
+        row.seasonName ? (
+          <span className="whitespace-nowrap text-sm text-admin-text-muted">{row.seasonName}</span>
+        ) : (
+          <span className="text-admin-text-muted">—</span>
+        )
+    },
+    {
       key: "price",
       header: "Fiyat",
       sortable: true,
@@ -399,21 +440,74 @@ export function ProductsTable({
       { label: "Yayına Al", variant: "secondary", onClick: () => handleStatusChange(selectedIds, "PUBLISHED", clearSelection) },
       { label: "Taslağa Al", variant: "secondary", onClick: () => handleStatusChange(selectedIds, "DRAFT", clearSelection) },
       { label: "Arşivle", variant: "secondary", onClick: () => handleStatusChange(selectedIds, "ARCHIVED", clearSelection) },
+      ...(seasons
+        ? [
+            {
+              label: "Sezon Ata",
+              variant: "secondary" as const,
+              onClick: () => {
+                setSeasonDraft(seasons[0]?.id ?? "");
+                setSeasonTarget({ ids: selectedIds, clearSelection });
+              }
+            }
+          ]
+        : []),
       { label: "Sil", variant: "danger", onClick: () => handleDelete(selectedIds, clearSelection) }
     ];
   }
 
   return (
-    <DataTable
-      columns={columns}
-      data={products}
-      getRowId={(row) => row.id}
-      selectable
-      bulkActions={bulkActions}
-      onSortChange={handleSortChange}
-      initialSort={initialSort}
-      emptyTitle="Sonuç bulunamadı"
-      emptyDescription="Arama veya filtre kriterlerine uygun ürün yok."
-    />
+    <>
+      {seasonTarget && seasons && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-admin-border bg-admin-surface px-4 py-2.5 text-sm">
+          <span className="text-admin-text">{seasonTarget.ids.length} ürüne sezon ata:</span>
+          <select
+            value={seasonDraft}
+            onChange={(e) => setSeasonDraft(e.target.value)}
+            disabled={savingSeason}
+            className="rounded-md border border-admin-border bg-admin-surface px-3 py-1.5 text-sm"
+          >
+            {seasons.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+            <option value="">Sezonu kaldır</option>
+          </select>
+          <button
+            type="button"
+            onClick={handleSezonAta}
+            disabled={savingSeason}
+            className="inline-flex items-center gap-1.5 rounded-md bg-admin-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {savingSeason && <Loader2 size={14} className="animate-spin" />} Uygula
+          </button>
+          <button
+            type="button"
+            onClick={() => setSeasonTarget(null)}
+            disabled={savingSeason}
+            className="rounded-md px-3 py-1.5 text-sm text-admin-text-muted hover:text-admin-text"
+          >
+            Vazgeç
+          </button>
+          {seasons.length === 0 && (
+            <Link href="/admin/sezonlar" className="text-xs text-admin-accent hover:underline">
+              Önce Sezonlar ekranından sezon ekleyin
+            </Link>
+          )}
+        </div>
+      )}
+      <DataTable
+        columns={columns}
+        data={products}
+        getRowId={(row) => row.id}
+        selectable
+        bulkActions={bulkActions}
+        onSortChange={handleSortChange}
+        initialSort={initialSort}
+        emptyTitle="Sonuç bulunamadı"
+        emptyDescription="Arama veya filtre kriterlerine uygun ürün yok."
+      />
+    </>
   );
 }

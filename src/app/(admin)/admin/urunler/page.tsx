@@ -21,6 +21,7 @@ interface SearchParams {
   durum?: string;
   kategori?: string;
   fotograf?: string;
+  sezon?: string;
   sort?: string;
   dir?: string;
 }
@@ -31,7 +32,7 @@ export default async function AdminProductsPage({
   searchParams: Promise<SearchParams>;
 }) {
   await requireAdmin();
-  const { q, durum, kategori, fotograf, sort, dir, sayfa, adet } = await searchParams;
+  const { q, durum, kategori, fotograf, sezon, sort, dir, sayfa, adet } = await searchParams;
 
   // Arsivlenmis urunler bu listede yer kaplamasin diye varsayilan olarak
   // haric tutuluyor - kendi ayri sayfasinda (/admin/urunler/arsiv) duruyorlar.
@@ -94,7 +95,9 @@ export default async function AdminProductsPage({
       : {}),
     ...(durum ? { status: durum } : {}),
     ...(kategori ? { categoryId: kategori } : {}),
-    ...(fotograf === "yok" ? { images: { none: {} }, optionImages: { none: {} } } : {})
+    ...(fotograf === "yok" ? { images: { none: {} }, optionImages: { none: {} } } : {}),
+    // "yok": sezonu atanmamis urunler (katalogda en sona duser).
+    ...(sezon ? { seasonId: sezon === "yok" ? null : sezon } : {})
   };
 
   const pageSize = pageSizes.includes(Number(adet)) ? Number(adet) : defaultPageSize;
@@ -112,7 +115,8 @@ export default async function AdminProductsPage({
     optionImages: { select: { url: true, valueId: true }, orderBy: { position: "asc" } },
     // Renk (isColor:true) varyant secenegini okuyabilmek icin secenek
     // degerleriyle birlikte cekiliyor - listede "Renkler" kolonu icin.
-    variants: { include: variantOptionsInclude }
+    variants: { include: variantOptionsInclude },
+    season: { select: { name: true } }
   } as const;
 
   // Ikinci anahtar { id: "asc" }: Excel'den toplu eklenen urunlerde createdAt ayni
@@ -160,7 +164,11 @@ export default async function AdminProductsPage({
     });
   }
 
-  const [products, categories] = await Promise.all([fetchPage(), prisma.category.findMany({ orderBy: { name: "asc" } })]);
+  const [products, categories, seasons] = await Promise.all([
+    fetchPage(),
+    prisma.category.findMany({ orderBy: { name: "asc" } }),
+    prisma.season.findMany({ orderBy: [{ rank: "desc" }, { name: "asc" }], select: { id: true, name: true } })
+  ]);
 
   const rows: ProductRow[] = products.map((p) => {
     // Bu urunun varyantlarinda gercekten var olan renkler (Renk ekseni,
@@ -191,7 +199,8 @@ export default async function AdminProductsPage({
       createdAt: p.createdAt.toISOString(),
       imageUrl: p.images[0]?.url ?? p.optionImages[0]?.url ?? null,
       colors: Array.from(colorSet),
-      missingColorCount
+      missingColorCount,
+      seasonName: p.season?.name ?? null
     };
   });
 
@@ -237,7 +246,7 @@ export default async function AdminProductsPage({
       )}
 
       <div className="mt-6">
-        <ProductsFilters categories={categories} />
+        <ProductsFilters categories={categories} seasons={seasons} />
       </div>
 
       <div className="mt-4 space-y-3">
@@ -246,6 +255,7 @@ export default async function AdminProductsPage({
         <ProductsTable
           key={`${currentPage}-${pageSize}`}
           products={rows}
+          seasons={seasons}
           initialSort={{ key: sortKey, direction: sortDir }}
         />
         {filteredCount > 0 && pagination}

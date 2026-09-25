@@ -8,7 +8,13 @@ import { FilterBar } from "@/components/admin/filter-bar";
 const selectClass =
   "rounded-md border border-admin-border bg-admin-surface px-3 py-2 text-sm text-admin-text focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
 
-export function ProductsFilters({ categories }: { categories: { id: string; name: string }[] }) {
+export function ProductsFilters({
+  categories,
+  seasons
+}: {
+  categories: { id: string; name: string }[];
+  seasons: { id: string; name: string }[];
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -60,6 +66,19 @@ export function ProductsFilters({ categories }: { categories: { id: string; name
             {c.name}
           </option>
         ))}
+      </select>
+      <select
+        defaultValue={searchParams.get("sezon") ?? ""}
+        onChange={(e) => updateParam("sezon", e.target.value)}
+        className={selectClass}
+      >
+        <option value="">Tüm sezonlar</option>
+        {seasons.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name}
+          </option>
+        ))}
+        <option value="yok">Sezonu olmayanlar</option>
       </select>
       <select
         defaultValue={searchParams.get("fotograf") ?? ""}

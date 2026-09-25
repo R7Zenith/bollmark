@@ -61,5 +61,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true });
   }
 
+  // Excel'siz sezon duzeltmesi (bkz. SEZON_BAZLI_SIRALAMA_PLANI.md) - seasonId
+  // null ise secili urunlerin sezonu kaldirilir.
+  if (body.action === "SET_SEASON") {
+    const seasonId: string | null = typeof body.seasonId === "string" && body.seasonId ? body.seasonId : null;
+    if (seasonId && !(await prisma.season.findUnique({ where: { id: seasonId }, select: { id: true } }))) {
+      return NextResponse.json({ error: "Sezon bulunamadı." }, { status: 400 });
+    }
+    await prisma.product.updateMany({ where: { id: { in: ids } }, data: { seasonId } });
+    revalidateCatalog();
+    return NextResponse.json({ ok: true });
+  }
+
   return NextResponse.json({ error: "Geçersiz istek." }, { status: 400 });
 }
