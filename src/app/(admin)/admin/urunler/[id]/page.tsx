@@ -13,6 +13,8 @@ import {
 } from "@/components/admin/variant-editor";
 import { ProductImagesField, type InitialProductImage } from "@/components/admin/product-images-field";
 import { TagsField } from "@/components/admin/tags-field";
+import { DescriptionEditor } from "@/components/admin/description-editor";
+import { sanitizeDescriptionHtml } from "@/lib/description-html";
 import { variantOptionsInclude } from "@/lib/variant-attributes";
 import { deleteBlobUrls } from "@/lib/blob";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
@@ -120,7 +122,7 @@ async function updateProduct(id: string, formData: FormData) {
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, "-");
-  const description = String(formData.get("description") || "");
+  const description = sanitizeDescriptionHtml(String(formData.get("description") || ""));
   const code = String(formData.get("code") || "").trim() || null;
   const priceCents = Math.round(Number(formData.get("price") || 0) * 100);
   const compareAtRaw = String(formData.get("compareAt") || "").trim();
@@ -406,7 +408,7 @@ export default async function EditProductPage({
             </div>
             <div>
               <label className={labelClass}>Açıklama</label>
-              <textarea name="description" defaultValue={product.description} rows={4} className={`mt-1 ${inputClass}`} />
+              <DescriptionEditor name="description" defaultValue={product.description} />
             </div>
           </div>
         </Card>
