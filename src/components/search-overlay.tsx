@@ -102,9 +102,9 @@ function Chips({ chips, onPick }: { chips: SearchChip[]; onPick: () => void }) {
 // Sonuc satiri/karti: mobilde solda kucuk gorselli dikey liste, masaustunde
 // (xl) 4 sutunlu mini kart - ayni isaretleme, siniflar genislige gore degisir.
 const ITEM_CLASS = "flex gap-4 border-b border-line py-3 xl:block xl:border-0 xl:py-0";
-// Masaustunde kartlar "mini" kalsin (panel ekrani kaplamasin) diye grid
-// genisligi sinirli; 1440px'te gorsel ~240px.
-const RESULTS_GRID_CLASS = "xl:grid xl:max-w-[1040px] xl:grid-cols-4 xl:gap-6";
+// Masaustunde 8 sonuc tam genislikte tek satir: kartlar "mini" kalir, panel
+// ekrani kaplamaz ve sag taraf bos kalmaz (1440px'te gorsel ~150px).
+const RESULTS_GRID_CLASS = "xl:grid xl:grid-cols-8 xl:gap-4 2xl:gap-6";
 const IMAGE_WRAP_CLASS ="relative h-[85px] w-16 shrink-0 overflow-hidden xl:aspect-[3/4] xl:h-auto xl:w-full";
 
 function SkeletonList() {
@@ -475,7 +475,7 @@ export function SearchOverlay({
                             src={result.image}
                             alt=""
                             fill
-                            sizes="(min-width: 1280px) 22vw, 64px"
+                            sizes="(min-width: 1280px) 12vw, 64px"
                             className={`object-cover${result.greyBackdrop ? " mix-blend-multiply" : ""}`}
                           />
                         )}
