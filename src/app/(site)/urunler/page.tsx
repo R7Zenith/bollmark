@@ -16,6 +16,8 @@ import {
 } from "@/lib/catalog-filters";
 import { getActiveAutomaticPercentCampaigns, resolveProductDisplayPrice } from "@/lib/coupons";
 import type { CatalogEntry } from "@/lib/catalog";
+import { getSearchIndex, matchProducts } from "@/lib/search";
+import { SEARCH_MAX_LENGTH } from "@/lib/search-text";
 
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800";
 
@@ -23,6 +25,29 @@ const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b8301
 // sonunda kalir (bkz. lib/catalog.ts) - siralama yalnizca stokta olanlar
 // arasinda uygulanir, yoksa "fiyat: dusukten yuksege" secildiginde satilamayan
 // urunler basa cikardi.
+// Arama (?ara=) sonucu: header'daki canli aramayla (api/arama) ayni eslestirme
+// kurali. Sorgudaki bir kelime urunun rengine uyuyorsa ("siyah gomlek")
+// yalnizca o rengin girisi kalir. Siralama secili degilse en yakin sonuc ustte.
+async function applySearch(entries: CatalogEntry[], ara: string, sort?: string): Promise<CatalogEntry[]> {
+  const matches = matchProducts(await getSearchIndex(), ara);
+  const byProduct = new Map(matches.map((m) => [m.item.id, m]));
+  const filtered = entries.filter((entry) => {
+    const match = byProduct.get(entry.productId);
+    if (!match) return false;
+    return match.matchedColors.length === 0 || !entry.colorName || match.matchedColors.includes(entry.colorName);
+  });
+  if (sort) return filtered;
+  return filtered.sort(
+    (a, b) =>
+      Number(a.outOfStock) - Number(b.outOfStock) ||
+      (byProduct.get(b.productId)?.score ?? 0) - (byProduct.get(a.productId)?.score ?? 0)
+  );
+}
+
+function parseSearchQuery(value: string | null | undefined): string | undefined {
+  return value?.trim().slice(0, SEARCH_MAX_LENGTH) || undefined;
+}
+
 function sortEntries(entries: CatalogEntry[], sort?: string): CatalogEntry[] {
   if (!sort) return entries;
   const comparators: Record<string, (a: CatalogEntry, b: CatalogEntry) => number> = {
@@ -69,9 +94,14 @@ async function withSampleProductImages(
 export async function generateMetadata({
   searchParams
 }: {
-  searchParams: Promise<{ kategori?: string; cinsiyet?: string }>;
+  searchParams: Promise<{ kategori?: string; cinsiyet?: string; ara?: string | string[] }>;
 }): Promise<Metadata> {
-  const { kategori, cinsiyet } = await searchParams;
+  const { kategori, cinsiyet, ara: rawAra } = await searchParams;
+  const ara = parseSearchQuery(Array.isArray(rawAra) ? rawAra[0] : rawAra);
+  // Arama sonuc sayfalari dizinlenmesin (ince/tekrarlayan icerik).
+  if (ara) {
+    return { title: `“${ara}” araması | Bollmark`, robots: { index: false, follow: true } };
+  }
   if (kategori) {
     const category = await prisma.category.findUnique({
       where: { slug: kategori, isActive: true },
@@ -117,12 +147,13 @@ export default async function ProductsPage({
   const kategori = params.get("kategori") || undefined;
   const cinsiyet = params.get("cinsiyet") || undefined;
   const sirala = params.get("sirala") || undefined;
+  const ara = parseSearchQuery(params.get("ara"));
   const filters = parseCatalogFilters(params);
 
   // Birden fazla rengi olan urunler burada renk basina ayri bir giris olarak
   // gelir (bkz. lib/catalog.ts getCatalogEntries) - musteri kataloga bakarken
   // her rengi urune tiklamadan ayri bir urunmus gibi gorur.
-  const [rawEntries, automaticCampaigns, filterCategories] = await Promise.all([
+  const [scopedEntries, automaticCampaigns, filterCategories] = await Promise.all([
     getCatalogEntries(kategori, { genderLabel: cinsiyet }),
     getActiveAutomaticPercentCampaigns(prisma),
     // Ust cubuktaki "Filtrele" listesi - yalnizca su anki cinsiyet kapsaminda
@@ -136,6 +167,8 @@ export default async function ProductsPage({
       select: { name: true, slug: true, imageUrl: true }
     })
   ]);
+  // Arama varsa facet'ler ve filtreler arama sonuclari uzerinden calisir.
+  const rawEntries = ara ? await applySearch(scopedEntries, ara, sirala) : scopedEntries;
   // Cekmece secenekleri filtrelenmemis (kategori/cinsiyet kapsamindaki)
   // girislerden uretilir, yoksa bir renk secince diger renkler kaybolurdu.
   const facets = buildCatalogFacets(rawEntries);
@@ -146,7 +179,7 @@ export default async function ProductsPage({
   // Urunu olmayan kategori "yakinda" ekranini gosterir. Bu kategori
   // filterCategories'te (yalniz urunu olanlar) bulunamayacagi icin ayrica
   // okunur; banner basligi/breadcrumb ile ekran metni bunu kullanir.
-  const showComingSoon = entries.length === 0 && !hasActiveFilters;
+  const showComingSoon = entries.length === 0 && !hasActiveFilters && !ara;
   const emptyCategory =
     showComingSoon && kategori
       ? await prisma.category.findUnique({
@@ -184,10 +217,12 @@ export default async function ProductsPage({
     ? (filterCategories.find((c) => c.slug === kategori) ?? emptyCategory)
     : null;
   const bannerImageUrl = activeCategory?.imageUrl ?? DEFAULT_CATALOG_BANNER_IMAGE;
-  const bannerTitle = activeCategory?.name ?? heading;
+  const bannerTitle = ara ? `“${ara}” için sonuçlar` : (activeCategory?.name ?? heading);
   // "ANA SAYFA / [CINSIYET /] KATEGORI" - son parca sayfanin kendisi, link degil.
   const breadcrumb: { label: string; href?: string }[] = [{ label: "Ana Sayfa", href: "/" }];
-  if (activeCategory) {
+  if (ara) {
+    breadcrumb.push({ label: "Arama" });
+  } else if (activeCategory) {
     if (cinsiyet) breadcrumb.push({ label: cinsiyet, href: `/urunler?cinsiyet=${encodeURIComponent(cinsiyet)}` });
     breadcrumb.push({ label: activeCategory.name });
   } else {
@@ -233,9 +268,12 @@ export default async function ProductsPage({
             </ol>
           </nav>
           <div className="flex flex-1 items-center pt-5">
-            <h1 className="py-[9.4px] font-display text-[27px] font-normal leading-[27px] tracking-[-1.08px] md:text-[47px] md:leading-[47px] md:tracking-[-1.88px]">
-              {bannerTitle}
-            </h1>
+            <div>
+              <h1 className="py-[9.4px] font-display text-[27px] font-normal leading-[27px] tracking-[-1.08px] md:text-[47px] md:leading-[47px] md:tracking-[-1.88px]">
+                {bannerTitle}
+              </h1>
+              {ara && <p className="mt-2 text-xs tracking-[0.48px] text-cream/80">{entries.length} ürün</p>}
+            </div>
           </div>
         </div>
       </div>
@@ -257,7 +295,18 @@ export default async function ProductsPage({
       </div>
 
       {entries.length === 0 ? (
-        hasActiveFilters ? (
+        ara && !hasActiveFilters ? (
+          <div className="mt-16 flex flex-col items-center text-center">
+            <p className="text-2xl font-normal tracking-[-0.5px]">“{ara}” için sonuç bulunamadı</p>
+            <p className="mt-3 text-sm text-ink/60">Farklı bir kelime deneyin.</p>
+            <Link
+              href="/urunler"
+              className="mt-8 flex h-[44px] items-center justify-center rounded-[50px] border border-ink px-8 text-[10px] uppercase tracking-[1px] text-ink transition duration-300 hover:bg-ink hover:text-cream"
+            >
+              Tüm Ürünlere Göz At
+            </Link>
+          </div>
+        ) : hasActiveFilters ? (
           <div className="mt-16 flex flex-col items-center text-center">
             <p className="text-2xl font-normal tracking-[-0.5px]">Sonuç bulunamadı</p>
             <p className="mt-3 text-sm text-ink/60">Seçtiğiniz filtrelere uyan ürün yok.</p>

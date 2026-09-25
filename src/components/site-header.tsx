@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
@@ -10,6 +10,7 @@ import { useCart } from "@/lib/cart";
 import { hasCatalogBanner } from "@/lib/catalog-banner";
 import { MEGA_MENU_CARDS, type MegaMenuCard } from "@/lib/mega-menu-cards";
 import { CartDrawer } from "@/components/cart-drawer";
+import { SearchOverlay, type SearchChip } from "@/components/search-overlay";
 import type { MegaMenuData, MenuCategory } from "@/lib/site-nav";
 
 // logo.png / logo-white.png dosyalarinin gercek en-boy orani (1400x273px).
@@ -143,6 +144,25 @@ function SearchIcon() {
       <circle cx="11" cy="11" r="7" />
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
+  );
+}
+
+// Arama acikken ikon X'e donusur (AnimatedMenuIcon'daki hamburger <-> X gibi):
+// iki ikon ust uste, biri donerek solarken digeri donerek belirir.
+function AnimatedSearchIcon({ open }: { open: boolean }) {
+  const layer = "absolute inset-0 transition-all duration-300 ease-in-out motion-reduce:transition-none";
+  return (
+    <span className={`relative block ${HEADER_ICON_CLASS}`} aria-hidden="true">
+      <span className={`${layer} ${open ? "rotate-90 opacity-0" : "rotate-0 opacity-100"}`}>
+        <SearchIcon />
+      </span>
+      <span className={`${layer} ${open ? "rotate-0 opacity-100" : "-rotate-90 opacity-0"}`}>
+        <svg className={HEADER_ICON_CLASS} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+          <line x1="6" y1="6" x2="18" y2="18" />
+          <line x1="18" y1="6" x2="6" y2="18" />
+        </svg>
+      </span>
+    </span>
   );
 }
 
@@ -545,6 +565,36 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<TabKey | null>(null);
   const [scrolled, setScrolled] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const closeSearch = useCallback(() => setSearchOpen(false), []);
+
+  const toggleSearch = () => {
+    setOpenMenu(null);
+    setMobileOpen(false);
+    setSearchOpen((v) => !v);
+  };
+
+  // Masaustu kisayolu: bir input/textarea icinde degilken "/" aramayi acar.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return;
+      e.preventDefault();
+      setOpenMenu(null);
+      setMobileOpen(false);
+      setSearchOpen(true);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  // Bos arama panelindeki "Populer kategoriler" chip'leri - mega menu verisinden.
+  const searchChips: SearchChip[] = [
+    ...menuData.kadin.slice(0, 3).map((c) => ({ label: `Kadın ${c.name}`, href: `/urunler?kategori=${c.slug}&cinsiyet=Kadın` })),
+    ...menuData.erkek.slice(0, 3).map((c) => ({ label: `Erkek ${c.name}`, href: `/urunler?kategori=${c.slug}&cinsiyet=Erkek` })),
+    ...menuData.aksesuar.slice(0, 2).map((c) => ({ label: c.name, href: `/urunler?kategori=${c.slug}` }))
+  ];
 
   // Ana sayfada ve banner'li koleksiyon sayfalarinda, hero/banner gorseli
   // uzerindeyken header saydam + beyaz metinli gorunur (Aritzia'daki gibi) -
@@ -562,7 +612,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
     return () => window.removeEventListener("scroll", onScroll);
   }, [isTransparentPage]);
 
-  const transparent = isTransparentPage && !scrolled && openMenu === null && !mobileOpen;
+  const transparent = isTransparentPage && !scrolled && openMenu === null && !mobileOpen && !searchOpen;
 
   return (
     <>
@@ -589,7 +639,20 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
             ortada durur (Adim 0c'nin garantisi korunuyor). */}
         <div className="grid h-full w-full grid-cols-[1fr_auto_1fr] items-center px-6 xl:px-9">
           <div className="flex items-center">
-            <DesktopNav menuData={menuData} openMenu={openMenu} setOpenMenu={setOpenMenu} />
+            {/* Mobil (xl alti): sol sutun bos oldugu icin arama ikonu burada.
+                -ml-3 44px'lik dokunma alaninin ikonu gorsel olarak kenardan
+                iceri itmesini telafi ediyor. */}
+            <button
+              type="button"
+              aria-label="Ürün ara"
+              aria-expanded={searchOpen}
+              onClick={toggleSearch}
+              className="-ml-3 inline-flex h-11 w-11 items-center justify-center hover:text-clay xl:hidden"
+            >
+              <SearchIcon />
+            </button>
+            {/* Arama acikken hover mega menuyu acmasin (panel arkada kalirdi). */}
+            <DesktopNav menuData={menuData} openMenu={openMenu} setOpenMenu={searchOpen ? () => {} : setOpenMenu} />
           </div>
 
           <Link href="/" aria-label="Bollmark anasayfa" className="flex justify-center">
@@ -604,17 +667,19 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
 
           <div className="-my-1 flex items-center justify-end gap-1 xl:-my-1.5 xl:gap-1.5">
             {/* Masaustu (xl+): Release'deki gibi kompakt ikon satiri - arama,
-                hesap, sepet. Arama simdilik /urunler'e yonlendiriyor, gercek
-                arama islevi bu adimin kapsami disinda. */}
-            <Link
-              href="/urunler"
-              aria-label="Ürünlerde ara"
+                hesap, sepet. Arama, canli oneri gosteren SearchOverlay'i acar
+                (bkz. search-overlay.tsx); acikken ikon X'e doner. */}
+            <button
+              type="button"
+              aria-label={searchOpen ? "Aramayı kapat" : "Ürün ara"}
+              aria-expanded={searchOpen}
+              onClick={toggleSearch}
               className={`hidden xl:inline-flex ${HEADER_ICON_LINK_CLASS}`}
             >
               <span className="nav-underline inline-block">
-                <SearchIcon />
+                <AnimatedSearchIcon open={searchOpen} />
               </span>
-            </Link>
+            </button>
             <Link
               href={session?.user ? "/hesap" : "/hesap/giris"}
               aria-label="Hesabım"
@@ -654,7 +719,10 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
               aria-label={mobileOpen ? "Menüyü kapat" : "Menüyü aç"}
               aria-expanded={mobileOpen}
               className="p-1 xl:hidden"
-              onClick={() => setMobileOpen((v) => !v)}
+              onClick={() => {
+                setSearchOpen(false);
+                setMobileOpen((v) => !v);
+              }}
             >
               <AnimatedMenuIcon open={mobileOpen} />
             </button>
@@ -667,6 +735,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
         )}
 
         <MobileMenu menuData={menuData} open={mobileOpen} onClose={() => setMobileOpen(false)} session={session} />
+        <SearchOverlay open={searchOpen} onClose={closeSearch} chips={searchChips} />
         <CartDrawer />
       </header>
       {!isTransparentPage && <div aria-hidden className="h-[72px]" />}
