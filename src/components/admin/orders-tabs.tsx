@@ -23,6 +23,7 @@ export function OrdersTabs({ counts }: { counts: Record<OrderTabKey, number> }) 
         const isActive = active === tab.value;
         return (
           <button
+            type="button"
             key={tab.value}
             onClick={() => handleClick(tab.value)}
             className={`flex flex-shrink-0 items-center gap-2 border-b-2 px-3 py-2 text-sm font-medium transition-colors ${

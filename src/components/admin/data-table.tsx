@@ -196,6 +196,7 @@ export function DataTable<T>({
                 >
                   {col.sortable ? (
                     <button
+                      type="button"
                       onClick={() => handleSort(col.key)}
                       className="inline-flex items-center gap-1 hover:text-admin-text"
                     >

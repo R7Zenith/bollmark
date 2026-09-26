@@ -366,6 +366,7 @@ export function ExcelImportWizard({
         title={`2. ${brandLabel} Excel Dosyası Seç`}
         action={
           <button
+            type="button"
             onClick={() => setStep("brand")}
             className="inline-flex items-center gap-1 text-xs text-admin-text-muted hover:text-admin-text"
           >
@@ -394,7 +395,7 @@ export function ExcelImportWizard({
         <Card
           title="3. Önizleme"
           action={
-            <button onClick={reset} className="inline-flex items-center gap-1 text-xs text-admin-text-muted hover:text-admin-text">
+            <button type="button" onClick={reset} className="inline-flex items-center gap-1 text-xs text-admin-text-muted hover:text-admin-text">
               <ArrowLeft size={14} /> Başka dosya seç
             </button>
           }

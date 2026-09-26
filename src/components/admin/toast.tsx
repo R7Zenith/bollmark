@@ -51,7 +51,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
           >
             {t.kind === "success" ? <CheckCircle2 size={16} /> : <XCircle size={16} />}
             <span className="min-w-0 break-words">{t.message}</span>
-            <button onClick={() => dismiss(t.id)} className="ml-2 text-admin-text-muted hover:text-admin-text">
+            <button type="button" onClick={() => dismiss(t.id)} className="ml-2 text-admin-text-muted hover:text-admin-text">
               <X size={14} />
             </button>
           </div>

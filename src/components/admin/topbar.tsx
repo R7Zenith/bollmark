@@ -184,6 +184,7 @@ export function Topbar({ onMenuClick }: { onMenuClick?: () => void }) {
 
       <div ref={userMenuRef} className="relative">
         <button
+          type="button"
           onClick={() => setUserMenuOpen((v) => !v)}
           aria-haspopup="menu"
           aria-expanded={userMenuOpen}
