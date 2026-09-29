@@ -493,6 +493,7 @@ export function ProductViewer({
               src={img.url}
               alt={img.alt}
               fill
+              sizes="(min-width: 768px) 33vw, 100vw"
               className={`object-cover transition-transform duration-300 group-hover:scale-[1.03]${greyBackdrop ? " mix-blend-multiply" : ""}`}
             />
             <span className="pointer-events-none absolute bottom-3 right-3 flex h-9 w-9 items-center justify-center rounded-full bg-cream/90 opacity-0 shadow transition-opacity duration-200 group-hover:opacity-100">

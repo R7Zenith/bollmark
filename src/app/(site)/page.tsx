@@ -179,6 +179,7 @@ export default async function HomePage() {
           alt="Bollmark kampanya görseli"
           fill
           priority
+          sizes="100vw"
           className="object-cover"
           style={{ objectPosition: "50% 18%" }}
         />

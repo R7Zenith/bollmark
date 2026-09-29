@@ -21,7 +21,16 @@ const nextConfig = {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "**.public.blob.vercel-storage.com" }
-    ]
+    ],
+    // Blob'daki kaynaklar yuklenirken zaten max 1600px'e sikistiriliyor
+    // (lib/image-compress.ts); ustundeki genislikler bos yere donusum sayar.
+    deviceSizes: [640, 828, 1200, 1600],
+    imageSizes: [256, 384],
+    qualities: [75],
+    formats: ["image/webp"],
+    // Blob URL'leri addRandomSuffix ile degismez -> 31 gun onbellekte kalsin,
+    // ayni gorsel tekrar tekrar donusturulup Vercel sayacini doldurmasin.
+    minimumCacheTTL: 2678400
   }
 };
 

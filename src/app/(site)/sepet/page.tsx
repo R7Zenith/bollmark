@@ -129,6 +129,7 @@ export default function CartPage() {
                         src={line.image}
                         alt={line.name}
                         fill
+                        sizes="96px"
                         className={line.greyBackdrop ? "object-cover mix-blend-multiply" : "object-cover"}
                       />
                     </div>
@@ -161,6 +162,7 @@ export default function CartPage() {
                           src={line.image}
                           alt={line.name}
                           fill
+                          sizes="96px"
                           className={line.greyBackdrop ? "object-cover mix-blend-multiply" : "object-cover"}
                         />
                       </div>

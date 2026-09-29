@@ -101,6 +101,7 @@ export function CartDrawer() {
                     src={line.image}
                     alt={line.name}
                     fill
+                    sizes="90px"
                     className={line.greyBackdrop ? "object-cover mix-blend-multiply" : "object-cover"}
                   />
                 </div>
