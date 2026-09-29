@@ -30,7 +30,10 @@ const nextConfig = {
     formats: ["image/webp"],
     // Blob URL'leri addRandomSuffix ile degismez -> 31 gun onbellekte kalsin,
     // ayni gorsel tekrar tekrar donusturulup Vercel sayacini doldurmasin.
-    minimumCacheTTL: 2678400
+    minimumCacheTTL: 2678400,
+    // GECICI (30 Eyl 2026): Vercel Image Transformations kotasi doldu,
+    // onbellekte olmayan her donusum 402 donuyor. Kota sifirlaninca kaldir.
+    unoptimized: true
   }
 };
 
