@@ -40,7 +40,9 @@ export const metadata: Metadata = {
     "Bollmark - özenle seçilmiş kumaşlar, minimal kesimler. Sezonun öne çıkan giyim parçaları.",
   icons: siteIcons,
   openGraph: baseOpenGraph,
-  twitter: { card: "summary_large_image" }
+  twitter: { card: "summary_large_image" },
+  // Google Merchant Center site dogrulamasi (bollmark.com, HTML etiketi).
+  verification: { google: "NIBZYEzJhd5qSu63XhW18W53Dt6QA9SSfGwy214ZDsk" }
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
