@@ -13,6 +13,8 @@ import {
   toURLSearchParams
 } from "@/lib/catalog-filters";
 import { getCatalogListing, parseSearchQuery, toCatalogCardProps } from "@/lib/catalog-listing";
+import { breadcrumbJsonLd } from "@/lib/seo";
+import { JsonLd } from "@/components/json-ld";
 
 async function withSampleProductImages(
   categories: { name: string; slug: string; imageUrl: string | null }[],
@@ -52,7 +54,7 @@ export async function generateMetadata({
   const ara = parseSearchQuery(Array.isArray(rawAra) ? rawAra[0] : rawAra);
   // Arama sonuc sayfalari dizinlenmesin (ince/tekrarlayan icerik).
   if (ara) {
-    return { title: `“${ara}” araması | Bollmark`, robots: { index: false, follow: true } };
+    return { title: `“${ara}” araması`, robots: { index: false, follow: true } };
   }
   if (kategori) {
     const category = await prisma.category.findUnique({
@@ -71,7 +73,7 @@ export async function generateMetadata({
         }
       });
       return {
-        title: `${title} | Bollmark`,
+        title,
         description: `Bollmark ${title} koleksiyonunu keşfedin.`,
         ...(productCount === 0 && { robots: { index: false } })
       };
@@ -79,12 +81,12 @@ export async function generateMetadata({
   }
   if (cinsiyet) {
     return {
-      title: `${cinsiyet} Koleksiyonu | Bollmark`,
+      title: `${cinsiyet} Koleksiyonu`,
       description: `Bollmark ${cinsiyet} koleksiyonunu keşfedin.`
     };
   }
   return {
-    title: "Tüm Ürünler | Bollmark",
+    title: "Tüm Ürünler",
     description: "Bollmark'ın özenle seçilmiş kumaşlarla tasarlanan tüm ürünlerini keşfedin."
   };
 }
@@ -178,6 +180,7 @@ export default async function ProductsPage({
 
   return (
     <div className="w-full">
+      {!ara && <JsonLd data={breadcrumbJsonLd(breadcrumb)} />}
       {/* Release'de olculen degerler (collections/shorts, 1440x900 ve 390x844):
           banner 50svh (450px / 422px) ve header'in alt bosluguna kadar uzaniyor;
           breadcrumb (34px) header'in ~33px altinda, baslik kalan alanda ortali

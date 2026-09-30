@@ -8,7 +8,8 @@ import { CustomerSessionProvider } from "@/components/customer-session-provider"
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { getMegaMenuData } from "@/lib/site-nav";
-import { siteIcons } from "@/lib/site-metadata";
+import { baseOpenGraph, siteIcons } from "@/lib/site-metadata";
+import { getSiteUrl } from "@/lib/site-url";
 
 // Shopify "Release" temasi referansi: tek govde/baslik fontu Poppins
 // (400-600 agirlik - 600 katalog karti urun basligi icin, bkz.
@@ -30,11 +31,16 @@ const cormorant = Cormorant({
   display: "swap"
 });
 
+// title.template alt sayfalarin basligina " | Bollmark" ekler - sayfalarda elle
+// yazilmaz. metadataBase goreli canonical/OG adreslerini tam adrese cevirir.
 export const metadata: Metadata = {
-  title: "Bollmark | Modern Giyim",
+  metadataBase: new URL(getSiteUrl()),
+  title: { default: "Bollmark | Modern Giyim", template: "%s | Bollmark" },
   description:
     "Bollmark - özenle seçilmiş kumaşlar, minimal kesimler. Sezonun öne çıkan giyim parçaları.",
-  icons: siteIcons
+  icons: siteIcons,
+  openGraph: baseOpenGraph,
+  twitter: { card: "summary_large_image" }
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

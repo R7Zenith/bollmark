@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
+import { getSiteUrl } from "@/lib/site-url";
 import { prisma } from "@/lib/prisma";
 
-const BASE_URL = "https://bollmark.com";
 
 // Yeni urun/kategori eklendiginde yeni bir deploy beklemeden sitemap'in
 // makul surede guncellenmesi icin - build-time'da tek seferlik uretilip
@@ -15,6 +15,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     prisma.legalPage.findMany({ select: { slug: true, updatedAt: true } })
   ]);
 
+  const BASE_URL = getSiteUrl();
   return [
     { url: BASE_URL, changeFrequency: "daily", priority: 1 },
     { url: `${BASE_URL}/urunler`, changeFrequency: "daily", priority: 0.9 },

@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
+import { getSiteUrl } from "@/lib/site-url";
 
-const BASE_URL = "https://bollmark.com";
 
 // Yapay zeka egitim/arama tarayicilari: 30 Eylul 2026'da meta-externalagent
 // /_next/image'e binlerce istek atip Vercel gorsel limitini doldurdu.
@@ -46,6 +46,6 @@ export default function robots(): MetadataRoute.Robots {
       },
       { userAgent: AI_BOTS, disallow: "/" }
     ],
-    sitemap: `${BASE_URL}/sitemap.xml`
+    sitemap: `${getSiteUrl()}/sitemap.xml`
   };
 }

@@ -17,12 +17,14 @@ import {
   pickNewArrivals
 } from "@/lib/home-products";
 import { REVENUE_STATUSES } from "@/lib/orders";
+import { JsonLd } from "@/components/json-ld";
+import { homeJsonLd } from "@/lib/seo";
 
 export const metadata: Metadata = {
   title: "Bollmark | Modern Giyim",
   description:
     "Bollmark - özenle seçilmiş kumaşlar, minimal kesimler. Sezonun öne çıkan giyim parçalarını keşfedin.",
-  alternates: { canonical: "https://bollmark.com" }
+  alternates: { canonical: "/" }
 };
 
 // Yedek guvence: urun yazan yerler revalidateCatalog() ile sayfayi aninda
@@ -149,6 +151,7 @@ export default async function HomePage() {
 
   return (
     <div>
+      <JsonLd data={homeJsonLd()} />
       {/* 1) Tam ekran hero: buyuk moda fotografi + etiket + cok buyuk baslik +
           hap-buton (Shopify "Release" temasi referansi). Mobilde metin
           bloğu eskiden dikey ortalanıyordu ve text-6xl başlık ekranın

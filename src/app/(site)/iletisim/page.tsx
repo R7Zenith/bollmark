@@ -3,9 +3,10 @@ import Link from "next/link";
 import { ContactForm } from "@/components/contact-form";
 
 export const metadata: Metadata = {
-  title: "Bize Ulaşın | Bollmark",
+  title: "Bize Ulaşın",
   description:
-    "Bir sorunuz mu var? Bollmark'a yazın, bir iş günü içinde size dönüş yapalım. Çalışma saatleri ve mağaza adresimiz bu sayfada."
+    "Bir sorunuz mu var? Bollmark'a yazın, bir iş günü içinde size dönüş yapalım. Çalışma saatleri ve mağaza adresimiz bu sayfada.",
+  alternates: { canonical: "/iletisim" }
 };
 
 // Koton Karacabey magazasi: Google Haritalar bu sorguyu "Koton Leventoglu,

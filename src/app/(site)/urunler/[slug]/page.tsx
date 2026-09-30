@@ -9,8 +9,10 @@ import { ProductViewer } from "@/components/product-viewer";
 import { ProductCard } from "@/components/product-card";
 import { optionValue, optionPosition, colorValueId } from "@/lib/variant-attributes";
 import { sanitizeDescriptionHtml, descriptionToPlainText } from "@/lib/description-html";
-
-const BASE_URL = "https://bollmark.com";
+import { getSiteUrl } from "@/lib/site-url";
+import { baseOpenGraph } from "@/lib/site-metadata";
+import { breadcrumbJsonLd, truncateDescription } from "@/lib/seo";
+import { JsonLd } from "@/components/json-ld";
 const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1200";
 
 // Bu Next.js sürümünde dinamik rota segmentleri (params.slug), tarayıcının
@@ -32,15 +34,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!product || product.status !== "PUBLISHED") return {};
 
   const image = firstImageUrl(product) ?? FALLBACK_IMAGE;
-  const plainDescription = descriptionToPlainText(product.description);
+  const description = truncateDescription(descriptionToPlainText(product.description));
   return {
-    title: `${product.name} | Bollmark`,
-    description: plainDescription,
-    alternates: { canonical: `${BASE_URL}/urunler/${product.slug}` },
+    title: product.name,
+    description,
+    alternates: { canonical: `/urunler/${product.slug}` },
     openGraph: {
+      ...baseOpenGraph,
       title: product.name,
-      description: plainDescription,
-      url: `${BASE_URL}/urunler/${product.slug}`,
+      description,
+      url: `/urunler/${product.slug}`,
       images: [{ url: image }]
     }
   };
@@ -80,9 +83,22 @@ export default async function ProductPage({
       availability: product.variants.some((v) => v.stock > 0)
         ? "https://schema.org/InStock"
         : "https://schema.org/OutOfStock",
-      url: `${BASE_URL}/urunler/${product.slug}`
+      url: `${getSiteUrl()}/urunler/${product.slug}`
     }
   };
+
+  const breadcrumb = [
+    { label: "Anasayfa", href: "/" },
+    ...(product.gender ? [{ label: product.gender, href: `/urunler?cinsiyet=${encodeURIComponent(product.gender)}` }] : []),
+    ...(product.category
+      ? [
+          {
+            label: product.category.name,
+            href: `/urunler?kategori=${encodeURIComponent(product.category.slug)}${product.gender ? `&cinsiyet=${encodeURIComponent(product.gender)}` : ""}`
+          }
+        ]
+      : [])
+  ];
 
   return (
     // Release'de urun sayfasinin da max-width'i yok - galeri/bilgi orani
@@ -97,25 +113,14 @@ export default async function ProductPage({
     // (bkz. URUN_DETAY_HEADER_BOSLUGU_VE_ROZET_PLANI.md) - ust bosluk
     // md:pt-6'ya dusuruldu, alt bosluk (md:pb-16) degismedi.
     <div className="w-full px-4 py-4 md:px-6 md:pt-6 md:pb-16 xl:px-9">
-      {/* eslint-disable-next-line react/no-danger */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }} />
+      <JsonLd data={productJsonLd} />
+      <JsonLd data={breadcrumbJsonLd([...breadcrumb, { label: product.name, href: `/urunler/${product.slug}` }])} />
       <ProductViewer
         productId={product.id}
         productName={product.name}
         categoryName={product.category?.name ?? null}
         brandName={product.brand?.name ?? null}
-        breadcrumb={[
-          { label: "Anasayfa", href: "/" },
-          ...(product.gender ? [{ label: product.gender, href: `/urunler?cinsiyet=${encodeURIComponent(product.gender)}` }] : []),
-          ...(product.category
-            ? [
-                {
-                  label: product.category.name,
-                  href: `/urunler?kategori=${encodeURIComponent(product.category.slug)}${product.gender ? `&cinsiyet=${encodeURIComponent(product.gender)}` : ""}`
-                }
-              ]
-            : [])
-        ]}
+        breadcrumb={breadcrumb}
         descriptionHtml={sanitizeDescriptionHtml(product.description)}
         material={product.material}
         origin={product.origin}
