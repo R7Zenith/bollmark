@@ -93,20 +93,20 @@ export default async function HomePage() {
   // Kadin/Erkek/Cocuk kategori degil cinsiyet filtresidir, imageUrl'leri yok.
   const categoryImage = (slug: string) => categoryImages.find((c) => c.slug === slug)?.imageUrl ?? null;
   const collections = [
-    { label: "Kadın", count: kadinCount, href: "/urunler?cinsiyet=Kadın", image: "/anasayfa/koleksiyon-kadin.jpg", remote: false },
-    { label: "Erkek", count: erkekCount, href: "/urunler?cinsiyet=Erkek", image: "/anasayfa/koleksiyon-erkek.jpg", remote: false },
-    { label: "Çocuk", count: cocukCount, href: "/urunler?cinsiyet=Çocuk", image: "/anasayfa/koleksiyon-cocuk.jpg", remote: false },
+    { label: "Kadın", count: kadinCount, href: "/kadin", image: "/anasayfa/koleksiyon-kadin.jpg", remote: false },
+    { label: "Erkek", count: erkekCount, href: "/erkek", image: "/anasayfa/koleksiyon-erkek.jpg", remote: false },
+    { label: "Çocuk", count: cocukCount, href: "/cocuk", image: "/anasayfa/koleksiyon-cocuk.jpg", remote: false },
     {
       label: "Ayakkabı",
       count: ayakkabiCount,
-      href: "/urunler?kategori=ayakkabi",
+      href: "/kategori/ayakkabi",
       image: categoryImage("ayakkabi") ?? "/anasayfa/koleksiyon-ayakkabi.jpg",
       remote: categoryImage("ayakkabi") !== null
     },
     {
       label: "Aksesuar",
       count: aksesuarCount,
-      href: "/urunler?kategori=aksesuar",
+      href: "/kategori/aksesuar",
       image: categoryImage("aksesuar") ?? "/anasayfa/koleksiyon-aksesuar.jpg",
       remote: categoryImage("aksesuar") !== null
     }
@@ -260,7 +260,7 @@ export default async function HomePage() {
           </div>
         </div>
         <Link
-          href="/urunler?cinsiyet=Erkek"
+          href="/erkek"
           aria-label="Erkek koleksiyonu"
           className="group relative block aspect-[4/5] overflow-hidden bg-line"
         >

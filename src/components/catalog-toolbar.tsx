@@ -13,6 +13,7 @@ import {
   type CatalogFacets,
   type CatalogFilters
 } from "@/lib/catalog-filters";
+import { catalogHref } from "@/lib/catalog-url";
 
 // Release temasinin katalog sayfasindaki ust cubugu: tek satirda solda
 // "Filtrele" butonu (soldan acilan filtre cekmecesi, bkz. filter-drawer.tsx), ortada "Showing X of Y products" sayaci, sagda
@@ -125,6 +126,7 @@ function Dropdown({
 export function CatalogToolbar({
   categories,
   activeCategory,
+  gender,
   activeSort,
   count,
   facets,
@@ -132,6 +134,8 @@ export function CatalogToolbar({
 }: {
   categories: CatalogFilterCategory[];
   activeCategory: string | null;
+  // Sayfanin cinsiyet kapsami (/erkek) - kategori degisince yeni yol bundan uretilir.
+  gender: string | null;
   activeSort: string;
   count: number;
   facets: CatalogFacets;
@@ -155,15 +159,21 @@ export function CatalogToolbar({
   };
 
   // Filtre cekmecesi/cipleri: kategori + tum filtre param'larini birlikte yazar,
-  // cinsiyet/sirala olduklari gibi kalir.
+  // cinsiyet/sirala olduklari gibi kalir. Kategori yolda tasinir (/erkek ->
+  // /erkek/gomlek); yalniz arama sonuclarinda (/urunler?ara=) sorguda kalir.
   const applyFilters = (next: CatalogFilters, category: string | null) => {
     const params = new URLSearchParams(searchParams.toString());
     writeCatalogFilters(params, next);
-    if (category) params.set("kategori", category);
-    else params.delete("kategori");
     params.delete(CATALOG_SHOW_PARAM);
+    let path = pathname;
+    if (params.has("ara")) {
+      if (category) params.set("kategori", category);
+      else params.delete("kategori");
+    } else {
+      path = catalogHref({ gender, category });
+    }
     const query = params.toString();
-    router.push(query ? `${pathname}?${query}` : pathname);
+    router.push(query ? `${path}?${query}` : path);
   };
 
   const closeDrawer = () => {

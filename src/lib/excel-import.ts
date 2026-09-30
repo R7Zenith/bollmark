@@ -8,6 +8,7 @@ import { prisma } from "@/lib/prisma";
 import { resolveOptionValueIds } from "@/lib/variant-attributes";
 import { resolveImageSourceForBrand, type ImageSourceStrategy } from "@/lib/brand-image-sources";
 import { getOrCreateSeasonId } from "@/lib/seasons";
+import { categorySlug } from "@/lib/catalog-url";
 
 type Tx = PrismaClient | Prisma.TransactionClient;
 
@@ -375,7 +376,7 @@ export async function resolveCategoryIdByName(tx: Tx, categoryName: string): Pro
 }
 
 async function generateUniqueCategorySlug(tx: Tx, name: string): Promise<string> {
-  const base = slugifyTr(name) || "kategori";
+  const base = categorySlug(name) || "kategori";
   let candidate = base;
   let suffix = 2;
   while (await tx.category.findUnique({ where: { slug: candidate } })) {

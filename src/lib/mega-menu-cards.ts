@@ -19,14 +19,14 @@ export const MEGA_MENU_CARDS: Record<"kadin" | "erkek", MegaMenuCard[]> = {
       alt: "Kadın elbise koleksiyonu",
       label: "YENİ SEZON",
       title: "Elbise",
-      href: "/urunler?kategori=elbise&cinsiyet=Kadın"
+      href: "/kadin/elbise"
     },
     {
       image: "/menu/kadin-bluz.webp",
       alt: "Kadın bluz koleksiyonu",
       label: "ÇOK SATANLAR",
       title: "Bluz",
-      href: "/urunler?kategori=bluz&cinsiyet=Kadın",
+      href: "/kadin/bluz",
       overlayOpacity: 0.3
     }
   ],
@@ -36,7 +36,7 @@ export const MEGA_MENU_CARDS: Record<"kadin" | "erkek", MegaMenuCard[]> = {
       alt: "Erkek gömlek koleksiyonu",
       label: "YENİ SEZON",
       title: "Gömlek",
-      href: "/urunler?kategori=gomlek&cinsiyet=Erkek",
+      href: "/erkek/gomlek",
       overlayOpacity: 0.3
     },
     {
@@ -44,7 +44,7 @@ export const MEGA_MENU_CARDS: Record<"kadin" | "erkek", MegaMenuCard[]> = {
       alt: "Erkek ceket koleksiyonu",
       label: "ÇOK SATANLAR",
       title: "Ceket",
-      href: "/urunler?kategori=ceket&cinsiyet=Erkek"
+      href: "/erkek/ceket"
     }
   ]
 };

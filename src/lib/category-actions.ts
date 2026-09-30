@@ -3,13 +3,7 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { isDescendantOf } from "@/lib/category-tree";
-
-function slugify(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/[^a-z0-9ığüşöç\s-]/gi, "")
-    .replace(/\s+/g, "-");
-}
+import { categorySlug } from "@/lib/catalog-url";
 
 function readCategoryFields(formData: FormData) {
   return {
@@ -26,7 +20,7 @@ export async function createCategory(formData: FormData) {
   if (!name) redirect("/admin/kategoriler?hata=isim-gerekli");
   const parentId = String(formData.get("parentId") || "") || null;
   await prisma.category.create({
-    data: { name, slug: slugify(name), parentId, ...readCategoryFields(formData) }
+    data: { name, slug: categorySlug(name), parentId, ...readCategoryFields(formData) }
   });
   redirect("/admin/kategoriler?basarili=eklendi");
 }
@@ -42,9 +36,11 @@ export async function updateCategory(id: string, redirectBase: string, formData:
     if (isDescendantOf(all, id, parentId)) redirect(`${redirectBase}?hata=dongu`);
   }
 
+  // Slug bilerek guncellenmiyor: ad degisse de katalog adresi (/erkek/gomlek)
+  // ve ona verilen baglantilar sabit kalmali.
   await prisma.category.update({
     where: { id },
-    data: { name, slug: slugify(name), parentId, ...readCategoryFields(formData) }
+    data: { name, parentId, ...readCategoryFields(formData) }
   });
   redirect(`${redirectBase}?basarili=guncellendi`);
 }

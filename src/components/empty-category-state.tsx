@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { catalogHref } from "@/lib/catalog-url";
 
 type Suggestion = { name: string; slug: string; imageUrl: string | null };
 
@@ -18,10 +19,7 @@ export function EmptyCategoryState({ categoryName, gender, suggestions }: Props)
       : `${categoryName} koleksiyonumuzu şu an hazırlıyoruz. Çok yakında burada.`
     : "Bu koleksiyonu şu an hazırlıyoruz. Yeni ürünler eklendiğinde burada olacak.";
 
-  const suggestionHref = (slug: string) =>
-    gender
-      ? `/urunler?kategori=${encodeURIComponent(slug)}&cinsiyet=${encodeURIComponent(gender)}`
-      : `/urunler?kategori=${encodeURIComponent(slug)}`;
+  const suggestionHref = (slug: string) => catalogHref({ gender, category: slug });
 
   return (
     <div className="mx-auto flex max-w-[560px] flex-col items-center px-0 py-16 text-center md:py-24">

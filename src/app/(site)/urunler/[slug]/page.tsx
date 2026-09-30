@@ -12,6 +12,7 @@ import { sanitizeDescriptionHtml, descriptionToPlainText } from "@/lib/descripti
 import { baseOpenGraph } from "@/lib/site-metadata";
 import { breadcrumbJsonLd, buildProductJsonLd, productTitle, truncateDescription } from "@/lib/seo";
 import { JsonLd } from "@/components/json-ld";
+import { catalogHref } from "@/lib/catalog-url";
 
 // Bu Next.js sürümünde dinamik rota segmentleri (params.slug), tarayıcının
 // gönderdiği %XX kaçış dizileriyle olduğu gibi geliyor - standart Next.js'in
@@ -84,14 +85,9 @@ export default async function ProductPage({
 
   const breadcrumb = [
     { label: "Anasayfa", href: "/" },
-    ...(product.gender ? [{ label: product.gender, href: `/urunler?cinsiyet=${encodeURIComponent(product.gender)}` }] : []),
+    ...(product.gender ? [{ label: product.gender, href: catalogHref({ gender: product.gender }) }] : []),
     ...(product.category
-      ? [
-          {
-            label: product.category.name,
-            href: `/urunler?kategori=${encodeURIComponent(product.category.slug)}${product.gender ? `&cinsiyet=${encodeURIComponent(product.gender)}` : ""}`
-          }
-        ]
+      ? [{ label: product.category.name, href: catalogHref({ gender: product.gender, category: product.category.slug }) }]
       : [])
   ];
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { ProductCard, type ProductCardData } from "@/components/product-card";
 import { CATALOG_PAGE_SIZE, CATALOG_SHOW_PARAM } from "@/lib/catalog-filters";
 import { loadMoreCatalog } from "@/app/(site)/urunler/actions";
@@ -32,10 +32,12 @@ export function CatalogGrid({
 }: {
   initialItems: ProductCardData[];
   total: number;
-  // Mevcut arama parametreleri (goster haric).
+  // Sunucu aksiyonuna giden katalog sorgusu (goster haric; temiz yollarda
+  // kategori/cinsiyet de icinde - adres cubuguna yazilmaz).
   query: string;
 }) {
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const urlShow = searchParams.get(CATALOG_SHOW_PARAM);
   // URL'deki ?goster ile daha once butonla yuklenmis liste uyusuyorsa o,
   // yoksa sunucunun gonderdigi ilk liste.
@@ -67,8 +69,12 @@ export function CatalogGrid({
   const firstNewRef = useRef<HTMLDivElement>(null);
 
   const shown = items.length;
-  const hrefFor = (count: number) =>
-    `/urunler?${query ? `${query}&` : ""}${CATALOG_SHOW_PARAM}=${count}`;
+  // Adres cubugundaki mevcut yol ve parametreler + ?goster=N.
+  const hrefFor = (count: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set(CATALOG_SHOW_PARAM, String(count));
+    return `${pathname}?${params}`;
+  };
 
   // Yeni parti eklenince klavye odagi ilk yeni karta gecer (ekran kaymadan).
   useEffect(() => {

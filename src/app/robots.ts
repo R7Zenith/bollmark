@@ -26,9 +26,12 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: "/",
-        // Filtre parametreli URL'ler sinirsiz kombinasyon uretiyor; ?kategori=
-        // sitemap'te oldugu icin engellenmiyor.
+        // Urun sayfasindaki ?renk= varyant adresidir (urun JSON-LD'sindeki
+        // hasVariant url'leri) - Google'da daha uzun kural kazandigi icin
+        // asagidaki "/*?*renk=" filtre engelini urun sayfalarinda asar.
+        allow: ["/", "/urunler/*?renk="],
+        // Katalog filtre parametreli URL'ler sinirsiz kombinasyon uretiyor.
+        // Kategoriler artik temiz yollarda (/erkek/gomlek, /kategori/ayakkabi).
         disallow: [
           "/admin",
           "/hesap",

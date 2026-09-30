@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 import { PREVIEW_COOKIE_MAX_AGE, PREVIEW_COOKIE_NAME, PREVIEW_GATE_PATH } from "@/lib/preview-gate";
 import { isPathAllowedForRole } from "@/lib/roles";
+import { catalogHref, LEGACY_CATEGORY_SLUGS } from "@/lib/catalog-url";
 
 // /admin altındaki tüm sayfaları giriş yapmış yönetici ile sınırlar, ayrıca
 // PERSONEL rolünün sadece kendisine izinli yollara erişebilmesini sağlar -
@@ -60,8 +61,28 @@ function guardPreview(request: NextRequest) {
   return NextResponse.rewrite(new URL(PREVIEW_GATE_PATH, request.url));
 }
 
+// Eski katalog adresleri (/urunler?kategori=gomlek&cinsiyet=Erkek) temiz
+// yollara 301 ile yonlenir (bkz. SEO_FAZ3_KATEGORI_URL_PLANI.md). Diger
+// parametreler (siralama, filtre) korunur. Arama (?ara=) /urunler'de kalir.
+function redirectLegacyCatalog(request: NextRequest) {
+  const params = request.nextUrl.searchParams;
+  if (params.has("ara") || (!params.has("kategori") && !params.has("cinsiyet"))) return null;
+  const rawCategory = params.get("kategori") || null;
+  const category = rawCategory ? (LEGACY_CATEGORY_SLUGS[rawCategory] ?? rawCategory) : null;
+  const destination = new URL(catalogHref({ gender: params.get("cinsiyet"), category }), request.url);
+  params.forEach((value, key) => {
+    if (key !== "kategori" && key !== "cinsiyet") destination.searchParams.append(key, value);
+  });
+  return NextResponse.redirect(destination, 301);
+}
+
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  if (pathname === "/urunler") {
+    const legacyRedirect = redirectLegacyCatalog(request);
+    if (legacyRedirect) return legacyRedirect;
+  }
 
   // Yapim-asamasinda sayfasının kendisi, /admin/login, arama motoru
   // dosyaları (robots.txt/sitemap.xml) ve public/ altındaki statik varlıklar

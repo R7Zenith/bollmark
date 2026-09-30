@@ -8,6 +8,7 @@ import { useSearchParams, usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useCart } from "@/lib/cart";
 import { hasCatalogBanner } from "@/lib/catalog-banner";
+import { catalogHref, parseCatalogPath } from "@/lib/catalog-url";
 import { MEGA_MENU_CARDS, type MegaMenuCard } from "@/lib/mega-menu-cards";
 import { CartDrawer } from "@/components/cart-drawer";
 import { SearchOverlay, type SearchChip } from "@/components/search-overlay";
@@ -184,17 +185,27 @@ function CartIcon() {
   );
 }
 
+// Menude aktif gorunecek kategori/cinsiyet: once temiz yoldan (/erkek/gomlek),
+// arama sayfasinda (/urunler?ara=&kategori=) sorgudan.
+function useActiveCatalog() {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const parsed = parseCatalogPath(pathname);
+  return {
+    activeSlug: parsed?.category ?? searchParams.get("kategori"),
+    activeGender: parsed?.gender ?? searchParams.get("cinsiyet")
+  };
+}
+
 function GenderPanel({ gender, categories }: { gender: GenderKey; categories: MenuCategory[] }) {
   const genderLabel = GENDER_LABEL[gender];
-  const searchParams = useSearchParams();
-  const activeSlug = searchParams.get("kategori");
-  const activeGender = searchParams.get("cinsiyet");
+  const { activeSlug, activeGender } = useActiveCatalog();
   // Release'de "Featured" grubu kuratorlu 3 linke kadar yer aciyor, ama
   // katalogda gercekten kullanilabilir bir "yeni gelenler/cok satanlar"
   // sort/filtre parametresi yok (bkz. urunler/page.tsx, catalog.ts) - sahte
   // bir param icat etmek yerine bu grup su an sadece "Tum Urunler" ile
   // sinirli (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1.1).
-  const allProductsHref = `/urunler?cinsiyet=${genderLabel}`;
+  const allProductsHref = catalogHref({ gender: genderLabel });
   const isAllProductsActive = !activeSlug && activeGender === genderLabel;
   const cards = MEGA_MENU_CARDS[gender];
 
@@ -224,7 +235,7 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
                 return (
                   <li key={category.id}>
                     <Link
-                      href={`/urunler?kategori=${category.slug}&cinsiyet=${genderLabel}`}
+                      href={catalogHref({ gender: genderLabel, category: category.slug })}
                       className={isActive ? GROUP_LINK_ACTIVE_CLASS : GROUP_LINK_CLASS}
                     >
                       {category.name}
@@ -248,8 +259,7 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
 }
 
 function AksesuarPanel({ categories }: { categories: MenuCategory[] }) {
-  const searchParams = useSearchParams();
-  const activeSlug = searchParams.get("kategori");
+  const { activeSlug } = useActiveCatalog();
   const promoImage = categories.find((c) => c.imageUrl) ?? null;
 
   return (
@@ -263,7 +273,7 @@ function AksesuarPanel({ categories }: { categories: MenuCategory[] }) {
               return (
                 <li key={category.id}>
                   <Link
-                    href={`/urunler?kategori=${category.slug}`}
+                    href={catalogHref({ category: category.slug })}
                     className={isActive ? GROUP_LINK_ACTIVE_CLASS : GROUP_LINK_CLASS}
                   >
                     {category.name}
@@ -275,7 +285,7 @@ function AksesuarPanel({ categories }: { categories: MenuCategory[] }) {
         </div>
         {promoImage && (
           <div className="flex gap-6">
-            <PromoCard category={promoImage} href={`/urunler?kategori=${promoImage.slug}`} headline="Aksesuar Koleksiyonu" />
+            <PromoCard category={promoImage} href={catalogHref({ category: promoImage.slug })} headline="Aksesuar Koleksiyonu" />
           </div>
         )}
       </div>
@@ -295,9 +305,9 @@ function DesktopNav({
   setOpenMenu: (key: TabKey | null) => void;
 }) {
   const tabs: { key: TabKey; label: string; href: string }[] = [
-    { key: "kadin", label: "Kadın", href: "/urunler?cinsiyet=Kadın" },
-    { key: "erkek", label: "Erkek", href: "/urunler?cinsiyet=Erkek" },
-    { key: "aksesuar", label: "Aksesuar", href: "/urunler?kategori=aksesuar" }
+    { key: "kadin", label: "Kadın", href: catalogHref({ gender: "Kadın" }) },
+    { key: "erkek", label: "Erkek", href: catalogHref({ gender: "Erkek" }) },
+    { key: "aksesuar", label: "Aksesuar", href: catalogHref({ category: "aksesuar" }) }
   ];
 
   // Release temasinda olculen degerler (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md
@@ -527,8 +537,8 @@ function MobileMenu({
         {(currentScreen === "kadin" || currentScreen === "erkek") && (
           <MobileDrillScreen
             categories={menuData[currentScreen]}
-            buildHref={(c) => `/urunler?kategori=${c.slug}&cinsiyet=${MOBILE_SCREEN_LABEL[currentScreen]}`}
-            allProductsHref={`/urunler?cinsiyet=${MOBILE_SCREEN_LABEL[currentScreen]}`}
+            buildHref={(c) => catalogHref({ gender: MOBILE_SCREEN_LABEL[currentScreen], category: c.slug })}
+            allProductsHref={catalogHref({ gender: MOBILE_SCREEN_LABEL[currentScreen] })}
             promoImages={menuData[currentScreen].filter((c) => c.imageUrl).slice(0, 2)}
             promoHeadline={`${MOBILE_SCREEN_LABEL[currentScreen]} Koleksiyonu`}
             onNavigate={onClose}
@@ -538,8 +548,8 @@ function MobileMenu({
         {currentScreen === "aksesuar" && (
           <MobileDrillScreen
             categories={menuData.aksesuar}
-            buildHref={(c) => `/urunler?kategori=${c.slug}`}
-            allProductsHref="/urunler?kategori=aksesuar"
+            buildHref={(c) => catalogHref({ category: c.slug })}
+            allProductsHref={catalogHref({ category: "aksesuar" })}
             promoImages={menuData.aksesuar.filter((c) => c.imageUrl).slice(0, 1)}
             promoHeadline="Aksesuar Koleksiyonu"
             onNavigate={onClose}
@@ -591,9 +601,9 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
 
   // Bos arama panelindeki "Populer kategoriler" chip'leri - mega menu verisinden.
   const searchChips: SearchChip[] = [
-    ...menuData.kadin.slice(0, 3).map((c) => ({ label: `Kadın ${c.name}`, href: `/urunler?kategori=${c.slug}&cinsiyet=Kadın` })),
-    ...menuData.erkek.slice(0, 3).map((c) => ({ label: `Erkek ${c.name}`, href: `/urunler?kategori=${c.slug}&cinsiyet=Erkek` })),
-    ...menuData.aksesuar.slice(0, 2).map((c) => ({ label: c.name, href: `/urunler?kategori=${c.slug}` }))
+    ...menuData.kadin.slice(0, 3).map((c) => ({ label: `Kadın ${c.name}`, href: catalogHref({ gender: "Kadın", category: c.slug }) })),
+    ...menuData.erkek.slice(0, 3).map((c) => ({ label: `Erkek ${c.name}`, href: catalogHref({ gender: "Erkek", category: c.slug }) })),
+    ...menuData.aksesuar.slice(0, 2).map((c) => ({ label: c.name, href: catalogHref({ category: c.slug }) }))
   ];
 
   // Ana sayfada ve banner'li koleksiyon sayfalarinda, hero/banner gorseli

@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ShieldCheck, Truck, Undo2 } from "lucide-react";
+import { catalogHref } from "@/lib/catalog-url";
 
 // logo-white.png'nin gercek en-boy orani (bkz. site-header.tsx LOGO_ASPECT_RATIO,
 // 1400x273px).
@@ -135,7 +136,7 @@ export function SiteFooter() {
               <ul className="mt-3 space-y-2 text-sm">
                 {SHOP_LINKS.map((item) => (
                   <li key={item.slug}>
-                    <Link href={`/urunler?kategori=${item.slug}`} className={FOOTER_LINK_CLASS}>
+                    <Link href={catalogHref({ category: item.slug })} className={FOOTER_LINK_CLASS}>
                       {item.label}
                     </Link>
                   </li>
