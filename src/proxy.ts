@@ -85,7 +85,7 @@ export default async function proxy(request: NextRequest) {
   }
 
   // Yapim-asamasinda sayfasının kendisi, /admin/login, arama motoru
-  // dosyaları (robots.txt/sitemap.xml) ve public/ altındaki statik varlıklar
+  // dosyaları (robots.txt/sitemap.xml), Google Merchant feed'i ve public/ altındaki statik varlıklar
   // (logo vb.) her zaman erişilebilir - aksi halde önizleme şifresi
   // arkasındaki bir mağazada bu dosyalar da gizlenir ve tarayıcılar/arama
   // motorları hiç erişemez (bkz. Faz C.8), admin login/sidebar logosu da
@@ -95,6 +95,7 @@ export default async function proxy(request: NextRequest) {
     pathname.startsWith("/admin/login") ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml" ||
+    pathname === "/feed/google.xml" ||
     /\.(png|jpe?g|svg|webp|ico|gif|woff2?|ttf)$/.test(pathname)
   ) {
     return NextResponse.next();

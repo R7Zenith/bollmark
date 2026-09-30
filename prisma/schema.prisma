@@ -41,6 +41,9 @@ model Category {
   description     String?
   metaTitle       String?
   metaDescription String?
+  // Google urun taksonomisi kimligi (Merchant feed'deki google_product_category,
+  // bkz. lib/google-categories.ts). Bossa ust kategorininki, o da yoksa 166.
+  googleCategoryId Int?
   isActive        Boolean    @default(true)
   sortOrder       Int        @default(0)
   products        Product[]

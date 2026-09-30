@@ -11,6 +11,7 @@ function readCategoryFields(formData: FormData) {
     description: String(formData.get("description") || "").trim() || null,
     metaTitle: String(formData.get("metaTitle") || "").trim() || null,
     metaDescription: String(formData.get("metaDescription") || "").trim() || null,
+    googleCategoryId: Number(formData.get("googleCategoryId")) || null,
     isActive: formData.get("isActive") === "on"
   };
 }

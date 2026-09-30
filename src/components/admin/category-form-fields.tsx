@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ImageField } from "@/components/admin/image-field";
+import { GOOGLE_CATEGORIES } from "@/lib/google-categories";
 
 // Kategori olustur/duzenle formlarinda ortak kullanilan gorsel + aciklama +
 // SEO + aktif/pasif alanlari. ImageField client bilesen oldugu icin gorsel
@@ -12,6 +13,7 @@ export function CategoryFormFields({
   description,
   metaTitle,
   metaDescription,
+  googleCategoryId,
   isActive,
   inputClassName
 }: {
@@ -19,6 +21,7 @@ export function CategoryFormFields({
   description?: string | null;
   metaTitle?: string | null;
   metaDescription?: string | null;
+  googleCategoryId?: number | null;
   isActive?: boolean;
   inputClassName: string;
 }) {
@@ -62,6 +65,17 @@ export function CategoryFormFields({
             placeholder="SEO açıklaması (opsiyonel, boşsa kategori açıklaması kullanılır)"
             className={inputClassName}
           />
+          <label className="block text-sm text-admin-text-muted">
+            Google ürün kategorisi (Google Alışveriş feed&apos;i için)
+            <select name="googleCategoryId" defaultValue={googleCategoryId ?? ""} className={`mt-1 ${inputClassName}`}>
+              <option value="">Üst kategoriden al (yoksa genel: Kıyafet ve Aksesuarlar)</option>
+              {GOOGLE_CATEGORIES.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.label}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
       </details>
     </>

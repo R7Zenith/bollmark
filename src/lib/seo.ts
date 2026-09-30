@@ -90,7 +90,7 @@ export function homeJsonLd() {
 
 type ProductForJsonLd = NonNullable<Awaited<ReturnType<typeof getProductBySlug>>>;
 
-const GENDER_TO_SCHEMA: Record<string, string> = { Erkek: "male", Kadın: "female", Unisex: "unisex" };
+export const GENDER_TO_SCHEMA: Record<string, string> = { Erkek: "male", Kadın: "female", Unisex: "unisex" };
 
 // Sayfa basligi "{Marka} {Urun adi}" - marka adi zaten urun adinda geciyorsa
 // tekrar edilmez.
@@ -101,7 +101,7 @@ export function productTitle(product: { name: string; brand: { name: string } | 
 }
 
 // EAN-13 kontrol hanesi dogru mu - Google gecersiz GTIN'i reddeder.
-function isValidGtin13(code: string | null): code is string {
+export function isValidGtin13(code: string | null): code is string {
   if (!code || !/^\d{13}$/.test(code)) return false;
   const sum = code
     .slice(0, 12)
