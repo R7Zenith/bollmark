@@ -21,6 +21,11 @@ export const STORE_INFO = {
   // "Iade Kosullari" sayfasi: teslimden itibaren 14 gun cayma hakki, iade
   // kargo ucreti aliciya ait.
   returnDays: 14,
+  // Teslimat suresi (is gunu) - Merchant Center kargo ayariyla ayni olmali.
+  // Hazirlama: "Teslimat Sartlari" sayfasi (1-3 is gunu); yolda kalma: kullanici
+  // bilgisi (30 Eylul 2026).
+  handlingDays: { min: 1, max: 3 },
+  transitDays: { min: 1, max: 3 },
   // iletisim sayfasindaki "Calisma Saatleri" ile ayni (Pazar kapali).
   openingHours: {
     days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],

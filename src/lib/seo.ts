@@ -185,7 +185,22 @@ export function buildProductJsonLd(
       shippingDetails: {
         "@type": "OfferShippingDetails",
         shippingDestination: { "@type": "DefinedRegion", addressCountry: "TR" },
-        shippingRate: { "@type": "MonetaryAmount", value: formatPriceValue(shippingCents), currency: "TRY" }
+        shippingRate: { "@type": "MonetaryAmount", value: formatPriceValue(shippingCents), currency: "TRY" },
+        deliveryTime: {
+          "@type": "ShippingDeliveryTime",
+          handlingTime: {
+            "@type": "QuantitativeValue",
+            minValue: STORE_INFO.handlingDays.min,
+            maxValue: STORE_INFO.handlingDays.max,
+            unitCode: "DAY"
+          },
+          transitTime: {
+            "@type": "QuantitativeValue",
+            minValue: STORE_INFO.transitDays.min,
+            maxValue: STORE_INFO.transitDays.max,
+            unitCode: "DAY"
+          }
+        }
       },
       hasMerchantReturnPolicy: returnPolicy
     };
