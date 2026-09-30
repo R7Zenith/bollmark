@@ -68,9 +68,12 @@ export function sanitizeDescriptionHtml(raw: string | null | undefined): string 
 // Meta description / JSON-LD gibi düz metin gereken yerler için HTML etiketlerini
 // tamamen kaldırıp boşlukları sadeleştirir. sanitize-html metni HTML-escape eder,
 // bu yüzden sonda geri çözülür (& en son: "&amp;lt;" -> "&lt;" doğru kalsın).
+// Blok sonlari ve <br> once bosluga cevrilir - yoksa "…getiriyor.</p><p><strong>Stil
+// Önerisi</strong>" "getiriyor.Stil Önerisi" diye bitisik kaliyordu.
 export function descriptionToPlainText(raw: string | null | undefined): string {
   if (!raw || !raw.trim()) return "";
-  return sanitizeHtml(raw, { allowedTags: [], allowedAttributes: {} })
+  const spaced = raw.replace(/<br\s*\/?>|<\/(?:p|li|div|h[1-6])>/gi, "$& ");
+  return sanitizeHtml(spaced, { allowedTags: [], allowedAttributes: {} })
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')

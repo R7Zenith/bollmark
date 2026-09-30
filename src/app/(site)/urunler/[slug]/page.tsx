@@ -9,11 +9,9 @@ import { ProductViewer } from "@/components/product-viewer";
 import { ProductCard } from "@/components/product-card";
 import { optionValue, optionPosition, colorValueId } from "@/lib/variant-attributes";
 import { sanitizeDescriptionHtml, descriptionToPlainText } from "@/lib/description-html";
-import { getSiteUrl } from "@/lib/site-url";
 import { baseOpenGraph } from "@/lib/site-metadata";
-import { breadcrumbJsonLd, truncateDescription } from "@/lib/seo";
+import { breadcrumbJsonLd, buildProductJsonLd, productTitle, truncateDescription } from "@/lib/seo";
 import { JsonLd } from "@/components/json-ld";
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1200";
 
 // Bu Next.js sürümünde dinamik rota segmentleri (params.slug), tarayıcının
 // gönderdiği %XX kaçış dizileriyle olduğu gibi geliyor - standart Next.js'in
@@ -33,18 +31,26 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const product = await getProductBySlug(decodeSlug(rawSlug));
   if (!product || product.status !== "PUBLISHED") return {};
 
-  const image = firstImageUrl(product) ?? FALLBACK_IMAGE;
+  // Gorsel yoksa layout'taki varsayilan paylasim gorseli (baseOpenGraph) kalir.
+  const image = firstImageUrl(product);
+  const title = productTitle(product);
   const description = truncateDescription(descriptionToPlainText(product.description));
+  const price = resolveProductDisplayPrice(await getActiveAutomaticPercentCampaigns(prisma), product);
   return {
-    title: product.name,
+    title,
     description,
     alternates: { canonical: `/urunler/${product.slug}` },
     openGraph: {
       ...baseOpenGraph,
-      title: product.name,
+      title,
       description,
       url: `/urunler/${product.slug}`,
-      images: [{ url: image }]
+      ...(image && { images: [{ url: image }] })
+    },
+    other: {
+      "product:price:amount": (price.finalPriceCents / 100).toFixed(2),
+      "product:price:currency": "TRY",
+      "product:availability": product.variants.some((v) => v.stock > 0) ? "in stock" : "out of stock"
     }
   };
 }
@@ -69,23 +75,12 @@ export default async function ProductPage({
   const relatedProducts = await getRelatedProducts(product);
   const bundleInfo = await getBundleForProduct(product.id);
   const automaticCampaigns = await getActiveAutomaticPercentCampaigns(prisma);
+  const storeSettings = await prisma.storeSettings.findUnique({
+    where: { id: "singleton" },
+    select: { defaultShippingCents: true }
+  });
 
-  const productJsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.name,
-    description: descriptionToPlainText(product.description),
-    image: firstImageUrl(product) ?? FALLBACK_IMAGE,
-    offers: {
-      "@type": "Offer",
-      priceCurrency: "TRY",
-      price: (product.priceCents / 100).toFixed(2),
-      availability: product.variants.some((v) => v.stock > 0)
-        ? "https://schema.org/InStock"
-        : "https://schema.org/OutOfStock",
-      url: `${getSiteUrl()}/urunler/${product.slug}`
-    }
-  };
+  const productJsonLd = buildProductJsonLd(product, automaticCampaigns, storeSettings?.defaultShippingCents ?? 0);
 
   const breadcrumb = [
     { label: "Anasayfa", href: "/" },

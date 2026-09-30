@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { sanitizeDescriptionHtml, plainTextToHtml } from "./description-html";
+import { sanitizeDescriptionHtml, plainTextToHtml, descriptionToPlainText } from "./description-html";
 
 const SAMPLE = `Denim şort, yüksek bel tasarımı ... kolaylaştırıyor.
 
@@ -40,4 +40,12 @@ test("script temizlenir", () => {
 
 test("başlık etiketi kalına çevrilir", () => {
   assert.equal(sanitizeDescriptionHtml("<h3>Başlık</h3>"), "<strong>Başlık</strong>");
+});
+
+test("düz metin çıktısı: bloklar ve başlıklar bitişik kalmaz", () => {
+  assert.equal(
+    descriptionToPlainText("<p>Rahat bir parça.</p><p><strong>Stil Önerisi</strong><br />Denim ile.</p>"),
+    "Rahat bir parça. Stil Önerisi Denim ile."
+  );
+  assert.equal(descriptionToPlainText(SAMPLE).includes("Özellikleri Bel Tipi"), true);
 });

@@ -18,6 +18,9 @@ export const STORE_INFO = {
     postalCode: "16700",
     addressCountry: "TR"
   },
+  // "Iade Kosullari" sayfasi: teslimden itibaren 14 gun cayma hakki, iade
+  // kargo ucreti aliciya ait.
+  returnDays: 14,
   // iletisim sayfasindaki "Calisma Saatleri" ile ayni (Pazar kapali).
   openingHours: {
     days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
