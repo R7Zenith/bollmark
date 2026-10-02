@@ -26,7 +26,8 @@ async function guardAdmin(request: NextRequest) {
 // Mağaza için şifreli önizleme kapısı.
 // - ?preview=DOGRU_SIFRE ile gelinirse 30 günlük cookie bırakıp aynı sayfanın
 //   temiz (preview parametresi silinmiş) haline yönlendirir.
-// - Geçerli cookie varsa dokunmadan geçirir.
+// - Geçerli cookie varsa dokunmadan geçirir. Cookie değeri şifrenin kendisi
+//   olduğu için PREVIEW_PASSWORD değişince eski cookie'lerin hepsi geçersiz olur.
 // - Cookie yoksa/yanlışsa mağaza sayfasını yapim-asamasinda sayfasına rewrite eder
 //   (adres çubuğundaki URL değişmez, sadece gösterilen içerik değişir).
 // - PREVIEW_PASSWORD tanımlı değilse koruma tamamen devre dışı kalır (yanlışlıkla
