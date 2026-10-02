@@ -5551,3 +5551,8 @@ Kullanici bildirdi: ana sayfadaki "Yeni Gelenler" bolumunde coklu rengi olan bir
 - Kapi cookie'siz ziyaretcilere /yapim-asamasinda icerigini REDIRECT degil REWRITE ile gosterir (URL ayni kalir, 200 doner). robots.txt, sitemap.xml, /feed/google.xml, /admin/login muaf.
 - Env degisikligi yeni deploy ile gecerli olur. vercel.json ignoreCommand yuzunden ayni commit'in `vercel redeploy`'u iptal oldu; bu yuzden yeni commit push'u ile deploy tetikleniyor.
 - Localhost dogrulamasi yapildi (cookie'siz gate, ?preview=sifre ile cookie, /admin -> login, muaf yollar). Canli dogrulama push sonrasi yapilacak.
+
+## Önizleme şifresi yenilendi, eski bm_preview cookie'leri geçersiz (2026-10-02)
+- bm_preview cookie degeri PREVIEW_PASSWORD'un kendisi oldugu icin sifre degistirilerek eski cookie'ler (30 gun) gecersiz kilindi. Kod degismedi.
+- Vercel production'da PREVIEW_PASSWORD silinip yeni degerle Sensitive olarak eklendi; yerel .env de guncellendi. Deger burada yazilmaz.
+- Localhost dogrulamasi: eski sifreli cookie ve ?preview=eski -> kapi; ?preview=yeni -> cookie + site aciliyor.
