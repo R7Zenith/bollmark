@@ -15,7 +15,7 @@ export const legalPagesContent: LegalPageSeed[] = [
   {
     slug: "hakkimizda",
     title: "Hakkımızda",
-    content: `Bollmark, 40 yılı aşkın bir ticaret geçmişine sahip bir aile işletmesidir. 2016 yılından bu yana Koton'un Corner Mağazası olarak hizmet vermekte, aynı zamanda kadın, erkek ve çocuk ayakkabı, valiz ve aksesuar kategorilerinde çeşitli markalara ait ürünleri müşterilerimizle buluşturmaktayız.
+    content: `Bollmark, 40 yılı aşkın bir ticaret geçmişine sahip bir aile işletmesidir. Karacabey'deki mağazamızda kadın, erkek ve çocuk giyim, ayakkabı, valiz ve aksesuar kategorilerinde, güvendiğimiz markaların ürünlerini müşterilerimizle buluşturuyoruz.
 
 Yılların verdiği tecrübeyle, müşteri memnuniyetini ve güler yüzlü hizmeti her zaman önceliğimiz olarak görüyoruz. Karacabey'deki mağazamızda sunduğumuz aynı özenli hizmeti, artık bollmark.com üzerinden online alışveriş deneyimimizle de sürdürüyoruz.
 

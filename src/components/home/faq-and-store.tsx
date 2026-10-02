@@ -13,7 +13,7 @@ import { SHIPPING_THRESHOLD_CENTS } from "@/lib/shipping";
 //   taksit vb. vaat edilmez; takip: /siparis-durumu (siparis no + e-posta).
 // Calisma saati ve "magazadan teslim" gibi kodda dogrulanamayan/ima edilebilecek
 // bilgiler bilincli olarak yazilmadi.
-const STORE_NAME_LINE = "Koton Corner Mağazası — 2016'dan beri";
+const STORE_NAME_LINE = "Bollmark Karacabey Mağazası";
 const STORE_ADDRESS = "Runguçpaşa Mah. 75. Sk. No:6/A Karacabey/Bursa";
 const DIRECTIONS_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(STORE_ADDRESS)}`;
 

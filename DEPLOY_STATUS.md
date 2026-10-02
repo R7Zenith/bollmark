@@ -5538,3 +5538,16 @@ Kullanici bildirdi: ana sayfadaki "Yeni Gelenler" bolumunde coklu rengi olan bir
 - **Karar**: Faz 5'in tamami (urun fotograflari icin Blob'da 800px surum + ozel next/image loader) ertelendi - Blob Hobby siniri ayda 2.000 yazma islemi, 3 surum 3.255 islem ederdi; kullanici once "neden gerekli" diye sordu, acil olmadigi icin yalniz sabit gorseller secildi. `images.unoptimized: true` yerinde kaldi.
 - **Yapilan**: 14 dosya ayni ad ve formatta yeniden kodlandi (sharp, EXIF donusu, metadata atildi; JPEG mozjpeg q80 progressive, WebP q78). Ust genislik: hero-model/catalog-banner/lookbook-genis 1920, editoryal 1400, koleksiyon ve menu kartlari 1000. Toplam 7.519 KB -> 2.535 KB (hero 1.368 -> 467 KB, menu/kadin-bluz 1.450 -> 196 KB). Kod degismedi. og-default.jpg, logolar, instagram ve payment gorsellerine dokunulmadi.
 - **Dogrulama**: localhost'ta dosyalar yeni boyutla 200; Playwright ile anasayfa + acik mega menu ekran goruntusu, kirik gorsel 0. Yerel commit, push kullanici onayina bagli.
+
+
+## Oturum: Musteriye gorunen "Koton" ibareleri kaldirildi (KOTON_IBARELERI_KALDIRMA_PLANI.md) — 2026-10-02
+- **Degisenler**: anasayfa magaza karti "Bollmark Karacabey Magazasi" (faq-and-store.tsx); /iletisim harita sorgusundan "Koton" cikarildi, adres yazimi anasayfa ile ayni (iletisim/page.tsx); "hakkimizda" ilk paragrafi yenilendi (prisma/legal-pages-content.ts).
+- **Canli DB**: seed sadece baslangic verisi; canli "Hakkimizda" metni admin panel -> Yasal Sayfalar'dan elle guncellenecek (script ile yazilmadi).
+- **Bilincli birakildi**: Instagram linki (koton.karacabey; footer, yapim-asamasinda, store-info.ts) simdilik kalsin karari. Urun marka verisi, filtreler, Excel aktarimi, koton-images.ts kapsam disi. store-info.ts JSON-LD adresi "Rungus..." yaziyor, iletisim/anasayfa "Runguc..." — dogru yazim teyit bekliyor.
+- **Dogrulama**: tsc temiz (prisma generate sonrasi), build temiz; lint'te 46 hata onceden de vardi (degisikliklerden bagimsiz).
+
+## Önizleme kapısı yeniden açıldı (2026-10-02)
+- Vercel production'dan `PREVIEW_GATE` env'i silindi (`PREVIEW_PASSWORD` duruyor). Kod degismedi; kapi src/proxy.ts guardPreview'da.
+- Kapi cookie'siz ziyaretcilere /yapim-asamasinda icerigini REDIRECT degil REWRITE ile gosterir (URL ayni kalir, 200 doner). robots.txt, sitemap.xml, /feed/google.xml, /admin/login muaf.
+- Env degisikligi yeni deploy ile gecerli olur. vercel.json ignoreCommand yuzunden ayni commit'in `vercel redeploy`'u iptal oldu; bu yuzden yeni commit push'u ile deploy tetikleniyor.
+- Localhost dogrulamasi yapildi (cookie'siz gate, ?preview=sifre ile cookie, /admin -> login, muaf yollar). Canli dogrulama push sonrasi yapilacak.

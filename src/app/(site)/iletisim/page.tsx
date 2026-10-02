@@ -9,11 +9,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/iletisim" }
 };
 
-// Koton Karacabey magazasi: Google Haritalar bu sorguyu "Koton Leventoglu,
-// Rungus pasa, 75. Sk. No:6, 16700 Karacabey/Bursa" kaydina cozumluyor (Yandex
-// kaydi da "75. Sok., 6A" diyor). Anahtarsiz embed adresi kullanilir.
-const STORE_ADDRESS = "Runguşpaşa, 75. Sk. No: 6, 16700 Karacabey / Bursa";
-const MAP_QUERY = "Koton Karacabey, 75. Sok. 6A, Karacabey, Bursa";
+// Harita yalniz adresle sorgulanir (magaza adi/marka yok); Google Haritalar
+// 75. Sk. No:6/A, Rungucpasa, Karacabey adresini cozumler. Anahtarsiz embed
+// adresi kullanilir.
+const STORE_ADDRESS = "Runguçpaşa Mah. 75. Sk. No:6/A Karacabey/Bursa";
+const MAP_QUERY = "75. Sk. No:6/A, Runguçpaşa, Karacabey, Bursa";
 const MAP_SRC = `https://maps.google.com/maps?q=${encodeURIComponent(MAP_QUERY)}&hl=tr&z=16&output=embed`;
 
 const sectionTitleClass = "text-[10px] font-medium tracking-[1px] uppercase text-ink";
