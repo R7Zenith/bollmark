@@ -79,7 +79,11 @@ const CATEGORY_MAP: Record<string, string> = {
   SWEATSHIRTS: "Sweatshirt",
   "SPOR AYAKKABI": "Ayakkabı",
   ÇORAP: "Çorap",
-  CORAP: "Çorap"
+  CORAP: "Çorap",
+  KAZAK: "Kazak & Süveter",
+  BLUZ: "Bluz",
+  PANTOLON: "Pantolon",
+  YELEK: "Yelek"
 };
 
 export function mapCategoryName(categoryRaw: string): string | null {
@@ -363,10 +367,16 @@ function titleCaseTr(text: string): string {
 async function resolveBrandId(tx: Tx, brandName: string): Promise<string | null> {
   const trimmed = brandName.trim();
   if (!trimmed) return null;
-  const existing = await tx.brand.findFirst({ where: { name: { equals: trimmed, mode: "insensitive" } } });
-  if (existing) return existing.id;
   const displayName = titleCaseTr(trimmed);
-  const created = await tx.brand.create({ data: { name: displayName, slug: slugifyTr(displayName) } });
+  const slug = slugifyTr(displayName);
+  // Önce slug ile aranır: Postgres'in insensitive karşılaştırması Türkçe "İ"yi "i" ile
+  // eşleştirmediği için "DİLVİN" adla bulunamaz, marka yeniden oluşturulmaya çalışılır ve
+  // slug @unique ihlaliyle tüm aktarım geri alınırdı.
+  const existing =
+    (await tx.brand.findUnique({ where: { slug } })) ??
+    (await tx.brand.findFirst({ where: { name: { equals: displayName, mode: "insensitive" } } }));
+  if (existing) return existing.id;
+  const created = await tx.brand.create({ data: { name: displayName, slug } });
   return created.id;
 }
 

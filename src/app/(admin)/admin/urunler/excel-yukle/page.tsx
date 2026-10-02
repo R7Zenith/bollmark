@@ -19,7 +19,8 @@ export default async function ExcelImportPage() {
       <h1 className="mt-2 text-2xl font-semibold text-admin-text">Excel&apos;den Toplu Ürün Yükle</h1>
       <p className="mt-1 text-sm text-admin-text-muted">
         Checklist excel&apos;inden ürün ve varyantları içe aktarın. Yeni ürünler için, markası desteklenen
-        markalardan (Koton, Slazenger) renk bazlı görseller ve ürün açıklaması otomatik olarak bulunur.
+        markalardan (Koton, Slazenger) renk bazlı görseller ve ürün açıklaması otomatik olarak bulunur. Diğer
+        markalar (ör. Dilvin) sadece ürün ve varyant olarak aktarılır, görselleri elle eklenir.
       </p>
 
       <div className="mt-6">
