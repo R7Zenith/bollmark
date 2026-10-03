@@ -4,7 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { enrichFromUrl } from "@/lib/koton-images";
 import { enrichFromUrlSlazenger } from "@/lib/slazenger-images";
-import { resolveImageSourceForBrand } from "@/lib/brand-image-sources";
+import { addImagesFromLink } from "@/lib/link-images";
+import { isManualLinkBrand, resolveImageSourceForBrand } from "@/lib/brand-image-sources";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 export const maxDuration = 30;
@@ -37,6 +38,30 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (!product.code) {
     return NextResponse.json({ error: "Bu ürünün ürün kodu kayıtlı değil." }, { status: 400 });
   }
+
+  // Elle linkli markalar (orn. Quzu): renk otomatik eslestirilmez, admin'in sectigi renge
+  // (body.color) linkteki sayfanin tum fotograflari eklenir. Urunun rengi yoksa genel
+  // galeriye eklenir.
+  if (isManualLinkBrand(product.brand?.name)) {
+    if (!/^https:\/\//i.test(url)) return NextResponse.json({ error: "Geçerli bir https:// linki girin." }, { status: 400 });
+    const colorValues = product.variants
+      .flatMap((v) => v.options)
+      .filter((opt) => opt.value.attribute.name === "Renk")
+      .map((opt) => opt.value);
+    const colorLabel = typeof body?.color === "string" ? body.color : "";
+    const colorValue = colorValues.find((v) => v.value === colorLabel);
+    if (colorValues.length > 0 && !colorValue) {
+      return NextResponse.json({ error: "Fotoğrafların ekleneceği rengi seçin." }, { status: 400 });
+    }
+    const result = await addImagesFromLink(
+      { id: product.id, code: product.code, name: product.name },
+      url,
+      colorValue ? { label: colorValue.value, valueId: colorValue.id } : null
+    );
+    if (result.imagesAdded > 0) revalidateCatalog(product.slug);
+    return NextResponse.json({ ...result, missingColors: [] });
+  }
+
   const imageSource = resolveImageSourceForBrand(product.brand?.name);
 
   // Marka BRAND_IMAGE_SOURCES'ta kayitliysa sadece o markanin domain'i kabul edilir

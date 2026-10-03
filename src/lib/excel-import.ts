@@ -83,7 +83,14 @@ const CATEGORY_MAP: Record<string, string> = {
   KAZAK: "Kazak & Süveter",
   BLUZ: "Bluz",
   PANTOLON: "Pantolon",
-  YELEK: "Yelek"
+  YELEK: "Yelek",
+  ETEK: "Etek",
+  MONT: "Mont & Kaban",
+  KABAN: "Mont & Kaban",
+  GÖMLEK: "Gömlek",
+  CEKET: "Ceket",
+  HIRKA: "Hırka",
+  TRENÇKOT: "Trençkot"
 };
 
 export function mapCategoryName(categoryRaw: string): string | null {

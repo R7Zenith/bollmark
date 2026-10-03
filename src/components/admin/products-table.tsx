@@ -31,6 +31,9 @@ export interface ProductRow {
   missingColorCount: number;
   // Urunun sezonu (bkz. lib/seasons.ts) - arsiv listesinde gonderilmiyor.
   seasonName?: string | null;
+  // "Linkle Ekle" otomatik renk eslestirmez, fotograflarin hangi renge eklenecegini
+  // sorar (bkz. brand-image-sources.ts isManualLinkBrand).
+  linkAsksColor?: boolean;
 }
 
 const statusLabel: Record<string, string> = { DRAFT: "Taslak", PUBLISHED: "Yayında", ARCHIVED: "Arşiv" };
@@ -69,6 +72,9 @@ export function ProductsTable({
   const [seasonTarget, setSeasonTarget] = useState<{ ids: string[]; clearSelection: () => void } | null>(null);
   const [seasonDraft, setSeasonDraft] = useState("");
   const [savingSeason, setSavingSeason] = useState(false);
+  const [linkTarget, setLinkTarget] = useState<ProductRow | null>(null);
+  const [linkColor, setLinkColor] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
 
   async function handleSezonAta() {
     if (!seasonTarget) return;
@@ -126,18 +132,28 @@ export function ProductsTable({
     }
   }
 
-  async function handleGorselEkle(id: string) {
+  function handleLinkleEkleAc(row: ProductRow) {
+    if (row.linkAsksColor) {
+      setLinkColor(row.colors.length === 1 ? row.colors[0] : "");
+      setLinkUrl("");
+      setLinkTarget(row);
+      return;
+    }
     const url = window.prompt(
       "Ürünün markasının sitesindeki ürün sayfasının linkini yapıştırın (adres çubuğundaki linki kopyalayın). Görseller otomatik olarak eklenecek:"
     );
-    if (!url || !url.trim()) return;
+    if (url) handleGorselEkle(row.id, url);
+  }
+
+  async function handleGorselEkle(id: string, url: string, color?: string) {
+    if (!url.trim()) return;
 
     setAddingImageIds((prev) => new Set(prev).add(id));
     try {
       const res = await fetch(`/api/admin/urunler/${id}/gorsel-ekle`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url: url.trim() })
+        body: JSON.stringify({ url: url.trim(), color })
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -413,7 +429,7 @@ export function ProductsTable({
           {(!row.imageUrl || row.missingColorCount > 0) && (
             <IconButton
               title="Linkle Ekle"
-              onClick={() => handleGorselEkle(row.id)}
+              onClick={() => handleLinkleEkleAc(row)}
               disabled={addingImageIds.has(row.id)}
               className="h-9 w-9 md:h-8 md:w-8"
             >
@@ -458,6 +474,65 @@ export function ProductsTable({
 
   return (
     <>
+      {linkTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md space-y-4 rounded-lg border border-admin-border bg-admin-surface p-5 text-sm shadow-lg">
+            <div>
+              <p className="font-medium text-admin-text">Linkle fotoğraf ekle</p>
+              <p className="mt-0.5 text-xs text-admin-text-muted">{linkTarget.name}</p>
+            </div>
+            {linkTarget.colors.length > 0 && (
+              <div>
+                <p className="mb-1.5 text-xs text-admin-text-muted">Fotoğraflar hangi renge eklensin?</p>
+                <div className="flex flex-wrap gap-2">
+                  {linkTarget.colors.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setLinkColor(color)}
+                      className={`rounded-md border px-3 py-1.5 text-sm ${
+                        linkColor === color
+                          ? "border-admin-accent bg-admin-accent/10 text-admin-accent"
+                          : "border-admin-border text-admin-text hover:border-admin-accent"
+                      }`}
+                    >
+                      {color}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <input
+              type="url"
+              autoFocus
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="Ürün sayfasının linkini yapıştırın"
+              className="w-full rounded-md border border-admin-border px-3 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setLinkTarget(null)}
+                className="rounded-md px-3 py-1.5 text-sm text-admin-text-muted hover:text-admin-text"
+              >
+                Vazgeç
+              </button>
+              <button
+                type="button"
+                disabled={!linkUrl.trim() || (linkTarget.colors.length > 0 && !linkColor)}
+                onClick={() => {
+                  handleGorselEkle(linkTarget.id, linkUrl, linkColor || undefined);
+                  setLinkTarget(null);
+                }}
+                className="rounded-md bg-admin-accent px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+              >
+                Fotoğrafları Ekle
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {seasonTarget && seasons && (
         <div className="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-admin-border bg-admin-surface px-4 py-2.5 text-sm">
           <span className="text-admin-text">{seasonTarget.ids.length} ürüne sezon ata:</span>

@@ -8,6 +8,7 @@ import { EmptyState } from "@/components/admin/empty-state";
 import { ProductsFilters } from "@/components/admin/products-filters";
 import { ProductsPagination } from "@/components/admin/products-pagination";
 import { ProductsTable, type ProductRow } from "@/components/admin/products-table";
+import { isManualLinkBrand } from "@/lib/brand-image-sources";
 
 type SortKey = "name" | "price" | "stock" | "createdAt" | "photo";
 const sortKeys: SortKey[] = ["name", "price", "stock", "createdAt", "photo"];
@@ -116,7 +117,8 @@ export default async function AdminProductsPage({
     // Renk (isColor:true) varyant secenegini okuyabilmek icin secenek
     // degerleriyle birlikte cekiliyor - listede "Renkler" kolonu icin.
     variants: { include: variantOptionsInclude },
-    season: { select: { name: true } }
+    season: { select: { name: true } },
+    brand: { select: { name: true } }
   } as const;
 
   // Ikinci anahtar { id: "asc" }: Excel'den toplu eklenen urunlerde createdAt ayni
@@ -200,7 +202,8 @@ export default async function AdminProductsPage({
       imageUrl: p.images[0]?.url ?? p.optionImages[0]?.url ?? null,
       colors: Array.from(colorSet),
       missingColorCount,
-      seasonName: p.season?.name ?? null
+      seasonName: p.season?.name ?? null,
+      linkAsksColor: isManualLinkBrand(p.brand?.name)
     };
   });
 

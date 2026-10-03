@@ -20,7 +20,7 @@ export default async function ExcelImportPage() {
       <p className="mt-1 text-sm text-admin-text-muted">
         Checklist excel&apos;inden ürün ve varyantları içe aktarın. Yeni ürünler için, markası desteklenen
         markalardan (Koton, Slazenger) renk bazlı görseller ve ürün açıklaması otomatik olarak bulunur. Diğer
-        markalar (ör. Dilvin) sadece ürün ve varyant olarak aktarılır, görselleri elle eklenir.
+        markalar (ör. Dilvin, Quzu) sadece ürün ve varyant olarak aktarılır, görselleri elle eklenir.
       </p>
 
       <div className="mt-6">

@@ -32,6 +32,16 @@ export const BRAND_IMAGE_SOURCES: Record<string, ImageSource> = {
   SLAZENGER: { baseUrl: "https://www.slazenger.com.tr", displayName: "Slazenger", strategy: "slazenger-arama" }
 };
 
+// Otomatik arama YAPILMAYAN markalar: gorseller yalniz "Linkle Ekle" ile, admin'in
+// yapistirdigi urun linkinden ve elle sectigi renge eklenir (bkz. link-images.ts).
+// BRAND_IMAGE_SOURCES'a bilerek eklenmiyorlar - eklenirlerse Excel aktariminda otomatik
+// gorsel aramasi tetiklenir.
+const MANUAL_LINK_BRANDS = new Set(["QUZU"]);
+
+export function isManualLinkBrand(brandName: string | null | undefined): boolean {
+  return !!brandName && MANUAL_LINK_BRANDS.has(brandName.trim().toUpperCase());
+}
+
 export function resolveImageSourceForBrand(brandName: string | null | undefined): ImageSource | null {
   if (!brandName) return null;
   return BRAND_IMAGE_SOURCES[brandName.trim().toUpperCase()] ?? null;
