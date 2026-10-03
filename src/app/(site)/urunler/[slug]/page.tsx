@@ -152,7 +152,7 @@ export default async function ProductPage({
                   name: p.name,
                   priceCents: p.priceCents,
                   compareAtCents: p.compareAtCents,
-                  image: firstImageUrl(p) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800",
+                  image: firstImageUrl(p) ?? "/gorsel-yakinda.svg",
                   priceResolution: resolveProductDisplayPrice(automaticCampaigns, p),
                   quickAddVariants: p.quickAddVariants,
                   greyBackdrop: usesGreyBackdrop(p.brand?.name)

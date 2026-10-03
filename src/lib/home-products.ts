@@ -4,7 +4,7 @@ import type { ProductCardData } from "@/components/product-card";
 
 type PublishedProduct = Awaited<ReturnType<typeof getPublishedProducts>>[number];
 
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800";
+const FALLBACK_IMAGE = "/gorsel-yakinda.svg";
 
 // Ana sayfadaki iki urun bolumu (Yeni Gelenler + Cok Satanlar) ayni kart
 // verisini kullanir; donusum iki yerde ayri yazilip sapmasin diye burada tek.

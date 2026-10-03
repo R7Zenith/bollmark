@@ -16,7 +16,7 @@ import type { ProductCardData } from "@/components/product-card";
 // aksiyonunun (urunler/actions.ts) ortak listeleme hatti: ikisi ayni
 // fonksiyonu kullandigi icin sonraki partiler ilk render'dan asla sapmaz.
 
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800";
+const FALLBACK_IMAGE = "/gorsel-yakinda.svg";
 
 // Ust cubuktaki siralama secimi. Stogu biten girisler her durumda listenin
 // sonunda kalir (bkz. lib/catalog.ts) - siralama yalnizca stokta olanlar

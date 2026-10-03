@@ -271,7 +271,7 @@ export function ProductViewer({
     const urls = selectedColorValueId ? colorGalleries[selectedColorValueId] : undefined;
     if (urls && urls.length > 0) return urls.map((url) => ({ url, alt: productName }));
     if (fallbackImages.length > 0) return fallbackImages;
-    return [{ url: "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1200", alt: productName }];
+    return [{ url: "/gorsel-yakinda.svg", alt: productName }];
   }, [selectedColorValueId, colorGalleries, fallbackImages, productName]);
 
   // Renk degisince mobil galerinin ana gorseli, yeni set'in disinda kalan

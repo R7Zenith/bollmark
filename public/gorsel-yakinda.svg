@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 800" role="img" aria-label="Görsel yakında">
+  <style>
+    .aski { transform-origin: 300px 276px; animation: salla 3.6s ease-in-out infinite; }
+    @keyframes salla { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(5deg); } }
+  </style>
+  <rect width="600" height="800" fill="#efefef" />
+  <line x1="215" y1="275" x2="385" y2="275" stroke="#111111" stroke-opacity="0.2" stroke-width="3" stroke-linecap="round" />
+  <g class="aski" fill="none" stroke="#111111" stroke-width="5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M300 322 v-14 a16 16 0 1 0 -16 -16" />
+    <path d="M300 322 L176 396 H424 Z" />
+  </g>
+  <text x="300" y="478" text-anchor="middle" font-family="Poppins, system-ui, -apple-system, 'Segoe UI', sans-serif" font-size="28" letter-spacing="0.5" fill="#111111" fill-opacity="0.6">Görsel yakında</text>
+</svg>

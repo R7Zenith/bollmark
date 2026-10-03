@@ -318,7 +318,11 @@ export function productToCatalogEntries(p: CatalogEntryProduct): CatalogEntry[] 
       greyBackdrop
     });
   }
-  return entries;
+  // Fotografi olmayan renk (ne kendi galerisi ne genel urun gorseli var) kartta
+  // varsayilan gorselle cikmasin diye listelenmez. Hicbir rengin fotografi yoksa
+  // urun katalogdan tamamen kaybolmasin diye tum girisler oldugu gibi kalir.
+  const withImage = entries.filter((e) => e.image);
+  return withImage.length > 0 ? withImage : entries;
 }
 
 export async function getCategories() {

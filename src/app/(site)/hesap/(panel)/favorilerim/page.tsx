@@ -30,7 +30,7 @@ export default async function HesapFavorilerimPage() {
     name: item.product.name,
     priceCents: item.product.priceCents,
     compareAtCents: item.product.compareAtCents,
-    image: firstImageUrl(item.product) ?? "https://images.unsplash.com/photo-1445205170230-053b83016050?w=800",
+    image: firstImageUrl(item.product) ?? "/gorsel-yakinda.svg",
     // Bu liste otomatik kampanyalari sorgulamiyor - sadece elle indirim
     // (compareAtCents) varsa yansitilir (bkz. lib/coupons.ts
     // resolveProductDisplayPrice, product-card.tsx'in tek fiyat kaynagi).

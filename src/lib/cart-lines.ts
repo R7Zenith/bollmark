@@ -20,7 +20,7 @@ export const cartLinesSchema = z.array(cartLineInputSchema).max(MAX_CART_LINES);
 export type CartLineInput = z.infer<typeof cartLineInputSchema>;
 
 // product-viewer.tsx'teki galeri fallback'i ile ayni gorsel.
-const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1200";
+const FALLBACK_IMAGE = "/gorsel-yakinda.svg";
 
 export async function resolveCartLines(inputs: CartLineInput[]): Promise<ResolvedCartLine[]> {
   if (inputs.length === 0) return [];
