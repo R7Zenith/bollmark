@@ -98,12 +98,12 @@ export default async function HesapAdreslerimPage({
         <h3 className="font-display text-lg">Yeni Adres Ekle</h3>
         <form action={addAddress.bind(null, customerId)} className="mt-4 grid grid-cols-2 gap-3">
           <input name="label" required placeholder="Etiket (Ev, İş...)" className={addressInputClass} />
-          <input name="name" required placeholder="Ad Soyad" className={addressInputClass} />
-          <input name="phone" required placeholder="Telefon" className={addressInputClass} />
-          <input name="postalCode" placeholder="Posta Kodu" className={addressInputClass} />
-          <input name="address" required placeholder="Adres" className={`col-span-2 ${addressInputClass}`} />
-          <input name="city" required placeholder="İl" className={addressInputClass} />
-          <input name="district" required placeholder="İlçe" className={addressInputClass} />
+          <input name="name" required autoComplete="name" placeholder="Ad Soyad" className={addressInputClass} />
+          <input name="phone" required autoComplete="tel" placeholder="Telefon" className={addressInputClass} />
+          <input name="postalCode" autoComplete="postal-code" placeholder="Posta Kodu" className={addressInputClass} />
+          <input name="address" required autoComplete="street-address" placeholder="Adres" className={`col-span-2 ${addressInputClass}`} />
+          <input name="city" required autoComplete="address-level1" placeholder="İl" className={addressInputClass} />
+          <input name="district" required autoComplete="address-level2" placeholder="İlçe" className={addressInputClass} />
           <button className="col-span-2 rounded-full bg-ink py-4 text-[10px] uppercase tracking-[1px] text-white hover:bg-ink/90">
             Adres Ekle
           </button>

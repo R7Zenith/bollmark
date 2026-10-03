@@ -117,14 +117,14 @@ export default function HesapGirisPage() {
           </div>
 
           {tab === "giris" ? (
-            <form onSubmit={handleLogin} className="mt-8 space-y-5">
+            <form key="giris-form" onSubmit={handleLogin} className="mt-8 space-y-5">
               <div className="space-y-2">
-                <label className={labelClass}>E-posta</label>
-                <input name="email" type="email" required className={inputClass} />
+                <label htmlFor="giris-email" className={labelClass}>E-posta</label>
+                <input id="giris-email" name="email" type="email" autoComplete="username" required className={inputClass} />
               </div>
               <div className="space-y-2">
-                <label className={labelClass}>Şifre</label>
-                <input name="password" type="password" required className={inputClass} />
+                <label htmlFor="giris-password" className={labelClass}>Şifre</label>
+                <input id="giris-password" name="password" type="password" autoComplete="current-password" required className={inputClass} />
               </div>
               {error && <p className="text-sm text-red-600">{error}</p>}
               <button type="submit" disabled={loading} className={primaryButtonClass}>
@@ -136,22 +136,22 @@ export default function HesapGirisPage() {
               </a>
             </form>
           ) : (
-            <form onSubmit={handleRegister} className="mt-8 space-y-5">
+            <form key="kayit-form" onSubmit={handleRegister} className="mt-8 space-y-5">
               <div className="space-y-2">
-                <label className={labelClass}>Ad Soyad</label>
-                <input name="name" required className={inputClass} />
+                <label htmlFor="kayit-name" className={labelClass}>Ad Soyad</label>
+                <input id="kayit-name" name="name" type="text" autoComplete="name" required className={inputClass} />
               </div>
               <div className="space-y-2">
-                <label className={labelClass}>E-posta</label>
-                <input name="email" type="email" required className={inputClass} />
+                <label htmlFor="kayit-email" className={labelClass}>E-posta</label>
+                <input id="kayit-email" name="email" type="email" autoComplete="email" required className={inputClass} />
               </div>
               <div className="space-y-2">
-                <label className={labelClass}>Telefon (opsiyonel)</label>
-                <input name="phone" className={inputClass} />
+                <label htmlFor="kayit-phone" className={labelClass}>Telefon (opsiyonel)</label>
+                <input id="kayit-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" className={inputClass} />
               </div>
               <div className="space-y-2">
-                <label className={labelClass}>Şifre (en az 8 karakter)</label>
-                <input name="password" type="password" required minLength={8} className={inputClass} />
+                <label htmlFor="kayit-password" className={labelClass}>Şifre (en az 8 karakter)</label>
+                <input id="kayit-password" name="password" type="password" autoComplete="new-password" required minLength={8} className={inputClass} />
               </div>
               {error && <p className="text-sm text-red-600">{error}</p>}
               <button type="submit" disabled={loading} className={primaryButtonClass}>

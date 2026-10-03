@@ -416,6 +416,7 @@ export default function CheckoutForm({
               name="customerEmail"
               required
               type="email"
+              autoComplete="email"
               placeholder="E-posta"
               defaultValue={customerEmail ?? ""}
               onBlur={handleEmailBlur}
@@ -428,6 +429,7 @@ export default function CheckoutForm({
               key={`name-${addressChoice}`}
               name="customerName"
               required
+              autoComplete="name"
               placeholder="Ad Soyad"
               defaultValue={selectedAddress?.name ?? ""}
               readOnly={!!selectedAddress}
@@ -437,6 +439,7 @@ export default function CheckoutForm({
               key={`phone-${addressChoice}`}
               name="customerPhone"
               required
+              autoComplete="tel"
               placeholder="Telefon"
               defaultValue={selectedAddress?.phone ?? ""}
               readOnly={!!selectedAddress}
@@ -446,6 +449,7 @@ export default function CheckoutForm({
               key={`address-${addressChoice}`}
               name="shippingAddress"
               required
+              autoComplete="street-address"
               placeholder="Adres"
               defaultValue={selectedAddress?.address ?? ""}
               readOnly={!!selectedAddress}
@@ -456,6 +460,7 @@ export default function CheckoutForm({
                 key={`city-${addressChoice}`}
                 name="city"
                 required
+                autoComplete="address-level1"
                 placeholder="İl"
                 defaultValue={selectedAddress?.city ?? ""}
                 readOnly={!!selectedAddress}
@@ -465,6 +470,7 @@ export default function CheckoutForm({
                 key={`district-${addressChoice}`}
                 name="district"
                 required
+                autoComplete="address-level2"
                 placeholder="İlçe"
                 defaultValue={selectedAddress?.district ?? ""}
                 readOnly={!!selectedAddress}
@@ -473,6 +479,7 @@ export default function CheckoutForm({
               <input
                 key={`postal-${addressChoice}`}
                 name="postalCode"
+                autoComplete="postal-code"
                 placeholder="Posta Kodu"
                 defaultValue={selectedAddress?.postalCode ?? ""}
                 readOnly={!!selectedAddress}
