@@ -1,4 +1,5 @@
 import { del } from "@vercel/blob";
+import { deleteR2Urls, isR2Url } from "@/lib/image-storage";
 
 // Vercel Blob'a yuklenen dosyalarin url'leri hep bu host'ta biter.
 // Kullanicinin elle yapistirdigi disaridan (Unsplash vb.) url'ler bu deseni
@@ -14,14 +15,17 @@ function isManagedBlobUrl(url: string): boolean {
 }
 
 /**
- * Verilen url listesinden sadece Vercel Blob'da barinanlari siler.
+ * Verilen url listesinden sadece Vercel Blob'da ve R2'de (bkz. image-storage.ts)
+ * barinanlari siler.
  * Bir urun/varyant guncellenirken veya silinirken artik kullanilmayan
  * gorsellerin depoda birikmesini onlemek icin kullanilir. Silme basarisiz
  * olsa bile (ag hatasi, zaten silinmis olma vb.) hatayi yutar - bu temizlik
  * asil islemi (urun kaydetme/silme) asla engellememeli.
  */
 export async function deleteBlobUrls(urls: string[]): Promise<void> {
-  const targets = Array.from(new Set(urls)).filter(isManagedBlobUrl);
+  const unique = Array.from(new Set(urls));
+  await deleteR2Urls(unique.filter(isR2Url));
+  const targets = unique.filter(isManagedBlobUrl);
   if (targets.length === 0) return;
   try {
     await del(targets);

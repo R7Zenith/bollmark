@@ -6,12 +6,12 @@
 // sıralı ve hız sınırlı atılır (ürün başına ~1 istek, aralarda kısa bekleme) - toplu/
 // paralel tarama yapılmaz. Bir üründe arama başarısız olursa (bulunamadı/ağ hatası)
 // hata yutulur, diğer ürünlerin aktarımı durmaz.
-import { put } from "@vercel/blob";
 import * as cheerio from "cheerio";
 import { prisma } from "@/lib/prisma";
 import type { KotonEnrichmentTarget } from "@/lib/excel-import";
 import { sanitizeDescriptionHtml } from "@/lib/description-html";
 import { compressImage } from "@/lib/image-compress";
+import { uploadImage } from "@/lib/image-storage";
 
 const REQUEST_DELAY_MS = 900;
 const MAX_IMAGES_PER_COLOR = 6;
@@ -239,12 +239,7 @@ export async function reuploadImageToBlob(
     if (!res.ok) return null;
     const original = Buffer.from(await res.arrayBuffer());
     const { buffer, contentType, ext } = await compressImage(original);
-    const blob = await put(`${folder}/${pathHint}.${ext}`, buffer, {
-      access: "public",
-      contentType,
-      addRandomSuffix: true
-    });
-    return blob.url;
+    return await uploadImage({ folder, nameHint: pathHint, buffer, contentType, ext });
   } catch (error) {
     console.error(`Görsel indirilip yeniden yüklenemedi (${sourceUrl}):`, error);
     return null;

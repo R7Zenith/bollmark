@@ -20,7 +20,8 @@ const nextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "images.unsplash.com" },
-      { protocol: "https", hostname: "**.public.blob.vercel-storage.com" }
+      { protocol: "https", hostname: "**.public.blob.vercel-storage.com" },
+      { protocol: "https", hostname: "img.bollmark.com" }
     ],
     // Blob'daki kaynaklar yuklenirken zaten max 1600px'e sikistiriliyor
     // (lib/image-compress.ts); ustundeki genislikler bos yere donusum sayar.
