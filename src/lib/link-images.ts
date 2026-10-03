@@ -6,8 +6,10 @@
 // - Shopify (quzu.com.tr): `/products/<handle>.json` -> product.images[].src
 // - Diger (quzuwholesale.com / Ticimax vb.): sayfadaki schema.org Product ld+json `image`
 import * as cheerio from "cheerio";
+import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
-import { reuploadImageToBlob } from "@/lib/koton-images";
+import { compressImage } from "@/lib/image-compress";
+import { uploadImage } from "@/lib/image-storage";
 
 const USER_AGENT = "Mozilla/5.0 (compatible; BollmarkImportBot/1.0; +https://www.bollmark.com)";
 const FETCH_TIMEOUT_MS = 8000;
@@ -50,6 +52,34 @@ async function fetchImageUrls(productUrl: string): Promise<string[] | null> {
   }
 }
 
+// Sitedeki kart ve urun sayfasi cercevesi 3:4 (aspect-[3/4] + object-cover). Bu
+// sitelerin fotograflari 2:3 (1200x1800) oldugu icin mankenin basi ve ayaklari
+// kirpiliyordu. Fotograf 3:4'ten dar ise saga ve sola, kenarin ayna goruntusuyle
+// esit serit eklenip 3:4'e tamamlanir; 3:4 veya daha genis fotograflara dokunulmaz.
+export async function padToCardRatio(buffer: Buffer): Promise<Buffer> {
+  const { width, height } = await sharp(buffer).metadata();
+  if (!width || !height) return buffer;
+  const pad = Math.round((height * 3) / 4) - width;
+  if (pad <= 0) return buffer;
+  const left = Math.floor(pad / 2);
+  return sharp(buffer).extend({ left, right: pad - left, extendWith: "mirror" }).png().toBuffer();
+}
+
+async function downloadAndUpload(sourceUrl: string, nameHint: string): Promise<string | null> {
+  try {
+    const res = await fetch(sourceUrl, {
+      headers: { "User-Agent": USER_AGENT },
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
+    });
+    if (!res.ok) return null;
+    const padded = await padToCardRatio(Buffer.from(await res.arrayBuffer()));
+    return await uploadImage({ folder: "link-import", nameHint, ...(await compressImage(padded)) });
+  } catch (error) {
+    console.error(`Görsel indirilip yüklenemedi (${sourceUrl}):`, error);
+    return null;
+  }
+}
+
 // color null ise (urunun renk varyanti yok) fotograflar urunun genel galerisine eklenir.
 // Mevcut fotograflarin SONUNA eklenir, hicbir sey silinmez.
 export async function addImagesFromLink(
@@ -63,7 +93,7 @@ export async function addImagesFromLink(
   const uploaded: string[] = [];
   for (const sourceUrl of sourceUrls.slice(0, MAX_IMAGES)) {
     const hint = `${product.code}-${color ? `${color.label}-` : ""}${uploaded.length}`;
-    const blobUrl = await reuploadImageToBlob(sourceUrl, hint, "link-import");
+    const blobUrl = await downloadAndUpload(sourceUrl, hint);
     if (blobUrl) uploaded.push(blobUrl);
   }
   if (uploaded.length === 0) return { found: true, imagesAdded: 0 };
