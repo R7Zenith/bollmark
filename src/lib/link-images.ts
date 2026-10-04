@@ -1,10 +1,11 @@
-// Otomatik arama yapilmayan markalar (orn. Quzu, bkz. brand-image-sources.ts
+// Otomatik arama yapilmayan markalar (orn. Quzu, Sateen, bkz. brand-image-sources.ts
 // MANUAL_LINK_BRANDS) icin "Linkle Ekle" gorsel cekici: admin urun sayfasinin linkini
 // yapistirir ve rengi kendisi secer. Sayfadaki fotograflarin hepsi secilen renge yazilir
 // (bu sitelerde her renk ayri bir urun sayfasi). Urun kodu dogrulamasi bilerek yapilmiyor -
 // hangi link verilirse o cekilir. Iki sayfa turu destekleniyor:
 // - Shopify (quzu.com.tr): `/products/<handle>.json` -> product.images[].src
-// - Diger (quzuwholesale.com / Ticimax vb.): sayfadaki schema.org Product ld+json `image`
+// - Diger (quzuwholesale.com, saten.com, toptan.sateen.com / Ticimax vb.): sayfadaki
+//   schema.org Product ld+json `image`
 import * as cheerio from "cheerio";
 import sharp from "sharp";
 import { prisma } from "@/lib/prisma";
@@ -65,15 +66,16 @@ export async function padToCardRatio(buffer: Buffer): Promise<Buffer> {
   return sharp(buffer).extend({ left, right: pad - left, extendWith: "mirror" }).png().toBuffer();
 }
 
-async function downloadAndUpload(sourceUrl: string, nameHint: string): Promise<string | null> {
+async function downloadAndUpload(sourceUrl: string, nameHint: string, padToCard: boolean): Promise<string | null> {
   try {
     const res = await fetch(sourceUrl, {
       headers: { "User-Agent": USER_AGENT },
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS)
     });
     if (!res.ok) return null;
-    const padded = await padToCardRatio(Buffer.from(await res.arrayBuffer()));
-    return await uploadImage({ folder: "link-import", nameHint, ...(await compressImage(padded)) });
+    const original = Buffer.from(await res.arrayBuffer());
+    const image = padToCard ? await padToCardRatio(original) : original;
+    return await uploadImage({ folder: "link-import", nameHint, ...(await compressImage(image)) });
   } catch (error) {
     console.error(`Görsel indirilip yüklenemedi (${sourceUrl}):`, error);
     return null;
@@ -81,11 +83,13 @@ async function downloadAndUpload(sourceUrl: string, nameHint: string): Promise<s
 }
 
 // color null ise (urunun renk varyanti yok) fotograflar urunun genel galerisine eklenir.
-// Mevcut fotograflarin SONUNA eklenir, hicbir sey silinmez.
+// Mevcut fotograflarin SONUNA eklenir, hicbir sey silinmez. padToCard: fotograflar 3:4'e
+// ayna dolguyla tamamlansin mi (bkz. brand-image-sources.ts padsLinkImagesToCard).
 export async function addImagesFromLink(
   product: { id: string; code: string; name: string },
   productUrl: string,
-  color: { label: string; valueId: string } | null
+  color: { label: string; valueId: string } | null,
+  padToCard: boolean
 ): Promise<{ found: boolean; imagesAdded: number }> {
   const sourceUrls = await fetchImageUrls(productUrl);
   if (!sourceUrls) return { found: false, imagesAdded: 0 };
@@ -93,7 +97,7 @@ export async function addImagesFromLink(
   const uploaded: string[] = [];
   for (const sourceUrl of sourceUrls.slice(0, MAX_IMAGES)) {
     const hint = `${product.code}-${color ? `${color.label}-` : ""}${uploaded.length}`;
-    const blobUrl = await downloadAndUpload(sourceUrl, hint);
+    const blobUrl = await downloadAndUpload(sourceUrl, hint, padToCard);
     if (blobUrl) uploaded.push(blobUrl);
   }
   if (uploaded.length === 0) return { found: true, imagesAdded: 0 };

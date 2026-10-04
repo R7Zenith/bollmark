@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { enrichFromUrl } from "@/lib/koton-images";
 import { enrichFromUrlSlazenger } from "@/lib/slazenger-images";
 import { addImagesFromLink } from "@/lib/link-images";
-import { isManualLinkBrand, resolveImageSourceForBrand } from "@/lib/brand-image-sources";
+import { isManualLinkBrand, padsLinkImagesToCard, resolveImageSourceForBrand } from "@/lib/brand-image-sources";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 export const maxDuration = 30;
@@ -39,7 +39,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: "Bu ürünün ürün kodu kayıtlı değil." }, { status: 400 });
   }
 
-  // Elle linkli markalar (orn. Quzu): renk otomatik eslestirilmez, admin'in sectigi renge
+  // Elle linkli markalar (orn. Quzu, Sateen): renk otomatik eslestirilmez, admin'in sectigi renge
   // (body.color) linkteki sayfanin tum fotograflari eklenir. Urunun rengi yoksa genel
   // galeriye eklenir.
   if (isManualLinkBrand(product.brand?.name)) {
@@ -56,7 +56,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const result = await addImagesFromLink(
       { id: product.id, code: product.code, name: product.name },
       url,
-      colorValue ? { label: colorValue.value, valueId: colorValue.id } : null
+      colorValue ? { label: colorValue.value, valueId: colorValue.id } : null,
+      padsLinkImagesToCard(product.brand?.name)
     );
     if (result.imagesAdded > 0) revalidateCatalog(product.slug);
     return NextResponse.json({ ...result, missingColors: [] });

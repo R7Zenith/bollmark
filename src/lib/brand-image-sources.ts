@@ -36,10 +36,19 @@ export const BRAND_IMAGE_SOURCES: Record<string, ImageSource> = {
 // yapistirdigi urun linkinden ve elle sectigi renge eklenir (bkz. link-images.ts).
 // BRAND_IMAGE_SOURCES'a bilerek eklenmiyorlar - eklenirlerse Excel aktariminda otomatik
 // gorsel aramasi tetiklenir.
-const MANUAL_LINK_BRANDS = new Set(["QUZU"]);
+const MANUAL_LINK_BRANDS = new Set(["QUZU", "SATEEN"]);
 
 export function isManualLinkBrand(brandName: string | null | undefined): boolean {
   return !!brandName && MANUAL_LINK_BRANDS.has(brandName.trim().toUpperCase());
+}
+
+// "Linkle Ekle" ile gelen fotograflari 3:4'e ayna dolguyla tamamlanan markalar (bkz.
+// link-images.ts padToCardRatio). Listede olmayan elle linkli markalarin (orn. Sateen)
+// fotograflari dolgusuz, yalniz sikistirilarak kaydedilir.
+const CARD_PAD_BRANDS = new Set(["QUZU"]);
+
+export function padsLinkImagesToCard(brandName: string | null | undefined): boolean {
+  return !!brandName && CARD_PAD_BRANDS.has(brandName.trim().toUpperCase());
 }
 
 export function resolveImageSourceForBrand(brandName: string | null | undefined): ImageSource | null {

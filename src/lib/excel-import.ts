@@ -90,7 +90,8 @@ const CATEGORY_MAP: Record<string, string> = {
   GÖMLEK: "Gömlek",
   CEKET: "Ceket",
   HIRKA: "Hırka",
-  TRENÇKOT: "Trençkot"
+  TRENÇKOT: "Trençkot",
+  ELBİSE: "Elbise"
 };
 
 export function mapCategoryName(categoryRaw: string): string | null {
@@ -223,6 +224,10 @@ export function parseColorName(raw: string): string {
   return trimmed.slice(0, slashIndex).trim();
 }
 
+// Checklist'te FIRMAADI yanlis/farkli yazilan markalarin dogru adi (anahtar buyuk harf).
+// Sateen'in dosyasinda FIRMAADI "SATEN" (tek E) geliyor; marka "Sateen" olarak olusmali.
+const BRAND_NAME_ALIASES: Record<string, string> = { SATEN: "SATEEN" };
+
 export function parseExcelFile(buffer: ArrayBuffer | Buffer): ExcelParseResult {
   const workbook = XLSX.read(buffer, { type: "buffer" });
   const sheetName = workbook.SheetNames[0];
@@ -247,7 +252,8 @@ export function parseExcelFile(buffer: ArrayBuffer | Buffer): ExcelParseResult {
     const genderRaw = String(raw["KOD4"] ?? "").trim();
     const categoryRaw = String(raw["KOD3"] ?? "").trim();
     const seasonRaw = String(raw["KOD6"] ?? "").trim();
-    const brandName = String(raw["FIRMAADI"] ?? "").trim() || "Koton";
+    const rawBrandName = String(raw["FIRMAADI"] ?? "").trim() || "Koton";
+    const brandName = BRAND_NAME_ALIASES[rawBrandName.toUpperCase()] ?? rawBrandName;
 
     if (!productCode) {
       errors.push({ row: rowNumber, message: "ÜRÜN KODU boş olamaz." });
