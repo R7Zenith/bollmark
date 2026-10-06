@@ -7,6 +7,7 @@ import { Info } from "lucide-react";
 import { authOptions } from "@/lib/auth";
 import { requireAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { Card } from "@/components/admin/card";
 import { SettingsFeedback } from "@/components/admin/settings-feedback";
 
@@ -46,6 +47,7 @@ async function updateStoreSettings(formData: FormData) {
   });
 
   revalidatePath("/admin/ayarlar");
+  revalidateCatalog();
   redirect("/admin/ayarlar?basarili=magaza");
 }
 

@@ -1,4 +1,5 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { optionPosition, optionValue, variantOptionsInclude, type VariantOptionInclude } from "@/lib/variant-attributes";
 import { usesGreyBackdrop } from "@/lib/image-backdrop";
@@ -180,7 +181,11 @@ export type CatalogEntry = {
   greyBackdrop: boolean;
 };
 
-export async function getCatalogEntries(
+// Katalog verisinin (girisler, kategori filtresi, mega menu) unstable_cache
+// etiketi - lib/revalidate-catalog.ts urun/kategori degisince gecersiz kilar.
+export const CATALOG_TAG = "catalog";
+
+async function buildCatalogEntries(
   categorySlug?: string,
   options?: { featuredFirst?: boolean; genderLabel?: string }
 ): Promise<CatalogEntry[]> {
@@ -219,6 +224,14 @@ export async function getCatalogEntries(
   // listenin sonuna atılır (bkz. getPublishedProducts'taki ayni yorum).
   return entries.sort((a, b) => Number(a.outOfStock) - Number(b.outOfStock));
 }
+
+// Agir sorgu + donusum onbellekte tutulur (argumanlar anahtara girer);
+// CatalogEntry'de Date alani yok, JSON'a cevrilmesi sorun cikarmaz. Urun
+// degisince revalidateCatalog() gecersiz kilar; revalidate 3600 emniyet agi.
+export const getCatalogEntries = unstable_cache(buildCatalogEntries, ["catalog-entries"], {
+  tags: [CATALOG_TAG],
+  revalidate: 3600
+});
 
 // getCatalogEntries'in tek bir urunu (renk sayisi kadar) CatalogEntry'e
 // bolen mantigi - ana sayfadaki "Yeni Gelenler"/"Cok Satanlar" da (bkz.

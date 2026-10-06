@@ -29,8 +29,8 @@ export const metadata: Metadata = {
 
 // Yedek guvence: urun yazan yerler revalidateCatalog() ile sayfayi aninda
 // tazeler; bu, o cagriyi kacirabilecek yollar (elle DB degisikligi vb.) icin
-// en gec 1 dakikada tazelenmesini saglar.
-export const revalidate = 60;
+// en gec 1 saatte tazelenmesini saglar.
+export const revalidate = 3600;
 
 // Kategori kartlarinda "slug'in kendisi VEYA o slug'in alt kategorisi" sayimi -
 // katalog filtresiyle (lib/catalog.ts getPublishedProducts) ayni kural, boylece

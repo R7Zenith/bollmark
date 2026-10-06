@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { Ticket, MousePointerClick, PiggyBank } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { requireAdmin } from "@/lib/require-admin";
 import { Card } from "@/components/admin/card";
 import { StatCard } from "@/components/admin/stat-card";
@@ -85,6 +86,7 @@ async function createCoupon(formData: FormData) {
       detail: fields.name ?? undefined
     });
   }
+  revalidateCatalog();
   redirect("/admin/kampanyalar?basarili=eklendi");
 }
 
@@ -111,6 +113,7 @@ async function updateCoupon(id: string, formData: FormData) {
       detail: `"${fields.name ?? fields.code ?? id}" kampanyası artık elle indirimli ürünlerde ${fields.includeManuallyDiscountedProducts ? "geçerli" : "geçersiz"}.`
     });
   }
+  revalidateCatalog();
   redirect("/admin/kampanyalar?basarili=guncellendi");
 }
 
@@ -123,6 +126,7 @@ async function deleteCoupon(id: string) {
   if (!coupon) redirect("/admin/kampanyalar?hata=bulunamadi");
   if (coupon._count.orders > 0) redirect("/admin/kampanyalar?hata=kullanilmis");
   await prisma.coupon.delete({ where: { id } });
+  revalidateCatalog();
   redirect("/admin/kampanyalar?basarili=silindi");
 }
 

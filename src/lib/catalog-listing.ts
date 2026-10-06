@@ -1,4 +1,5 @@
-import { getCatalogEntries } from "@/lib/catalog";
+import { unstable_cache } from "next/cache";
+import { CATALOG_TAG, getCatalogEntries } from "@/lib/catalog";
 import type { CatalogEntry } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
 import {
@@ -59,6 +60,23 @@ function sortEntries(entries: CatalogEntry[], sort?: string): CatalogEntry[] {
   );
 }
 
+// Ust cubuktaki "Filtrele" listesi - yalnizca su anki cinsiyet kapsaminda
+// gercekten yayinda urunu olan kategoriler (bos filtre secenegi gosterilmez).
+// Onbellekte; urun/kategori degisince revalidateCatalog() gecersiz kilar.
+const getFilterCategories = unstable_cache(
+  (cinsiyet?: string) =>
+    prisma.category.findMany({
+      where: {
+        isActive: true,
+        products: { some: { status: "PUBLISHED", gender: cinsiyet ? cinsiyet : undefined } }
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { name: true, slug: true, imageUrl: true }
+    }),
+  ["catalog-filter-categories"],
+  { tags: [CATALOG_TAG], revalidate: 3600 }
+);
+
 export async function getCatalogListing(params: URLSearchParams) {
   const kategori = params.get("kategori") || undefined;
   const cinsiyet = params.get("cinsiyet") || undefined;
@@ -72,16 +90,7 @@ export async function getCatalogListing(params: URLSearchParams) {
   const [scopedEntries, automaticCampaigns, filterCategories] = await Promise.all([
     getCatalogEntries(kategori, { genderLabel: cinsiyet }),
     getActiveAutomaticPercentCampaigns(prisma),
-    // Ust cubuktaki "Filtrele" listesi - yalnizca su anki cinsiyet kapsaminda
-    // gercekten yayinda urunu olan kategoriler (bos filtre secenegi gosterilmez).
-    prisma.category.findMany({
-      where: {
-        isActive: true,
-        products: { some: { status: "PUBLISHED", gender: cinsiyet ? cinsiyet : undefined } }
-      },
-      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
-      select: { name: true, slug: true, imageUrl: true }
-    })
+    getFilterCategories(cinsiyet)
   ]);
   // Arama varsa facet'ler ve filtreler arama sonuclari uzerinden calisir.
   const rawEntries = ara ? await applySearch(scopedEntries, ara, sirala) : scopedEntries;

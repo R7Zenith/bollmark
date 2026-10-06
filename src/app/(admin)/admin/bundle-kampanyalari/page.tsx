@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { requireAdmin } from "@/lib/require-admin";
 import { Card } from "@/components/admin/card";
 import { BundleRow, type BundleData } from "@/components/admin/bundle-row";
@@ -30,6 +31,7 @@ async function createBundle(formData: FormData) {
   await prisma.bundle.create({
     data: { name, discountPercent, isActive, products: { connect: productIds.map((id) => ({ id })) } }
   });
+  revalidateCatalog();
   redirect(`${PATH}?basarili=eklendi`);
 }
 
@@ -47,12 +49,14 @@ async function updateBundle(id: string, formData: FormData) {
     where: { id },
     data: { name, discountPercent, isActive, products: { set: productIds.map((pid) => ({ id: pid })) } }
   });
+  revalidateCatalog();
   redirect(`${PATH}?basarili=guncellendi`);
 }
 
 async function deleteBundle(id: string) {
   "use server";
   await prisma.bundle.delete({ where: { id } }).catch(() => null);
+  revalidateCatalog();
   redirect(`${PATH}?basarili=silindi`);
 }
 

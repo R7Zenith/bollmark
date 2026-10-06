@@ -1,5 +1,7 @@
 import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
+import { CATALOG_TAG } from "@/lib/catalog";
 
 export type MenuCategory = { id: string; name: string; slug: string; imageUrl: string | null };
 
@@ -35,11 +37,17 @@ async function getAksesuarCategories(): Promise<MenuCategory[]> {
   return aksesuar?.children ?? [];
 }
 
+// DB cagrilari onbellekte; urun/kategori degisince revalidateCatalog()
+// (lib/revalidate-catalog.ts) gecersiz kilar, revalidate 3600 emniyet agi.
+const cacheOptions = { tags: [CATALOG_TAG], revalidate: 3600 };
+const getCachedGenderCategories = unstable_cache(getGenderCategories, ["menu-gender-categories"], cacheOptions);
+const getCachedAksesuarCategories = unstable_cache(getAksesuarCategories, ["menu-aksesuar-categories"], cacheOptions);
+
 export const getMegaMenuData = cache(async (): Promise<MegaMenuData> => {
   const [kadin, erkek, aksesuar] = await Promise.all([
-    getGenderCategories("Kadın"),
-    getGenderCategories("Erkek"),
-    getAksesuarCategories()
+    getCachedGenderCategories("Kadın"),
+    getCachedGenderCategories("Erkek"),
+    getCachedAksesuarCategories()
   ]);
   return { kadin, erkek, aksesuar };
 });

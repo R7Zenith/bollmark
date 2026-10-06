@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { requireAdmin } from "@/lib/require-admin";
 import { Card } from "@/components/admin/card";
 import { BrandRow } from "@/components/admin/brand-row";
@@ -25,6 +26,7 @@ async function updateBrand(id: string, formData: FormData) {
   const name = String(formData.get("name") || "").trim();
   if (!name) redirect("/admin/markalar?hata=isim-gerekli");
   await prisma.brand.update({ where: { id }, data: { name, slug: slugify(name) } });
+  revalidateCatalog();
   redirect("/admin/markalar?basarili=guncellendi");
 }
 

@@ -35,10 +35,10 @@ async function guardAdmin(request: NextRequest) {
 // - PREVIEW_GATE="off" ise kapı hiç çalışmaz, site herkese açık olur (değer yoksa
 //   veya "on" ise yukarıdaki davranış geçerli).
 function guardPreview(request: NextRequest) {
-  if (process.env.PREVIEW_GATE?.trim().toLowerCase() === "off") return NextResponse.next();
+  if (process.env.PREVIEW_GATE?.trim().toLowerCase() === "off") return passStorefront(request);
 
   const previewPassword = process.env.PREVIEW_PASSWORD;
-  if (!previewPassword) return NextResponse.next();
+  if (!previewPassword) return passStorefront(request);
 
   const suppliedPassword = request.nextUrl.searchParams.get("preview");
   if (suppliedPassword && suppliedPassword === previewPassword) {
@@ -57,9 +57,21 @@ function guardPreview(request: NextRequest) {
   }
 
   const cookiePassword = request.cookies.get(PREVIEW_COOKIE_NAME)?.value;
-  if (cookiePassword === previewPassword) return NextResponse.next();
+  if (cookiePassword === previewPassword) return passStorefront(request);
 
   return NextResponse.rewrite(new URL(PREVIEW_GATE_PATH, request.url));
+}
+
+// Onizleme kapisi gecildikten sonra: /urunler/<slug>?renk=X istegi renk secili
+// ic rotaya (/urunler/<slug>/renk/<X>) rewrite edilir - adres cubugu degismez,
+// her renk kendi onbellekli (ISR) sayfasindan sunulur (bkz.
+// CPU_KULLANIMI_AZALTMA_PLANI.md). pathname zaten %XX kacisli geldigi icin slug
+// yeniden encode edilmez; renk query'den cozulmus geldigi icin bir kez edilir.
+function passStorefront(request: NextRequest) {
+  const renk = request.nextUrl.searchParams.get("renk");
+  const match = renk ? /^\/urunler\/([^/]+)$/.exec(request.nextUrl.pathname) : null;
+  if (!renk || !match) return NextResponse.next();
+  return NextResponse.rewrite(new URL(`/urunler/${match[1]}/renk/${encodeURIComponent(renk)}`, request.url));
 }
 
 // Eski katalog adresleri (/urunler?kategori=gomlek&cinsiyet=Erkek) temiz
@@ -115,5 +127,8 @@ export const config = {
   // yapisiyla ("www.<domain>/Servis/<Servis>.svc", path yok) birebir
   // eslesmesi icin site kokune yerlestirildi - onizleme sifresi kapisina
   // takilirsa Vega SOAP istegi yerine HTML gate sayfasi alir.
-  matcher: ["/((?!api|Servis|_next|favicon.ico).*)"]
+  // Statik dosya uzantilari da haric: public/ gorselleri, robots.txt,
+  // sitemap.xml ve feed/google.xml icin proxy hic calismaz (zaten her zaman
+  // serbest birakiliyorlardi).
+  matcher: ["/((?!api|Servis|_next|favicon.ico|.*\\.(?:png|jpe?g|svg|webp|ico|gif|woff2?|ttf|txt|xml)$).*)"]
 };

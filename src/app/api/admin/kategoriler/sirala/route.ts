@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 const bodySchema = z.object({
   ids: z.array(z.string()).min(1)
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
   }
 
   await prisma.$transaction(ids.map((id, index) => prisma.category.update({ where: { id }, data: { sortOrder: index * 10 } })));
+  revalidateCatalog();
 
   return NextResponse.json({ ok: true });
 }

@@ -285,13 +285,18 @@ async function handleVaryasyonGuncelle(rawBody: string) {
     );
   }
 
+  const newStock = Math.max(0, Math.round(stokAdedi));
+  // Vega stok degismese de her varyanti gonderir: onbellekteki sayfalar yalniz
+  // stok gercekten degistiyse tazelenir (yoksa her senkron tum ISR sayfalarini
+  // gecersiz kilardi, bkz. CPU_KULLANIMI_AZALTMA_PLANI.md).
+  const changed = await prisma.productVariant.count({ where: { vegaId, stock: { not: newStock } } });
   const updated = await prisma.productVariant.updateMany({
     where: { vegaId },
-    data: { stock: Math.max(0, Math.round(stokAdedi)) }
+    data: { stock: newStock }
   });
 
   logTcmx("VaryasyonGuncelle", { vegaId, stokAdedi, guncellenen: updated.count });
-  if (updated.count > 0) revalidateCatalog();
+  if (changed > 0) revalidateCatalog();
 
   return xmlResponse(
     soapEnvelope(

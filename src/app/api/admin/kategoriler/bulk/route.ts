@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 const bodySchema = z.object({
   ids: z.array(z.string()).min(1),
@@ -29,6 +30,7 @@ export async function POST(request: NextRequest) {
       where: { id: { in: ids } },
       data: { isActive: action === "SET_ACTIVE" }
     });
+    revalidateCatalog();
     return NextResponse.json({ ok: true });
   }
 
@@ -44,6 +46,7 @@ export async function POST(request: NextRequest) {
 
   if (deletableIds.length > 0) {
     await prisma.category.deleteMany({ where: { id: { in: deletableIds } } });
+    revalidateCatalog();
   }
 
   return NextResponse.json({ deleted: deletableIds.length, skipped: ids.length - deletableIds.length });

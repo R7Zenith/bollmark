@@ -10,6 +10,7 @@ import { resolveLoyaltyRedemption, LoyaltyInvalidError } from "@/lib/loyalty";
 import { calculateShippingCents } from "@/lib/shipping";
 import { customerAuthOptions } from "@/lib/customer-auth";
 import { getPaymentSettings, getReadiness } from "@/lib/payment/settings";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 const lineSchema = z.object({
   productId: z.string(),
@@ -122,6 +123,8 @@ export async function POST(req: NextRequest) {
 
   const storeSettings = await prisma.storeSettings.findUnique({ where: { id: "singleton" } });
   const defaultShippingCents = storeSettings?.defaultShippingCents ?? 0;
+  // Bu siparisle bir otomatik kampanyanin kullanim limiti doldu mu (createOrder icinde set edilir).
+  let campaignExhausted = false;
 
   try {
     // orderNumber günlük 4 haneli rastgele sayıdır (@unique): nadir çakışmada tüm transaction
@@ -136,6 +139,16 @@ export async function POST(req: NextRequest) {
       }
     }
     if (!order) throw new Error("Sipariş oluşturulamadı.");
+
+    // Limiti dolan otomatik kampanya artik gecerli degil: onbellekteki urun
+    // sayfalari/katalog indirimli fiyati gostermeyi biraksin. Best-effort.
+    if (campaignExhausted) {
+      try {
+        revalidateCatalog();
+      } catch (error) {
+        console.error("Katalog tazeleme başarısız (yoksayıldı):", error);
+      }
+    }
 
     return NextResponse.json({ orderNumber: order.orderNumber }, { status: 201 });
   } catch (error) {
@@ -168,7 +181,8 @@ export async function POST(req: NextRequest) {
       const freeShipping = result.freeShipping;
       const couponId = result.couponId;
       if (couponId) {
-        await tx.coupon.update({ where: { id: couponId }, data: { usedCount: { increment: 1 } } });
+        const coupon = await tx.coupon.update({ where: { id: couponId }, data: { usedCount: { increment: 1 } } });
+        campaignExhausted = coupon.code === null && coupon.usageLimit != null && coupon.usedCount >= coupon.usageLimit;
       }
 
       // Sadakat puani da kupon ile ayni desen - istemci sadece kullanmak

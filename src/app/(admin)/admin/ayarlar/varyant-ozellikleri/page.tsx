@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { ArrowUp, ArrowDown, Trash2, Plus } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { requireAdmin } from "@/lib/require-admin";
 import { Card } from "@/components/admin/card";
 import { VariantAttributeCard } from "@/components/admin/variant-attribute-card";
@@ -43,6 +44,7 @@ async function deleteAttribute(id: string) {
     fail("kaydedilemedi");
   }
   revalidatePath(PATH);
+  revalidateCatalog();
   ok("ozellik-silindi");
 }
 
@@ -95,6 +97,7 @@ async function updateValueHex(id: string, formData: FormData) {
     data: { hexColor: hexColorRaw || null }
   });
   revalidatePath(PATH);
+  revalidateCatalog();
   ok("deger-guncellendi");
 }
 
@@ -106,6 +109,7 @@ async function deleteValue(id: string) {
     fail("kaydedilemedi");
   }
   revalidatePath(PATH);
+  revalidateCatalog();
   ok("deger-silindi");
 }
 
@@ -127,6 +131,7 @@ async function moveValue(attributeId: string, id: string, direction: "up" | "dow
     prisma.variantAttributeValue.update({ where: { id: b.id }, data: { position: a.position } })
   ]);
   revalidatePath(PATH);
+  revalidateCatalog();
   ok("siralandi");
 }
 

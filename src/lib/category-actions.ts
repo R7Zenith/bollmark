@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { isDescendantOf } from "@/lib/category-tree";
 import { categorySlug } from "@/lib/catalog-url";
 
@@ -23,6 +24,7 @@ export async function createCategory(formData: FormData) {
   await prisma.category.create({
     data: { name, slug: categorySlug(name), parentId, ...readCategoryFields(formData) }
   });
+  revalidateCatalog();
   redirect("/admin/kategoriler?basarili=eklendi");
 }
 
@@ -43,6 +45,7 @@ export async function updateCategory(id: string, redirectBase: string, formData:
     where: { id },
     data: { name, parentId, ...readCategoryFields(formData) }
   });
+  revalidateCatalog();
   redirect(`${redirectBase}?basarili=guncellendi`);
 }
 
@@ -55,6 +58,7 @@ export async function deleteCategory(id: string) {
   if (category._count.products > 0) redirect("/admin/kategoriler?hata=urun-bagli");
   if (category._count.children > 0) redirect("/admin/kategoriler?hata=alt-kategori-bagli");
   await prisma.category.delete({ where: { id } });
+  revalidateCatalog();
   redirect("/admin/kategoriler?basarili=silindi");
 }
 
@@ -73,5 +77,6 @@ export async function reassignProductsAndDeleteCategory(id: string, formData: Fo
     prisma.product.updateMany({ where: { categoryId: id }, data: { categoryId: targetCategoryId } }),
     prisma.category.delete({ where: { id } })
   ]);
+  revalidateCatalog();
   redirect("/admin/kategoriler?basarili=tasindi-ve-silindi");
 }

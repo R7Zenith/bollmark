@@ -15,6 +15,7 @@ import {
   SHIPPING_LINE_KEY,
   type RefundLine
 } from "@/lib/payment/orders/refund-math";
+import { revalidateOrderProducts } from "@/lib/revalidate-catalog";
 
 // Iade / iptal (bkz. plan 5.F). Akis: (1) siparis satiri kilitli transaction'da PENDING iade rezerve
 // edilir (kalan tutar bekleyen iadeler dusulerek hesaplanir, cift tik/eszamanli istek fazla iade
@@ -183,7 +184,8 @@ async function markUncertain(orderId: string, refundId: string, what: string) {
 
 // Basarili iade/iptali kesinlestirir (tek transaction): kayit, kalem sayaclari, siparis durumu, stok.
 async function finalizeSuccess(refundId: string, hostReference: string | null): Promise<{ orderId: string; amountCents: number; fullyRefunded: boolean } | null> {
-  return prisma.$transaction(async (tx) => {
+  let restocked = false;
+  const done = await prisma.$transaction(async (tx) => {
     const refund = await tx.paymentRefund.findUnique({ where: { id: refundId } });
     if (!refund) return null;
     await lockOrder(tx, refund.orderId);
@@ -217,6 +219,7 @@ async function finalizeSuccess(refundId: string, hostReference: string | null): 
     for (const restock of restockVariants) {
       await tx.productVariant.update({ where: { id: restock.variantId }, data: { stock: { increment: restock.quantity } } });
     }
+    restocked = restockVariants.length > 0;
 
     const fresh = await tx.order.findUniqueOrThrow({ where: { id: order.id }, include: { items: true, paymentRefunds: true } });
     const state = nextRefundState(buildRefundLines(fresh));
@@ -230,6 +233,10 @@ async function finalizeSuccess(refundId: string, hostReference: string | null): 
     });
     return { orderId: order.id, amountCents: refund.amountCents, fullyRefunded: state.fullyRefunded };
   }, TX_OPTIONS);
+  // Stok geri eklendi (transaction bitti): urun sayfalari tazelenir. Kendi
+  // icinde try/catch'li, iade akisini bozmaz.
+  if (done && restocked) await revalidateOrderProducts(done.orderId);
+  return done;
 }
 
 async function failRefund(refundId: string, errorCode: string | null, errorMessage: string) {

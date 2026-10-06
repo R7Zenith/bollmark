@@ -15,6 +15,7 @@ import {
   type RetrieveResponse
 } from "@/lib/payment/orders/evaluate";
 import { notifyAdminNewOrder, notifyAdminPaymentAttention, notifyCustomerOrderReceived } from "@/lib/order-notifications";
+import { revalidateOrderProducts } from "@/lib/revalidate-catalog";
 
 // Odeme sonucunun TEK dogruluk kaynagi: yonlendirmedeki/webhook'taki hicbir alana
 // guvenilmez, sonuc her zaman token ile iyzico'dan sorgulanir (bkz. plan 5.B).
@@ -298,6 +299,9 @@ export async function reconcileToken(token: string, source: ReconcileSource): Pr
         await log(true, "PAID — başka bir istek zaten işledi");
         return { kind: "already", ...base };
       }
+      // Stok dustu (transaction bitti): urun sayfalari tazelenir. Kendi icinde
+      // try/catch'li, odeme akisini bozmaz.
+      if (outcome.kind === "paid") await revalidateOrderProducts(attempt.orderId);
       await log(true, `PAID → ${outcome.kind}${outcome.note ? `; not: ${outcome.note}` : ""}`);
       if (outcome.kind === "paid") await afterPaid(attempt.orderId, `PENDING_PAYMENT -> PAID (iyzico, ${source})`);
       if (outcome.note) await notifyAttention(attempt.orderId, outcome.note);
@@ -358,6 +362,7 @@ export async function finalizeFreeOrder(orderId: string): Promise<void> {
     return true;
   });
   if (won) {
+    await revalidateOrderProducts(orderId);
     await logPayment({ kind: "RECONCILE", ok: true, orderId, summary: "Tutarı 0 olan sipariş ödeme gerektirmeden sonlandırıldı" });
     await afterPaid(orderId, "PENDING_PAYMENT -> PAID (ödeme gerekmedi, tutar 0)");
   }
