@@ -1,6 +1,7 @@
 # Google "bollmark" Arama Sonuçları — Düzeltme Planı
 
 Tarih: 5 Ekim 2026
+Durum: Bekliyor, uygulanmadı
 Sorun: Google'da "bollmark" araması yapınca ana sonuç "BOLLMARK — Çok yakında" başlığıyla çıkıyor. Alt linklerde (sitelinks) "Sepetiniz Boş" ve "Çok yakında" gibi alakasız sayfalar var, ürünler hiç görünmüyor.
 
 ---

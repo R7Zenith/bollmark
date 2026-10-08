@@ -1,7 +1,7 @@
 # Vercel Blob'dan tamamen çıkış: eski görselleri R2'ye taşıma
 
 **Tarih:** 7 Ekim 2026
-**Durum:** Uygulama bekliyor
+**Durum:** Devam ediyor: 552 / 1.344 görsel taşındı (2026-10-08), Faz 3 kod temizliği bekliyor
 **Önceki iş:** R2_GORSEL_DEPOLAMA_PLANI.md. Yeni görseller 4 Ekim'den beri R2'ye gidiyor ve canlıda.
 
 ## 1. Neden

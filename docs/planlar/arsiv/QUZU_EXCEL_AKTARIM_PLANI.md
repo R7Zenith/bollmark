@@ -2,7 +2,7 @@
 
 **Tarih:** 03.10.2026
 **Örnek dosya:** `ornek-veriler/QUZU02102026CHECKLIST.xls`
-**Durum:** Uygulama bekliyor
+**Durum:** Uygulandı (2026-10-04)
 **Referans:** `DILVIN_EXCEL_AKTARIM_PLANI.md` (aynı kalıp, uygulandı)
 
 ## 1. İstek

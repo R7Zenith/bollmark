@@ -1,7 +1,7 @@
 # Koton Görsel ve Açıklama Toplama Planı (Tarayıcı Yöntemi)
 
 Tarih: 2026-09-24
-Durum: Test yapıldı (2 ürün tamam, 1 ürün yarım kaldı). Aşama 2 (panele işleme) henüz yazılmadı.
+Durum: İptal (2026-10-09), gerek kalmadı. Test yapılmıştı, Aşama 2 yazılmadı.
 
 Bu doküman, Claude ile yapılan istişarenin özetidir. Kodlama Claude Code ile yapılacak, Claude (sohbet tarafı) sadece araştırır, önerir ve prompt hazırlar.
 

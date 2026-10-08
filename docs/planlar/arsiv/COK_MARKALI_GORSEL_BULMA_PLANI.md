@@ -1,7 +1,7 @@
 # Çok Markalı Excel Aktarımı + Görsel Bulma (Slazenger ve sonrası) — Plan
 
 Tarih: 2026-09-23
-Durum: Araştırıldı, uygulama bekliyor (Claude Code ile hayata geçirilecek)
+Durum: Uygulandı (Eylül 2026)
 İlgili: `EXCEL_URUN_AKTARIM_PLANI.md` (Koton için ilk sürüm, uygulandı), `FOTOGRAFSIZ_URUNLER_PLANI.md`
 
 ## 1. Durum tespiti (mevcut kod incelendi)

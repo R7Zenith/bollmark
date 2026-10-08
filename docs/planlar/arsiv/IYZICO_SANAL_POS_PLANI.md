@@ -1,6 +1,6 @@
 # iyzico Sanal POS Entegrasyonu — Plan ve Teknik Şartname
 
-Durum: uygulama bekliyor. Uygulama sırası ve promptlar: `IYZICO_SANAL_POS_PROMPTLARI.md`.
+Durum: Uygulandı, Faz 1-4 (2026-09-20/21); canlıya geçiş ayrı, bkz. IYZICO_CANLIYA_GECIS.md. Uygulama sırası ve promptlar: `IYZICO_SANAL_POS_PROMPTLARI.md`.
 Kural: ödeme = hassas alan. "Muhtemelen çalışır" yok; her adım sandbox'ta uçtan uca kanıtlanır.
 
 Hedef: iyzico başvurusu onaylanmadan sistemin tamamı hazır ve sandbox'ta test edilmiş olsun.
