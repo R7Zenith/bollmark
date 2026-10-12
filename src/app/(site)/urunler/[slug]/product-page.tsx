@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { getProductBySlug, getRelatedProducts, firstImageUrl, isNewProduct } from "@/lib/catalog";
 import { usesGreyBackdrop } from "@/lib/image-backdrop";
 import { getBundleForProduct } from "@/lib/bundles";
@@ -13,6 +13,7 @@ import { baseOpenGraph } from "@/lib/site-metadata";
 import { breadcrumbJsonLd, buildProductJsonLd, productTitle, truncateDescription } from "@/lib/seo";
 import { JsonLd } from "@/components/json-ld";
 import { catalogHref } from "@/lib/catalog-url";
+import { productCategoryPath } from "@/lib/product-redirects";
 
 // Urun sayfasinin ortak govdesi ve metadata'si: hem /urunler/[slug] hem de
 // renk secili ic rota (/urunler/[slug]/renk/[renk], proxy.ts ?renk= istegini
@@ -60,8 +61,18 @@ export async function productMetadata(rawSlug: string): Promise<Metadata> {
 }
 
 export async function renderProductPage(rawSlug: string, renk?: string) {
-  const product = await getProductBySlug(decodeSlug(rawSlug));
-  if (!product || product.status !== "PUBLISHED") notFound();
+  const slug = decodeSlug(rawSlug);
+  const product = await getProductBySlug(slug);
+  // Urun yoksa (slug degisti ya da urun silindi) eski adres kaydina bakilir.
+  // Arsivlenen urun kategorisine yonlenir, tekrar yayina alininca sayfa geri
+  // gelir; hic yayinlanmamis (DRAFT) urun 404 kalir (bkz. lib/product-redirects.ts).
+  if (!product) {
+    const redirectTo = await prisma.productRedirect.findUnique({ where: { fromSlug: slug }, select: { toPath: true } });
+    if (redirectTo) permanentRedirect(redirectTo.toPath);
+    notFound();
+  }
+  if (product.status === "ARCHIVED") permanentRedirect(productCategoryPath(product));
+  if (product.status !== "PUBLISHED") notFound();
 
   const colorGalleries: Record<string, string[]> = {};
   for (const img of product.optionImages) {

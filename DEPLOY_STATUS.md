@@ -30,6 +30,7 @@ yerden devam etmek için önce bunu, sonra gerekirse ilgili günlük dosyasını
 | İş | Durum | Plan |
 |---|---|---|
 | Blob'dan R2'ye görsel taşıma | Taşıma (2026-10-12) ve Faz 3 kod temizliği (2026-10-13) bitti; kod artık Blob'a hiç yazmıyor/okumuyor. Kalan Faz 4: Blob deposunu kapatma, kullanıcı, 1–2 gün Blob grafiği izlendikten sonra. | `docs/planlar/BLOB_TAMAMEN_KALDIRMA_PLANI.md` |
+| SEO Faz 6: özgün ürün açıklamaları + ürün yönlendirmeleri | Kod yayında (2026-10-13): eski ürün adresleri yönlendiriliyor (slug değişimi, silme, arşiv). 217 ürünün özgün açıklama taslağı admin'de onay bekliyor (`/admin/urunler?aciklama=taslak`), 1 onaylı. Kalan: kullanıcının taslakları onaylaması; sonra Search Console'da dizine eklenen ürün sayısını izleme. Taslaklar API'siz yazılır (`scripts/ai-taslak-aktar.ts`). | `docs/planlar/SEO_FAZ6_OZGUN_ACIKLAMA_VE_YONLENDIRME_PLANI.md` |
 
 ## Bu dosya nasıl güncellenir
 

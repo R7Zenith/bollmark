@@ -4,6 +4,9 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { deleteBlobUrls } from "@/lib/blob";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
+import { redirectDeletedProduct } from "@/lib/product-redirects";
+import { sanitizeDescriptionHtml } from "@/lib/description-html";
+import { logAudit } from "@/lib/audit-log";
 
 const allowedStatuses = new Set(["DRAFT", "PUBLISHED", "ARCHIVED"]);
 
@@ -28,13 +31,19 @@ export async function POST(request: NextRequest) {
     const targets = await prisma.product.findMany({
       where: { id: { in: ids } },
       select: {
+        slug: true,
+        gender: true,
+        category: { select: { slug: true } },
         images: { select: { url: true } },
         optionImages: { select: { url: true } }
       }
     });
     const urls = targets.flatMap((p) => [...p.images.map((i) => i.url), ...p.optionImages.map((i) => i.url)]);
     try {
-      await prisma.product.deleteMany({ where: { id: { in: ids } } });
+      await prisma.$transaction(async (tx) => {
+        await tx.product.deleteMany({ where: { id: { in: ids } } });
+        for (const target of targets) await redirectDeletedProduct(tx, target);
+      }, { timeout: 20000 });
     } catch {
       return NextResponse.json(
         { error: "Seçili ürünlerden biri veya birkaçı mevcut siparişlere bağlı olduğu için silinemedi." },
@@ -59,6 +68,36 @@ export async function POST(request: NextRequest) {
     await prisma.product.updateMany({ where: { id: { in: ids } }, data: { priceCents: body.priceCents } });
     revalidateCatalog();
     return NextResponse.json({ ok: true });
+  }
+
+  // Secili urunlerden taslagi olanlarda taslak sitede gorunen aciklama olur
+  // (urun sayfasindaki "Kullan" ile ayni, bkz. ai-description-actions.ts).
+  if (body.action === "APPROVE_DRAFTS") {
+    const drafts = await prisma.product.findMany({
+      where: { id: { in: ids }, descriptionDraft: { not: null } },
+      select: { id: true, descriptionDraft: true }
+    });
+    const approvedAt = new Date();
+    for (const product of drafts) {
+      await prisma.product.update({
+        where: { id: product.id },
+        data: {
+          description: sanitizeDescriptionHtml(product.descriptionDraft),
+          descriptionDraft: null,
+          descriptionApprovedAt: approvedAt
+        }
+      });
+      logAudit({
+        actorEmail: session.user?.email ?? "bilinmiyor",
+        actorRole: session.user.role,
+        action: "PRODUCT_AI_DESCRIPTION_APPROVED",
+        targetType: "Product",
+        targetId: product.id,
+        detail: "AI açıklaması onaylandı (toplu)"
+      });
+    }
+    if (drafts.length > 0) revalidateCatalog();
+    return NextResponse.json({ ok: true, approved: drafts.length });
   }
 
   // Excel'siz sezon duzeltmesi (bkz. SEZON_BAZLI_SIRALAMA_PLANI.md) - seasonId

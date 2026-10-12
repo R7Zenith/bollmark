@@ -88,6 +88,16 @@ export function ProductsFilters({
         <option value="">Tüm ürünler</option>
         <option value="yok">Fotoğrafsız ürünler</option>
       </select>
+      <select
+        defaultValue={searchParams.get("aciklama") ?? ""}
+        onChange={(e) => updateParam("aciklama", e.target.value)}
+        className={selectClass}
+      >
+        <option value="">Açıklama: tümü</option>
+        <option value="taslak">Açıklama: taslak bekliyor</option>
+        <option value="onayli">Açıklama: onaylı</option>
+        <option value="tedarikci">Açıklama: tedarikçi metni</option>
+      </select>
     </FilterBar>
   );
 }

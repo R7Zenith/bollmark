@@ -103,6 +103,11 @@ model Product {
   slug        String        @unique
   code        String?       // Ürün kodu / stil kodu, örn. "6SAM60012HW" - opsiyonel, tekil olmak zorunda degil
   description String
+  // Ozgun aciklama akisi (bkz. SEO_FAZ6_OZGUN_ACIKLAMA_VE_YONLENDIRME_PLANI.md,
+  // lib/ai-description.ts): taslak yonetici onaylayana kadar sitede gorunmez.
+  descriptionDraft      String?   // onay bekleyen AI taslagi
+  originalDescription   String?   // tedarikcinin ilk metni - ilk taslakta bir kez dolar, sitede gosterilmez
+  descriptionApprovedAt DateTime? // ozgun aciklamanin onaylandigi zaman
   priceCents  Int
   compareAtCents Int?
   costCents   Int?          // opsiyonel - girilirse raporlarda kar marji hesaplanir
@@ -129,6 +134,15 @@ model Product {
   updatedAt   DateTime      @updatedAt
 
   @@index([seasonId])
+}
+
+// Slug'i degisen ya da silinen urunun eski adresi -> yeni hedef (301). Urun
+// sayfasi yalniz urun bulunamadiginda bu tabloya bakar (bkz. lib/product-redirects.ts).
+model ProductRedirect {
+  id        String   @id @default(cuid())
+  fromSlug  String   @unique   // eski urun slug'i (decode edilmis haliyle)
+  toPath    String             // hedef yol, ör. /urunler/yeni-slug veya /erkek/gomlek
+  createdAt DateTime @default(now())
 }
 
 // Bundle/set indirimi - sepette bir bundle'a dahil TUM urunlerden en az

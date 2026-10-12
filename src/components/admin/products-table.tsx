@@ -46,7 +46,7 @@ async function bulkRequest(body: Record<string, unknown>) {
     body: JSON.stringify(body)
   });
   const data = await res.json().catch(() => ({}));
-  return { ok: res.ok, error: data?.error as string | undefined };
+  return { ok: res.ok, error: data?.error as string | undefined, approved: data?.approved as number | undefined };
 }
 
 export function ProductsTable({
@@ -238,6 +238,27 @@ export function ProductsTable({
     const { ok, error } = await bulkRequest({ ids, action: "SET_STATUS", status });
     if (ok) {
       showToast("Ürün durumu güncellendi.", "success");
+      clearSelection();
+      router.refresh();
+    } else {
+      showToast(error ?? "Bir hata oluştu.", "error");
+    }
+  }
+
+  async function handleTaslakOnayla(ids: string[], clearSelection: () => void) {
+    if (
+      !window.confirm(
+        `Seçili ${ids.length} üründen AI taslağı olanların taslağı sitede görünen açıklama olacak. Onaylıyor musunuz?`
+      )
+    ) {
+      return;
+    }
+    const { ok, error, approved } = await bulkRequest({ ids, action: "APPROVE_DRAFTS" });
+    if (ok) {
+      showToast(
+        approved ? `${approved} ürünün taslağı onaylandı.` : "Seçili ürünlerde onay bekleyen taslak yok.",
+        approved ? "success" : "error"
+      );
       clearSelection();
       router.refresh();
     } else {
@@ -468,6 +489,7 @@ export function ProductsTable({
             }
           ]
         : []),
+      { label: "Taslakları Onayla", variant: "secondary", onClick: () => handleTaslakOnayla(selectedIds, clearSelection) },
       { label: "Sil", variant: "danger", onClick: () => handleDelete(selectedIds, clearSelection) }
     ];
   }

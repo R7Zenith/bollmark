@@ -14,10 +14,12 @@ import {
 import { ProductImagesField, type InitialProductImage } from "@/components/admin/product-images-field";
 import { TagsField } from "@/components/admin/tags-field";
 import { DescriptionEditor } from "@/components/admin/description-editor";
+import { AiDescriptionPanel } from "@/components/admin/ai-description-panel";
 import { sanitizeDescriptionHtml } from "@/lib/description-html";
 import { variantOptionsInclude } from "@/lib/variant-attributes";
 import { deleteBlobUrls } from "@/lib/blob";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
+import { redirectSlugChange, redirectDeletedProduct } from "@/lib/product-redirects";
 import { buildCategoryOptions } from "@/lib/category-tree";
 import { GENDER_OPTIONS } from "@/lib/product-options";
 import { snapshotStockAlerts, carryOverOrQueueRestock, sendRestockNotifications } from "@/lib/stock-alerts";
@@ -123,6 +125,8 @@ async function updateProduct(id: string, formData: FormData) {
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, "-");
   const description = sanitizeDescriptionHtml(String(formData.get("description") || ""));
+  // AI taslak editörü yalnız taslak varken formda bulunur (bkz. ai-description-panel.tsx).
+  const draftRaw = formData.get("descriptionDraft");
   const code = String(formData.get("code") || "").trim() || null;
   const priceCents = Math.round(Number(formData.get("price") || 0) * 100);
   const compareAtRaw = String(formData.get("compareAt") || "").trim();
@@ -163,6 +167,7 @@ async function updateProduct(id: string, formData: FormData) {
   const existing = await prisma.product.findUnique({
     where: { id },
     select: {
+      slug: true,
       images: { select: { url: true } },
       optionImages: { select: { url: true } }
     }
@@ -202,6 +207,7 @@ async function updateProduct(id: string, formData: FormData) {
           slug,
           code,
           description,
+          ...(draftRaw !== null ? { descriptionDraft: sanitizeDescriptionHtml(String(draftRaw)) || null } : {}),
           priceCents,
           compareAtCents,
           costCents,
@@ -217,6 +223,7 @@ async function updateProduct(id: string, formData: FormData) {
           tags: { set: tagIds.map((tagId) => ({ id: tagId })) }
         }
       });
+      if (existing) await redirectSlugChange(tx, existing.slug, slug);
       await tx.productImage.deleteMany({ where: { productId: id } });
       await tx.productImage.createMany({
         data: images.map((img, i) => ({ productId: id, url: img.url, alt: img.alt, position: i }))
@@ -306,6 +313,9 @@ async function deleteProduct(id: string) {
   const existing = await prisma.product.findUnique({
     where: { id },
     select: {
+      slug: true,
+      gender: true,
+      category: { select: { slug: true } },
       images: { select: { url: true } },
       optionImages: { select: { url: true } }
     }
@@ -315,7 +325,10 @@ async function deleteProduct(id: string) {
     ...(existing?.optionImages.map((i) => i.url) ?? [])
   ];
   try {
-    await prisma.product.delete({ where: { id } });
+    await prisma.$transaction(async (tx) => {
+      await tx.product.delete({ where: { id } });
+      if (existing) await redirectDeletedProduct(tx, existing);
+    });
   } catch {
     redirect(`/admin/urunler/${id}?hata=silinemedi`);
   }
@@ -408,7 +421,16 @@ export default async function EditProductPage({
             </div>
             <div>
               <label className={labelClass}>Açıklama</label>
-              <DescriptionEditor name="description" defaultValue={product.description} />
+              <AiDescriptionPanel
+                productId={product.id}
+                draft={product.descriptionDraft}
+                canRestoreOriginal={
+                  product.originalDescription !== null && product.originalDescription !== product.description
+                }
+              >
+                {/* key: "Kullan"/"Orijinal metne dön" sonrası editör yeni metinle yeniden kurulsun */}
+                <DescriptionEditor key={product.description} name="description" defaultValue={product.description} />
+              </AiDescriptionPanel>
             </div>
           </div>
         </Card>

@@ -23,6 +23,7 @@ interface SearchParams {
   kategori?: string;
   fotograf?: string;
   sezon?: string;
+  aciklama?: string;
   sort?: string;
   dir?: string;
 }
@@ -33,7 +34,7 @@ export default async function AdminProductsPage({
   searchParams: Promise<SearchParams>;
 }) {
   await requireAdmin();
-  const { q, durum, kategori, fotograf, sezon, sort, dir, sayfa, adet } = await searchParams;
+  const { q, durum, kategori, fotograf, sezon, aciklama, sort, dir, sayfa, adet } = await searchParams;
 
   // Arsivlenmis urunler bu listede yer kaplamasin diye varsayilan olarak
   // haric tutuluyor - kendi ayri sayfasinda (/admin/urunler/arsiv) duruyorlar.
@@ -98,7 +99,11 @@ export default async function AdminProductsPage({
     ...(kategori ? { categoryId: kategori } : {}),
     ...(fotograf === "yok" ? { images: { none: {} }, optionImages: { none: {} } } : {}),
     // "yok": sezonu atanmamis urunler (katalogda en sona duser).
-    ...(sezon ? { seasonId: sezon === "yok" ? null : sezon } : {})
+    ...(sezon ? { seasonId: sezon === "yok" ? null : sezon } : {}),
+    // Ozgun aciklama durumu (bkz. SEO_FAZ6_OZGUN_ACIKLAMA_VE_YONLENDIRME_PLANI.md).
+    ...(aciklama === "taslak" ? { descriptionDraft: { not: null } } : {}),
+    ...(aciklama === "onayli" ? { descriptionApprovedAt: { not: null } } : {}),
+    ...(aciklama === "tedarikci" ? { descriptionDraft: null, descriptionApprovedAt: null } : {})
   };
 
   const pageSize = pageSizes.includes(Number(adet)) ? Number(adet) : defaultPageSize;

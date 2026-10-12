@@ -50,6 +50,9 @@ bollmark.zip
 # script yedekleri (musteri verisi icerebilir)
 /backups/
 
+# script raporlari (bkz. scripts/ai-aciklama-uret.ts)
+/scripts/output/
+
 # Vega koprulu Worker'in yerel wrangler durumu
 /vega-bridge-worker/.wrangler/
 
