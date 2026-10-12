@@ -1,5 +1,7 @@
 # SEO Faz 5 — Görsel ön-üretim (plan)
 
+Durum: kapatıldı (2026-10-13). Madde 6 uygulandı; 1–5 gerek görülmedi (Pro + R2 sonrası). Search Console'da mobil hız uyarısı çıkarsa yeniden ele alınır.
+
 > **Durum (1 Ekim 2026):** Kullanıcı yalnızca madde 6’yı (public/ görselleri) onayladı ve bu madde uygulandı. Ürün fotoğraflarının 800px sürümleri (madde 1–5) ertelendi; trafik artınca ya da Search Console’da mobil hız uyarısı çıkınca yeniden ele alınacak.
 
 Kaynak: SEO_TEKNIK_DENETIM_VE_PLAN.md bölüm 2.10. Tarih: 1 Ekim 2026.

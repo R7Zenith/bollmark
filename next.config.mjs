@@ -31,8 +31,8 @@ const nextConfig = {
     // Blob URL'leri addRandomSuffix ile degismez -> 31 gun onbellekte kalsin,
     // ayni gorsel tekrar tekrar donusturulup Vercel sayacini doldurmasin.
     minimumCacheTTL: 2678400,
-    // GECICI (30 Eyl 2026): Vercel Image Transformations kotasi doldu,
-    // onbellekte olmayan her donusum 402 donuyor. Kota sifirlaninca kaldir.
+    // KALICI KARAR (13 Eki 2026): Vercel Pro'ya geçildi, urun gorselleri R2'de ve yuklemede zaten 1600px WebP'ye sikistiriliyor.
+    // Vercel goruntu donusturmesi (ucretli) bilerek kapali. Kullanici onayi olmadan kaldirma.
     unoptimized: true
   }
 };

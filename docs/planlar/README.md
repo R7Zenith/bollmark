@@ -18,10 +18,8 @@ Kod yorumlarındaki `bkz. X_PLANI.md` atıfları dosya adıyla verilmiştir; dos
 | Plan | Durum |
 |---|---|
 | `BLOB_TAMAMEN_KALDIRMA_PLANI.md` | Taşıma ve Faz 3 kod temizliği bitti (2026-10-13). Kalan: Faz 4, Blob deposunu kapatma (kullanıcı) |
-| `VERCEL_GORSEL_VE_BOT_LIMIT_PLANI.md` | A-D uygulandı; E (geçici `unoptimized` modu) ~28-29 Ekim 2026'ya kadar sürüyor |
 | `GOOGLE_ARAMA_SONUCLARI_DUZELTME_PLANI.md` | Bekliyor |
-| `SEO_TEKNIK_DENETIM_VE_PLAN.md` | Faz 1-4 uygulandı (2026-09-30), Faz 5 kısmen |
-| `SEO_FAZ5_GORSEL_ON_URETIM_PLANI.md` | Yalnız madde 6 uygulandı, kalanı ertelendi |
+| `SEO_TEKNIK_DENETIM_VE_PLAN.md` | Faz 1-4 uygulandı, Faz 5 kapatıldı (gerek görülmedi), Faz 6 bekliyor |
 
 ## Arşiv
 
@@ -114,6 +112,7 @@ içindeki her alt maddenin tek tek doğrulandığı anlamına gelmez.
 - `RELEASE_TEMA_BIREBIR_UYUM_PLANI.md`
 - `SATEEN_EXCEL_AKTARIM_PLANI.md`
 - `SEO_FAZ3_KATEGORI_URL_PLANI.md`
+- `SEO_FAZ5_GORSEL_ON_URETIM_PLANI.md` (kapatıldı 2026-10-13: madde 6 uygulandı, 1–5 gerek görülmedi; Search Console'da mobil hız uyarısı çıkarsa yeniden ele alınır)
 - `SEPET_ACILIR_CEKMECE_VE_HEADER_IKON_HOVER_PLANI.md`
 - `SEPET_HESAP_SENKRONU_VE_FIYAT_GUNCELLEME_PLANI.md`
 - `SEPET_SATIR_BAZLI_KAMPANYA_INDIRIMI_GOSTERIMI_PLANI.md`
@@ -139,4 +138,5 @@ içindeki her alt maddenin tek tek doğrulandığı anlamına gelmez.
 - `VARYANT_TABLO_SIRALAMA_KAYDEDIYOR_PLANI.md`
 - `VARYANT_YONETIMI_PLANI.md`
 - `VEGA_PANELAPI_BULGULARI_VE_PLAN.md`
+- `VERCEL_GORSEL_VE_BOT_LIMIT_PLANI.md` (kapatıldı 2026-10-13: A–D uygulandı, E'deki `unoptimized` modu kalıcı; Pro + R2 sonrası kullanıcı kararı)
 - `YAPIM_ASAMASINDA_SAYFASI_YENIDEN_TASARIM_PLANI.md`

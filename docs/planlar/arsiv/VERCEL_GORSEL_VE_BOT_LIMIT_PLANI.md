@@ -1,5 +1,7 @@
 # Vercel Görsel Dönüşümü + Bot Trafiği Limit Planı
 
+Durum: kapatıldı (2026-10-13). A–D uygulandı; E'deki unoptimized modu kalıcı hale getirildi (Pro + R2 sonrası kullanıcı kararı).
+
 ## Ne oldu? (30 Eylül 2026 incelemesi)
 - Vercel'den iki uyarı geldi: **Image Transformations 5.000/5.000 doldu** (6K) ve **Fluid Active CPU %75** (3sa 1dk / 4sa).
 - Firewall → Traffic (son 24 saat, ~14 bin istek) incelendi:
