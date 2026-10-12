@@ -30,7 +30,6 @@ yerden devam etmek için önce bunu, sonra gerekirse ilgili günlük dosyasını
 | İş | Durum | Plan |
 |---|---|---|
 | Blob'dan R2'ye görsel taşıma | Taşıma (2026-10-12) ve Faz 3 kod temizliği (2026-10-13) bitti; kod artık Blob'a hiç yazmıyor/okumuyor. Kalan Faz 4: Blob deposunu kapatma, kullanıcı, 1–2 gün Blob grafiği izlendikten sonra. | `docs/planlar/BLOB_TAMAMEN_KALDIRMA_PLANI.md` |
-| Google'da "Çok yakında" sonucu | Kod uygulandı ve canlıda, kapı kapatıldı (2026-10-13). Kalan: kullanıcının Search Console adımları (plan bölüm 6 sonu). | `docs/planlar/GOOGLE_ARAMA_SONUCLARI_DUZELTME_PLANI.md` |
 
 ## Bu dosya nasıl güncellenir
 

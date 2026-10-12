@@ -18,7 +18,6 @@ Kod yorumlarındaki `bkz. X_PLANI.md` atıfları dosya adıyla verilmiştir; dos
 | Plan | Durum |
 |---|---|
 | `BLOB_TAMAMEN_KALDIRMA_PLANI.md` | Taşıma ve Faz 3 kod temizliği bitti (2026-10-13). Kalan: Faz 4, Blob deposunu kapatma (kullanıcı) |
-| `GOOGLE_ARAMA_SONUCLARI_DUZELTME_PLANI.md` | Bekliyor |
 | `SEO_TEKNIK_DENETIM_VE_PLAN.md` | Faz 1-4 uygulandı, Faz 5 kapatıldı (gerek görülmedi), Faz 6 bekliyor |
 
 ## Arşiv
@@ -82,6 +81,7 @@ içindeki her alt maddenin tek tek doğrulandığı anlamına gelmez.
 - `FOOTER_RELEASE_TARZI_YENIDEN_TASARIM_PLANI.md`
 - `FOTOGRAFSIZ_URUNLER_PLANI.md`
 - `GALERI_GENISLIK_GENIS_EKRAN_SORUNU.md`
+- `GOOGLE_ARAMA_SONUCLARI_DUZELTME_PLANI.md`
 - `GORSEL_SIKISTIRMA_VE_BLOB_LIMIT_PLANI.md`
 - `GORSEL_YONETIMI_PLANI.md`
 - `GUVEN_TICKER_ANIMASYON_DONGUSU_PLANI.md`
