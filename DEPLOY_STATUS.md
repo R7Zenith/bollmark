@@ -18,8 +18,8 @@ yerden devam etmek için önce bunu, sonra gerekirse ilgili günlük dosyasını
   veritabanını kullanır; yerelde yazan her test canlı veriye yazar.
 - **Görseller:** hepsi Cloudflare R2'de (`img.bollmark.com`). Eski Vercel Blob
   görselleri 2026-10-12'de taşındı; Blob deposu henüz silinmedi (aşağıda).
-- **Önizleme kapısı:** 2026-10-02'de yeniden açıldı (`src/proxy.ts`). Şifresiz
-  ziyaretçi `/yapim-asamasinda` içeriğini görür.
+- **Önizleme kapısı:** kapalı (2026-10-13), site herkese açık; tekrar açmak için
+  `PREVIEW_GATE` env'ini sil/`on` yap + redeploy (`src/proxy.ts`).
 - **Ödeme:** iyzico sanal POS canlıda (kullanıcı teyidi, 2026-10-09).
 - **Vega:** Ticimax taklidi SOAP servisi (`src/app/Servis`) çalışıyor (2026-09-11).
 - **Cron (Vercel, günde 1):** sepet hatırlatma, ödeme mutabakatı.
@@ -30,7 +30,7 @@ yerden devam etmek için önce bunu, sonra gerekirse ilgili günlük dosyasını
 | İş | Durum | Plan |
 |---|---|---|
 | Blob'dan R2'ye görsel taşıma | Taşıma (2026-10-12) ve Faz 3 kod temizliği (2026-10-13) bitti; kod artık Blob'a hiç yazmıyor/okumuyor. Kalan Faz 4: Blob deposunu kapatma, kullanıcı, 1–2 gün Blob grafiği izlendikten sonra. | `docs/planlar/BLOB_TAMAMEN_KALDIRMA_PLANI.md` |
-| Google'da "Çok yakında" sonucu | Kod uygulandı (2026-10-13). Kalan: push ile birlikte kapının kapatılması, sonra kullanıcının Search Console adımları. | `docs/planlar/GOOGLE_ARAMA_SONUCLARI_DUZELTME_PLANI.md` |
+| Google'da "Çok yakında" sonucu | Kod uygulandı ve canlıda, kapı kapatıldı (2026-10-13). Kalan: kullanıcının Search Console adımları (plan bölüm 6 sonu). | `docs/planlar/GOOGLE_ARAMA_SONUCLARI_DUZELTME_PLANI.md` |
 
 ## Bu dosya nasıl güncellenir
 

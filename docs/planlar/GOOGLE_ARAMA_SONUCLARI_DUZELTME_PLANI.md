@@ -1,7 +1,7 @@
 # Google "bollmark" Arama Sonuçları — Düzeltme Planı
 
 Tarih: 5 Ekim 2026
-Durum: Bekliyor. 2026-10-13 güncellendi: kullanıcı önizleme kapısının bu işle birlikte kapatılmasına karar verdi. **Uygulanacak prompt bölüm 6'dadır, bölüm 5 eskidir.**
+Durum: Kod uygulandı, kullanıcının Search Console adımları bekliyor. 2026-10-13: bölüm 6 uygulandı, önizleme kapısı kapatıldı, canlıda doğrulandı. (Bölüm 5 eskidir, bölüm 6 kullanıldı.)
 Sorun: Google'da "bollmark" araması yapınca ana sonuç "BOLLMARK — Çok yakında" başlığıyla çıkıyor. Alt linklerde (sitelinks) "Sepetiniz Boş" ve "Çok yakında" gibi alakasız sayfalar var, ürünler hiç görünmüyor.
 
 ---
