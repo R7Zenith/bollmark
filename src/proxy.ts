@@ -34,11 +34,14 @@ async function guardAdmin(request: NextRequest) {
 //   herkesi kilitlememek için).
 // - PREVIEW_GATE="off" ise kapı hiç çalışmaz, site herkese açık olur (değer yoksa
 //   veya "on" ise yukarıdaki davranış geçerli).
-function guardPreview(request: NextRequest) {
-  if (process.env.PREVIEW_GATE?.trim().toLowerCase() === "off") return passStorefront(request);
+function isPreviewGateActive() {
+  return process.env.PREVIEW_GATE?.trim().toLowerCase() !== "off" && Boolean(process.env.PREVIEW_PASSWORD);
+}
 
-  const previewPassword = process.env.PREVIEW_PASSWORD;
-  if (!previewPassword) return passStorefront(request);
+function guardPreview(request: NextRequest) {
+  if (!isPreviewGateActive()) return passStorefront(request);
+
+  const previewPassword = process.env.PREVIEW_PASSWORD!;
 
   const suppliedPassword = request.nextUrl.searchParams.get("preview");
   if (suppliedPassword && suppliedPassword === previewPassword) {
@@ -97,14 +100,26 @@ export default async function proxy(request: NextRequest) {
     if (legacyRedirect) return legacyRedirect;
   }
 
-  // Yapim-asamasinda sayfasının kendisi, /admin/login, arama motoru
+  // Yapim-asamasinda sayfasina dogrudan gelen istek. Kapi kapaliyken ana
+  // sayfaya kalici yonlenir (Google'daki "Çok yakında" sonucu dussun). Kapi
+  // acikken dizine girmesin diye X-Robots-Tag verilir. noindex bilerek sayfanin
+  // metadata'sinda DEGIL: kapi acikken tum magaza adresleri bu sayfaya rewrite
+  // edilir, metadata'daki noindex butun siteyi Google'dan dusururdu (bkz.
+  // GOOGLE_ARAMA_SONUCLARI_DUZELTME_PLANI.md bolum 6).
+  if (pathname === PREVIEW_GATE_PATH) {
+    if (!isPreviewGateActive()) return NextResponse.redirect(new URL("/", request.url), 301);
+    const response = NextResponse.next();
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    return response;
+  }
+
+  // /admin/login, arama motoru
   // dosyaları (robots.txt/sitemap.xml), Google Merchant feed'i ve public/ altındaki statik varlıklar
   // (logo vb.) her zaman erişilebilir - aksi halde önizleme şifresi
   // arkasındaki bir mağazada bu dosyalar da gizlenir ve tarayıcılar/arama
   // motorları hiç erişemez (bkz. Faz C.8), admin login/sidebar logosu da
   // bozuk görünür.
   if (
-    pathname === PREVIEW_GATE_PATH ||
     pathname.startsWith("/admin/login") ||
     pathname === "/robots.txt" ||
     pathname === "/sitemap.xml" ||

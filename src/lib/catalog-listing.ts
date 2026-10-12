@@ -77,6 +77,25 @@ const getFilterCategories = unstable_cache(
   { tags: [CATALOG_TAG], revalidate: 3600 }
 );
 
+// Cinsiyet sayfasinin meta description'i icin: o cinsiyette yayinda urunu en
+// cok olan (en fazla 4) ana kategorinin adi. Onbellek getFilterCategories ile ayni.
+export const getTopGenderCategoryNames = unstable_cache(
+  async (cinsiyet: string) => {
+    const published = { status: "PUBLISHED" as const, gender: cinsiyet };
+    const categories = await prisma.category.findMany({
+      where: { isActive: true, parentId: null, products: { some: published } },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { name: true, _count: { select: { products: { where: published } } } }
+    });
+    return categories
+      .sort((a, b) => b._count.products - a._count.products)
+      .slice(0, 4)
+      .map((c) => c.name);
+  },
+  ["catalog-top-gender-categories"],
+  { tags: [CATALOG_TAG], revalidate: 3600 }
+);
+
 export async function getCatalogListing(params: URLSearchParams) {
   const kategori = params.get("kategori") || undefined;
   const cinsiyet = params.get("cinsiyet") || undefined;

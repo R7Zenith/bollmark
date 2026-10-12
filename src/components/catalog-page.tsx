@@ -12,8 +12,13 @@ import {
   FILTER_PARAM_KEYS,
   toURLSearchParams
 } from "@/lib/catalog-filters";
-import { getCatalogListing, parseSearchQuery, toCatalogCardProps } from "@/lib/catalog-listing";
-import { breadcrumbJsonLd } from "@/lib/seo";
+import {
+  getCatalogListing,
+  getTopGenderCategoryNames,
+  parseSearchQuery,
+  toCatalogCardProps
+} from "@/lib/catalog-listing";
+import { breadcrumbJsonLd, truncateDescription } from "@/lib/seo";
 import { JsonLd } from "@/components/json-ld";
 import { catalogHref } from "@/lib/catalog-url";
 
@@ -97,16 +102,27 @@ export async function catalogMetadata(query: CatalogQuery, scope: CatalogScope):
       });
       return {
         title,
-        description: category.metaDescription || `Bollmark ${label} koleksiyonunu keşfedin.`,
+        description:
+          category.metaDescription ||
+          truncateDescription(
+            `${label} modelleri Bollmark'ta: sezonun yeni parçaları, kolay iade ve hızlı kargo.`
+          ),
         alternates: { canonical },
         ...(productCount === 0 && { robots: { index: false } })
       };
     }
   }
   if (cinsiyet) {
+    // Aciklamaya yalniz o cinsiyette gercekten urunu olan ana kategoriler girer.
+    const names = (await getTopGenderCategoryNames(cinsiyet)).map((name) => name.toLocaleLowerCase("tr"));
+    const categoryList = names.length > 1 ? `${names.slice(0, -1).join(", ")} ve ${names.at(-1)}` : names[0];
     return {
       title: `${cinsiyet} Koleksiyonu`,
-      description: `Bollmark ${cinsiyet} koleksiyonunu keşfedin.`,
+      description: truncateDescription(
+        `Bollmark ${cinsiyet.toLocaleLowerCase("tr")} koleksiyonu: ${
+          categoryList ? `${categoryList} modelleri. Sezonun` : "gündelik giyimde sezonun"
+        } yeni parçaları Karacabey mağazamızda ve online'da, 14 gün içinde iade hakkıyla.`
+      ),
       alternates: { canonical }
     };
   }

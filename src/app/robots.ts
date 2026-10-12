@@ -32,12 +32,12 @@ export default function robots(): MetadataRoute.Robots {
         allow: ["/", "/urunler/*?renk="],
         // Katalog filtre parametreli URL'ler sinirsiz kombinasyon uretiyor.
         // Kategoriler artik temiz yollarda (/erkek/gomlek, /kategori/ayakkabi).
+        // /sepet, /hesap, /odeme bilerek engelli degil: bu sayfalar noindex
+        // tasiyor ve Google'in onu gorup sayfayi dizinden atabilmesi icin
+        // sayfaya girebilmesi gerekir (robots engeli dizinden cikarmaz).
         disallow: [
           "/admin",
-          "/hesap",
-          "/odeme",
           "/api/",
-          "/sepet",
           "/*?*renk=",
           "/*?*beden=",
           "/*?*fiyat-min=",
