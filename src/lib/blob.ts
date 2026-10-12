@@ -1,22 +1,9 @@
-import { del } from "@vercel/blob";
 import { deleteR2Urls, isR2Url } from "@/lib/image-storage";
 
-// Vercel Blob'a yuklenen dosyalarin url'leri hep bu host'ta biter.
-// Kullanicinin elle yapistirdigi disaridan (Unsplash vb.) url'ler bu deseni
-// tutturmaz, dolayisiyla yanlislikla silinmezler.
-const BLOB_HOST_SUFFIX = ".public.blob.vercel-storage.com";
-
-function isManagedBlobUrl(url: string): boolean {
-  try {
-    return new URL(url).hostname.endsWith(BLOB_HOST_SUFFIX);
-  } catch {
-    return false;
-  }
-}
-
 /**
- * Verilen url listesinden sadece Vercel Blob'da ve R2'de (bkz. image-storage.ts)
- * barinanlari siler.
+ * Verilen url listesinden sadece R2'de (bkz. image-storage.ts) barinanlari siler.
+ * Kullanicinin elle yapistirdigi disaridan (Unsplash vb.) url'ler R2 host'unu
+ * tutturmaz, dolayisiyla yanlislikla silinmezler.
  * Bir urun/varyant guncellenirken veya silinirken artik kullanilmayan
  * gorsellerin depoda birikmesini onlemek icin kullanilir. Silme basarisiz
  * olsa bile (ag hatasi, zaten silinmis olma vb.) hatayi yutar - bu temizlik
@@ -25,11 +12,4 @@ function isManagedBlobUrl(url: string): boolean {
 export async function deleteBlobUrls(urls: string[]): Promise<void> {
   const unique = Array.from(new Set(urls));
   await deleteR2Urls(unique.filter(isR2Url));
-  const targets = unique.filter(isManagedBlobUrl);
-  if (targets.length === 0) return;
-  try {
-    await del(targets);
-  } catch (error) {
-    console.error("Kullanilmayan blob gorselleri silinemedi (yoksayildi):", error);
-  }
 }

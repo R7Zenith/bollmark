@@ -1,10 +1,14 @@
-// Yeni yuklenen urun gorsellerinin yazildigi depo: Cloudflare R2 (bkz.
-// R2_GORSEL_DEPOLAMA_PLANI.md). Vercel Blob Hobby'nin aylik yazma siniri dolmasin diye
-// yeni gorseller R2'ye gider; eski gorseller Blob'da kalir, tasinmaz. R2 ortam
-// degiskenleri eksikse eskisi gibi Vercel Blob'a yazilir (guvenlik agi).
+// Urun gorsellerinin yazildigi depo: Cloudflare R2 (bkz. R2_GORSEL_DEPOLAMA_PLANI.md,
+// BLOB_TAMAMEN_KALDIRMA_PLANI.md). R2 ortam degiskenleri eksikse yukleme
+// R2ConfigError firlatir; baska bir depoya sessizce yazilmaz.
 import { randomBytes } from "node:crypto";
-import { put } from "@vercel/blob";
 import { AwsClient } from "aws4fetch";
+
+export class R2ConfigError extends Error {
+  constructor() {
+    super("Görsel deposu (R2) ayarları eksik. R2_ ile başlayan ortam değişkenlerini kontrol edin.");
+  }
+}
 
 function r2Config() {
   const { R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_BASE_URL } = process.env;
@@ -33,8 +37,6 @@ function asciiSlug(text: string): string {
   return slug || "gorsel";
 }
 
-let warnedBlobFallback = false;
-
 export async function uploadImage(input: {
   folder: string;
   nameHint: string;
@@ -43,18 +45,7 @@ export async function uploadImage(input: {
   ext: string;
 }): Promise<string> {
   const r2 = r2Config();
-  if (!r2) {
-    if (!warnedBlobFallback) {
-      console.warn("R2 tanımlı değil, Vercel Blob'a yazılıyor.");
-      warnedBlobFallback = true;
-    }
-    const blob = await put(`${input.folder}/${input.nameHint}.${input.ext}`, input.buffer, {
-      access: "public",
-      contentType: input.contentType,
-      addRandomSuffix: true
-    });
-    return blob.url;
-  }
+  if (!r2) throw new R2ConfigError();
 
   const key = `${input.folder}/${asciiSlug(input.nameHint)}-${randomBytes(4).toString("hex")}.${input.ext}`;
   // client.fetch() DEGIL: o, govdeyi bir Request nesnesine sarar; Next.js'in fetch'i bunu

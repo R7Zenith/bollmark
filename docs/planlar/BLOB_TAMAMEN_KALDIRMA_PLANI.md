@@ -1,7 +1,7 @@
 # Vercel Blob'dan tamamen çıkış: eski görselleri R2'ye taşıma
 
 **Tarih:** 7 Ekim 2026
-**Durum:** Taşıma bitti: 1.344 / 1.344 görsel R2'de, veritabanında Blob adresi 0 (2026-10-12, bkz. bölüm 11). Faz 3 kod temizliği kullanıcının localhost onayını bekliyor. Sonra Faz 4 (Blob deposunu kapatma)
+**Durum:** Taşıma bitti: 1.344 / 1.344 görsel R2'de, veritabanında Blob adresi 0 (2026-10-12, bkz. bölüm 11). Faz 3 kod temizliği yapıldı (2026-10-13). Kalan: Faz 4 (Blob deposunu kapatma, kullanıcı, 1–2 gün Blob grafiği izlendikten sonra)
 **Önceki iş:** R2_GORSEL_DEPOLAMA_PLANI.md. Yeni görseller 4 Ekim'den beri R2'ye gidiyor ve canlıda.
 
 ## 1. Neden

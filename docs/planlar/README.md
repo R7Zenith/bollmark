@@ -17,7 +17,7 @@ Kod yorumlarındaki `bkz. X_PLANI.md` atıfları dosya adıyla verilmiştir; dos
 
 | Plan | Durum |
 |---|---|
-| `BLOB_TAMAMEN_KALDIRMA_PLANI.md` | Devam ediyor: 552 / 1.344 görsel taşındı (2026-10-08) |
+| `BLOB_TAMAMEN_KALDIRMA_PLANI.md` | Taşıma ve Faz 3 kod temizliği bitti (2026-10-13). Kalan: Faz 4, Blob deposunu kapatma (kullanıcı) |
 | `VERCEL_GORSEL_VE_BOT_LIMIT_PLANI.md` | A-D uygulandı; E (geçici `unoptimized` modu) ~28-29 Ekim 2026'ya kadar sürüyor |
 | `GOOGLE_ARAMA_SONUCLARI_DUZELTME_PLANI.md` | Bekliyor |
 | `SEO_TEKNIK_DENETIM_VE_PLAN.md` | Faz 1-4 uygulandı (2026-09-30), Faz 5 kısmen |

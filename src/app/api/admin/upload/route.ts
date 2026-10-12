@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { compressImage } from "@/lib/image-compress";
 import { deleteBlobUrls } from "@/lib/blob";
-import { uploadImage } from "@/lib/image-storage";
+import { R2ConfigError, uploadImage } from "@/lib/image-storage";
 
 const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 // Vercel fonksiyon istek govdesi siniri (~4.5 MB) ile tutarli.
@@ -33,13 +33,17 @@ export async function POST(request: NextRequest) {
     const baseName = file.name.replace(/\.[^./\\]+$/, "");
     const url = await uploadImage({ folder: "admin-upload", nameHint: baseName, buffer, contentType, ext });
     return NextResponse.json({ url });
-  } catch {
+  } catch (error) {
+    if (error instanceof R2ConfigError) {
+      console.error(error.message);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     return NextResponse.json({ error: "Yükleme başarısız oldu, lütfen tekrar deneyin." }, { status: 500 });
   }
 }
 
 // Bu oturumda yuklenip kaydedilmeden silinen gorselleri depodan temizler.
-// deleteBlobUrls sadece bizim Vercel Blob / R2 URL'lerimizi siler, digerlerini atlar.
+// deleteBlobUrls sadece bizim R2 URL'lerimizi siler, digerlerini atlar.
 export async function DELETE(request: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) {
