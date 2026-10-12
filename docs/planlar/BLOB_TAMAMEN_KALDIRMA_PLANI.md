@@ -1,7 +1,7 @@
 # Vercel Blob'dan tamamen çıkış: eski görselleri R2'ye taşıma
 
 **Tarih:** 7 Ekim 2026
-**Durum:** Devam ediyor: 552 / 1.344 görsel taşındı (2026-10-08), Faz 3 kod temizliği bekliyor
+**Durum:** Taşıma bitti: 1.344 / 1.344 görsel R2'de, veritabanında Blob adresi 0 (2026-10-12, bkz. bölüm 11). Faz 3 kod temizliği kullanıcının localhost onayını bekliyor. Sonra Faz 4 (Blob deposunu kapatma)
 **Önceki iş:** R2_GORSEL_DEPOLAMA_PLANI.md. Yeni görseller 4 Ekim'den beri R2'ye gidiyor ve canlıda.
 
 ## 1. Neden
@@ -145,4 +145,46 @@ Bollmark projesinde BLOB_TAMAMEN_KALDIRMA_PLANI.md dosyasının 6. bölümünü 
 R2 env'leri eksikse uploadImage açık ve anlaşılır bir hata versin, sessizce Blob'a yazmasın. deleteBlobUrls adı ve çağıran yerler değişmesin. @vercel/blob paketini kaldır; grep ile hiçbir kullanım kalmadığını göster.
 
 Test: tsc, lint, build temiz; admin'de taslak bir ürüne görsel yükle ve sil (R2'ye gitmeli, silinmeli). Bitince DEPLOY_STATUS.md'ye not düş. Ben localhost'ta onaylamadan commit atma; onayımdan sonra önce DEPLOY_STATUS.md'yi güncelle, sonra yerel commit at. Ben söylemeden push ETME.
+```
+
+## 11. Vercel Pro sonrası devam (2026-10-12)
+
+Kullanıcı Vercel Pro'ya geçti. Bu, Faz 1/2'deki parti parti ilerleme kuralını değiştirir.
+
+**Ne değişti**
+- Hobby'deki "10.000 Simple Operations / 30 gün, aşılırsa Blob 30 gün kilitlenir" sınırı Pro'da **yok**. Pro'da Blob kullandığın kadar ücretlenir ve aylık Pro kredisinden düşer (Simple Operation: 1 milyonu $0,40; Advanced: 1 milyonu $5).
+- Kalan 792 görselin indirilmesi = en fazla 792 Simple Operation ≈ **$0,0003**. ~50 MB veri çıkışı da kuruşluk.
+- Bu yüzden günlükteki "sayaç 9.800'e ulaşırsa DUR" ve "parti başına en fazla 300" kuralları **artık geçerli değil**. Kalan görseller tek komutla (`--limit` olmadan) taşınabilir.
+- Pro hız sınırı dakikada 7.200 Simple Operation; scriptin eşzamanlılığı 4, bu sınırın çok altında.
+
+**Ne değişmedi**
+- Byte byte kopya, sha256 doğrulaması, önce/sonra sayım karşılaştırması, yedek dosyası, hata olursa durma: aynen.
+- Blob'dan hiçbir dosya silinmez. Faz 4 (depoyu kapatma) yine kullanıcı onayıyla ve 1–2 gün Blob grafiği izlendikten sonra.
+- R2'ye geçiş kararı Pro ile değişmez: R2'de okuma ve veri çıkışı ücretsiz, Blob'da Pro'da ücretli. Eski görseller Blob'da kaldıkça her önbellek kaçırması (cache MISS) faturaya küçük de olsa yazılır.
+
+**Öneri (kullanıcı, bir kerelik):** Vercel → Settings → Billing → Spend Management'ta bir harcama sınırı ve bildirim aç (örn. aylık kredinin üstü için uyarı). Pro'da artık kilitlenme yok ama sürpriz fatura da istemiyoruz.
+
+**Not (ayrı iş, bu plana dahil değil):** `next.config.mjs` içindeki geçici `images.unoptimized: true`, Hobby görsel optimizasyon kotası yüzündeydi (VERCEL_GORSEL_VE_BOT_LIMIT_PLANI.md, E maddesi). Pro'da bu kota da kullandığın kadar ücretlenir; kaldırılıp kaldırılmayacağı o planda ayrıca konuşulacak.
+
+### Prompt 3 — Kalan görselleri tek partide taşı + Faz 3 (Pro sonrası)
+
+```
+Bollmark projesinde önce DEPLOY_STATUS.md'yi, sonra docs/gunluk/2026-10.md'deki son "Blob'dan R2'ye görsel taşıma" kaydını, sonra docs/planlar/BLOB_TAMAMEN_KALDIRMA_PLANI.md dosyasını (özellikle 11. bölüm) oku. Yüklü skill'leri (özellikle karpathy-guidelines) kullan.
+
+Durum: Vercel Pro'ya geçildi. Blob okuma sınırı artık kilitlenmeye yol açmıyor, bu yüzden günlükteki "9.800'de dur / partide en fazla 300" kuralı geçersiz. Kalan görselleri tek seferde taşı.
+
+AŞAMA 1 — Kalan görselleri taşı (kod değişikliği yok):
+1. `npx tsx scripts/blob-to-r2.ts --envanter` çalıştır, kalan Blob adresi sayısını raporla (beklenen ~792: yayındaki ürünlerde ~778, arşivli 4 üründe ~14).
+2. `npx tsx scripts/blob-to-r2.ts --kopyala --db-guncelle` (limitsiz) çalıştır. Script zaten kaldığı yerden devam ediyor, önce yayındakileri, en son arşivlileri alıyor.
+3. Herhangi bir hata, boyut/sha256 uyuşmazlığı ya da sayım farkı çıkarsa DUR ve bana raporla; düzeltmek için kendi başına bir şey silme ya da DB'ye elle yazma.
+4. Bitince tekrar `--envanter` çalıştır: DB'de Blob adresi 0 olmalı (kalan varsa tek tek nedenini yaz). Ayrıca planın 8. bölümündeki 5. testi yap: anasayfa, katalog, birkaç ürün sayfası (farklı markalardan, en az biri Türkçe karakterli slug'lı ve biri arşivli) localhost'ta açılıp HTML'de `blob.vercel-storage.com` geçmediğini göster. Önbellek için planın 5. bölüm 7. maddesindeki yolu uygula.
+5. Blob'dan hiçbir dosya SİLME.
+6. Sonucu bana kısa raporla: taşınan sayı, hata sayısı, yeni yedek dosyasının adı. Burada DUR ve benim localhost'ta kontrol edip onay vermemi bekle.
+
+AŞAMA 2 — Faz 3 kod temizliği (yalnızca ben Aşama 1'i onayladıktan sonra):
+Planın 6. bölümünü uygula. DB'de Blob adresi kaldıysa next.config.mjs'teki Blob remotePattern satırını ve blob.ts'teki host kontrolünü SİLME, raporla. R2 env'leri eksikse uploadImage açık ve anlaşılır bir hata versin, sessizce Blob'a yazmasın. deleteBlobUrls adı ve çağıran yerler değişmesin. `npm uninstall @vercel/blob`; grep ile `@vercel/blob` ve `BLOB_READ_WRITE_TOKEN` kullanımının kalmadığını göster (node_modules hariç; .env dosyalarındaki token satırına DOKUNMA, o Faz 4'te silinecek). Test: `npx tsc --noEmit`, `npm run lint`, `npm run build` temiz; mümkünse taslak bir ürüne görsel yükleyip silme yolunu R2 ile sına. scripts/blob-to-r2.ts ve scripts/output/ Faz 4'e kadar kalsın.
+
+Kayıt ve commit:
+- Her aşama bitince docs/gunluk/2026-10.md sonuna oturum notu ekle; DEPLOY_STATUS.md "Açık işler" satırını güncelle (taşıma bitince "Faz 4: Blob deposunu kapatma, kullanıcı, 1–2 gün Blob grafiği izlendikten sonra" olarak bırak). Plan dosyasının Durum satırını da güncelle. Şifre/token yazma.
+- Ben localhost'ta onaylamadan commit atma. Onayımdan sonra önce DEPLOY_STATUS.md'yi güncelle, sonra yerel commit at. Ben söylemeden push ETME.
 ```

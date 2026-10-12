@@ -1,6 +1,6 @@
 # Bollmark - Güncel Durum
 
-Son güncelleme: 2026-10-09
+Son güncelleme: 2026-10-12
 
 Bu dosya projenin **şu anki** durumunu kısa tutar. Yeni bir oturumda kaldığın
 yerden devam etmek için önce bunu, sonra gerekirse ilgili günlük dosyasını oku.
@@ -16,8 +16,8 @@ yerden devam etmek için önce bunu, sonra gerekirse ilgili günlük dosyasını
 - **Repo:** https://github.com/R7Zenith/bollmark.git (`main`)
 - **Veritabanı:** Neon Postgres, Prisma 7. Yerel geliştirme ve canlı site **AYNI**
   veritabanını kullanır; yerelde yazan her test canlı veriye yazar.
-- **Görseller:** yeni yüklemeler Cloudflare R2'ye (`img.bollmark.com`) gider. Eski
-  Vercel Blob görselleri taşınıyor (aşağıda).
+- **Görseller:** hepsi Cloudflare R2'de (`img.bollmark.com`). Eski Vercel Blob
+  görselleri 2026-10-12'de taşındı; Blob deposu henüz silinmedi (aşağıda).
 - **Önizleme kapısı:** 2026-10-02'de yeniden açıldı (`src/proxy.ts`). Şifresiz
   ziyaretçi `/yapim-asamasinda` içeriğini görür.
 - **Ödeme:** iyzico sanal POS canlıda (kullanıcı teyidi, 2026-10-09).
@@ -29,7 +29,7 @@ yerden devam etmek için önce bunu, sonra gerekirse ilgili günlük dosyasını
 
 | İş | Durum | Plan |
 |---|---|---|
-| Blob'dan R2'ye görsel taşıma | Devam ediyor: 552 / 1.344 taşındı (2026-10-08). Blob işlem sınırı yüzünden parti parti. Devam komutu günlükte (`docs/gunluk/2026-10.md`, son kayıt). Faz 3 kod temizliği bekliyor. | `docs/planlar/BLOB_TAMAMEN_KALDIRMA_PLANI.md` |
+| Blob'dan R2'ye görsel taşıma | Taşıma bitti: 1.344 / 1.344 görsel R2'de, veritabanında Blob adresi 0 (2026-10-12). Faz 3 kod temizliği kullanıcının localhost onayını bekliyor. Sonra Faz 4: Blob deposunu kapatma, kullanıcı, 1–2 gün Blob grafiği izlendikten sonra. | `docs/planlar/BLOB_TAMAMEN_KALDIRMA_PLANI.md` |
 | Görsel optimizasyonu geçici kapalı | `next.config.mjs` içinde `images.unoptimized: true`. Plana göre Vercel kotası ~28-29 Ekim 2026'da boşalana kadar kaldırılmamalı. | `docs/planlar/VERCEL_GORSEL_VE_BOT_LIMIT_PLANI.md` |
 | Google'da "Çok yakında" sonucu | Bekliyor, uygulanmadı. | `docs/planlar/GOOGLE_ARAMA_SONUCLARI_DUZELTME_PLANI.md` |
 | SEO Faz 5 (ürün fotoğrafı ön üretimi) | Yalnız madde 6 uygulandı, kalanı ertelendi. | `docs/planlar/SEO_FAZ5_GORSEL_ON_URETIM_PLANI.md` |
