@@ -231,7 +231,9 @@ export function parseColorName(raw: string): string {
 // Twister'in dosyasinda FIRMAADI tedarikci firma ("HVS GİYİM"), gercek marka KOD7'de.
 // HVS Giyim ileride baska bir marka gonderirse bu alias yanlis olur - o zaman marka
 // FIRMAADI yerine KOD7'den okunmali.
-const BRAND_NAME_ALIASES: Record<string, string> = { SATEN: "SATEEN", "HVS GİYİM": "TWISTER" };
+// "Twister" bilerek kucuk harfli: marka adi Turkce kuralla kucultuldugu icin (bkz.
+// titleCaseTr) "TWISTER" yazilirsa I -> ı olur ve marka "Twıster" olarak olusur.
+const BRAND_NAME_ALIASES: Record<string, string> = { SATEN: "SATEEN", "HVS GİYİM": "Twister" };
 
 export function parseExcelFile(buffer: ArrayBuffer | Buffer): ExcelParseResult {
   const workbook = XLSX.read(buffer, { type: "buffer" });
