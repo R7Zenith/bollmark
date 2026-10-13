@@ -100,12 +100,13 @@ type Step = "brand" | "upload" | "preview" | "result";
 // motora yönleniyor - bkz. gorsel-getir route'u). Bu seçim ekranı sadece netlik için:
 // admin hangi markanın checklist'ini yüklediğini bilerek baslasin, baslik/aciklama ona
 // gore degisir.
-const BRAND_OPTIONS: { key: "KOTON" | "SLAZENGER" | "DILVIN" | "QUZU" | "SATEEN"; label: string }[] = [
+const BRAND_OPTIONS: { key: "KOTON" | "SLAZENGER" | "DILVIN" | "QUZU" | "SATEEN" | "TWISTER"; label: string }[] = [
   { key: "KOTON", label: "Koton" },
   { key: "SLAZENGER", label: "Slazenger" },
   { key: "DILVIN", label: "Dilvin" },
   { key: "QUZU", label: "Quzu" },
-  { key: "SATEEN", label: "Sateen" }
+  { key: "SATEEN", label: "Sateen" },
+  { key: "TWISTER", label: "Twister" }
 ];
 
 // Sunucudaki 30sn'lik transaction limitinin altında kalmak için ürün gruplarını
@@ -155,7 +156,7 @@ export function ExcelImportWizard({
 }) {
   const { showToast } = useToast();
   const [step, setStep] = useState<Step>("brand");
-  const [brand, setBrand] = useState<"KOTON" | "SLAZENGER" | "DILVIN" | "QUZU" | "SATEEN" | null>(null);
+  const [brand, setBrand] = useState<"KOTON" | "SLAZENGER" | "DILVIN" | "QUZU" | "SATEEN" | "TWISTER" | null>(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [categoryId, setCategoryId] = useState("");
@@ -382,7 +383,7 @@ export function ExcelImportWizard({
             Dükkanın checklist sistemi tarafından üretilen .xls veya .xlsx dosyasını seçin. Aynı ÜRÜN KODU&apos;na
             sahip satırlar tek bir ürün altında renk/beden varyantı olarak gruplanır.
           </p>
-          {brand === "DILVIN" && (
+          {(brand === "DILVIN" || brand === "TWISTER") && (
             <p className="rounded-md border border-admin-border bg-gray-50 p-3 text-xs text-admin-text-muted">
               {brandLabel} ürünleri için otomatik fotoğraf araması yapılmaz. Ürünler taslak olarak oluşturulur,
               fotoğrafları ürün sayfasından elle ekleyin.

@@ -77,6 +77,8 @@ const CATEGORY_MAP: Record<string, string> = {
   SKIRTS: "Etek",
   SWEATERS: "Kazak & Süveter",
   SWEATSHIRTS: "Sweatshirt",
+  SWEATSHIRT: "Sweatshirt",
+  EŞOFMAN: "Eşofman",
   "SPOR AYAKKABI": "Ayakkabı",
   ÇORAP: "Çorap",
   CORAP: "Çorap",
@@ -226,7 +228,10 @@ export function parseColorName(raw: string): string {
 
 // Checklist'te FIRMAADI yanlis/farkli yazilan markalarin dogru adi (anahtar buyuk harf).
 // Sateen'in dosyasinda FIRMAADI "SATEN" (tek E) geliyor; marka "Sateen" olarak olusmali.
-const BRAND_NAME_ALIASES: Record<string, string> = { SATEN: "SATEEN" };
+// Twister'in dosyasinda FIRMAADI tedarikci firma ("HVS GİYİM"), gercek marka KOD7'de.
+// HVS Giyim ileride baska bir marka gonderirse bu alias yanlis olur - o zaman marka
+// FIRMAADI yerine KOD7'den okunmali.
+const BRAND_NAME_ALIASES: Record<string, string> = { SATEN: "SATEEN", "HVS GİYİM": "TWISTER" };
 
 export function parseExcelFile(buffer: ArrayBuffer | Buffer): ExcelParseResult {
   const workbook = XLSX.read(buffer, { type: "buffer" });
@@ -579,6 +584,10 @@ export async function importProductGroups(
         }
 
         const colorValueIdByLabel: Record<string, string> = {};
+        // Yeni varyantlar tek tek degil, grup basina toplu yazilir: varyant basina ayri
+        // nested create, cok varyantli dosyalarda (orn. Twister, urun basina 10-25 varyant)
+        // 30sn'lik transaction limitini asiyordu.
+        const newVariants: { sku: string; barcode: string; stock: number; optionValueIds: string[] }[] = [];
 
         for (const variant of group.variants) {
           const colorValueId = valueIdCache.get(`Renk::${variant.color}`) ?? null;
@@ -599,17 +608,22 @@ export async function importProductGroups(
             // Aynı kod+renk+beden farklı barkodla tekrar ederse ProductVariant.sku @unique ihlali olur.
             if (usedSkus.has(sku)) sku = `${sku}-${variant.barcode.slice(-4)}`;
             usedSkus.add(sku);
-            await tx.productVariant.create({
-              data: {
-                productId,
-                sku,
-                barcode: variant.barcode,
-                stock: variant.stock,
-                options: { create: optionValueIds.map((valueId) => ({ valueId })) }
-              }
-            });
+            newVariants.push({ sku, barcode: variant.barcode, stock: variant.stock, optionValueIds });
             summary.variantsCreated++;
           }
+        }
+
+        if (newVariants.length > 0) {
+          const created = await tx.productVariant.createManyAndReturn({
+            data: newVariants.map((v) => ({ productId, sku: v.sku, barcode: v.barcode, stock: v.stock })),
+            select: { id: true, sku: true }
+          });
+          const variantIdBySku = new Map(created.map((v) => [v.sku, v.id]));
+          await tx.productVariantOption.createMany({
+            data: newVariants.flatMap((v) =>
+              v.optionValueIds.map((valueId) => ({ variantId: variantIdBySku.get(v.sku)!, valueId }))
+            )
+          });
         }
 
         if (isNew) {
