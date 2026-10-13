@@ -6,6 +6,20 @@
 export const MAX_UPLOAD_BYTES = 4.5 * 1024 * 1024;
 const MAX_EDGE = 2000;
 
+// Admin gorsel yuklemede kabul edilen formatlar - istemci (dosya secimi/filtre) ve
+// sunucu (/api/admin/upload) ayni listeyi kullanir. Cikti her zaman WebP'dir
+// (bkz. image-compress.ts); AVIF sadece girdi olarak kabul edilir.
+export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/avif"];
+const ACCEPTED_IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".avif"];
+export const ACCEPTED_IMAGE_ACCEPT_ATTR = [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_IMAGE_EXTENSIONS].join(",");
+
+// Tarayici bazen (ozellikle Windows'ta .avif icin) file.type'i bos verir; o zaman uzantiya bakilir.
+export function isAcceptedImage(file: { type: string; name: string }): boolean {
+  if (file.type) return ACCEPTED_IMAGE_TYPES.includes(file.type);
+  const name = file.name.toLowerCase();
+  return ACCEPTED_IMAGE_EXTENSIONS.some((ext) => name.endsWith(ext));
+}
+
 export async function resizeImageForUpload(file: File): Promise<File> {
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });

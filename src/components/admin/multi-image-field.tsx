@@ -16,7 +16,12 @@ import { CSS } from "@dnd-kit/utilities";
 import { ArrowLeft, ArrowRight, Link2, Loader2, Pencil, Plus, RotateCcw, Star, Trash2 } from "lucide-react";
 import { Button } from "@/components/admin/button";
 import { useToast } from "@/components/admin/toast";
-import { MAX_UPLOAD_BYTES, resizeImageForUpload } from "@/lib/client-image-resize";
+import {
+  ACCEPTED_IMAGE_ACCEPT_ATTR,
+  MAX_UPLOAD_BYTES,
+  isAcceptedImage,
+  resizeImageForUpload
+} from "@/lib/client-image-resize";
 
 export type ImageEntry = { url: string; alt?: string; isCover?: boolean };
 
@@ -29,7 +34,6 @@ type PendingUpload = {
   error?: string;
 };
 
-const ACCEPTED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 const MAX_CONCURRENT_UPLOADS = 3;
 
 const iconButtonClass =
@@ -141,7 +145,15 @@ export function MultiImageField({
   }
 
   function addFiles(fileList: FileList | File[]) {
-    const files = Array.from(fileList).filter((f) => ACCEPTED_TYPES.includes(f.type));
+    const all = Array.from(fileList);
+    const files = all.filter(isAcceptedImage);
+    const rejected = all.length - files.length;
+    if (rejected > 0) {
+      showToast(
+        `${rejected} dosya desteklenmeyen formatta olduğu için eklenmedi. JPG, PNG, WEBP veya AVIF yükleyin.`,
+        "error"
+      );
+    }
     if (files.length === 0) return;
     const added: PendingUpload[] = files.map((file) => {
       const previewUrl = URL.createObjectURL(file);
@@ -364,7 +376,7 @@ export function MultiImageField({
         ref={fileInputRef}
         type="file"
         multiple
-        accept={ACCEPTED_TYPES.join(",")}
+        accept={ACCEPTED_IMAGE_ACCEPT_ATTR}
         className="hidden"
         onChange={(e) => {
           if (e.target.files) addFiles(e.target.files);

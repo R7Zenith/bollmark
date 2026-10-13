@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Loader2, X } from "lucide-react";
+import { ACCEPTED_IMAGE_ACCEPT_ATTR } from "@/lib/client-image-resize";
 
 // Tek bir gorsel icin hem URL yapistirma hem PC'den yukleme sunan ortak bilesen.
 // Kucuk onizleme + "Degistir"/"Kaldir" + bir URL metin girisi (blur/enter'da
@@ -89,7 +90,7 @@ export function ImageField({
       <input
         ref={inputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept={ACCEPTED_IMAGE_ACCEPT_ATTR}
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];

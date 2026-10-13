@@ -4,8 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { compressImage } from "@/lib/image-compress";
 import { deleteBlobUrls } from "@/lib/blob";
 import { R2ConfigError, uploadImage } from "@/lib/image-storage";
+import { isAcceptedImage } from "@/lib/client-image-resize";
 
-const ALLOWED_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 // Vercel fonksiyon istek govdesi siniri (~4.5 MB) ile tutarli.
 const MAX_SIZE_BYTES = 4.5 * 1024 * 1024;
 
@@ -20,8 +20,8 @@ export async function POST(request: NextRequest) {
   if (!file || !(file instanceof File)) {
     return NextResponse.json({ error: "Dosya bulunamadı." }, { status: 400 });
   }
-  if (!ALLOWED_TYPES.has(file.type)) {
-    return NextResponse.json({ error: "Sadece JPG, PNG veya WEBP yükleyebilirsiniz." }, { status: 400 });
+  if (!isAcceptedImage(file)) {
+    return NextResponse.json({ error: "Sadece JPG, PNG, WEBP veya AVIF yükleyebilirsiniz." }, { status: 400 });
   }
   if (file.size > MAX_SIZE_BYTES) {
     return NextResponse.json({ error: "Dosya boyutu en fazla 4.5MB olabilir." }, { status: 400 });
