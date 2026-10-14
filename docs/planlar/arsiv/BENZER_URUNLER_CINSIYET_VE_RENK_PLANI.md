@@ -1,7 +1,7 @@
 # "Bunlar da hoşunuza gidebilir" — Cinsiyet ve Renk Düzeltme Planı
 
 Tarih: 2026-10-14
-Durum: devam ediyor — 1. ve 2. adım uygulandı (2026-10-14); 3. adım kullanıcı onayı bekliyor.
+Durum: uygulandı (2026-10-14) — 1. ve 2. adım; opsiyonel 3. adım uygulanmadı.
 Not: kardeş kategoriden tamamlama yalnız `parentId` dolu (alt) kategorilerde çalışır;
 üst seviye kategorilerde "kardeş" tüm üst kategoriler olacağı için uygulanmaz.
 

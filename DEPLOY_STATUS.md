@@ -31,7 +31,6 @@ yerden devam etmek için önce bunu, sonra gerekirse ilgili günlük dosyasını
 |---|---|---|
 | Blob'dan R2'ye görsel taşıma | Taşıma (2026-10-12) ve Faz 3 kod temizliği (2026-10-13) bitti; kod artık Blob'a hiç yazmıyor/okumuyor. Kalan Faz 4: Blob deposunu kapatma, kullanıcı, 1–2 gün Blob grafiği izlendikten sonra. | `docs/planlar/BLOB_TAMAMEN_KALDIRMA_PLANI.md` |
 | SEO Faz 6: özgün ürün açıklamaları + ürün yönlendirmeleri | Kod yayında (2026-10-13): eski ürün adresleri yönlendiriliyor (slug değişimi, silme, arşiv). 217 ürünün özgün açıklama taslağı admin'de onay bekliyor (`/admin/urunler?aciklama=taslak`), 1 onaylı. Kalan: kullanıcının taslakları onaylaması; sonra Search Console'da dizine eklenen ürün sayısını izleme. Taslaklar API'siz yazılır (`scripts/ai-taslak-aktar.ts`). | `docs/planlar/SEO_FAZ6_OZGUN_ACIKLAMA_VE_YONLENDIRME_PLANI.md` |
-| Ürün sayfası "Bunlar da hoşunuza gidebilir": cinsiyet ve renk | 1. ve 2. adım uygulandı (2026-10-14): öneriler aynı cinsiyet + Unisex, renk başına kart ve swatch'larla; az ürünlü alt kategoride (ör. Aksesuar > Çanta) kardeş kategoriden aynı cinsiyetle tamamlanır. Localhost'ta doğrulandı; **yerel commit, push edilmedi**. Kalan: push; 3. adım (açık ürünün diğer renkleri) kullanıcı onayına bağlı. | `docs/planlar/BENZER_URUNLER_CINSIYET_VE_RENK_PLANI.md` |
 
 ## Bu dosya nasıl güncellenir
 
