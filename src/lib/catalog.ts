@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { optionPosition, optionValue, variantOptionsInclude, type VariantOptionInclude } from "@/lib/variant-attributes";
 import { usesGreyBackdrop } from "@/lib/image-backdrop";
@@ -342,26 +343,55 @@ export async function getCategories() {
   return prisma.category.findMany({ where: { isActive: true }, orderBy: { name: "asc" } });
 }
 
+const RELATED_LIMIT = 4;
+
 // Urun sayfasindaki "Benzer Urunler" bolumu icin - v1'de otomatik kategori
 // bazli oneri yeterli tutuluyor (elle eslestirme ayri, daha sonraki bir is).
-export async function getRelatedProducts(product: { id: string; categoryId: string | null }) {
+// "Pantolon" gibi kategoriler kadin ve erkek urunlerince ortak kullanildigi
+// icin ayni cinsiyet (+ Unisex) ile sinirlanir; kartlar katalogdaki gibi renk
+// basina giris olarak doner (bkz. BENZER_URUNLER_CINSIYET_VE_RENK_PLANI.md).
+export async function getRelatedProducts(product: {
+  id: string;
+  categoryId: string | null;
+  gender: string | null;
+  category?: { parentId: string | null } | null;
+}): Promise<CatalogEntry[]> {
   if (!product.categoryId) return [];
-  const products = await prisma.product.findMany({
-    where: {
-      categoryId: product.categoryId,
-      id: { not: product.id },
-      status: "PUBLISHED"
-    },
-    include: {
-      images: { orderBy: { position: "asc" }, take: 1 },
-      optionImages: { orderBy: { position: "asc" }, take: 1 },
-      variants: { include: variantOptionsInclude },
-      brand: { select: { name: true } }
-    },
-    orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }],
-    take: 4
-  });
-  return products
-    .filter((p) => totalStock(p.variants) > 0)
-    .map((p) => ({ ...p, quickAddVariants: pickQuickAddVariants(p.variants) }));
+  const gender = product.gender ? { in: [product.gender, "Unisex"] } : undefined;
+
+  const findEntries = async (where: Prisma.ProductWhereInput) => {
+    const products = await prisma.product.findMany({
+      where: { ...where, status: "PUBLISHED", id: { not: product.id }, gender },
+      include: {
+        images: { orderBy: { position: "asc" }, take: 2 },
+        optionImages: { orderBy: { position: "asc" } },
+        variants: { include: variantOptionsInclude },
+        brand: { select: { name: true } }
+      },
+      orderBy: [{ isFeatured: "desc" }, { createdAt: "desc" }, { id: "asc" }],
+      take: 24
+    });
+    return products.flatMap(productToCatalogEntries).filter((e) => !e.outOfStock);
+  };
+
+  let entries = await findEntries({ categoryId: product.categoryId });
+  // Az urunlu alt kategorilerde (ör. Aksesuar > Canta) ayni ust kategorinin
+  // diger alt kategorilerinden, yine ayni cinsiyetle tamamlanir. Ust seviye
+  // kategorilerin parentId'si bos - orada "kardes" tum ust kategoriler olurdu.
+  const parentId = product.category?.parentId;
+  if (parentId && new Set(entries.map((e) => e.productId)).size < RELATED_LIMIT) {
+    entries = entries.concat(await findEntries({ category: { parentId, id: { not: product.categoryId } } }));
+  }
+
+  // Ayni urunun renkleri bolumu kaplamasin: once her urunden 1 giris, yer
+  // kalirsa sonraki turlarda ayni urunlerin diger renkleri.
+  const byProduct = new Map<string, CatalogEntry[]>();
+  for (const e of entries) byProduct.set(e.productId, [...(byProduct.get(e.productId) ?? []), e]);
+  const picked: CatalogEntry[] = [];
+  for (let round = 0; picked.length < RELATED_LIMIT; round++) {
+    const roundEntries = [...byProduct.values()].flatMap((list) => list[round] ?? []);
+    if (roundEntries.length === 0) break;
+    picked.push(...roundEntries.slice(0, RELATED_LIMIT - picked.length));
+  }
+  return picked;
 }

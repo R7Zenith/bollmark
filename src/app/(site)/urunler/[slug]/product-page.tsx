@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, permanentRedirect } from "next/navigation";
 import { getProductBySlug, getRelatedProducts, firstImageUrl, isNewProduct } from "@/lib/catalog";
-import { usesGreyBackdrop } from "@/lib/image-backdrop";
+import { catalogEntryToCardData } from "@/lib/home-products";
 import { getBundleForProduct } from "@/lib/bundles";
 import { prisma } from "@/lib/prisma";
 import { getActiveAutomaticPercentCampaigns, resolveProductDisplayPrice } from "@/lib/coupons";
@@ -149,20 +149,10 @@ export async function renderProductPage(rawSlug: string, renk?: string) {
         <div className="mt-20 border-t border-line pt-12">
           <h2 className="font-display text-2xl">Bunlar da hoşunuza gidebilir</h2>
           <div className="mt-8 grid grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-4">
-            {relatedProducts.map((p) => (
+            {relatedProducts.map((entry) => (
               <ProductCard
-                key={p.id}
-                product={{
-                  productId: p.id,
-                  slug: p.slug,
-                  name: p.name,
-                  priceCents: p.priceCents,
-                  compareAtCents: p.compareAtCents,
-                  image: firstImageUrl(p) ?? "/gorsel-yakinda.svg",
-                  priceResolution: resolveProductDisplayPrice(automaticCampaigns, p),
-                  quickAddVariants: p.quickAddVariants,
-                  greyBackdrop: usesGreyBackdrop(p.brand?.name)
-                }}
+                key={`${entry.productId}-${entry.colorLabel ?? "tek"}`}
+                product={catalogEntryToCardData(entry, automaticCampaigns)}
               />
             ))}
           </div>
