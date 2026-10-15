@@ -95,18 +95,22 @@ type ImportProgress = {
 
 type Step = "brand" | "upload" | "preview" | "result";
 
-// Excel içe aktarımı zaten marka bağımsız çalışıyor (satırlardaki FIRMAADI sütunundan
+// Excel içe aktarımı zaten marka bağımsız çalışıyor (satırlardaki KOD7 sütunundan
 // marka otomatik okunuyor, görsel arama stratejisi de her ürün için ayrı ayrı doğru
 // motora yönleniyor - bkz. gorsel-getir route'u). Bu seçim ekranı sadece netlik için:
 // admin hangi markanın checklist'ini yüklediğini bilerek baslasin, baslik/aciklama ona
 // gore degisir.
-const BRAND_OPTIONS: { key: "KOTON" | "SLAZENGER" | "DILVIN" | "QUZU" | "SATEEN" | "TWISTER"; label: string }[] = [
+const BRAND_OPTIONS: {
+  key: "KOTON" | "SLAZENGER" | "DILVIN" | "QUZU" | "SATEEN" | "TWISTER" | "WE_COMPANY";
+  label: string;
+}[] = [
   { key: "KOTON", label: "Koton" },
   { key: "SLAZENGER", label: "Slazenger" },
   { key: "DILVIN", label: "Dilvin" },
   { key: "QUZU", label: "Quzu" },
   { key: "SATEEN", label: "Sateen" },
-  { key: "TWISTER", label: "Twister" }
+  { key: "TWISTER", label: "Twister" },
+  { key: "WE_COMPANY", label: "WE Company" }
 ];
 
 // Sunucudaki 30sn'lik transaction limitinin altında kalmak için ürün gruplarını
@@ -156,7 +160,9 @@ export function ExcelImportWizard({
 }) {
   const { showToast } = useToast();
   const [step, setStep] = useState<Step>("brand");
-  const [brand, setBrand] = useState<"KOTON" | "SLAZENGER" | "DILVIN" | "QUZU" | "SATEEN" | "TWISTER" | null>(null);
+  const [brand, setBrand] = useState<
+    "KOTON" | "SLAZENGER" | "DILVIN" | "QUZU" | "SATEEN" | "TWISTER" | "WE_COMPANY" | null
+  >(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
   const [categoryId, setCategoryId] = useState("");
@@ -383,10 +389,11 @@ export function ExcelImportWizard({
             Dükkanın checklist sistemi tarafından üretilen .xls veya .xlsx dosyasını seçin. Aynı ÜRÜN KODU&apos;na
             sahip satırlar tek bir ürün altında renk/beden varyantı olarak gruplanır.
           </p>
-          {(brand === "DILVIN" || brand === "TWISTER") && (
+          {(brand === "DILVIN" || brand === "TWISTER" || brand === "WE_COMPANY") && (
             <p className="rounded-md border border-admin-border bg-gray-50 p-3 text-xs text-admin-text-muted">
               {brandLabel} ürünleri için otomatik fotoğraf araması yapılmaz. Ürünler taslak olarak oluşturulur,
               fotoğrafları ürün sayfasından elle ekleyin.
+              {brand === "WE_COMPANY" && " Bu ürünler sitede Bollmark markasıyla oluşturulur."}
             </p>
           )}
           {(brand === "QUZU" || brand === "SATEEN") && (

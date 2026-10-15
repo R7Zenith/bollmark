@@ -100,9 +100,10 @@ export function productTitle(product: { name: string; brand: { name: string } | 
   return `${brand} ${product.name}`;
 }
 
-// EAN-13 kontrol hanesi dogru mu - Google gecersiz GTIN'i reddeder.
+// EAN-13 kontrol hanesi dogru mu - Google gecersiz GTIN'i reddeder. 2 ile baslayanlar
+// magaza ici kod (orn. WE: 2020001060443), gercek GTIN degil; Google bunlari da reddeder.
 export function isValidGtin13(code: string | null): code is string {
-  if (!code || !/^\d{13}$/.test(code)) return false;
+  if (!code || !/^\d{13}$/.test(code) || code[0] === "2") return false;
   const sum = code
     .slice(0, 12)
     .split("")

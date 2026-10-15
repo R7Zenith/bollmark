@@ -25,7 +25,7 @@ export interface ExcelImportRow {
   costCents: number | null; // AFIYATI
   priceCents: number; // SFIYAT1
   stock: number; // MİKTAR
-  brandName: string; // FIRMAADI
+  brandName: string; // KOD7 (boşsa FIRMAADI)
 }
 
 export interface ExcelParseError {
@@ -56,6 +56,18 @@ const GENDER_MAP: Record<string, string> = {
 
 export function mapGender(genderRaw: string): string | null {
   return GENDER_MAP[genderRaw.trim().toUpperCase()] ?? null;
+}
+
+// KOD4 UNISEX geldiği halde ürün adı cinsiyeti söylüyorsa (WE: "LENA KADIN ... ÇANTA")
+// addaki cinsiyet kullanılır; aksi halde mapGender. Önizleme ve aktarım aynı yardımcıyı
+// kullanır.
+export function resolveGender(genderRaw: string, productName: string): string | null {
+  const gender = mapGender(genderRaw);
+  if (gender !== "Unisex") return gender;
+  const words = productName.toLocaleUpperCase("tr-TR").split(/[^A-ZÇĞİÖŞÜ]+/);
+  if (words.includes("KADIN")) return "Kadın";
+  if (words.includes("ERKEK")) return "Erkek";
+  return gender;
 }
 
 // Koton checklist'lerindeki KOD3 (urun grubu) degerlerinin Bollmark kategori
@@ -137,7 +149,8 @@ const PRODUCT_NAME_CATEGORY_KEYWORDS: Array<{ category: string; keywords: string
   { category: "Atlet", keywords: ["atlet"] },
   { category: "Boxer", keywords: ["boxer"] },
   { category: "Ayakkabı", keywords: ["ayakkabı", "sneaker", "sandalet", "terlik", "çizme"] },
-  { category: "Çorap", keywords: ["çorap", "patik"] }
+  { category: "Çorap", keywords: ["çorap", "patik"] },
+  { category: "Çanta", keywords: ["çanta"] }
 ];
 
 function escapeRegExp(text: string): string {
@@ -226,14 +239,19 @@ export function parseColorName(raw: string): string {
   return trimmed.slice(0, slashIndex).trim();
 }
 
-// Checklist'te FIRMAADI yanlis/farkli yazilan markalarin dogru adi (anahtar buyuk harf).
-// Sateen'in dosyasinda FIRMAADI "SATEN" (tek E) geliyor; marka "Sateen" olarak olusmali.
-// Twister'in dosyasinda FIRMAADI tedarikci firma ("HVS GİYİM"), gercek marka KOD7'de.
-// HVS Giyim ileride baska bir marka gonderirse bu alias yanlis olur - o zaman marka
-// FIRMAADI yerine KOD7'den okunmali.
+// Marka KOD7'den okunur: FIRMAADI tedarikci firma olabiliyor (Twister'da "HVS GİYİM",
+// WE Company'de "KOTON"); KOD7 her dosyada gercek markayi tasiyor. KOD7 bossa FIRMAADI.
+// Bu tablo okunan adi duzeltir (anahtar buyuk harf):
+// - WE Company urunleri sitede Bollmark markasiyla satilir.
+// - SATEN (Sateen'in FIRMAADI'nda tek E) ve HVS GİYİM, KOD7 bos gelirse yedek.
 // "Twister" bilerek kucuk harfli: marka adi Turkce kuralla kucultuldugu icin (bkz.
-// titleCaseTr) "TWISTER" yazilirsa I -> ı olur ve marka "Twıster" olarak olusur.
-const BRAND_NAME_ALIASES: Record<string, string> = { SATEN: "SATEEN", "HVS GİYİM": "Twister" };
+// titleCaseTr) "TWISTER" kalirsa I -> ı olur ve marka "Twıster" olarak olusur.
+const BRAND_NAME_ALIASES: Record<string, string> = {
+  SATEN: "SATEEN",
+  "HVS GİYİM": "Twister",
+  TWISTER: "Twister",
+  "WE COMPANY": "Bollmark"
+};
 
 export function parseExcelFile(buffer: ArrayBuffer | Buffer): ExcelParseResult {
   const workbook = XLSX.read(buffer, { type: "buffer" });
@@ -259,7 +277,7 @@ export function parseExcelFile(buffer: ArrayBuffer | Buffer): ExcelParseResult {
     const genderRaw = String(raw["KOD4"] ?? "").trim();
     const categoryRaw = String(raw["KOD3"] ?? "").trim();
     const seasonRaw = String(raw["KOD6"] ?? "").trim();
-    const rawBrandName = String(raw["FIRMAADI"] ?? "").trim() || "Koton";
+    const rawBrandName = String(raw["KOD7"] ?? "").trim() || String(raw["FIRMAADI"] ?? "").trim() || "Koton";
     const brandName = BRAND_NAME_ALIASES[rawBrandName.toUpperCase()] ?? rawBrandName;
 
     if (!productCode) {
@@ -578,7 +596,7 @@ export async function importProductGroups(
               categoryId: categoryIdByProductCode.get(group.productCode) ?? null,
               brandId: brandIdByProductCode.get(group.productCode) ?? null,
               seasonId,
-              gender: mapGender(group.genderRaw)
+              gender: resolveGender(group.genderRaw, group.productName)
             }
           });
           productId = created.id;
