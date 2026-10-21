@@ -18,6 +18,8 @@ const successMessages: Record<string, string> = {
   "deger-eklendi": "Değer eklendi.",
   "deger-silindi": "Değer silindi.",
   "deger-guncellendi": "Değer güncellendi.",
+  "deger-yeniden-adlandirildi": "Değerin adı değiştirildi.",
+  "deger-birlestirildi": "Değerler birleştirildi.",
   "siralandi": "Sıralama güncellendi."
 };
 

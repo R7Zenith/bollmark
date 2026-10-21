@@ -11,6 +11,8 @@ import { VariantAttributesFeedback } from "@/components/admin/variant-attributes
 import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
 import { VariantValueHexField } from "@/components/admin/variant-value-hex-field";
 import { VariantValueCreateFields } from "@/components/admin/variant-value-create-fields";
+import { VariantValueNameEditor } from "@/components/admin/variant-value-name-editor";
+import { logAudit } from "@/lib/audit-log";
 
 const PATH = "/admin/ayarlar/varyant-ozellikleri";
 
@@ -99,6 +101,66 @@ async function updateValueHex(id: string, formData: FormData) {
   revalidatePath(PATH);
   revalidateCatalog();
   ok("deger-guncellendi");
+}
+
+// Deger adini degistirir. Yeni ad ayni ozellikte zaten varsa (ve formdan
+// merge=1 geldiyse) iki deger birlestirilir: varyant ve renk galerisi
+// baglantilari mevcut degere tasinir, eski deger silinir. SKU'lara dokunulmaz.
+async function renameValue(attributeId: string, id: string, formData: FormData) {
+  "use server";
+  const session = await requireAdmin();
+  const value = String(formData.get("value") || "").trim();
+  if (!value) fail("deger-bos");
+
+  const current = await prisma.variantAttributeValue.findUnique({ where: { id } });
+  if (!current) fail("kaydedilemedi");
+  if (current.value === value) ok("deger-guncellendi");
+
+  const target = await prisma.variantAttributeValue.findUnique({
+    where: { attributeId_value: { attributeId, value } }
+  });
+
+  const actor = { actorEmail: session.user?.email ?? "bilinmiyor", actorRole: session.user?.role ?? "ADMIN" };
+
+  if (target) {
+    if (formData.get("merge") !== "1") fail("deger-tekrar");
+    try {
+      await prisma.$transaction(async (tx) => {
+        // Ayni varyant iki degere birden bagliysa eski baglanti silinir
+        // (@@unique([variantId, valueId]) cakismasi).
+        await tx.productVariantOption.deleteMany({
+          where: { valueId: id, variant: { options: { some: { valueId: target.id } } } }
+        });
+        await tx.productVariantOption.updateMany({ where: { valueId: id }, data: { valueId: target.id } });
+        await tx.productOptionImage.updateMany({ where: { valueId: id }, data: { valueId: target.id } });
+        await tx.variantAttributeValue.delete({ where: { id } });
+      });
+    } catch {
+      fail("kaydedilemedi");
+    }
+    logAudit({
+      ...actor,
+      action: "VARYANT_DEGERI_BIRLESTIRILDI",
+      targetType: "VariantAttributeValue",
+      targetId: target.id,
+      detail: `"${current.value}" değeri "${value}" değeriyle birleştirildi.`
+    });
+    revalidatePath(PATH);
+    revalidateCatalog();
+    ok("deger-birlestirildi");
+  }
+
+  await prisma.variantAttributeValue.update({ where: { id }, data: { value } });
+  logAudit({
+    ...actor,
+    action: "VARYANT_DEGERI_YENIDEN_ADLANDIRILDI",
+    targetType: "VariantAttributeValue",
+    targetId: id,
+    detail: `"${current.value}" → "${value}"`
+  });
+  revalidatePath(PATH);
+  revalidateCatalog();
+  ok("deger-yeniden-adlandirildi");
 }
 
 async function deleteValue(id: string) {
@@ -251,7 +313,13 @@ export default async function VariantAttributesPage({
                             title={value.hexColor ?? ""}
                           />
                         )}
-                        <span className="min-w-[6rem] flex-1 text-sm text-admin-text">{value.value}</span>
+                        <VariantValueNameEditor
+                          action={renameValue.bind(null, attribute.id, value.id)}
+                          value={value.value}
+                          siblingValues={attribute.values.map((v) => v.value)}
+                          usageCount={usageCount}
+                          iconBtnClass={iconBtnClass}
+                        />
                         {usageCount > 0 && (
                           <span className="text-xs text-admin-text-muted">{usageCount} varyantta kullanılıyor</span>
                         )}
