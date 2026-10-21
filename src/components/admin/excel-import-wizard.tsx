@@ -34,6 +34,8 @@ type PreviewGroup = {
   productCode: string;
   productName: string;
   gender: string | null;
+  genderUncertain: boolean;
+  sizeWarnings: string[];
   categoryRaw: string | null;
   detectedCategory: string | null;
   detectedFrom: "name" | "kod" | null;
@@ -463,6 +465,8 @@ export function ExcelImportWizard({
               const noneCount = preview.groups.length - exactCount - suggestedCount;
               const noSeasonCount = preview.groups.filter((g) => !g.season).length;
               const unknownSeasonCount = preview.groups.filter((g) => !g.seasonRecognized).length;
+              const uncertainGenderCount = preview.groups.filter((g) => g.genderUncertain).length;
+              const sizeWarningCount = preview.groups.filter((g) => g.sizeWarnings.length > 0).length;
               return (
                 <div className="flex flex-wrap gap-4 rounded-md border border-admin-border bg-gray-50 p-3 text-xs">
                   <span className="inline-flex items-center gap-1.5 text-green-700">
@@ -487,6 +491,16 @@ export function ExcelImportWizard({
                   {unknownSeasonCount > 0 && (
                     <span className="inline-flex items-center gap-1.5 text-orange-700">
                       <AlertTriangle size={14} /> {unknownSeasonCount} ürünün sezonu tanınmadı (olduğu gibi aktarılacak)
+                    </span>
+                  )}
+                  {uncertainGenderCount > 0 && (
+                    <span className="inline-flex items-center gap-1.5 text-orange-700">
+                      <AlertTriangle size={14} /> {uncertainGenderCount} çocuk ürününün cinsiyeti belirsiz (Çocuk olarak aktarılacak)
+                    </span>
+                  )}
+                  {sizeWarningCount > 0 && (
+                    <span className="inline-flex items-center gap-1.5 text-orange-700">
+                      <AlertTriangle size={14} /> {sizeWarningCount} çocuk ürününde beden düzeltilemedi (olduğu gibi aktarılacak)
                     </span>
                   )}
                 </div>
@@ -540,7 +554,27 @@ export function ExcelImportWizard({
                     <tr key={g.productCode} className="border-b border-admin-border last:border-0">
                       <td className="px-4 py-3 font-mono text-xs text-admin-text">{g.productCode}</td>
                       <td className="px-4 py-3 text-admin-text">{g.productName}</td>
-                      <td className="px-4 py-3 text-admin-text-muted">{g.gender ?? "—"}</td>
+                      <td className="px-4 py-3 text-admin-text-muted">
+                        <div className="flex flex-col gap-1">
+                          <span>{g.gender ?? "—"}</span>
+                          {g.genderUncertain && (
+                            <span
+                              className="inline-flex w-fit items-center gap-1 rounded bg-orange-50 px-1.5 py-0.5 text-xs text-orange-700"
+                              title="Ürün adında ve kodunda Kız/Erkek ipucu yok; aktarımdan sonra ürün sayfasından seçin."
+                            >
+                              <AlertTriangle size={12} /> Cinsiyeti belirsiz
+                            </span>
+                          )}
+                          {g.sizeWarnings.length > 0 && (
+                            <span
+                              className="inline-flex w-fit items-center gap-1 rounded bg-orange-50 px-1.5 py-0.5 text-xs text-orange-700"
+                              title="Bu bedenler 'Yaş' biçimine getirilemedi; olduğu gibi aktarılacak."
+                            >
+                              <AlertTriangle size={12} /> Beden düzeltilemedi: {g.sizeWarnings.join(", ")}
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-3">
                         {!g.season ? (
                           <span className="text-admin-text-muted">—</span>

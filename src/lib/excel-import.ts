@@ -8,7 +8,9 @@ import { prisma } from "@/lib/prisma";
 import { resolveOptionValueIds } from "@/lib/variant-attributes";
 import { resolveImageSourceForBrand, type ImageSourceStrategy } from "@/lib/brand-image-sources";
 import { getOrCreateSeasonId } from "@/lib/seasons";
-import { categorySlug } from "@/lib/catalog-url";
+import { categorySlug, CHILD_GENDERS } from "@/lib/catalog-url";
+import { guessChildGender } from "@/lib/child-gender";
+import { normalizeChildSize } from "@/lib/child-size";
 
 type Tx = PrismaClient | Prisma.TransactionClient;
 
@@ -68,6 +70,16 @@ export function resolveGender(genderRaw: string, productName: string): string | 
   if (words.includes("KADIN")) return "Kadın";
   if (words.includes("ERKEK")) return "Erkek";
   return gender;
+}
+
+// KOD4 yalniz KIDS/COCUK diyorsa Kiz/Erkek Cocuk ayrimi urun adi ve kodundan
+// tahmin edilir (lib/child-gender.ts); tahmin edilemezse "Çocuk" kalir ve
+// onizlemede "cinsiyeti belirsiz" uyarisi cikar.
+function resolveGroupGender(genderRaw: string, productName: string, productCode: string) {
+  const mapped = resolveGender(genderRaw, productName);
+  if (mapped !== "Çocuk") return { gender: mapped, genderUncertain: false };
+  const guess = guessChildGender(productName, productCode);
+  return { gender: guess.gender ?? mapped, genderUncertain: !guess.gender };
 }
 
 // Koton checklist'lerindeki KOD3 (urun grubu) degerlerinin Bollmark kategori
@@ -341,6 +353,9 @@ export interface ProductVariantRow {
   barcode: string;
   color: string;
   size: string;
+  // Excel'deki ham beden - SKU bundan uretilir (cocuk bedeni normalize edilse de
+  // SKU bicimi degismesin).
+  sizeRaw: string;
   stock: number;
 }
 
@@ -348,6 +363,10 @@ export interface ProductGroup {
   productCode: string;
   productName: string;
   genderRaw: string;
+  gender: string | null;
+  genderUncertain: boolean;
+  // "Yaş" bicimine getirilemeyen cocuk bedenleri (olduklari gibi aktarilir).
+  sizeWarnings: string[];
   categoryRaw: string;
   seasonRaw: string;
   brandName: string;
@@ -368,6 +387,8 @@ export function groupExcelRows(rows: ExcelImportRow[]): ProductGroup[] {
         productCode: row.productCode,
         productName: row.productName,
         genderRaw: row.genderRaw,
+        ...resolveGroupGender(row.genderRaw, row.productName, row.productCode),
+        sizeWarnings: [],
         categoryRaw: row.categoryRaw,
         seasonRaw: row.seasonRaw,
         brandName: row.brandName,
@@ -379,11 +400,19 @@ export function groupExcelRows(rows: ExcelImportRow[]): ProductGroup[] {
       map.set(row.productCode, group);
     }
     if (!group.colors.includes(row.color)) group.colors.push(row.color);
+    // Beden normalizasyonu yalniz cocuk urunlerinde (yetiskin bedenine dokunulmaz).
+    let size = row.size;
+    if (group.gender && CHILD_GENDERS.includes(group.gender)) {
+      const normalized = normalizeChildSize(row.size);
+      size = normalized.value;
+      if (!normalized.ok && !group.sizeWarnings.includes(row.size)) group.sizeWarnings.push(row.size);
+    }
     group.variants.push({
       rowNumber: row.rowNumber,
       barcode: row.barcode,
       color: row.color,
-      size: row.size,
+      size,
+      sizeRaw: row.size,
       stock: row.stock
     });
   }
@@ -596,7 +625,7 @@ export async function importProductGroups(
               categoryId: categoryIdByProductCode.get(group.productCode) ?? null,
               brandId: brandIdByProductCode.get(group.productCode) ?? null,
               seasonId,
-              gender: resolveGender(group.genderRaw, group.productName)
+              gender: group.gender
             }
           });
           productId = created.id;
@@ -624,7 +653,7 @@ export async function importProductGroups(
             });
             summary.variantsUpdated++;
           } else {
-            let sku = `${group.productCode}-${variant.color.replace(/\s+/g, "-")}-${variant.size}`;
+            let sku = `${group.productCode}-${variant.color.replace(/\s+/g, "-")}-${variant.sizeRaw}`;
             // Aynı kod+renk+beden farklı barkodla tekrar ederse ProductVariant.sku @unique ihlali olur.
             if (usedSkus.has(sku)) sku = `${sku}-${variant.barcode.slice(-4)}`;
             usedSkus.add(sku);

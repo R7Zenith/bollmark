@@ -5,7 +5,6 @@ import { prisma } from "@/lib/prisma";
 import {
   parseExcelFile,
   groupExcelRows,
-  resolveGender,
   detectCategoryName,
   normalizeKod3,
   guessCategoryFromProductName
@@ -99,7 +98,9 @@ export async function POST(request: NextRequest) {
     return {
       productCode: g.productCode,
       productName: g.productName,
-      gender: resolveGender(g.genderRaw, g.productName),
+      gender: g.gender,
+      genderUncertain: g.genderUncertain,
+      sizeWarnings: g.sizeWarnings,
       categoryRaw: g.categoryRaw,
       detectedCategory,
       detectedFrom,
