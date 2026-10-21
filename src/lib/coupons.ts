@@ -1,5 +1,12 @@
 import type { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { istanbulDateKey } from "@/lib/format";
+import { GENDER_GROUPS } from "@/lib/catalog-url";
+
+// Kupon cinsiyet kisiti: secilen cinsiyet bir ust koleksiyonsa ("Çocuk")
+// alt cinsiyetleri (Kız/Erkek Çocuk) de kapsar.
+function couponGenderMatches(genders: string[], gender: string | null): boolean {
+  return gender != null && genders.some((g) => g === gender || GENDER_GROUPS[g]?.includes(gender));
+}
 
 type Tx = PrismaClient | Prisma.TransactionClient;
 
@@ -115,7 +122,7 @@ function computeCouponDiscount(
       (!hasRestriction ||
         ((coupon.categoryIds.length === 0 || (l.categoryId != null && coupon.categoryIds.includes(l.categoryId))) &&
           (coupon.brandIds.length === 0 || (l.brandId != null && coupon.brandIds.includes(l.brandId))) &&
-          (coupon.genders.length === 0 || (l.gender != null && coupon.genders.includes(l.gender))))) &&
+          (coupon.genders.length === 0 || couponGenderMatches(coupon.genders, l.gender)))) &&
       // Varsayilan (false) - kampanya, zaten elle indirimli (compareAtCents
       // > priceCents) satirlara dokunmaz; admin "elle indirimli urunlerde de
       // gecerli olsun" kutusunu isaretlerse bu satirlar da dahil edilir.
@@ -204,7 +211,7 @@ export async function validateCoupon(tx: Tx, rawCode: string, lines: CouponLine[
         (l) =>
           (coupon.categoryIds.length === 0 || (l.categoryId != null && coupon.categoryIds.includes(l.categoryId))) &&
           (coupon.brandIds.length === 0 || (l.brandId != null && coupon.brandIds.includes(l.brandId))) &&
-          (coupon.genders.length === 0 || (l.gender != null && coupon.genders.includes(l.gender)))
+          (coupon.genders.length === 0 || couponGenderMatches(coupon.genders, l.gender))
       )
     : lines;
   if (restrictionMatchingLines.length === 0) {
@@ -391,7 +398,7 @@ export function matchAutomaticDiscount(
   for (const c of campaigns) {
     if (c.categoryIds.length > 0 && (product.categoryId == null || !c.categoryIds.includes(product.categoryId))) continue;
     if (c.brandIds.length > 0 && (product.brandId == null || !c.brandIds.includes(product.brandId))) continue;
-    if (c.genders.length > 0 && (product.gender == null || !c.genders.includes(product.gender))) continue;
+    if (c.genders.length > 0 && !couponGenderMatches(c.genders, product.gender)) continue;
     if (!best || c.value > best.percent) best = { percent: c.value, name: c.name };
   }
   return best;

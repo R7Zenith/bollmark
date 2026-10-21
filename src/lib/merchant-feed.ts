@@ -3,6 +3,7 @@ import { getSiteUrl } from "@/lib/site-url";
 import { getActiveAutomaticPercentCampaigns, resolveProductDisplayPrice } from "@/lib/coupons";
 import { descriptionToPlainText } from "@/lib/description-html";
 import { DEFAULT_GOOGLE_CATEGORY_ID } from "@/lib/google-categories";
+import { CHILD_GENDERS } from "@/lib/catalog-url";
 import { GENDER_TO_SCHEMA, isValidGtin13, productTitle } from "@/lib/seo";
 import { SHIPPING_THRESHOLD_CENTS } from "@/lib/shipping";
 import { effectivePrice } from "@/lib/variant";
@@ -71,7 +72,7 @@ export async function buildGoogleMerchantFeed(): Promise<string> {
       product.category?.googleCategoryId ?? product.category?.parent?.googleCategoryId ?? DEFAULT_GOOGLE_CATEGORY_ID;
     const productType = [product.gender, product.category?.parent?.name, product.category?.name].filter(Boolean).join(" > ");
     const gender = product.gender ? GENDER_TO_SCHEMA[product.gender] : undefined;
-    const ageGroup = product.gender === "Çocuk" ? "kids" : "adult";
+    const ageGroup = product.gender && CHILD_GENDERS.includes(product.gender) ? "kids" : "adult";
 
     for (const variant of product.variants) {
       const color = optionValue(variant, "Renk");

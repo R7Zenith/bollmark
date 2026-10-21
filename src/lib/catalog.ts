@@ -2,6 +2,7 @@ import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
+import { genderWhere } from "@/lib/catalog-url";
 import { optionPosition, optionValue, variantOptionsInclude, type VariantOptionInclude } from "@/lib/variant-attributes";
 import { usesGreyBackdrop } from "@/lib/image-backdrop";
 import { sortBySeason } from "@/lib/seasons";
@@ -100,7 +101,7 @@ export async function getPublishedProducts(
       category: categorySlug
         ? { isActive: true, OR: [{ slug: categorySlug }, { parent: { slug: categorySlug } }] }
         : undefined,
-      gender: options?.genderLabel ? options.genderLabel : undefined
+      gender: options?.genderLabel ? genderWhere(options.genderLabel) : undefined
     },
     include: {
       images: { orderBy: { position: "asc" } },
@@ -200,7 +201,7 @@ async function buildCatalogEntries(
       category: categorySlug
         ? { isActive: true, OR: [{ slug: categorySlug }, { parent: { slug: categorySlug } }] }
         : undefined,
-      gender: options?.genderLabel ? options.genderLabel : undefined
+      gender: options?.genderLabel ? genderWhere(options.genderLabel) : undefined
     },
     include: {
       // take:2 - ilk fotograf kart gorseli, 2.si hover'da capraz-solma icin

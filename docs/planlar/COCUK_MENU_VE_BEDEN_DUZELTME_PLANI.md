@@ -1,6 +1,6 @@
 # Çocuk Menüsü, Kız/Erkek Çocuk Ayrımı ve Beden Adı Düzeltme Planı
 
-Durum: devam ediyor — Adım 1 bitti (2026-10-21), Adım 2 sürüyor
+Durum: devam ediyor — Adım 1 ve 2 bitti (2026-10-21), Adım 3 sürüyor
 Tarih: 2026-10-21
 
 ## Sorun

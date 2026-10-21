@@ -10,7 +10,7 @@ import { TagsField } from "@/components/admin/tags-field";
 import { DescriptionEditor } from "@/components/admin/description-editor";
 import { sanitizeDescriptionHtml } from "@/lib/description-html";
 import { buildCategoryOptions } from "@/lib/category-tree";
-import { GENDER_OPTIONS } from "@/lib/product-options";
+import { GENDER_OPTIONS, GENDER_OPTION_LABEL } from "@/lib/product-options";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
 
 function parseVariantsJson(raw: string): SerializedVariant[] {
@@ -308,7 +308,7 @@ export default async function NewProductPage({
                 <option value="">Belirtilmedi</option>
                 {GENDER_OPTIONS.map((g) => (
                   <option key={g} value={g}>
-                    {g}
+                    {GENDER_OPTION_LABEL[g] ?? g}
                   </option>
                 ))}
               </select>

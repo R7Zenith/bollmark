@@ -7,6 +7,7 @@ import { BestsellersTabs, type BestsellerTab } from "@/components/home/bestselle
 import { FaqAndStore } from "@/components/home/faq-and-store";
 import { InstagramGrid } from "@/components/home/instagram-grid";
 import { prisma } from "@/lib/prisma";
+import { GENDER_GROUPS, genderWhere } from "@/lib/catalog-url";
 import { getActiveAutomaticPercentCampaigns, resolveProductDisplayPrice } from "@/lib/coupons";
 import {
   BESTSELLER_TAB_LIMIT,
@@ -65,7 +66,7 @@ export default async function HomePage() {
     getActiveAutomaticPercentCampaigns(prisma),
     prisma.product.count({ where: { status: "PUBLISHED", gender: "Kadın" } }),
     prisma.product.count({ where: { status: "PUBLISHED", gender: "Erkek" } }),
-    prisma.product.count({ where: { status: "PUBLISHED", gender: "Çocuk" } }),
+    prisma.product.count({ where: { status: "PUBLISHED", gender: genderWhere("Çocuk") } }),
     publishedInCategory("ayakkabi"),
     publishedInCategory("aksesuar"),
     prisma.category.findMany({
@@ -140,7 +141,7 @@ export default async function HomePage() {
       // (pickBestsellers degismedi) - sadece secilen urunler renk basina
       // ayri karta bolunuyor, toplam kart sayisi yine ayni limitte kesiliyor.
       products: pickBestsellers(
-        gender ? products.filter((p) => p.gender === gender) : products,
+        gender ? products.filter((p) => p.gender != null && (GENDER_GROUPS[gender] ?? [gender]).includes(p.gender)) : products,
         soldByProductId
       )
         .flatMap(productToCatalogEntries)

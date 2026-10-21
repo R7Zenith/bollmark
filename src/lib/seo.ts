@@ -90,7 +90,14 @@ export function homeJsonLd() {
 
 type ProductForJsonLd = NonNullable<Awaited<ReturnType<typeof getProductBySlug>>>;
 
-export const GENDER_TO_SCHEMA: Record<string, string> = { Erkek: "male", Kadın: "female", Unisex: "unisex" };
+export const GENDER_TO_SCHEMA: Record<string, string> = {
+  Erkek: "male",
+  Kadın: "female",
+  Unisex: "unisex",
+  "Kız Çocuk": "female",
+  "Erkek Çocuk": "male",
+  Çocuk: "unisex"
+};
 
 // Sayfa basligi "{Marka} {Urun adi}" - marka adi zaten urun adinda geciyorsa
 // tekrar edilmez.

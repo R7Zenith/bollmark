@@ -7,7 +7,8 @@ import type { CategoryOption, BrandOption } from "@/components/admin/coupon-row"
 
 const labelClass = "text-xs font-medium uppercase tracking-wide text-admin-text-muted";
 
-const genderOptions = PRODUCT_GENDERS.map((g) => ({ id: g, value: g }));
+// Kuponda "Çocuk" tum cocuk urunlerini kapsar (bkz. lib/coupons.ts couponGenderMatches).
+const genderOptions = PRODUCT_GENDERS.map((g) => ({ id: g, value: g === "Çocuk" ? "Çocuk (tümü)" : g }));
 
 // Kategori/Marka/Cinsiyet kisitlamasi - ucu de coklu secim (bkz.
 // searchable-multi-select.tsx). Server action'lı <form>'un FormData'sinda

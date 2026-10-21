@@ -21,7 +21,7 @@ import { deleteBlobUrls } from "@/lib/blob";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { redirectSlugChange, redirectDeletedProduct } from "@/lib/product-redirects";
 import { buildCategoryOptions } from "@/lib/category-tree";
-import { GENDER_OPTIONS } from "@/lib/product-options";
+import { GENDER_OPTIONS, GENDER_OPTION_LABEL } from "@/lib/product-options";
 import { snapshotStockAlerts, carryOverOrQueueRestock, sendRestockNotifications } from "@/lib/stock-alerts";
 
 // Bircok renk/varyanti olan urunlerde updateProduct'in transaction'i (sirayla
@@ -526,7 +526,7 @@ export default async function EditProductPage({
                 <option value="">Belirtilmedi</option>
                 {GENDER_OPTIONS.map((g) => (
                   <option key={g} value={g}>
-                    {g}
+                    {GENDER_OPTION_LABEL[g] ?? g}
                   </option>
                 ))}
               </select>

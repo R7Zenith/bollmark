@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { getSiteUrl } from "@/lib/site-url";
-import { catalogHref } from "@/lib/catalog-url";
+import { catalogHref, parentGenders } from "@/lib/catalog-url";
 
 // Yeni urun/kategori eklendiginde yeni bir deploy beklemeden sitemap'in
 // makul surede guncellenmesi icin - build-time'da tek seferlik uretilip
@@ -33,11 +33,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // kategorilerinin urunlerini de kapsar - katalog filtresiyle ayni kural).
   const catalogPaths = new Set<string>();
   for (const p of products) {
-    if (p.gender) catalogPaths.add(catalogHref({ gender: p.gender }));
+    // Kiz/Erkek Cocuk urunu /cocuk ust koleksiyonunda da listelenir.
+    const genders = p.gender ? [p.gender, ...parentGenders(p.gender)] : [];
+    for (const gender of genders) catalogPaths.add(catalogHref({ gender }));
     if (!p.category?.isActive) continue;
     catalogPaths.add(catalogHref({ category: p.category.slug }));
     if (p.category.parent?.isActive) catalogPaths.add(catalogHref({ category: p.category.parent.slug }));
-    if (p.gender) catalogPaths.add(catalogHref({ gender: p.gender, category: p.category.slug }));
+    for (const gender of genders) catalogPaths.add(catalogHref({ gender, category: p.category.slug }));
   }
   const activeCategoryPaths = new Set(categories.map((c) => catalogHref({ category: c.slug })));
 

@@ -20,7 +20,7 @@ import {
 } from "@/lib/catalog-listing";
 import { breadcrumbJsonLd, truncateDescription } from "@/lib/seo";
 import { JsonLd } from "@/components/json-ld";
-import { catalogHref } from "@/lib/catalog-url";
+import { catalogHref, genderWhere } from "@/lib/catalog-url";
 
 type CatalogQuery = Record<string, string | string[] | undefined>;
 // Temiz yollardan (/erkek/gomlek) gelen kapsam - /urunler'de bos, degerler
@@ -97,7 +97,7 @@ export async function catalogMetadata(query: CatalogQuery, scope: CatalogScope):
         where: {
           status: "PUBLISHED",
           category: { isActive: true, OR: [{ slug: kategori }, { parent: { slug: kategori } }] },
-          gender: cinsiyet ? cinsiyet : undefined
+          gender: cinsiyet ? genderWhere(cinsiyet) : undefined
         }
       });
       return {

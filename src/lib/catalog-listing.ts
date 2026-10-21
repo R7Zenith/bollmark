@@ -2,6 +2,7 @@ import { unstable_cache } from "next/cache";
 import { CATALOG_TAG, getCatalogEntries } from "@/lib/catalog";
 import type { CatalogEntry } from "@/lib/catalog";
 import { prisma } from "@/lib/prisma";
+import { genderWhere } from "@/lib/catalog-url";
 import {
   applyCatalogFilters,
   buildCatalogFacets,
@@ -68,7 +69,7 @@ const getFilterCategories = unstable_cache(
     prisma.category.findMany({
       where: {
         isActive: true,
-        products: { some: { status: "PUBLISHED", gender: cinsiyet ? cinsiyet : undefined } }
+        products: { some: { status: "PUBLISHED", gender: cinsiyet ? genderWhere(cinsiyet) : undefined } }
       },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
       select: { name: true, slug: true, imageUrl: true }
@@ -81,7 +82,7 @@ const getFilterCategories = unstable_cache(
 // cok olan (en fazla 4) ana kategorinin adi. Onbellek getFilterCategories ile ayni.
 export const getTopGenderCategoryNames = unstable_cache(
   async (cinsiyet: string) => {
-    const published = { status: "PUBLISHED" as const, gender: cinsiyet };
+    const published = { status: "PUBLISHED" as const, gender: genderWhere(cinsiyet) };
     const categories = await prisma.category.findMany({
       where: { isActive: true, parentId: null, products: { some: published } },
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],

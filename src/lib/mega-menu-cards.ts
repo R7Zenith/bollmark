@@ -1,4 +1,4 @@
-// Masaustu mega menusunun (Kadin/Erkek sekmeleri) sag tarafindaki promosyon
+// Masaustu mega menusunun (Kadin/Erkek/Cocuk sekmeleri) sag tarafindaki promosyon
 // gorsel kartlari. Bir sekmede kart yoksa sag panel hic render edilmez.
 // Gorseller public/menu/ altinda; href'ler katalogun gercek filtre URL'leri
 // (bkz. GenderPanel'deki kategori linkleri).
@@ -12,7 +12,7 @@ export type MegaMenuCard = {
   overlayOpacity?: number;
 };
 
-export const MEGA_MENU_CARDS: Record<"kadin" | "erkek", MegaMenuCard[]> = {
+export const MEGA_MENU_CARDS: Record<"kadin" | "erkek" | "cocuk", MegaMenuCard[]> = {
   kadin: [
     {
       image: "/menu/kadin-elbise.webp",
@@ -46,5 +46,7 @@ export const MEGA_MENU_CARDS: Record<"kadin" | "erkek", MegaMenuCard[]> = {
       title: "Ceket",
       href: "/erkek/ceket"
     }
-  ]
+  ],
+  // Gorseller sonra eklenecek.
+  cocuk: []
 };

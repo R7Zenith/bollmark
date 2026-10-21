@@ -293,7 +293,86 @@ function AksesuarPanel({ categories }: { categories: MenuCategory[] }) {
   );
 }
 
-type TabKey = "kadin" | "erkek" | "aksesuar";
+// Cocuk menusunun sutunlari: Kiz/Erkek Cocuk, yalniz yayinda urunu olanlar.
+// Hic sutun yoksa (urunlerin cinsiyeti henuz ayrilmamissa) tum cocuk
+// urunlerinin kategorileri tek sutunda /cocuk altinda listelenir.
+type ChildMenuColumn = { heading: string; gender: string; categories: MenuCategory[] };
+
+function childMenuColumns(menuData: MegaMenuData): ChildMenuColumn[] {
+  const columns = [
+    { heading: "Kız Çocuk", gender: "Kız Çocuk", categories: menuData.kizCocuk },
+    { heading: "Erkek Çocuk", gender: "Erkek Çocuk", categories: menuData.erkekCocuk }
+  ].filter((column) => column.categories.length > 0);
+  return columns.length > 0 ? columns : [{ heading: "Kategoriler", gender: "Çocuk", categories: menuData.cocuk }];
+}
+
+// GenderPanel ile ayni duzen: solda "Tum Cocuk", yaninda cinsiyet sutunlari
+// (her birinin sonunda "Tumunu Gor"), sagda varsa gorsel kartlar.
+function CocukPanel({ menuData }: { menuData: MegaMenuData }) {
+  const { activeSlug, activeGender } = useActiveCatalog();
+  const columns = childMenuColumns(menuData);
+  const cards = MEGA_MENU_CARDS.cocuk;
+  const linkClass = (active: boolean) => (active ? GROUP_LINK_ACTIVE_CLASS : GROUP_LINK_CLASS);
+
+  return (
+    <div className="absolute inset-x-0 top-full w-full border-b border-line bg-cream">
+      <div className="flex px-9 py-8">
+        <div
+          className={`grid content-start gap-x-3 gap-y-3 ${columns.length > 1 ? "grid-cols-3" : "grid-cols-2"} ${
+            cards.length > 0 ? "flex-1" : columns.length > 1 ? "w-3/4" : "w-1/2"
+          }`}
+        >
+          <div>
+            <p className={GROUP_HEADING_CLASS}>Öne Çıkanlar</p>
+            <ul className="space-y-2">
+              <li>
+                <Link href={catalogHref({ gender: "Çocuk" })} className={linkClass(!activeSlug && activeGender === "Çocuk")}>
+                  Tüm Çocuk
+                </Link>
+              </li>
+            </ul>
+          </div>
+          {columns.map((column) => (
+            <div key={column.gender}>
+              <p className={GROUP_HEADING_CLASS}>{column.heading}</p>
+              <ul className="space-y-2">
+                {column.categories.map((category) => (
+                  <li key={category.id}>
+                    <Link
+                      href={catalogHref({ gender: column.gender, category: category.slug })}
+                      className={linkClass(activeSlug === category.slug && activeGender === column.gender)}
+                    >
+                      {category.name}
+                    </Link>
+                  </li>
+                ))}
+                {column.gender !== "Çocuk" && (
+                  <li>
+                    <Link
+                      href={catalogHref({ gender: column.gender })}
+                      className={linkClass(!activeSlug && activeGender === column.gender)}
+                    >
+                      Tümünü Gör
+                    </Link>
+                  </li>
+                )}
+              </ul>
+            </div>
+          ))}
+        </div>
+        {cards.length > 0 && (
+          <div className="flex w-[70%] max-w-[970px] gap-5">
+            {cards.map((card) => (
+              <MegaMenuImageCard key={card.href} card={card} />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+type TabKey = "kadin" | "erkek" | "cocuk" | "aksesuar";
 
 function DesktopNav({
   menuData,
@@ -307,6 +386,8 @@ function DesktopNav({
   const tabs: { key: TabKey; label: string; href: string }[] = [
     { key: "kadin", label: "Kadın", href: catalogHref({ gender: "Kadın" }) },
     { key: "erkek", label: "Erkek", href: catalogHref({ gender: "Erkek" }) },
+    // Yayinda cocuk urunu yoksa sekme gizlenir.
+    ...(menuData.cocuk.length > 0 ? [{ key: "cocuk" as const, label: "Çocuk", href: catalogHref({ gender: "Çocuk" }) }] : []),
     { key: "aksesuar", label: "Aksesuar", href: catalogHref({ category: "aksesuar" }) }
   ];
 
@@ -341,11 +422,12 @@ function DesktopNav({
 // olculdugu gibi (bkz. RELEASE_TEMA_BIREBIR_UYUM_PLANI.md 1.2) accordion
 // DEGIL, kendi tam ekranini kaplayan bir "drill" ekrani: duz kategori listesi
 // + varsa masaustuyle ayni promosyon karti/kartlari.
-type MobileScreen = "root" | "kadin" | "erkek" | "aksesuar";
+type MobileScreen = "root" | "kadin" | "erkek" | "cocuk" | "aksesuar";
 
 const MOBILE_SCREEN_LABEL: Record<Exclude<MobileScreen, "root">, string> = {
   kadin: "Kadın",
   erkek: "Erkek",
+  cocuk: "Çocuk",
   aksesuar: "Aksesuar"
 };
 
@@ -385,6 +467,44 @@ function MobileDrillScreen({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Mobil Cocuk ekrani: "Tum Cocuk", ardindan masaustuyle ayni sutunlar alt
+// alta bolum olarak (baslik + "Tumunu Gor" + kategoriler).
+function MobileCocukScreen({ menuData, onNavigate }: { menuData: MegaMenuData; onNavigate: () => void }) {
+  const rowClass = "block py-4 text-sm uppercase tracking-wide";
+  return (
+    <div className="flex-1 overflow-y-auto px-6 py-4">
+      <Link href={catalogHref({ gender: "Çocuk" })} onClick={onNavigate} className={`border-b border-line ${rowClass}`}>
+        Tüm Çocuk
+      </Link>
+      {childMenuColumns(menuData).map((column) => (
+        <div key={column.gender}>
+          <p className="pb-2 pt-6 text-sm font-semibold tracking-[0.28px] text-ink">{column.heading}</p>
+          <ul>
+            {column.gender !== "Çocuk" && (
+              <li className="border-b border-line">
+                <Link href={catalogHref({ gender: column.gender })} onClick={onNavigate} className={rowClass}>
+                  Tümünü Gör
+                </Link>
+              </li>
+            )}
+            {column.categories.map((category) => (
+              <li key={category.id} className="border-b border-line">
+                <Link
+                  href={catalogHref({ gender: column.gender, category: category.slug })}
+                  onClick={onNavigate}
+                  className={rowClass}
+                >
+                  {category.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 }
@@ -509,7 +629,7 @@ function MobileMenu({
             <Link href="/urunler" onClick={onClose} className="block border-b border-line py-4 text-sm uppercase tracking-wide">
               Tüm Ürünler
             </Link>
-            {(["kadin", "erkek", "aksesuar"] as const).map((screen) => (
+            {(["kadin", "erkek", ...(menuData.cocuk.length > 0 ? (["cocuk"] as const) : []), "aksesuar"] as const).map((screen) => (
               <button
                 key={screen}
                 type="button"
@@ -544,6 +664,8 @@ function MobileMenu({
             onNavigate={onClose}
           />
         )}
+
+        {currentScreen === "cocuk" && <MobileCocukScreen menuData={menuData} onNavigate={onClose} />}
 
         {currentScreen === "aksesuar" && (
           <MobileDrillScreen
@@ -740,6 +862,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
         </div>
 
         {openMenu === "aksesuar" && <AksesuarPanel categories={menuData.aksesuar} />}
+        {openMenu === "cocuk" && <CocukPanel menuData={menuData} />}
         {(openMenu === "kadin" || openMenu === "erkek") && (
           <GenderPanel gender={openMenu} categories={menuData[openMenu]} />
         )}

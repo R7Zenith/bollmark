@@ -10,8 +10,29 @@ export const GENDER_SLUGS: Record<string, string> = {
   Kadın: "kadin",
   Erkek: "erkek",
   Unisex: "unisex",
+  "Kız Çocuk": "kiz-cocuk",
+  "Erkek Çocuk": "erkek-cocuk",
   Çocuk: "cocuk"
 };
+
+// Ust koleksiyonlar: /cocuk sayfasi Kiz/Erkek Cocuk urunlerini ve cinsiyeti
+// ayrilmamis "Çocuk" urunlerini birlikte listeler.
+export const GENDER_GROUPS: Record<string, string[]> = {
+  Çocuk: ["Kız Çocuk", "Erkek Çocuk", "Çocuk"]
+};
+
+export const CHILD_GENDERS = GENDER_GROUPS["Çocuk"];
+
+// Katalog sorgularindaki Product.gender kosulu - grup ise tum alt cinsiyetler.
+export function genderWhere(label: string): string | { in: string[] } {
+  const group = GENDER_GROUPS[label];
+  return group ? { in: group } : label;
+}
+
+// Bir cinsiyetin icinde yer aldigi ust koleksiyonlar ("Kız Çocuk" -> ["Çocuk"]).
+export function parentGenders(label: string): string[] {
+  return Object.keys(GENDER_GROUPS).filter((group) => group !== label && GENDER_GROUPS[group].includes(label));
+}
 
 export function genderFromSlug(slug: string): string | undefined {
   return Object.keys(GENDER_SLUGS).find((label) => GENDER_SLUGS[label] === slug);
