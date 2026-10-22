@@ -158,6 +158,20 @@ async function disconnectInstagramAction() {
   redirect("/admin/ayarlar?basarili=instagram-kaldirildi");
 }
 
+async function toggleInstagramOnHome(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const show = formData.get("show") === "1";
+  await prisma.instagramIntegration.upsert({
+    where: { id: "singleton" },
+    create: { id: "singleton", showOnHome: show },
+    update: { showOnHome: show }
+  });
+  revalidatePath("/");
+  revalidatePath("/admin/ayarlar");
+  redirect(`/admin/ayarlar?basarili=${show ? "instagram-gosterildi" : "instagram-gizlendi"}`);
+}
+
 export default async function AdminSettingsPage({
   searchParams
 }: {
@@ -185,6 +199,7 @@ export default async function AdminSettingsPage({
   ]);
   const instagramConnected = !!instagram?.tokenEncrypted;
   const instagramPosts = parsePosts(instagram?.postsJson ?? "[]");
+  const instagramOnHome = instagram?.showOnHome ?? true;
 
   return (
     <div className="max-w-2xl space-y-8">
@@ -346,6 +361,10 @@ export default async function AdminSettingsPage({
           <dd className={instagramConnected ? "text-green-700" : "text-admin-text"}>
             {instagramConnected ? `Bağlı${instagram?.username ? ` (@${instagram.username})` : ""}` : "Bağlı değil"}
           </dd>
+          <dt className="text-admin-text-muted">Anasayfada</dt>
+          <dd className={instagramOnHome ? "text-green-700" : "text-amber-700"}>
+            {instagramOnHome ? "Görünür" : "Gizli"}
+          </dd>
           <dt className="text-admin-text-muted">Son çekim</dt>
           <dd className="text-admin-text">
             {instagram?.lastFetchAt
@@ -385,20 +404,28 @@ export default async function AdminSettingsPage({
             {instagramConnected ? "Token'ı Güncelle" : "Bağla ve Kareleri Çek"}
           </button>
         </form>
-        {instagramConnected && (
-          <div className="mt-3 flex flex-wrap gap-3">
-            <form action={refreshInstagramNow}>
-              <button className="rounded-md border border-admin-border px-4 py-2 text-sm text-admin-text hover:bg-admin-bg">
-                Şimdi çek
-              </button>
-            </form>
-            <form action={disconnectInstagramAction}>
-              <button className="rounded-md border border-admin-border px-4 py-2 text-sm text-red-600 hover:bg-red-50">
-                Bağlantıyı kaldır
-              </button>
-            </form>
-          </div>
-        )}
+        <div className="mt-3 flex flex-wrap gap-3">
+          <form action={toggleInstagramOnHome}>
+            <input type="hidden" name="show" value={instagramOnHome ? "0" : "1"} />
+            <button className="rounded-md border border-admin-border px-4 py-2 text-sm text-admin-text hover:bg-admin-bg">
+              {instagramOnHome ? "Anasayfada gizle" : "Anasayfada göster"}
+            </button>
+          </form>
+          {instagramConnected && (
+            <>
+              <form action={refreshInstagramNow}>
+                <button className="rounded-md border border-admin-border px-4 py-2 text-sm text-admin-text hover:bg-admin-bg">
+                  Şimdi çek
+                </button>
+              </form>
+              <form action={disconnectInstagramAction}>
+                <button className="rounded-md border border-admin-border px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                  Bağlantıyı kaldır
+                </button>
+              </form>
+            </>
+          )}
+        </div>
       </Card>
 
       <Card title="Vega E-Ticaret Entegrasyonu">

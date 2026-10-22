@@ -9,7 +9,7 @@ import { CampaignBand, SeasonColors } from "@/components/home/campaign-or-colors
 import { CompleteTheLook } from "@/components/home/complete-the-look";
 import { FaqAndStore } from "@/components/home/faq-and-store";
 import { InstagramGrid } from "@/components/home/instagram-grid";
-import { parsePosts } from "@/lib/instagram-media";
+import { parsePosts, parseProfile } from "@/lib/instagram-media";
 import { ShopByCategory, type CollectionBox } from "@/components/home/shop-by-category";
 import { TrustMarquee } from "@/components/home/trust-marquee";
 import { prisma } from "@/lib/prisma";
@@ -111,7 +111,7 @@ export default async function HomePage() {
     // Otomatik Instagram kareleri (bkz. lib/instagram.ts); token burada okunmaz.
     prisma.instagramIntegration.findUnique({
       where: { id: "singleton" },
-      select: { postsJson: true, username: true }
+      select: { postsJson: true, profileJson: true, showOnHome: true }
     })
   ]);
 
@@ -317,8 +317,14 @@ export default async function HomePage() {
       )}
 
       {/* Instagram galerisi - otomatik kare yoksa env + public/instagram/
-          yedegine duser, o da yoksa kendini gizler. */}
-      <InstagramGrid autoPosts={parsePosts(instagram?.postsJson ?? "[]")} autoUsername={instagram?.username ?? ""} />
+          yedegine duser, o da yoksa kendini gizler. Admin Ayarlar'dan
+          tamamen gizlenebilir. */}
+      {instagram?.showOnHome !== false && (
+        <InstagramGrid
+          autoPosts={parsePosts(instagram?.postsJson ?? "[]")}
+          autoProfile={parseProfile(instagram?.profileJson ?? "{}")}
+        />
+      )}
 
       {/* SSS (sol) + Karacabey magazasi (sag), canlidaki gibi yan yana. */}
       <FaqAndStore

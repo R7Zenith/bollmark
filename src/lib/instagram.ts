@@ -8,8 +8,10 @@ import {
   INSTAGRAM_POST_COUNT,
   mediaImageUrl,
   parsePosts,
+  parseProfile,
   type InstagramMedia,
-  type InstagramPost
+  type InstagramPost,
+  type InstagramProfile
 } from "@/lib/instagram-media";
 
 // Anasayfa Instagram galerisinin otomatik beslemesi ("Instagram API with
@@ -94,11 +96,42 @@ async function refreshTokenIfDue(row: Awaited<ReturnType<typeof getRow>>, token:
   return refreshed.access_token;
 }
 
-async function copyToR2(media: InstagramMedia, sourceUrl: string): Promise<string> {
+async function copyToR2(nameHint: string, sourceUrl: string): Promise<string> {
   const res = await fetch(sourceUrl, { cache: "no-store" });
   if (!res.ok) throw new Error(`Instagram görseli indirilemedi (${res.status}).`);
   const compressed = await compressImage(Buffer.from(await res.arrayBuffer()));
-  return uploadImage({ folder: "instagram", nameHint: `instagram-${media.id}`, ...compressed });
+  return uploadImage({ folder: "instagram", nameHint, ...compressed });
+}
+
+// Galerinin profil basligi (fotograf, ad, takipci, gonderi sayisi). Instagram'in
+// profil fotografi adresi imzali ve zamanla gecersiz - R2'ye kopyalanir, yolu
+// degismediyse (ayni fotograf) tekrar kopyalanmaz.
+async function fetchProfile(token: string, previous: InstagramProfile | null): Promise<InstagramProfile> {
+  const me = await graphGet<{
+    username?: string;
+    name?: string;
+    profile_picture_url?: string;
+    followers_count?: number;
+    media_count?: number;
+  }>("/me", { fields: "username,name,profile_picture_url,followers_count,media_count", access_token: token });
+
+  let pictureUrl = previous?.pictureUrl ?? null;
+  let pictureSource = previous?.pictureSource ?? "";
+  if (me.profile_picture_url) {
+    const source = new URL(me.profile_picture_url).pathname;
+    if (source !== pictureSource || !pictureUrl) {
+      pictureUrl = await copyToR2(`instagram-profil-${me.username ?? ""}`, me.profile_picture_url);
+      pictureSource = source;
+    }
+  }
+  return {
+    username: me.username ?? previous?.username ?? "",
+    name: me.name ?? "",
+    pictureUrl,
+    pictureSource,
+    followers: me.followers_count ?? null,
+    mediaCount: me.media_count ?? null
+  };
 }
 
 export type InstagramSyncResult =
@@ -120,6 +153,9 @@ export async function syncInstagram(): Promise<InstagramSyncResult> {
       refreshError = e instanceof Error ? e.message : String(e);
     }
 
+    const previousProfile = parseProfile(row.profileJson);
+    const profile = await fetchProfile(token, previousProfile);
+
     const { data } = await graphGet<{ data: InstagramMedia[] }>("/me/media", {
       fields: "id,media_type,media_url,thumbnail_url,permalink,caption",
       limit: String(MEDIA_FETCH_LIMIT),
@@ -136,18 +172,32 @@ export async function syncInstagram(): Promise<InstagramSyncResult> {
       const source = mediaImageUrl(media);
       if (!source || !media.permalink) continue;
       const known = previousById.get(media.id);
-      const imageUrl = known?.imageUrl ?? (await copyToR2(media, source));
+      const imageUrl = known?.imageUrl ?? (await copyToR2(`instagram-${media.id}`, source));
       if (!known) added++;
-      posts.push({ id: media.id, imageUrl, permalink: media.permalink, alt: captionToAlt(media.caption) });
+      posts.push({
+        id: media.id,
+        imageUrl,
+        permalink: media.permalink,
+        alt: captionToAlt(media.caption),
+        mediaType: media.media_type
+      });
     }
 
     await prisma.instagramIntegration.update({
       where: { id: "singleton" },
-      data: { postsJson: JSON.stringify(posts), lastFetchAt: new Date(), lastError: refreshError }
+      data: {
+        postsJson: JSON.stringify(posts),
+        profileJson: JSON.stringify(profile),
+        username: profile.username,
+        lastFetchAt: new Date(),
+        lastError: refreshError
+      }
     });
-    const keep = new Set(posts.map((p) => p.imageUrl));
-    await deleteR2Urls(previous.map((p) => p.imageUrl).filter((url) => !keep.has(url) && isR2Url(url)));
-    if (added > 0 || posts.length !== previous.length) revalidatePath("/");
+    const keep = new Set([...posts.map((p) => p.imageUrl), profile.pictureUrl]);
+    const dropped = [...previous.map((p) => p.imageUrl), previousProfile?.pictureUrl ?? ""];
+    await deleteR2Urls(dropped.filter((url) => url && !keep.has(url) && isR2Url(url)));
+    const profileChanged = JSON.stringify(profile) !== JSON.stringify(previousProfile);
+    if (added > 0 || posts.length !== previous.length || profileChanged) revalidatePath("/");
     return { ok: true, postCount: posts.length, added };
   } catch (e) {
     const error = e instanceof Error ? e.message : String(e);

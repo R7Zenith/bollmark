@@ -514,6 +514,10 @@ model InstagramIntegration {
   lastError        String    @default("")
   // Son basarili cekimin kareleri: [{ id, imageUrl (R2), permalink, alt }]
   postsJson        String    @default("[]")
+  // Galerinin profil basligi: { username, name, pictureUrl (R2), pictureSource, followers, mediaCount }
+  profileJson      String    @default("{}")
+  // Admin Ayarlar'dan anasayfa galerisi gizlenebilir (cekim yine surer).
+  showOnHome       Boolean   @default(true)
   updatedAt        DateTime  @updatedAt
 }
 

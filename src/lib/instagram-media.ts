@@ -1,7 +1,19 @@
 // Instagram API yanitlarini anasayfa karelerine ceviren saf yardimcilar (DB/ag
 // yok, bkz. instagram-media.test.ts). Senkronizasyonun kendisi lib/instagram.ts.
 
-export type InstagramPost = { id: string; imageUrl: string; permalink: string; alt: string };
+// mediaType: galeride reel/album simgesi icin (eski kayitlarda yok).
+export type InstagramPost = { id: string; imageUrl: string; permalink: string; alt: string; mediaType?: string };
+
+// Galerinin profil basligi. pictureSource: Instagram'daki profil fotografinin
+// adres yolu (sorgu parametresiz) - degismediyse R2'ye tekrar kopyalanmaz.
+export type InstagramProfile = {
+  username: string;
+  name: string;
+  pictureUrl: string | null;
+  pictureSource: string;
+  followers: number | null;
+  mediaCount: number | null;
+};
 
 // graph.instagram.com/me/media alanlarindan kullanilanlar.
 export type InstagramMedia = {
@@ -54,4 +66,33 @@ export function parsePosts(raw: string): InstagramPost[] {
   } catch {
     return [];
   }
+}
+
+// Kayitli profil (InstagramIntegration.profileJson); kullanici adi yoksa null.
+export function parseProfile(raw: string): InstagramProfile | null {
+  try {
+    const p = JSON.parse(raw) as Partial<InstagramProfile> | null;
+    if (!p || typeof p.username !== "string" || !p.username) return null;
+    const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+    return {
+      username: p.username,
+      name: typeof p.name === "string" ? p.name : "",
+      pictureUrl: typeof p.pictureUrl === "string" && p.pictureUrl ? p.pictureUrl : null,
+      pictureSource: typeof p.pictureSource === "string" ? p.pictureSource : "",
+      followers: num(p.followers),
+      mediaCount: num(p.mediaCount)
+    };
+  } catch {
+    return null;
+  }
+}
+
+// Instagram'in Turkce profil sayilari gibi: 9.999'a kadar tam ("1.234"),
+// sonrasi "12,3 B" / "1,2 Mn" (tek ondalik, ,0 yazilmaz).
+export function formatInstagramCount(n: number): string {
+  const short = (value: number, unit: string) =>
+    `${(Math.floor(value * 10) / 10).toLocaleString("tr-TR", { maximumFractionDigits: 1 })} ${unit}`;
+  if (n >= 1_000_000) return short(n / 1_000_000, "Mn");
+  if (n >= 10_000) return short(n / 1_000, "B");
+  return n.toLocaleString("tr-TR");
 }

@@ -27,7 +27,9 @@ const successMessages: Record<string, string> = {
   ticimax: "Üye kodu kaydedildi.",
   instagram: "Instagram bağlandı, kareler çekildi.",
   "instagram-cekim": "Instagram kareleri güncellendi.",
-  "instagram-kaldirildi": "Instagram bağlantısı kaldırıldı."
+  "instagram-kaldirildi": "Instagram bağlantısı kaldırıldı.",
+  "instagram-gizlendi": "Instagram galerisi anasayfada gizlendi.",
+  "instagram-gosterildi": "Instagram galerisi anasayfada görünür."
 };
 
 export function SettingsFeedback({ basarili, hata }: { basarili?: string; hata?: string }) {
