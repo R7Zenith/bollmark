@@ -162,6 +162,19 @@ body {
    ticker'in beklenenden farkli/bozukmus gorunmesine yol acti - kullanici
    herkeste ayni, surekli akan animasyonu istedi. */
 
+/* Anasayfadaki kayan guven bandi (bkz. components/home/trust-marquee.tsx).
+   prefers-reduced-motion kontrolu bilerek yok (kullanici istegi, 22 Ekim
+   2026): once eklenmisti, OS'te animasyonlar kapali olan kullanicida bant
+   sabit kaliyordu - urun sayfasindaki ticker ile ayni karar, herkeste kayar. */
+.home-marquee__track {
+  /* Her kopyada metinler 3 kez (trust-marquee.tsx REPEAT); hiz ~38px/sn. */
+  animation: homeMarquee 135s linear infinite;
+}
+
+@keyframes homeMarquee {
+  to { transform: translateX(-50%); }
+}
+
 /* Anasayfa hero metin girisi (bkz. release-main.myshopify.com'un canli
    section-hero-banner.css'inden birebir alindi, 18 Eylul 2026): etiket,
    baslik ve buton her biri ayri bir `overflow:hidden` sarmalayicinin

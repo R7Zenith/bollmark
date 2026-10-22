@@ -1,4 +1,5 @@
 import type { CatalogEntry } from "@/lib/catalog";
+import { resolveProductDisplayPrice, type AutomaticPercentCampaign } from "@/lib/coupons";
 
 // Katalog filtre cekmecesinin (bkz. components/filter-drawer.tsx) URL query
 // param'lari <-> filtre nesnesi donusumu ile filtreleme/facet hesabi. Prisma'ya
@@ -88,11 +89,18 @@ export function countActiveFilters(filters: CatalogFilters, hasCategory: boolean
   );
 }
 
-function isOnSale(entry: CatalogEntry): boolean {
-  return entry.compareAtCents !== null && entry.compareAtCents > entry.priceCents;
+// Indirimli = kartta indirim gorunuyor: elle indirim (compareAtCents) VEYA
+// aktif otomatik kampanya - ikisi ayrilmaz, kartin fiyat blogunu ureten
+// resolveProductDisplayPrice ile ayni karar (bkz. lib/coupons.ts).
+function isOnSale(entry: CatalogEntry, campaigns: AutomaticPercentCampaign[]): boolean {
+  return resolveProductDisplayPrice(campaigns, entry).originalPriceCents !== null;
 }
 
-export function applyCatalogFilters(entries: CatalogEntry[], filters: CatalogFilters): CatalogEntry[] {
+export function applyCatalogFilters(
+  entries: CatalogEntry[],
+  filters: CatalogFilters,
+  campaigns: AutomaticPercentCampaign[]
+): CatalogEntry[] {
   // Iki stok secenegi birden secilmisse (Stokta + Stokta yok) her sey uyar,
   // yani filtre yok demektir.
   const stockFilter = filters.stock.length === 1 ? filters.stock[0] : null;
@@ -109,7 +117,7 @@ export function applyCatalogFilters(entries: CatalogEntry[], filters: CatalogFil
     if (filters.maxPrice !== null && entry.priceCents > filters.maxPrice * 100) return false;
     if (stockFilter === STOCK_IN && entry.outOfStock) return false;
     if (stockFilter === STOCK_OUT && !entry.outOfStock) return false;
-    if (filters.onSale && !isOnSale(entry)) return false;
+    if (filters.onSale && !isOnSale(entry, campaigns)) return false;
     return true;
   });
 }
@@ -140,7 +148,7 @@ function compareSizes(a: string, b: string): number {
 
 // Secenekler filtrelenmemis (yalnizca kategori/cinsiyet kapsamindaki) girislerden
 // uretilir - aksi halde bir renk secince diger renkler listeden kaybolurdu.
-export function buildCatalogFacets(entries: CatalogEntry[]): CatalogFacets {
+export function buildCatalogFacets(entries: CatalogEntry[], campaigns: AutomaticPercentCampaign[]): CatalogFacets {
   const colors = new Map<string, { hex: string | null; count: number }>();
   const sizes = new Map<string, number>();
   let inStockCount = 0;
@@ -161,7 +169,7 @@ export function buildCatalogFacets(entries: CatalogEntry[]): CatalogFacets {
       sizes.set(size, (sizes.get(size) ?? 0) + 1);
     }
     if (!entry.outOfStock) inStockCount += 1;
-    if (isOnSale(entry)) onSaleCount += 1;
+    if (isOnSale(entry, campaigns)) onSaleCount += 1;
     min = Math.min(min, entry.priceCents);
     max = Math.max(max, entry.priceCents);
   }
