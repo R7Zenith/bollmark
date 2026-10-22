@@ -12,12 +12,18 @@ export type BestsellerTab = { key: string; label: string; products: ProductCardD
 // (yalniz "Tumu") sekme cubugu hic gosterilmez. Kart izgarasi mobilde
 // Release'in "Just arrived" carousel'i gibi snap-x kaydirmali tek-kart-buyuk
 // (Ozel Koleksiyonlar bolumundeki teknikle ayni), masaustunde 4 sutun.
+// Her kartin gorselinin sol ustunde sira numarasi: siralama URUN bazinda oldugu icin
+// (pickBestsellers) ayni urunun renk kartlari ayni numarayi tasir.
 export function BestsellersTabs({ tabs }: { tabs: BestsellerTab[] }) {
   const [activeKey, setActiveKey] = useState(tabs[0]?.key);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const active = tabs.find((t) => t.key === activeKey) ?? tabs[0];
   if (!active) return null;
+  const rankByProduct = new Map<string, number>();
+  for (const p of active.products) {
+    if (!rankByProduct.has(p.productId)) rankByProduct.set(p.productId, rankByProduct.size + 1);
+  }
 
   function selectTab(key: string) {
     setActiveKey(key);
@@ -88,7 +94,7 @@ export function BestsellersTabs({ tabs }: { tabs: BestsellerTab[] }) {
       >
         {active.products.map((p) => (
           <div key={`${p.productId}-${p.colorLabel ?? "tek"}`} className="w-[75vw] shrink-0 snap-start md:w-auto">
-            <ProductCard product={p} />
+            <ProductCard product={p} rank={rankByProduct.get(p.productId)} />
           </div>
         ))}
       </div>

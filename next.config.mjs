@@ -3,8 +3,9 @@ const nextConfig = {
   // Ana sayfadaki Instagram galerisi (components/home/instagram-grid.tsx)
   // public/instagram/ dosyalarinin var olup olmadigini istek aninda fs ile
   // kontrol eder; Vercel'de public/ islev paketine kendiliginden girmedigi
-  // icin bu klasor "/" rotasinin izine elle eklenir.
-  outputFileTracingIncludes: { "/": ["./public/instagram/**/*"] },
+  // icin bu klasor "/" rotasinin izine elle eklenir. public/magaza/ da ayni
+  // sekilde (magaza fotograflari, bkz. components/home/faq-and-store.tsx).
+  outputFileTracingIncludes: { "/": ["./public/instagram/**/*", "./public/magaza/**/*"] },
   // Ayni bilesendeki path.join(process.cwd(), "public", ...) tum public/
   // klasorunu ana sayfa function'ina (~8 MB) sokuyor; bu gorseller Vercel'de
   // CDN'den servis edildigi icin lambda'da gereksiz. public/instagram haric.

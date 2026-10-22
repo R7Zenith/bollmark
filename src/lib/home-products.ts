@@ -1,5 +1,13 @@
-import { isOutOfStock, type CatalogEntry, type getPublishedProducts } from "@/lib/catalog";
+import {
+  isOutOfStock,
+  pickCoverImage,
+  productToCatalogEntries,
+  type CatalogEntry,
+  type getPublishedProducts
+} from "@/lib/catalog";
+import { applyCatalogFilters, buildCatalogFacets, EMPTY_FILTERS } from "@/lib/catalog-filters";
 import { resolveProductDisplayPrice, type AutomaticPercentCampaign } from "@/lib/coupons";
+import { usesGreyBackdrop } from "@/lib/image-backdrop";
 import type { ProductCardData } from "@/components/product-card";
 
 type PublishedProduct = Awaited<ReturnType<typeof getPublishedProducts>>[number];
@@ -85,4 +93,80 @@ export function pickBestsellers(products: PublishedProduct[], soldByProductId: M
   const soldIds = new Set(sold.map((p) => p.id));
   const rest = inStock.filter((p) => !soldIds.has(p.id));
   return [...sold, ...rest.filter((p) => p.isFeatured), ...rest.filter((p) => !p.isFeatured)].slice(0, BESTSELLER_TAB_LIMIT);
+}
+
+// --- Anasayfa alt bolumleri (bkz. docs/planlar/ANASAYFA_ALT_BOLUM_YENILEME_PLANI.md) ---
+
+// Kategori/cinsiyet kartlarinin gorseli: stok fotograf yok, gruptaki gercek bir
+// urunun fotografi. greyBackdrop: beyaz zeminli marka fotograflari kartta da
+// katalogdaki gibi gri zeminde gosterilsin (bkz. lib/image-backdrop.ts).
+export type HomeImage = { url: string; greyBackdrop: boolean };
+
+// Gruptaki en yeni, gorselli urunun ilk gorseli; featuredFirst ile once one
+// cikan (isFeatured) urunlere bakilir. Hic gorsel yoksa null (kart yazili kalir).
+export function newestProductImage(products: PublishedProduct[], featuredFirst = false): HomeImage | null {
+  const sorted = [...products].sort(
+    (a, b) =>
+      (featuredFirst ? Number(b.isFeatured) - Number(a.isFeatured) : 0) || b.createdAt.getTime() - a.createdAt.getTime()
+  );
+  for (const p of sorted) {
+    const url = p.images[0]?.url ?? pickCoverImage(p.optionImages)?.url;
+    if (url) return { url, greyBackdrop: usesGreyBackdrop(p.brand?.name) };
+  }
+  return null;
+}
+
+type StripCategory = { id: string; name: string; slug: string; sortOrder: number; imageUrl: string | null };
+
+// "Ne arıyorsun?" yuvarlak seridi: yayinda urunu olan (urunler yaprak
+// kategorilere bagli) kategorilerden en cok urunlu STRIP_LIMIT tanesi, ekranda
+// admin'in sortOrder sirasiyla. Gorsel: kategorinin imageUrl'i, yoksa
+// kategorideki en yeni urunun fotografi.
+const STRIP_LIMIT = 8;
+
+export function pickCategoryStrip(categories: StripCategory[], products: PublishedProduct[]) {
+  return categories
+    .map((c) => ({ ...c, products: products.filter((p) => p.categoryId === c.id) }))
+    .filter((c) => c.products.length > 0)
+    .sort((a, b) => b.products.length - a.products.length)
+    .slice(0, STRIP_LIMIT)
+    .sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name, "tr"))
+    .map((c) => ({
+      name: c.name,
+      slug: c.slug,
+      image: c.imageUrl ? { url: c.imageUrl, greyBackdrop: false } : newestProductImage(c.products)
+    }));
+}
+
+// "Bütçene göre" esikleri (TL). Linkler katalogdaki ?fiyat-max= filtresine
+// gider; filtre fiyati DAHIL eder (priceCents > max ise eler, bkz.
+// catalog-filters.ts applyCatalogFilters), 490 TL'lik urun "490 ve alti"nda.
+export const BUDGET_TIERS_TL = [490, 990, 1490];
+
+// Kutulardaki sayilar katalogla ayni kural: renk basina kart (CatalogEntry) ve
+// ayni applyCatalogFilters - tiklaninca acilan listeyle birebir ayni sayi.
+// "İndirimdekiler" elle indirimli + kampanyali urunlerin hepsi.
+export function countBudgetTiers(entries: CatalogEntry[], campaigns: AutomaticPercentCampaign[]) {
+  return {
+    tiers: BUDGET_TIERS_TL.map((maxTl) => ({
+      maxTl,
+      count: applyCatalogFilters(entries, { ...EMPTY_FILTERS, maxPrice: maxTl }, campaigns).length
+    })),
+    onSaleCount: applyCatalogFilters(entries, { ...EMPTY_FILTERS, onSale: true }, campaigns).length
+  };
+}
+
+// "Sezonun renkleri": guncel (isCurrent) sezon kartlarinda en cok gecen renkler,
+// katalogdaki renk filtresinin sayimiyla (buildCatalogFacets). Hex'i olmayan
+// renk atlanir. Guncel sezon isaretli degilse tum yayindaki kartlara bakilir.
+const SEASON_COLOR_LIMIT = 6;
+
+export function pickSeasonColors(products: PublishedProduct[]) {
+  const current = products.filter((p) => p.season?.isCurrent);
+  const entries = (current.length > 0 ? current : products).flatMap(productToCatalogEntries);
+  // Kampanya bilgisi yalniz indirim sayimini etkiler, renkleri degil.
+  return buildCatalogFacets(entries, [])
+    .colors.filter((c): c is { name: string; hex: string; count: number } => !!c.hex)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, SEASON_COLOR_LIMIT);
 }

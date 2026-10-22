@@ -57,7 +57,9 @@ export type ProductCardData = {
   greyBackdrop?: boolean;
 };
 
-export function ProductCard({ product }: { product: ProductCardData }) {
+// rank: anasayfa "Çok Satanlar" sira numarasi - gorselin sol ustunde, varsa
+// rozetler onun altina iner (bkz. components/home/bestsellers-tabs.tsx).
+export function ProductCard({ product, rank }: { product: ProductCardData; rank?: number }) {
   const { ids, toggle } = useWishlist();
   const { addLine } = useCart();
   const isWishlisted = ids.has(product.productId);
@@ -209,10 +211,17 @@ export function ProductCard({ product }: { product: ProductCardData }) {
         >
           <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />
         </button>
-        {(discountPercent || product.isNew || product.lowStockCount != null) && (
-          <div className="absolute left-2 top-2 flex max-w-[calc(100%-3rem)] flex-row flex-wrap items-start gap-1 sm:left-3 sm:top-3 sm:gap-1.5">
+        {rank != null && (
+          <span className="absolute left-2 top-1 font-accent text-5xl font-normal italic leading-none text-ink [text-shadow:0_0_12px_rgba(255,255,255,0.9)] sm:left-3 md:text-6xl">
+            <span className="sr-only">Sıra: </span>
+            {rank}
+          </span>
+        )}
+        {/* Sira numarali kartta (Cok Satanlar) "Yeni" rozeti gosterilmez. */}
+        {(discountPercent || (product.isNew && rank == null) || product.lowStockCount != null) && (
+          <div className={`absolute left-2 ${rank != null ? "top-14 md:top-16" : "top-2 sm:top-3"} flex max-w-[calc(100%-3rem)] flex-row flex-wrap items-start gap-1 sm:left-3 sm:gap-1.5`}>
             {discountPercent && <ProductBadge variant="discount">%{discountPercent} İndirim</ProductBadge>}
-            {product.isNew && <ProductBadge variant="new">Yeni</ProductBadge>}
+            {product.isNew && rank == null && <ProductBadge variant="new">Yeni</ProductBadge>}
             {product.lowStockCount != null && (
               <ProductBadge variant="low-stock">Son {product.lowStockCount} Adet</ProductBadge>
             )}

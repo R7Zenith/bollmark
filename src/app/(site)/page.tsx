@@ -4,18 +4,26 @@ import Image from "next/image";
 import { getPublishedProducts, productToCatalogEntries } from "@/lib/catalog";
 import { FeaturedCarousel } from "@/components/featured-carousel";
 import { BestsellersTabs, type BestsellerTab } from "@/components/home/bestsellers-tabs";
+import { BudgetTiles } from "@/components/home/budget-tiles";
+import { CampaignBand, SeasonColors } from "@/components/home/campaign-or-colors";
 import { FaqAndStore } from "@/components/home/faq-and-store";
 import { InstagramGrid } from "@/components/home/instagram-grid";
+import { ShopByCategory, type CollectionBox } from "@/components/home/shop-by-category";
+import { TrustMarquee } from "@/components/home/trust-marquee";
 import { prisma } from "@/lib/prisma";
-import { GENDER_GROUPS, genderWhere } from "@/lib/catalog-url";
+import { catalogHref, GENDER_GROUPS, genderWhere } from "@/lib/catalog-url";
 import { getActiveAutomaticPercentCampaigns, resolveProductDisplayPrice } from "@/lib/coupons";
+import { istanbulDateKey, istanbulDayEnd } from "@/lib/format";
 import {
   BESTSELLER_TAB_LIMIT,
   bestsellerSince,
   catalogEntryToCardData,
-  percentWithDative,
+  countBudgetTiers,
+  newestProductImage,
   pickBestsellers,
-  pickNewArrivals
+  pickCategoryStrip,
+  pickNewArrivals,
+  pickSeasonColors
 } from "@/lib/home-products";
 import { REVENUE_STATUSES } from "@/lib/orders";
 import { JsonLd } from "@/components/json-ld";
@@ -58,7 +66,7 @@ export default async function HomePage() {
     cocukCount,
     ayakkabiCount,
     aksesuarCount,
-    categoryImages,
+    categories,
     soldGroups,
     storeSettings
   ] = await Promise.all([
@@ -69,9 +77,10 @@ export default async function HomePage() {
     prisma.product.count({ where: { status: "PUBLISHED", gender: genderWhere("Çocuk") } }),
     publishedInCategory("ayakkabi"),
     publishedInCategory("aksesuar"),
+    // Kategori seridi + Ayakkabi/Aksesuar kutularinin gorseli ve kapsami.
     prisma.category.findMany({
-      where: { slug: { in: ["ayakkabi", "aksesuar"] }, isActive: true },
-      select: { slug: true, imageUrl: true }
+      where: { isActive: true },
+      select: { id: true, name: true, slug: true, sortOrder: true, imageUrl: true, parent: { select: { slug: true } } }
     }),
     prisma.orderItem.groupBy({
       by: ["productId"],
@@ -87,30 +96,32 @@ export default async function HomePage() {
   // sezon, sonra katalog sirasi (bkz. home-products.ts pickNewArrivals).
   const featuredEntries = pickNewArrivals(products).flatMap(productToCatalogEntries).slice(0, 8);
 
-  // B) Kategori kartlari. Sayisi 0 olan kart gizlenir (Ayakkabi haric: magaza
-  // PUMA/Slazenger satiyor, sahibinin istegiyle kategori bos olsa da gorunur;
-  // bkz. ALWAYS_SHOWN_COLLECTIONS). Kategorinin kendi
-  // imageUrl'i (admin) doluysa o, yoksa public/anasayfa/ altindaki yerel yedek.
-  // Kadin/Erkek/Cocuk kategori degil cinsiyet filtresidir, imageUrl'leri yok.
-  const categoryImage = (slug: string) => categoryImages.find((c) => c.slug === slug)?.imageUrl ?? null;
-  const collections = [
-    { label: "Kadın", count: kadinCount, href: "/kadin", image: "/anasayfa/koleksiyon-kadin.jpg", remote: false },
-    { label: "Erkek", count: erkekCount, href: "/erkek", image: "/anasayfa/koleksiyon-erkek.jpg", remote: false },
-    { label: "Çocuk", count: cocukCount, href: "/cocuk", image: "/anasayfa/koleksiyon-cocuk.jpg", remote: false },
-    {
-      label: "Ayakkabı",
-      count: ayakkabiCount,
-      href: "/kategori/ayakkabi",
-      image: categoryImage("ayakkabi") ?? "/anasayfa/koleksiyon-ayakkabi.jpg",
-      remote: categoryImage("ayakkabi") !== null
-    },
-    {
-      label: "Aksesuar",
-      count: aksesuarCount,
-      href: "/kategori/aksesuar",
-      image: categoryImage("aksesuar") ?? "/anasayfa/koleksiyon-aksesuar.jpg",
-      remote: categoryImage("aksesuar") !== null
-    }
+  // B) "Ne arıyorsun?": yuvarlak kategori seridi + cinsiyet/grup kutulari.
+  // Kutularda sayisi 0 olan gizlenir (Ayakkabi haric: magaza PUMA/Slazenger
+  // satiyor, sahibinin istegiyle kategori bos olsa da gorunur; bkz.
+  // ALWAYS_SHOWN_COLLECTIONS). Stok fotograf yok: Ayakkabi/Aksesuar'da
+  // kategorinin imageUrl'i (admin), yoksa gruptaki en yeni (once one cikan)
+  // urunun fotografi; o da yoksa kart yazili kalir.
+  const categoryStrip = pickCategoryStrip(categories, products).map((c) => ({
+    ...c,
+    href: catalogHref({ category: c.slug })
+  }));
+  const inCategoryTree = (slug: string) => {
+    const ids = new Set(categories.filter((c) => c.slug === slug || c.parent?.slug === slug).map((c) => c.id));
+    return products.filter((p) => p.categoryId != null && ids.has(p.categoryId));
+  };
+  const categoryBoxImage = (slug: string) => {
+    const imageUrl = categories.find((c) => c.slug === slug)?.imageUrl;
+    return imageUrl ? { url: imageUrl, greyBackdrop: false } : newestProductImage(inCategoryTree(slug), true);
+  };
+  const inGender = (label: string) =>
+    products.filter((p) => p.gender != null && (GENDER_GROUPS[label] ?? [label]).includes(p.gender));
+  const collections: CollectionBox[] = [
+    { label: "Kadın", count: kadinCount, href: "/kadin", image: newestProductImage(inGender("Kadın"), true) },
+    { label: "Erkek", count: erkekCount, href: "/erkek", image: newestProductImage(inGender("Erkek"), true) },
+    { label: "Çocuk", count: cocukCount, href: "/cocuk", image: newestProductImage(inGender("Çocuk"), true) },
+    { label: "Ayakkabı", count: ayakkabiCount, href: "/kategori/ayakkabi", image: categoryBoxImage("ayakkabi") },
+    { label: "Aksesuar", count: aksesuarCount, href: "/kategori/aksesuar", image: categoryBoxImage("aksesuar") }
   ].filter((c) => c.count > 0 || ALWAYS_SHOWN_COLLECTIONS.has(c.label));
 
   // C) Aktif otomatik kampanya etiketi: sayfadaki kartlarin gosterdigi gercek
@@ -124,6 +135,20 @@ export default async function HomePage() {
       return r.source === "KAMPANYA" ? (r.badgePercent ?? 0) : 0;
     })
   );
+  // Geri sayim: bu orandaki kampanyalarin hepsinin bitis tarihi varsa en
+  // gec bitenin son gunu, Istanbul 23:59:59 (getActiveAutomaticPercentCampaigns
+  // kampanyayi expiresAt gununun sonuna kadar gecerli sayiyor).
+  const topCampaignEnds = automaticCampaigns.filter((c) => c.value === campaignPercent).map((c) => c.expiresAt);
+  const lastEndKey =
+    campaignPercent > 0 && topCampaignEnds.every((d): d is Date => d !== null)
+      ? topCampaignEnds.map((d) => istanbulDateKey(d)).sort().at(-1)
+      : undefined;
+  const campaignEndsAt = lastEndKey ? istanbulDayEnd(lastEndKey).toISOString() : null;
+
+  // E) "Bütçene göre" sayimlari ve F) kampanya yoksa "Sezonun renkleri" -
+  // ikisi de katalogdaki renk-basina-kart kuraliyla (bkz. home-products.ts).
+  const budget = countBudgetTiers(products.flatMap(productToCatalogEntries), automaticCampaigns);
+  const seasonColors = campaignPercent > 0 ? [] : pickSeasonColors(products);
 
   // D) Cok satanlar: sekme basina ayri liste (Tumu/Kadin/Erkek/Cocuk), urunu
   // olmayan sekme gizlenir. Kart verisi Yeni Gelenler ile ayni yardimciyla.
@@ -235,141 +260,39 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* A) Editoryal ikili blok (Release'in "Timeless classics" blogu):
-          masaustunde 2 sutun, mobilde alt alta. Sol kart metinli ve TAMAMI
-          tiklanabilir (ic ice <a> olmasin diye ustte tek seffaf Link, gorunen
-          "Keşfet" hap butonu span); sag kart metinsiz, tamami Erkek
-          koleksiyonuna baglanir. Hover: kategori kartlariyla ayni scale-105. */}
-      <section className="grid gap-4 px-4 pb-section md:grid-cols-2 md:gap-6 md:px-6 xl:px-9">
-        <div className="group relative aspect-[4/5] overflow-hidden bg-line">
-          <Image
-            src="/anasayfa/editoryal-sol.jpg"
-            alt="Bollmark kadın sonbahar koleksiyonu"
-            fill
-            sizes="(min-width: 768px) 50vw, 100vw"
-            className="object-cover transition duration-500 ease-out group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-ink/50 via-transparent to-transparent" />
-          <Link href="/urunler" aria-label="Zamansız klasikler: Keşfet" className="absolute inset-0 z-10" />
-          <div className="pointer-events-none absolute bottom-6 left-6 right-6 text-cream md:bottom-8 md:left-8">
-            <p className="font-display text-3xl font-normal leading-tight tracking-[-0.04em] md:text-5xl">
-              Zamansız <em className="font-accent italic font-normal">klasikler</em>
-            </p>
-            <span className="mt-5 inline-flex items-center rounded-full border border-cream px-8 py-3.5 text-sm uppercase tracking-wide transition group-hover:bg-cream group-hover:text-ink">
-              Keşfet
-            </span>
-          </div>
-        </div>
-        <Link
-          href="/erkek"
-          aria-label="Erkek koleksiyonu"
-          className="group relative block aspect-[4/5] overflow-hidden bg-line"
-        >
-          <Image
-            src="/anasayfa/editoryal-sag.jpg"
-            alt="Bollmark erkek palto"
-            fill
-            sizes="(min-width: 768px) 50vw, 100vw"
-            className="object-cover transition duration-500 ease-out group-hover:scale-105"
-          />
-        </Link>
-      </section>
+      {/* Yeni Gelenler'in altindaki bolumler (bkz.
+          docs/planlar/ANASAYFA_ALT_BOLUM_YENILEME_PLANI.md): her gorsel ya
+          gercek urun ya da magaza fotografi; veri yoksa bolum gizlenir. Her
+          bolum kendi pb-section'iyla biter. */}
+      <TrustMarquee
+        campaignPercent={campaignPercent}
+        defaultShippingCents={storeSettings?.defaultShippingCents ?? 0}
+      />
 
-      {/* B) Kategori kartlari. Masaustunde kartlar satiri esit paylasir
-          (lg:grid-flow-col + auto-cols-fr: 5 kartta 5 sutun, sayisi 0 olan kart
-          gizlendigi icin 3 kartta 3 sutun - sagda bos alan kalmaz), tablette 3
-          sutun, mobilde yatay kaydirmali (snap-x, kart ~44vw) - dikey yigilma
-          yok. Kenardan kenara kaydirma icin -mx-4 + px-4. */}
-      {collections.length > 0 && (
-        <section className="px-4 pb-section md:px-6 xl:px-9">
-          <h2 className="mb-10 font-display text-3xl font-normal tracking-[-0.04em] md:mb-12 md:text-5xl">
-            Özel Koleksiyonlarımız
-          </h2>
-          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:grid md:grid-cols-3 md:gap-4 md:overflow-visible md:px-0 lg:grid-flow-col lg:auto-cols-fr lg:grid-cols-none [&::-webkit-scrollbar]:hidden">
-            {collections.map((c) => (
-              <Link
-                key={c.label}
-                href={c.href}
-                className="group relative block aspect-[3/4] w-[44vw] shrink-0 snap-start overflow-hidden bg-line md:w-auto"
-              >
-                {c.remote ? (
-                  // Admin'den gelen kategori imageUrl'i next/image'in remotePatterns
-                  // listesi disinda bir kaynaktan da olabilir - duz <img> (bkz.
-                  // urunler/page.tsx banner'i ile ayni gerekce).
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={c.image}
-                    alt={`${c.label} koleksiyonu`}
-                    loading="lazy"
-                    className="absolute inset-0 h-full w-full object-cover transition duration-500 ease-out group-hover:scale-105"
-                  />
-                ) : (
-                  <Image
-                    src={c.image}
-                    alt={`${c.label} koleksiyonu`}
-                    fill
-                    sizes="(min-width: 768px) 33vw, 44vw"
-                    className="object-cover transition duration-500 ease-out group-hover:scale-105"
-                  />
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-ink/50 via-transparent to-transparent" />
-                <div className="absolute bottom-4 left-4 text-cream md:bottom-6 md:left-6">
-                  <span className="font-display text-xl font-light md:text-2xl">
-                    {c.label} {c.count > 0 && <sup className="text-sm text-cream/70">{c.count}</sup>}
-                  </span>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+      <ShopByCategory strip={categoryStrip} boxes={collections} />
 
-      {/* C) Tam genislik lookbook: yerel gorsel + gradient overlay (eski
-          opacity-50 yerine; hero'daki from-ink/... gradyaniyla ayni dil) -
-          metin okunakli kalirken foto soluklasmaz. Aktif otomatik kampanya
-          varsa basligin ustunde hap etiket (oran kartlardaki gercek
-          indirimden gelir, bkz. campaignPercent). */}
-      <section className="relative flex min-h-[60vh] items-center justify-center overflow-hidden bg-ink text-center text-cream md:min-h-[70vh]">
-        <Image
-          src="/anasayfa/lookbook-genis.jpg"
-          alt="Bollmark sonbahar kış koleksiyonu"
-          fill
-          sizes="100vw"
-          className="object-cover object-[50%_12%]"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink/70 via-ink/40 to-ink/30" />
-        <div className="relative z-10 mx-auto max-w-3xl px-6">
-          {campaignPercent > 0 && (
-            <p className="mb-6 inline-flex rounded-full border border-cream/60 px-4 py-1.5 text-[10px] font-medium uppercase tracking-[0.1em]">
-              Sezon fırsatı: {percentWithDative(campaignPercent)} varan indirim
-            </p>
-          )}
-          <h2 className="font-display text-4xl font-light leading-tight md:text-6xl">
-            Her güne <em className="font-accent italic font-normal">uyan</em> parçalar
-          </h2>
-          <p className="mt-4 text-sm text-cream/80">2026 Sonbahar / Kış</p>
-          <Link
-            href="/urunler"
-            className="mt-8 inline-flex items-center rounded-full border border-cream px-8 py-3.5 text-sm uppercase tracking-wide transition hover:bg-cream hover:text-ink"
-          >
-            Koleksiyonu Keşfet
-          </Link>
-        </div>
-      </section>
-
-      {/* D) Cok satanlar (sekmeli, bkz. components/home/bestsellers-tabs.tsx).
-          Hic urun yoksa (bos DB) bolum render edilmez. */}
+      {/* Cok satanlar (sekmeli, sira numarali; bkz.
+          components/home/bestsellers-tabs.tsx). Hic urun yoksa render edilmez. */}
       {bestsellerTabs.length > 0 && (
-        <section className="px-4 py-section md:px-6 xl:px-9">
+        <section className="px-4 pb-section md:px-6 xl:px-9">
           <BestsellersTabs tabs={bestsellerTabs} />
         </section>
       )}
 
-      {/* E) Instagram galerisi - env + fotograflar yoksa kendini gizler. */}
+      {/* Faz 2: "Kombini Tamamla" bu araya gelecek. */}
+
+      <BudgetTiles tiers={budget.tiers} onSaleCount={budget.onSaleCount} />
+
+      {campaignPercent > 0 ? (
+        <CampaignBand percent={campaignPercent} endsAt={campaignEndsAt} />
+      ) : (
+        <SeasonColors colors={seasonColors} />
+      )}
+
+      {/* Instagram galerisi - env + fotograflar yoksa kendini gizler. */}
       <InstagramGrid />
 
-      {/* F) SSS + magaza bilgisi. Alt bosluk yok: footer kendi mt-section'ini
-          getiriyor. */}
+      {/* SSS (sol) + Karacabey magazasi (sag), canlidaki gibi yan yana. */}
       <FaqAndStore
         contactPhone={storeSettings?.contactPhone ?? ""}
         contactEmail={storeSettings?.contactEmail ?? ""}

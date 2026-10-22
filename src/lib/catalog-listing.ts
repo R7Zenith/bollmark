@@ -116,8 +116,8 @@ export async function getCatalogListing(params: URLSearchParams) {
   const rawEntries = ara ? await applySearch(scopedEntries, ara, sirala) : scopedEntries;
   // Cekmece secenekleri filtrelenmemis (kategori/cinsiyet kapsamindaki)
   // girislerden uretilir, yoksa bir renk secince diger renkler kaybolurdu.
-  const facets = buildCatalogFacets(rawEntries);
-  const entries = sortEntries(applyCatalogFilters(rawEntries, filters), sirala);
+  const facets = buildCatalogFacets(rawEntries, automaticCampaigns);
+  const entries = sortEntries(applyCatalogFilters(rawEntries, filters, automaticCampaigns), sirala);
   // Kategori burada sayilmiyor: kategori+cinsiyet kombinasyonunun bos olmasi
   // icin zaten ozel bir ekran var (EmptyCategoryState).
   const hasActiveFilters = countActiveFilters(filters, false) > 0;
