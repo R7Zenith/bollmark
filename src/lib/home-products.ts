@@ -9,6 +9,8 @@ import { applyCatalogFilters, buildCatalogFacets, EMPTY_FILTERS } from "@/lib/ca
 import { resolveProductDisplayPrice, type AutomaticPercentCampaign } from "@/lib/coupons";
 import { usesGreyBackdrop } from "@/lib/image-backdrop";
 import type { ProductCardData } from "@/components/product-card";
+import type { CompleteLookBundle } from "@/components/home/complete-the-look";
+import { parseHotspots, parseProductOrder } from "@/lib/bundles";
 
 type PublishedProduct = Awaited<ReturnType<typeof getPublishedProducts>>[number];
 
@@ -169,4 +171,53 @@ export function pickSeasonColors(products: PublishedProduct[]) {
     .colors.filter((c): c is { name: string; hex: string; count: number } => !!c.hex)
     .sort((a, b) => b.count - a.count)
     .slice(0, SEASON_COLOR_LIMIT);
+}
+
+// "Kombini Tamamla": admin'in anasayfada gostermek icin isaretledigi (sirali
+// gelen) aktif kombinler. Urunlerinden biri yayinda degilse ya da hic stoklu
+// rengi kalmadiysa kombin atlanir - eksik kombin sepete eklenemez, indirim de
+// tetiklenmez. Her urun renk basina kart verisine (catalogEntryToCardData)
+// bolunur; stoksuz renkler secenek olarak cikmaz. Urunler admin'de oklarla
+// belirlenen sirada (productOrderJson; admin'deki nokta numaralariyla ayni).
+type HomeBundleRow = {
+  id: string;
+  name: string;
+  discountPercent: number;
+  imageUrl: string | null;
+  hotspotsJson: string;
+  productOrderJson: string;
+  products: { id: string }[];
+};
+
+export function pickHomeBundles(
+  bundles: HomeBundleRow[],
+  products: PublishedProduct[],
+  campaigns: AutomaticPercentCampaign[]
+): CompleteLookBundle[] {
+  const byId = new Map(products.map((p) => [p.id, p]));
+  const result: CompleteLookBundle[] = [];
+  for (const bundle of bundles) {
+    if (!bundle.imageUrl || bundle.products.length < 2) continue;
+    const productIds = bundle.products.map((p) => p.id);
+    const hotspots = parseHotspots(bundle.hotspotsJson, productIds);
+    const items = parseProductOrder(bundle.productOrderJson, productIds).map((id) => {
+      const product = byId.get(id);
+      if (!product) return null;
+      const options = productToCatalogEntries(product)
+        .map((entry) => catalogEntryToCardData(entry, campaigns))
+        .filter((card) => !card.outOfStock && (card.quickAddVariants?.length ?? 0) > 0);
+      if (options.length === 0) return null;
+      const spot = hotspots.find((h) => h.productId === id);
+      return { productId: id, name: product.name, hotspot: spot ? { x: spot.x, y: spot.y } : null, options };
+    });
+    if (items.some((item) => item === null)) continue;
+    result.push({
+      id: bundle.id,
+      name: bundle.name,
+      discountPercent: bundle.discountPercent,
+      imageUrl: bundle.imageUrl,
+      items: items.filter((item): item is NonNullable<typeof item> => item !== null)
+    });
+  }
+  return result;
 }

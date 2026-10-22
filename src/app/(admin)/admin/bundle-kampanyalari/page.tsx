@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
+import { parseHotspots, parseProductOrder } from "@/lib/bundles";
 import { requireAdmin } from "@/lib/require-admin";
 import { Card } from "@/components/admin/card";
 import { BundleRow, type BundleData } from "@/components/admin/bundle-row";
+import type { BundleProductOption } from "@/components/admin/bundle-product-picker";
 import { BundleFeedback } from "@/components/admin/bundle-feedback";
 import { NewBundleForm } from "@/components/admin/new-bundle-form";
 
@@ -18,6 +20,20 @@ function parseProductIdsJson(raw: string): string[] {
   }
 }
 
+// Anasayfa "Kombini Tamamla" alanlari (bkz. components/admin/bundle-home-fields.tsx).
+// Fotografsiz kombin anasayfada gosterilemez - isaret varsa hata.
+function parseHomeFields(formData: FormData, productIds: string[]) {
+  const imageUrl = String(formData.get("imageUrl") || "").trim() || null;
+  const showOnHome = formData.get("showOnHome") === "on";
+  const homeSortOrder = Math.max(0, Math.round(Number(formData.get("homeSortOrder") || 0)) || 0);
+  const hotspotsJson = JSON.stringify(parseHotspots(String(formData.get("hotspotsJson") || "[]"), productIds));
+  const productOrderJson = JSON.stringify(
+    parseProductOrder(String(formData.get("productOrderJson") || "[]"), productIds)
+  );
+  if (showOnHome && !imageUrl) redirect(`${PATH}?hata=gorsel-gerekli`);
+  return { imageUrl, showOnHome, homeSortOrder, hotspotsJson, productOrderJson };
+}
+
 async function createBundle(formData: FormData) {
   "use server";
   const name = String(formData.get("name") || "").trim();
@@ -27,9 +43,10 @@ async function createBundle(formData: FormData) {
 
   if (!name) redirect(`${PATH}?hata=ad-gerekli`);
   if (productIds.length < 2) redirect(`${PATH}?hata=urun-yetersiz`);
+  const home = parseHomeFields(formData, productIds);
 
   await prisma.bundle.create({
-    data: { name, discountPercent, isActive, products: { connect: productIds.map((id) => ({ id })) } }
+    data: { name, discountPercent, isActive, ...home, products: { connect: productIds.map((id) => ({ id })) } }
   });
   revalidateCatalog();
   redirect(`${PATH}?basarili=eklendi`);
@@ -44,10 +61,11 @@ async function updateBundle(id: string, formData: FormData) {
 
   if (!name) redirect(`${PATH}?hata=ad-gerekli`);
   if (productIds.length < 2) redirect(`${PATH}?hata=urun-yetersiz`);
+  const home = parseHomeFields(formData, productIds);
 
   await prisma.bundle.update({
     where: { id },
-    data: { name, discountPercent, isActive, products: { set: productIds.map((pid) => ({ id: pid })) } }
+    data: { name, discountPercent, isActive, ...home, products: { set: productIds.map((pid) => ({ id: pid })) } }
   });
   revalidateCatalog();
   redirect(`${PATH}?basarili=guncellendi`);
@@ -70,8 +88,30 @@ export default async function AdminBundleKampanyalariPage({
 
   const [bundles, products] = await Promise.all([
     prisma.bundle.findMany({ include: { products: { select: { id: true, name: true } } }, orderBy: { createdAt: "desc" } }),
-    prisma.product.findMany({ select: { id: true, name: true }, orderBy: { name: "asc" } })
+    prisma.product.findMany({
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        status: true,
+        images: { select: { url: true }, orderBy: { position: "asc" }, take: 1 },
+        optionImages: { select: { url: true }, orderBy: { position: "asc" }, take: 1 },
+        variants: { select: { sku: true } }
+      },
+      orderBy: { name: "asc" }
+    })
   ]);
+
+  // Urun secici penceresi icin (bkz. bundle-product-picker.tsx): kucuk resim
+  // + ad, urun kodu ve varyant SKU'lari ile arama.
+  const productOptions: BundleProductOption[] = products.map((p) => ({
+    id: p.id,
+    name: p.name,
+    code: p.code,
+    image: p.images[0]?.url ?? p.optionImages[0]?.url ?? null,
+    published: p.status === "PUBLISHED",
+    skus: p.variants.map((v) => v.sku)
+  }));
 
   const rows: BundleData[] = bundles.map((b) => ({
     id: b.id,
@@ -79,11 +119,16 @@ export default async function AdminBundleKampanyalariPage({
     discountPercent: b.discountPercent,
     isActive: b.isActive,
     productIds: b.products.map((p) => p.id),
-    productNames: b.products.map((p) => p.name)
+    productNames: b.products.map((p) => p.name),
+    imageUrl: b.imageUrl,
+    showOnHome: b.showOnHome,
+    homeSortOrder: b.homeSortOrder,
+    hotspots: parseHotspots(b.hotspotsJson, b.products.map((p) => p.id)),
+    productOrder: parseProductOrder(b.productOrderJson, b.products.map((p) => p.id))
   }));
 
   return (
-    <div className="max-w-2xl">
+    <div className="max-w-5xl">
       <h1 className="text-2xl font-semibold text-admin-text">Bundle Kampanyaları</h1>
       <p className="mt-1 text-sm text-admin-text-muted">
         Bir bundle&apos;a dahil tüm ürünlerden en az 1&apos;er adet sepette olduğunda, bu ürünlerin toplamına indirim uygulanır.
@@ -92,7 +137,7 @@ export default async function AdminBundleKampanyalariPage({
       <BundleFeedback basarili={basarili} hata={hata} />
 
       <Card title="Yeni Bundle" className="mt-6">
-        <NewBundleForm allProducts={products} createAction={createBundle} />
+        <NewBundleForm allProducts={productOptions} createAction={createBundle} />
       </Card>
 
       <ul className="mt-6 divide-y divide-admin-border rounded-lg border border-admin-border bg-admin-surface">
@@ -100,7 +145,7 @@ export default async function AdminBundleKampanyalariPage({
           <BundleRow
             key={b.id}
             bundle={b}
-            allProducts={products}
+            allProducts={productOptions}
             updateAction={updateBundle.bind(null, b.id)}
             deleteAction={deleteBundle.bind(null, b.id)}
           />

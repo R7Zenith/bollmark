@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { Pencil, Trash2, X, Check } from "lucide-react";
 import { Badge } from "@/components/admin/badge";
-import { SearchableMultiSelect } from "@/components/admin/searchable-multi-select";
-
-export type BundleProductOption = { id: string; name: string };
+import { BundleProductPicker, type BundleProductOption } from "@/components/admin/bundle-product-picker";
+import { BundleHomeFields } from "@/components/admin/bundle-home-fields";
+import type { BundleHotspot } from "@/lib/bundles";
 
 export type BundleData = {
   id: string;
@@ -14,6 +14,11 @@ export type BundleData = {
   isActive: boolean;
   productIds: string[];
   productNames: string[];
+  imageUrl: string | null;
+  showOnHome: boolean;
+  homeSortOrder: number;
+  hotspots: BundleHotspot[];
+  productOrder: string[];
 };
 
 const inputClass =
@@ -66,14 +71,17 @@ export function BundleRow({
           </div>
           <div>
             <label className="text-xs text-admin-text-muted">Ürünler (en az 2)</label>
-            <SearchableMultiSelect
-              options={allProducts.map((p) => ({ id: p.id, value: p.name }))}
-              selectedIds={selectedIds}
-              onToggle={toggle}
-              placeholder="Ürün ara veya seç..."
-            />
+            <BundleProductPicker allProducts={allProducts} selectedIds={selectedIds} onToggle={toggle} />
             <input type="hidden" name="productIds" value={JSON.stringify(Array.from(selectedIds))} />
           </div>
+          <BundleHomeFields
+            products={allProducts.filter((p) => selectedIds.has(p.id))}
+            defaultImageUrl={bundle.imageUrl ?? ""}
+            defaultShowOnHome={bundle.showOnHome}
+            defaultHomeSortOrder={bundle.homeSortOrder}
+            defaultHotspots={bundle.hotspots}
+            defaultProductOrder={bundle.productOrder}
+          />
           <div className="flex items-center justify-between pt-1">
             <label className="flex items-center gap-2 text-sm text-admin-text">
               <input
@@ -110,6 +118,7 @@ export function BundleRow({
         <Badge tone="blue">%{bundle.discountPercent}</Badge>
         <Badge tone="gray-muted">{bundle.productNames.join(", ")}</Badge>
         {!bundle.isActive && <Badge tone="red">Pasif</Badge>}
+        {bundle.showOnHome && <Badge tone="green">Anasayfada</Badge>}
       </div>
       <div className="flex flex-shrink-0 items-center gap-1">
         <button

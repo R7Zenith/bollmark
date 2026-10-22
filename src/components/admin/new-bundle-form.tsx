@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { SearchableMultiSelect } from "@/components/admin/searchable-multi-select";
+import { BundleProductPicker, type BundleProductOption } from "@/components/admin/bundle-product-picker";
+import { BundleHomeFields } from "@/components/admin/bundle-home-fields";
 
 const inputClass =
   "rounded-md border border-admin-border px-3 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
@@ -10,10 +11,12 @@ export function NewBundleForm({
   allProducts,
   createAction
 }: {
-  allProducts: { id: string; name: string }[];
+  allProducts: BundleProductOption[];
   createAction: (formData: FormData) => void;
 }) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Gonderimden sonra anasayfa alanlarini (fotograf/noktalar) sifirlamak icin.
+  const [homeFieldsKey, setHomeFieldsKey] = useState(0);
 
   function toggle(id: string) {
     setSelectedIds((prev) => {
@@ -25,7 +28,11 @@ export function NewBundleForm({
   }
 
   return (
-    <form action={createAction} className="space-y-3" onSubmit={() => setSelectedIds(new Set())}>
+    <form action={createAction} className="space-y-3" onSubmit={() => {
+        setSelectedIds(new Set());
+        setHomeFieldsKey((k) => k + 1);
+      }}
+    >
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <input name="name" required placeholder="Bundle Adı" className={inputClass} />
         <input
@@ -40,14 +47,10 @@ export function NewBundleForm({
         />
       </div>
       <div>
-        <SearchableMultiSelect
-          options={allProducts.map((p) => ({ id: p.id, value: p.name }))}
-          selectedIds={selectedIds}
-          onToggle={toggle}
-          placeholder="Ürün ara veya seç (en az 2)..."
-        />
+        <BundleProductPicker allProducts={allProducts} selectedIds={selectedIds} onToggle={toggle} />
         <input type="hidden" name="productIds" value={JSON.stringify(Array.from(selectedIds))} />
       </div>
+      <BundleHomeFields key={homeFieldsKey} products={allProducts.filter((p) => selectedIds.has(p.id))} />
       <div className="flex items-center justify-between pt-1">
         <label className="flex items-center gap-2 text-sm text-admin-text">
           <input

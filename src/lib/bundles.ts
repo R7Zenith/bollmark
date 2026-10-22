@@ -47,6 +47,51 @@ export async function resolveBundleDiscount(
   return { discountCents: bestDiscountCents };
 }
 
+// Anasayfa "Kombini Tamamla" fotografindaki "+" noktalari - x/y fotografin
+// yuzdesi. Bundle.hotspotsJson'dan okunur; bozuk kayit, bundle'da olmayan urun
+// ve ayni urune ikinci nokta atilir, koordinatlar 0-100'e sikistirilir.
+export type BundleHotspot = { productId: string; x: number; y: number };
+
+export function parseHotspots(raw: string, productIds: string[]): BundleHotspot[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const allowed = new Set(productIds);
+  const seen = new Set<string>();
+  const clamp = (n: number) => Math.round(Math.min(100, Math.max(0, n)) * 10) / 10;
+  const hotspots: BundleHotspot[] = [];
+  for (const h of parsed) {
+    if (!h || typeof h !== "object") continue;
+    const { productId, x, y } = h as Record<string, unknown>;
+    if (typeof productId !== "string" || !allowed.has(productId) || seen.has(productId)) continue;
+    if (typeof x !== "number" || typeof y !== "number" || !Number.isFinite(x) || !Number.isFinite(y)) continue;
+    seen.add(productId);
+    hotspots.push({ productId, x: clamp(x), y: clamp(y) });
+  }
+  return hotspots;
+}
+
+// Kombin urunlerinin admin'de belirlenen sirasi (Bundle.productOrderJson).
+// Kayitli sirada olup bundle'da artik olmayan urun atilir; sirada olmayan
+// (sonradan eklenen) urunler productIds'teki siralariyla sona eklenir.
+export function parseProductOrder(raw: string, productIds: string[]): string[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    parsed = [];
+  }
+  const allowed = new Set(productIds);
+  const ordered = Array.isArray(parsed)
+    ? [...new Set(parsed.filter((id): id is string => typeof id === "string" && allowed.has(id)))]
+    : [];
+  return [...ordered, ...productIds.filter((id) => !ordered.includes(id))];
+}
+
 // Urun sayfasindaki bilgilendirici rozet icin - urunun dahil oldugu aktif
 // bir bundle varsa diger urun adlarini ve indirim yuzdesini dondurur.
 export async function getBundleForProduct(productId: string) {

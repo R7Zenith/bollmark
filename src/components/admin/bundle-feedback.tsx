@@ -13,6 +13,7 @@ const successMessages: Record<string, string> = {
 const errorMessages: Record<string, string> = {
   "ad-gerekli": "Bundle adı girilmelidir.",
   "urun-yetersiz": "En az 2 ürün seçilmelidir.",
+  "gorsel-gerekli": "Anasayfada göstermek için kombin fotoğrafı yükleyin.",
   bulunamadi: "Bundle bulunamadı."
 };
 

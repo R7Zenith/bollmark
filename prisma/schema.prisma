@@ -155,6 +155,14 @@ model Bundle {
   isActive        Boolean   @default(true)
   products        Product[]
   createdAt       DateTime  @default(now())
+  // Anasayfa "Kombini Tamamla" bolumu (bkz. components/home/complete-the-look.tsx).
+  imageUrl        String? // kombin fotografi (R2)
+  showOnHome      Boolean   @default(false)
+  homeSortOrder   Int       @default(0)
+  // [{ productId, x, y }] - x/y fotografin yuzdesi (0-100), bkz. lib/bundles.ts parseHotspots
+  hotspotsJson    String    @default("[]")
+  // Urunlerin anasayfadaki/admin'deki sirasi: [productId, ...] (bkz. lib/bundles.ts parseProductOrder)
+  productOrderJson String   @default("[]")
 }
 
 // Favoriler - guest kullanicida localStorage'da (bkz. lib/wishlist.tsx),

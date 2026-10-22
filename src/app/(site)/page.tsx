@@ -6,6 +6,7 @@ import { FeaturedCarousel } from "@/components/featured-carousel";
 import { BestsellersTabs, type BestsellerTab } from "@/components/home/bestsellers-tabs";
 import { BudgetTiles } from "@/components/home/budget-tiles";
 import { CampaignBand, SeasonColors } from "@/components/home/campaign-or-colors";
+import { CompleteTheLook } from "@/components/home/complete-the-look";
 import { FaqAndStore } from "@/components/home/faq-and-store";
 import { InstagramGrid } from "@/components/home/instagram-grid";
 import { ShopByCategory, type CollectionBox } from "@/components/home/shop-by-category";
@@ -22,6 +23,7 @@ import {
   newestProductImage,
   pickBestsellers,
   pickCategoryStrip,
+  pickHomeBundles,
   pickNewArrivals,
   pickSeasonColors
 } from "@/lib/home-products";
@@ -68,7 +70,8 @@ export default async function HomePage() {
     aksesuarCount,
     categories,
     soldGroups,
-    storeSettings
+    storeSettings,
+    homeBundles
   ] = await Promise.all([
     getPublishedProducts(),
     getActiveAutomaticPercentCampaigns(prisma),
@@ -87,7 +90,22 @@ export default async function HomePage() {
       where: { order: { status: { in: REVENUE_STATUSES }, deletedAt: null, createdAt: { gte: soldSince } } },
       _sum: { quantity: true }
     }),
-    prisma.storeSettings.findUnique({ where: { id: "singleton" } })
+    prisma.storeSettings.findUnique({ where: { id: "singleton" } }),
+    // "Kombini Tamamla": urun kart verisi yukaridaki products'tan, burada
+    // yalniz kombin kayitlari (bkz. home-products.ts pickHomeBundles).
+    prisma.bundle.findMany({
+      where: { isActive: true, showOnHome: true, imageUrl: { not: null } },
+      select: {
+        id: true,
+        name: true,
+        discountPercent: true,
+        imageUrl: true,
+        hotspotsJson: true,
+        productOrderJson: true,
+        products: { select: { id: true } }
+      },
+      orderBy: [{ homeSortOrder: "asc" }, { createdAt: "desc" }]
+    })
   ]);
 
   // Coklu rengi olan bir urun burada rengi kadar ayri kart olarak gorunur
@@ -279,7 +297,9 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Faz 2: "Kombini Tamamla" bu araya gelecek. */}
+      {/* Kombini Tamamla - anasayfada gosterilecek tam (yayinda + stoklu)
+          kombin yoksa render edilmez. */}
+      <CompleteTheLook bundles={pickHomeBundles(homeBundles, products, automaticCampaigns)} />
 
       <BudgetTiles tiers={budget.tiers} onSaleCount={budget.onSaleCount} />
 
