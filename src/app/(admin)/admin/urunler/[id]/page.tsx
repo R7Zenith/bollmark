@@ -484,9 +484,7 @@ export default async function EditProductPage({
           />
         </Card>
 
-        <Card title="Görseller">
-          <ProductImagesField name="images" initialImages={initialImages} />
-        </Card>
+        <ProductImagesField name="images" initialImages={initialImages} />
 
         <Card title="Ürün Detayları">
           <div className="space-y-4">

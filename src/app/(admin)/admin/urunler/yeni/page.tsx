@@ -277,9 +277,7 @@ export default async function NewProductPage({
           />
         </Card>
 
-        <Card title="Görseller">
-          <ProductImagesField name="images" initialImages={[]} />
-        </Card>
+        <ProductImagesField name="images" initialImages={[]} />
 
         <Card title="Ürün Detayları">
           <div className="space-y-4">
