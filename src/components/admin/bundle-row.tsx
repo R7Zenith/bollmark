@@ -3,7 +3,12 @@
 import { useState } from "react";
 import { Pencil, Trash2, X, Check } from "lucide-react";
 import { Badge } from "@/components/admin/badge";
-import { BundleProductPicker, type BundleProductOption } from "@/components/admin/bundle-product-picker";
+import {
+  BundleProductPicker,
+  ProductFlags,
+  Thumb,
+  type BundleProductOption
+} from "@/components/admin/bundle-product-picker";
 import { BundleHomeFields } from "@/components/admin/bundle-home-fields";
 import type { BundleHotspot } from "@/lib/bundles";
 
@@ -13,7 +18,6 @@ export type BundleData = {
   discountPercent: number;
   isActive: boolean;
   productIds: string[];
-  productNames: string[];
   imageUrl: string | null;
   showOnHome: boolean;
   homeSortOrder: number;
@@ -111,14 +115,37 @@ export function BundleRow({
     );
   }
 
+  // Urunler kayitli sirada, kucuk resimli. Yayinda olmayan ya da stogu biten
+  // urun kombini anasayfadan ve /kombin sayfasindan gizler - uyari bunun icin.
+  const products = bundle.productOrder.flatMap((id) => allProducts.filter((p) => p.id === id));
+  const blocked = products.filter((p) => !p.published || p.outOfStock);
+
   return (
     <li className="flex items-center justify-between gap-4 px-4 py-3 text-sm text-admin-text">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="font-medium">{bundle.name}</span>
-        <Badge tone="blue">%{bundle.discountPercent}</Badge>
-        <Badge tone="gray-muted">{bundle.productNames.join(", ")}</Badge>
-        {!bundle.isActive && <Badge tone="red">Pasif</Badge>}
-        {bundle.showOnHome && <Badge tone="green">Anasayfada</Badge>}
+      <div className="min-w-0 space-y-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-medium">{bundle.name}</span>
+          <Badge tone="blue">%{bundle.discountPercent}</Badge>
+          {!bundle.isActive && <Badge tone="red">Pasif</Badge>}
+          {bundle.showOnHome && blocked.length === 0 && <Badge tone="green">Anasayfada</Badge>}
+          {bundle.isActive && blocked.length > 0 && (
+            <Badge tone="yellow">
+              {bundle.showOnHome ? "Anasayfada görünmüyor" : "Kombin sayfası kapalı"}:{" "}
+              {blocked.some((p) => p.outOfStock) ? "stoğu biten ürün var" : "yayında olmayan ürün var"}
+            </Badge>
+          )}
+        </div>
+        <ul className="flex flex-wrap gap-2">
+          {products.map((p) => (
+            <li key={p.id} title={p.name} className="relative">
+              <Thumb
+                image={p.image}
+                className={`h-16 w-12 ${!p.published || p.outOfStock ? "opacity-50 ring-2 ring-red-400" : ""}`}
+              />
+              <ProductFlags product={p} />
+            </li>
+          ))}
+        </ul>
       </div>
       <div className="flex flex-shrink-0 items-center gap-1">
         <button

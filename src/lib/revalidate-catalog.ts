@@ -26,6 +26,8 @@ export function revalidateCatalog(slug?: string) {
   }
   // Renk secili ic rota (proxy.ts ?renk= rewrite'i) - tum renk sayfalari.
   revalidatePath("/(site)/urunler/[slug]/renk/[renk]", "page");
+  // Kombin sayfalari urun fiyat/stok/gorselini gosteriyor (bkz. kombin/[id]/page.tsx).
+  revalidatePath("/(site)/kombin/[id]", "page");
 }
 
 // Odeme onayi (stok dustu) ve iade (stok geri eklendi) sonrasi siparisteki

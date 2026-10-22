@@ -163,7 +163,7 @@ export function ProductViewer({
   fallbackImages: { url: string; alt: string }[];
   colorGalleries: Record<string, string[]>;
   variants: Variant[];
-  bundleInfo?: { discountPercent: number; otherProductNames: string[] } | null;
+  bundleInfo?: { id: string; discountPercent: number; otherProductNames: string[] } | null;
   // Aktif, kodsuz PERCENT kampanyalar (bkz. lib/coupons.ts
   // getActiveAutomaticPercentCampaigns) - secili varyantin fiyati her
   // degistiginde resolveProductDisplayPrice ile yeniden eslestirilir. Bu da
@@ -615,10 +615,20 @@ export function ProductViewer({
           <span className="text-[10px] uppercase tracking-wide text-ink/40">KDV dahildir.</span>
         </div>
         {bundleInfo && bundleInfo.otherProductNames.length > 0 && (
-          <p className="mt-3 border border-clay/40 bg-clay/5 px-4 py-2.5 text-sm text-ink/80">
-            Bu ürünü <span className="font-medium">{bundleInfo.otherProductNames.join(", ")}</span> ile birlikte al, %
-            {bundleInfo.discountPercent} indirim kazan.
-          </p>
+          <div className="mt-3 border border-clay/40 bg-clay/5 px-4 py-3 text-sm text-ink/80">
+            <p>
+              Bu ürünü <span className="font-medium">{bundleInfo.otherProductNames.join(", ")}</span> ile birlikte al,
+              %{bundleInfo.discountPercent} indirim kazan.
+            </p>
+            {/* Urun adlarindan urunleri bulmak zor - kombin sayfasinda hepsi
+                tek yerde, beden secilip tek tikla sepete eklenir. */}
+            <Link
+              href={`/kombin/${bundleInfo.id}`}
+              className="mt-2.5 inline-flex items-center rounded-full bg-ink px-4 py-2 text-[11px] uppercase tracking-wide text-cream transition hover:bg-clay"
+            >
+              Kombini gör →
+            </Link>
+          </div>
         )}
         {(material || origin || careInstructions) && (
           <details className="mt-6 border-t border-line pt-6 text-sm text-ink/70" open>

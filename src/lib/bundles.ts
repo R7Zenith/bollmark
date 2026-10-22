@@ -93,15 +93,21 @@ export function parseProductOrder(raw: string, productIds: string[]): string[] {
 }
 
 // Urun sayfasindaki bilgilendirici rozet icin - urunun dahil oldugu aktif
-// bir bundle varsa diger urun adlarini ve indirim yuzdesini dondurur.
+// bir bundle varsa diger urun adlarini, indirim yuzdesini ve /kombin/[id]
+// sayfasi icin id'yi dondurur. Urunlerinden biri yayinda olmayan kombin
+// atlanir: indirim kazanilamaz, kombin sayfasi da acilmaz.
 export async function getBundleForProduct(productId: string) {
   const bundle = await prisma.bundle.findFirst({
-    where: { isActive: true, products: { some: { id: productId } } },
+    where: {
+      isActive: true,
+      products: { some: { id: productId }, every: { status: "PUBLISHED" } }
+    },
     include: { products: { select: { id: true, name: true } } }
   });
   if (!bundle) return null;
 
   return {
+    id: bundle.id,
     discountPercent: bundle.discountPercent,
     otherProductNames: bundle.products.filter((p) => p.id !== productId).map((p) => p.name)
   };

@@ -20,7 +20,7 @@ export type CompleteLookBundle = {
   id: string;
   name: string;
   discountPercent: number;
-  imageUrl: string;
+  imageUrl: string | null; // anasayfada hep dolu; /kombin sayfasinda fotografsiz kombin de olabilir
   items: CompleteLookItem[];
 };
 
@@ -50,7 +50,17 @@ const pillClass = (active: boolean) =>
 // secenekli olan kendiliginden secili gelir. Buton hepsini sepete ekler -
 // kombin indirimi sepette resolveBundleDiscount ile ayrica dusulur, burada
 // fiyata gomulmez (kart hizli-ekle ile ayni kural, bkz. product-card.tsx).
-function Look({ bundle, header }: { bundle: CompleteLookBundle; header: ReactNode }) {
+// large: /kombin/[id] sayfasi (daha genis fotograf). Fotografsiz kombinde
+// yalniz baslik + liste, tek sutun.
+export function CompleteLook({
+  bundle,
+  header,
+  large = false
+}: {
+  bundle: CompleteLookBundle;
+  header: ReactNode;
+  large?: boolean;
+}) {
   const { addLine, openDrawer } = useCart();
   const [activeSpot, setActiveSpot] = useState<string | null>(null);
   const [selection, setSelection] = useState<Record<string, { option: number; variantId: string | null }>>(() =>
@@ -119,67 +129,79 @@ function Look({ bundle, header }: { bundle: CompleteLookBundle; header: ReactNod
     openDrawer();
   }
 
+  const photo = bundle.imageUrl;
   return (
     // Telefonda: baslik, fotograf, liste alt alta. md+: fotograf solda iki
     // satir boyunca, sagda baslik (alta yasli) + liste (uste yasli) - ikili
     // fotografin ortasina hizalanir, liste dar kaldigi icin buton da kisa.
-    <div className="mx-auto grid max-w-[1040px] gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,440px)] md:grid-rows-[1fr_auto_1fr] md:gap-x-12 lg:gap-x-20">
-      <div className="md:col-start-2 md:row-start-1 md:self-end">{header}</div>
-      <div
-        className="relative aspect-[4/5] overflow-hidden bg-image-bg md:col-start-1 md:row-span-3 md:row-start-1"
-        onClick={() => setActiveSpot(null)}
-      >
-        <Image
-          src={bundle.imageUrl}
-          alt={bundle.name}
-          fill
-          sizes="(min-width: 768px) 560px, 100vw"
-          className="object-cover"
-        />
-        {bundle.items.map((item) => {
-          if (!item.hotspot) return null;
-          const option = selectedOption(item);
-          const open = activeSpot === item.productId;
-          const { x, y } = item.hotspot;
-          return (
-            <div key={item.productId} className="absolute" style={{ left: `${x}%`, top: `${y}%` }}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setActiveSpot(open ? null : item.productId);
-                }}
-                aria-expanded={open}
-                aria-label={`${item.name}: ürün bilgisi`}
-                className={`flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-cream text-ink shadow-[0_2px_10px_rgba(0,0,0,0.25)] transition-transform duration-300 ${
-                  open ? "rotate-45" : "hover:scale-110"
-                }`}
-              >
-                <Plus size={16} strokeWidth={1.75} />
-              </button>
-              {open && (
-                <Link
-                  href={optionHref(option)}
-                  onClick={(e) => e.stopPropagation()}
-                  className={`absolute z-10 block w-44 bg-cream px-3 py-2.5 shadow-[0_6px_24px_rgba(0,0,0,0.18)] ${
-                    x > 50 ? "right-5" : "left-5"
-                  } ${y > 60 ? "bottom-5" : "top-5"}`}
+    <div
+      className={
+        !photo
+          ? "mx-auto grid max-w-[480px] gap-6"
+          : large
+            ? "mx-auto grid max-w-[1240px] gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,460px)] md:grid-rows-[1fr_auto_1fr] md:gap-x-12 lg:gap-x-20"
+            : "mx-auto grid max-w-[1040px] gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,440px)] md:grid-rows-[1fr_auto_1fr] md:gap-x-12 lg:gap-x-20"
+      }
+    >
+      <div className={photo ? "md:col-start-2 md:row-start-1 md:self-end" : ""}>{header}</div>
+      {photo && (
+        <div
+          className="relative aspect-[4/5] overflow-hidden bg-image-bg md:col-start-1 md:row-span-3 md:row-start-1"
+          onClick={() => setActiveSpot(null)}
+        >
+          <Image
+            src={photo}
+            alt={bundle.name}
+            fill
+            priority={large}
+            sizes={large ? "(min-width: 768px) 760px, 100vw" : "(min-width: 768px) 560px, 100vw"}
+            className="object-cover"
+          />
+          {bundle.items.map((item) => {
+            if (!item.hotspot) return null;
+            const option = selectedOption(item);
+            const open = activeSpot === item.productId;
+            const { x, y } = item.hotspot;
+            return (
+              <div key={item.productId} className="absolute" style={{ left: `${x}%`, top: `${y}%` }}>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setActiveSpot(open ? null : item.productId);
+                  }}
+                  aria-expanded={open}
+                  aria-label={`${item.name}: ürün bilgisi`}
+                  className={`flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-cream text-ink shadow-[0_2px_10px_rgba(0,0,0,0.25)] transition-transform duration-300 ${
+                    open ? "rotate-45" : "hover:scale-110"
+                  }`}
                 >
-                  <span className="line-clamp-2 text-[11px] font-semibold uppercase leading-[14px] tracking-[0.48px] text-ink">
-                    {item.name}
-                  </span>
-                  <span className="mt-1 block">
-                    <Price option={option} />
-                  </span>
-                  <span className="mt-1.5 block text-[10px] uppercase tracking-[0.1em] text-ink/60">Ürüne git →</span>
-                </Link>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                  <Plus size={16} strokeWidth={1.75} />
+                </button>
+                {open && (
+                  <Link
+                    href={optionHref(option)}
+                    onClick={(e) => e.stopPropagation()}
+                    className={`absolute z-10 block w-44 bg-cream px-3 py-2.5 shadow-[0_6px_24px_rgba(0,0,0,0.18)] ${
+                      x > 50 ? "right-5" : "left-5"
+                    } ${y > 60 ? "bottom-5" : "top-5"}`}
+                  >
+                    <span className="line-clamp-2 text-[11px] font-semibold uppercase leading-[14px] tracking-[0.48px] text-ink">
+                      {item.name}
+                    </span>
+                    <span className="mt-1 block">
+                      <Price option={option} />
+                    </span>
+                    <span className="mt-1.5 block text-[10px] uppercase tracking-[0.1em] text-ink/60">Ürüne git →</span>
+                  </Link>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
-      <div className="md:col-start-2 md:row-start-2">
+      <div className={photo ? "md:col-start-2 md:row-start-2" : ""}>
         <ul className="border-t border-line">
           {bundle.items.map((item) => {
             const option = selectedOption(item);
@@ -309,7 +331,7 @@ export function CompleteTheLook({ bundles }: { bundles: CompleteLookBundle[] }) 
 
   return (
     <section className="px-4 pb-section md:px-6 xl:px-9">
-      <Look key={bundle.id} bundle={bundle} header={header} />
+      <CompleteLook key={bundle.id} bundle={bundle} header={header} />
     </section>
   );
 }

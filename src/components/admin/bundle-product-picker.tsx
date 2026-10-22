@@ -10,6 +10,7 @@ export type BundleProductOption = {
   image: string | null;
   published: boolean;
   skus: string[];
+  outOfStock: boolean;
 };
 
 const RESULT_LIMIT = 120;
@@ -152,11 +153,7 @@ export function BundleProductPicker({
                                 <Check size={12} />
                               </span>
                             )}
-                            {!p.published && (
-                              <span className="absolute bottom-1 left-1 rounded bg-yellow-100 px-1 text-[10px] text-yellow-800">
-                                Taslak
-                              </span>
-                            )}
+                            <ProductFlags product={p} />
                           </span>
                           <span className="mt-1 line-clamp-2 block text-[11px] leading-tight text-admin-text">{p.name}</span>
                           {p.code && <span className="block truncate text-[10px] text-admin-text-muted">{p.code}</span>}
@@ -197,6 +194,20 @@ export function Thumb({ image, className }: { image: string | null; className: s
   ) : (
     <span className={`${className} flex shrink-0 items-center justify-center rounded bg-admin-bg text-admin-text-muted`}>
       <ImageOff size={14} />
+    </span>
+  );
+}
+
+// Kombini anasayfada/kombin sayfasinda gizleyen durumlar (bkz.
+// home-products.ts pickHomeBundles): yayinda olmayan ya da stogu biten urun.
+export function ProductFlags({ product }: { product: Pick<BundleProductOption, "published" | "outOfStock"> }) {
+  if (product.published && !product.outOfStock) return null;
+  return (
+    <span className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-0.5 p-1">
+      {!product.published && (
+        <span className="rounded bg-yellow-100 px-1 text-[10px] leading-4 text-yellow-800">Taslak</span>
+      )}
+      {product.outOfStock && <span className="rounded bg-red-100 px-1 text-[10px] leading-4 text-red-700">Stok yok</span>}
     </span>
   );
 }

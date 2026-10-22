@@ -189,15 +189,18 @@ type HomeBundleRow = {
   products: { id: string }[];
 };
 
+// requireImage: anasayfada fotografsiz kombin gosterilmez; /kombin/[id]
+// sayfasi fotografsiz kombini de yalniz listeyle gosterir.
 export function pickHomeBundles(
   bundles: HomeBundleRow[],
   products: PublishedProduct[],
-  campaigns: AutomaticPercentCampaign[]
+  campaigns: AutomaticPercentCampaign[],
+  { requireImage = true }: { requireImage?: boolean } = {}
 ): CompleteLookBundle[] {
   const byId = new Map(products.map((p) => [p.id, p]));
   const result: CompleteLookBundle[] = [];
   for (const bundle of bundles) {
-    if (!bundle.imageUrl || bundle.products.length < 2) continue;
+    if ((requireImage && !bundle.imageUrl) || bundle.products.length < 2) continue;
     const productIds = bundle.products.map((p) => p.id);
     const hotspots = parseHotspots(bundle.hotspotsJson, productIds);
     const items = parseProductOrder(bundle.productOrderJson, productIds).map((id) => {

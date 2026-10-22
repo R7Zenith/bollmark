@@ -96,7 +96,7 @@ export default async function AdminBundleKampanyalariPage({
         status: true,
         images: { select: { url: true }, orderBy: { position: "asc" }, take: 1 },
         optionImages: { select: { url: true }, orderBy: { position: "asc" }, take: 1 },
-        variants: { select: { sku: true } }
+        variants: { select: { sku: true, stock: true } }
       },
       orderBy: { name: "asc" }
     })
@@ -110,7 +110,9 @@ export default async function AdminBundleKampanyalariPage({
     code: p.code,
     image: p.images[0]?.url ?? p.optionImages[0]?.url ?? null,
     published: p.status === "PUBLISHED",
-    skus: p.variants.map((v) => v.sku)
+    skus: p.variants.map((v) => v.sku),
+    // Katalogla ayni kural (lib/catalog.ts isOutOfStock): varyanti olup hepsi 0.
+    outOfStock: p.variants.length > 0 && p.variants.every((v) => v.stock <= 0)
   }));
 
   const rows: BundleData[] = bundles.map((b) => ({
@@ -119,7 +121,6 @@ export default async function AdminBundleKampanyalariPage({
     discountPercent: b.discountPercent,
     isActive: b.isActive,
     productIds: b.products.map((p) => p.id),
-    productNames: b.products.map((p) => p.name),
     imageUrl: b.imageUrl,
     showOnHome: b.showOnHome,
     homeSortOrder: b.homeSortOrder,
