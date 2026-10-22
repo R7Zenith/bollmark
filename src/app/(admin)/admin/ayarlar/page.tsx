@@ -8,6 +8,10 @@ import { authOptions } from "@/lib/auth";
 import { requireAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
+import { disconnectInstagram, saveInstagramToken, syncInstagram } from "@/lib/instagram";
+import { parsePosts } from "@/lib/instagram-media";
+import { isEncryptionKeyConfigured } from "@/lib/payment/crypto";
+import { formatDateTime } from "@/lib/format";
 import { Card } from "@/components/admin/card";
 import { SettingsFeedback } from "@/components/admin/settings-feedback";
 
@@ -116,6 +120,44 @@ async function updateTicimaxIntegration(formData: FormData) {
   redirect("/admin/ayarlar?basarili=ticimax");
 }
 
+// Instagram galerisi (bkz. lib/instagram.ts). Token dogrulanip sifreli
+// kaydedilir, hemen ilk cekim yapilir; token hicbir zaman sayfaya geri yazilmaz.
+async function connectInstagram(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const token = String(formData.get("instagramToken") || "").trim();
+  if (!token) redirect("/admin/ayarlar?hata=instagram-token-gerekli");
+  if (!isEncryptionKeyConfigured()) redirect("/admin/ayarlar?hata=instagram-sifreleme");
+
+  let ok = true;
+  try {
+    await saveInstagramToken(token);
+  } catch {
+    ok = false;
+  }
+  if (!ok) redirect("/admin/ayarlar?hata=instagram-token-gecersiz");
+
+  const result = await syncInstagram();
+  revalidatePath("/admin/ayarlar");
+  redirect(result.ok ? "/admin/ayarlar?basarili=instagram" : "/admin/ayarlar?hata=instagram-cekim");
+}
+
+async function refreshInstagramNow() {
+  "use server";
+  await requireAdmin();
+  const result = await syncInstagram();
+  revalidatePath("/admin/ayarlar");
+  redirect(result.ok ? "/admin/ayarlar?basarili=instagram-cekim" : "/admin/ayarlar?hata=instagram-cekim");
+}
+
+async function disconnectInstagramAction() {
+  "use server";
+  await requireAdmin();
+  await disconnectInstagram();
+  revalidatePath("/admin/ayarlar");
+  redirect("/admin/ayarlar?basarili=instagram-kaldirildi");
+}
+
 export default async function AdminSettingsPage({
   searchParams
 }: {
@@ -125,7 +167,7 @@ export default async function AdminSettingsPage({
   const { basarili, hata } = await searchParams;
   const session = await getServerSession(authOptions);
 
-  const [adminUser, storeSettings, vegaIntegration] = await Promise.all([
+  const [adminUser, storeSettings, vegaIntegration, instagram] = await Promise.all([
     session?.user?.email
       ? prisma.adminUser.findUnique({ where: { email: session.user.email } })
       : Promise.resolve(null),
@@ -138,8 +180,11 @@ export default async function AdminSettingsPage({
       where: { id: "singleton" },
       create: { id: "singleton" },
       update: {}
-    })
+    }),
+    prisma.instagramIntegration.findUnique({ where: { id: "singleton" } })
   ]);
+  const instagramConnected = !!instagram?.tokenEncrypted;
+  const instagramPosts = parsePosts(instagram?.postsJson ?? "[]");
 
   return (
     <div className="max-w-2xl space-y-8">
@@ -285,6 +330,75 @@ export default async function AdminSettingsPage({
             sayfasına gidin.
           </p>
         </div>
+      </Card>
+
+      <Card title="Instagram Galerisi">
+        <div className="mb-4 flex gap-3 rounded-md bg-admin-bg p-4 text-sm text-admin-text-muted">
+          <Info size={18} className="mt-0.5 flex-shrink-0 text-admin-accent" />
+          <p>
+            Anasayfadaki &quot;Bizi takip edin&quot; bölümü, bağlı hesabın son 6 paylaşımını günde 1 kez (10:00 civarı)
+            kendiliğinden çeker; her kare kendi paylaşımına gider. Erişim anahtarı (token) 60 gün geçerlidir ve
+            otomatik yenilenir. Bağlantı koparsa son çekilen kareler görünmeye devam eder.
+          </p>
+        </div>
+        <dl className="mb-4 grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
+          <dt className="text-admin-text-muted">Durum</dt>
+          <dd className={instagramConnected ? "text-green-700" : "text-admin-text"}>
+            {instagramConnected ? `Bağlı${instagram?.username ? ` (@${instagram.username})` : ""}` : "Bağlı değil"}
+          </dd>
+          <dt className="text-admin-text-muted">Son çekim</dt>
+          <dd className="text-admin-text">
+            {instagram?.lastFetchAt
+              ? `${formatDateTime(instagram.lastFetchAt)} · ${instagramPosts.length} kare`
+              : "Henüz yok"}
+          </dd>
+          {instagramConnected && (
+            <>
+              <dt className="text-admin-text-muted">Token bitişi</dt>
+              <dd className="text-admin-text">
+                {instagram?.tokenExpiresAt ? formatDateTime(instagram.tokenExpiresAt) : "Bilinmiyor"}
+              </dd>
+            </>
+          )}
+          {instagram?.lastError && (
+            <>
+              <dt className="text-admin-text-muted">Son hata</dt>
+              <dd className="break-words text-red-600">{instagram.lastError}</dd>
+            </>
+          )}
+        </dl>
+        <form action={connectInstagram} className="space-y-3">
+          <div>
+            <label className="text-xs font-medium uppercase tracking-wide text-admin-text-muted">
+              Erişim anahtarı (token) {instagramConnected ? "— değiştirmek için yeni token yapıştırın" : ""}
+            </label>
+            <input
+              name="instagramToken"
+              type="password"
+              autoComplete="off"
+              spellCheck={false}
+              placeholder="Meta geliştirici panelinden üretilen token"
+              className="mt-1 w-full rounded-md border border-admin-border px-4 py-2.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent"
+            />
+          </div>
+          <button className="rounded-md bg-admin-accent px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-700">
+            {instagramConnected ? "Token'ı Güncelle" : "Bağla ve Kareleri Çek"}
+          </button>
+        </form>
+        {instagramConnected && (
+          <div className="mt-3 flex flex-wrap gap-3">
+            <form action={refreshInstagramNow}>
+              <button className="rounded-md border border-admin-border px-4 py-2 text-sm text-admin-text hover:bg-admin-bg">
+                Şimdi çek
+              </button>
+            </form>
+            <form action={disconnectInstagramAction}>
+              <button className="rounded-md border border-admin-border px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                Bağlantıyı kaldır
+              </button>
+            </form>
+          </div>
+        )}
       </Card>
 
       <Card title="Vega E-Ticaret Entegrasyonu">

@@ -22,7 +22,7 @@ yerden devam etmek için önce bunu, sonra gerekirse ilgili günlük dosyasını
   `PREVIEW_GATE` env'ini sil/`on` yap + redeploy (`src/proxy.ts`).
 - **Ödeme:** iyzico sanal POS canlıda (kullanıcı teyidi, 2026-10-09).
 - **Vega:** Ticimax taklidi SOAP servisi (`src/app/Servis`) çalışıyor (2026-09-11).
-- **Cron (Vercel, günde 1):** sepet hatırlatma, ödeme mutabakatı.
+- **Cron (Vercel, günde 1):** sepet hatırlatma, ödeme mutabakatı, Instagram kareleri (`/api/cron/instagram`).
 - **Yeni bilgisayarda kurulum:** `KURULUM-NOTLARI.md` ve `.env.example`.
 
 ## Açık işler

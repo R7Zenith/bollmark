@@ -500,6 +500,23 @@ model StoreSettings {
   updatedAt            DateTime @updatedAt
 }
 
+// Anasayfa Instagram galerisinin otomatik beslemesi (bkz. lib/instagram.ts,
+// api/cron/instagram). Singleton satir (StoreSettings ile ayni desen). Token
+// "Instagram API with Instagram Login" uzun omurlu token'i (60 gun); acik
+// metin olarak DEGIL, lib/payment/crypto.ts ile sifreli tutulur.
+model InstagramIntegration {
+  id               String    @id @default("singleton")
+  tokenEncrypted   String    @default("")
+  username         String    @default("")
+  tokenExpiresAt   DateTime?
+  tokenRefreshedAt DateTime?
+  lastFetchAt      DateTime? // son BASARILI cekim
+  lastError        String    @default("")
+  // Son basarili cekimin kareleri: [{ id, imageUrl (R2), permalink, alt }]
+  postsJson        String    @default("[]")
+  updatedAt        DateTime  @updatedAt
+}
+
 // Vega "E-Ticaret" entegrasyonu icin ayri, admin panel personel
 // hesaplarindan bagimsiz tek bir kullanici - Vega programindaki "E-Mail"/
 // "Parola" alanlarina bu bilgiler girilir (bkz.

@@ -12,7 +12,11 @@ const errorMessages: Record<string, string> = {
   "vega-email-gerekli": "Vega entegrasyonu için e-posta gerekli.",
   "vega-parola-gerekli": "İlk kayıtta bir parola belirlemelisiniz.",
   "vega-parola-kisa": "Vega parolası en az 8 karakter olmalı.",
-  "ticimax-uyekodu-gerekli": "Üye kodu gerekli."
+  "ticimax-uyekodu-gerekli": "Üye kodu gerekli.",
+  "instagram-token-gerekli": "Instagram erişim anahtarını (token) yapıştırın.",
+  "instagram-token-gecersiz": "Token Instagram tarafından doğrulanamadı. Yeni bir token üretip tekrar deneyin.",
+  "instagram-sifreleme": "Şifreleme anahtarı (PAYMENT_ENCRYPTION_KEY) tanımlı değil, token kaydedilemedi.",
+  "instagram-cekim": "Instagram kareleri çekilemedi. Ayrıntı Instagram Galerisi kartındaki \"Son hata\" satırında."
 };
 
 const successMessages: Record<string, string> = {
@@ -20,7 +24,10 @@ const successMessages: Record<string, string> = {
   magaza: "Mağaza bilgileri kaydedildi.",
   "sepet-hatirlatma": "Sepet hatırlatma ayarları kaydedildi.",
   vega: "Vega entegrasyon bilgileri kaydedildi.",
-  ticimax: "Üye kodu kaydedildi."
+  ticimax: "Üye kodu kaydedildi.",
+  instagram: "Instagram bağlandı, kareler çekildi.",
+  "instagram-cekim": "Instagram kareleri güncellendi.",
+  "instagram-kaldirildi": "Instagram bağlantısı kaldırıldı."
 };
 
 export function SettingsFeedback({ basarili, hata }: { basarili?: string; hata?: string }) {

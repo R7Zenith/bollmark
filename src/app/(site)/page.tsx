@@ -9,6 +9,7 @@ import { CampaignBand, SeasonColors } from "@/components/home/campaign-or-colors
 import { CompleteTheLook } from "@/components/home/complete-the-look";
 import { FaqAndStore } from "@/components/home/faq-and-store";
 import { InstagramGrid } from "@/components/home/instagram-grid";
+import { parsePosts } from "@/lib/instagram-media";
 import { ShopByCategory, type CollectionBox } from "@/components/home/shop-by-category";
 import { TrustMarquee } from "@/components/home/trust-marquee";
 import { prisma } from "@/lib/prisma";
@@ -71,7 +72,8 @@ export default async function HomePage() {
     categories,
     soldGroups,
     storeSettings,
-    homeBundles
+    homeBundles,
+    instagram
   ] = await Promise.all([
     getPublishedProducts(),
     getActiveAutomaticPercentCampaigns(prisma),
@@ -105,6 +107,11 @@ export default async function HomePage() {
         products: { select: { id: true } }
       },
       orderBy: [{ homeSortOrder: "asc" }, { createdAt: "desc" }]
+    }),
+    // Otomatik Instagram kareleri (bkz. lib/instagram.ts); token burada okunmaz.
+    prisma.instagramIntegration.findUnique({
+      where: { id: "singleton" },
+      select: { postsJson: true, username: true }
     })
   ]);
 
@@ -309,8 +316,9 @@ export default async function HomePage() {
         <SeasonColors colors={seasonColors} />
       )}
 
-      {/* Instagram galerisi - env + fotograflar yoksa kendini gizler. */}
-      <InstagramGrid />
+      {/* Instagram galerisi - otomatik kare yoksa env + public/instagram/
+          yedegine duser, o da yoksa kendini gizler. */}
+      <InstagramGrid autoPosts={parsePosts(instagram?.postsJson ?? "[]")} autoUsername={instagram?.username ?? ""} />
 
       {/* SSS (sol) + Karacabey magazasi (sag), canlidaki gibi yan yana. */}
       <FaqAndStore
