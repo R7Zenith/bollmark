@@ -135,16 +135,41 @@ export default async function HomePage() {
     const ids = new Set(categories.filter((c) => c.slug === slug || c.parent?.slug === slug).map((c) => c.id));
     return products.filter((p) => p.categoryId != null && ids.has(p.categoryId));
   };
-  const categoryBoxImage = (slug: string) => {
-    const imageUrl = categories.find((c) => c.slug === slug)?.imageUrl;
-    return imageUrl ? { url: imageUrl, greyBackdrop: false } : newestProductImage(inCategoryTree(slug), true);
+  // Kutu gorselleri tekrarsiz secilir (bkz.
+  // ANASAYFA_KUTU_GORSEL_TEKRARI_PLANI.md): ayni urun birden fazla
+  // gruba dusebilir (canta hem Kadin hem Aksesuar). Once admin'in kategoriye
+  // verdigi gorseller ayrilir, sonra kutular sirayla secilir ve kullanilan
+  // urun/gorsel sonraki kutularda atlanir.
+  const used = { productIds: new Set<string>(), urls: new Set<string>() };
+  const adminImageUrl = (slug: string) => categories.find((c) => c.slug === slug)?.imageUrl ?? null;
+  for (const slug of ["ayakkabi", "aksesuar"]) {
+    const url = adminImageUrl(slug);
+    if (url) used.urls.add(url);
+  }
+  const take = (image: ReturnType<typeof newestProductImage>) => {
+    if (image) {
+      used.productIds.add(image.productId);
+      used.urls.add(image.url);
+    }
+    return image;
   };
-  const inGender = (label: string) =>
-    products.filter((p) => p.gender != null && (GENDER_GROUPS[label] ?? [label]).includes(p.gender));
+  const categoryBoxImage = (slug: string) => {
+    const imageUrl = adminImageUrl(slug);
+    return imageUrl ? { url: imageUrl, greyBackdrop: false } : take(newestProductImage(inCategoryTree(slug), true, used));
+  };
+  // Cinsiyet kutulari giyimi tercih eder: ayakkabi/aksesuar agacindaki urunler
+  // o kutularin kendi gorseline kalsin. Giyim urunu yoksa cinsiyetin tumu.
+  const shoeAndAccessoryIds = new Set([...inCategoryTree("ayakkabi"), ...inCategoryTree("aksesuar")].map((p) => p.id));
+  const genderBoxImage = (label: string) => {
+    const all = products.filter((p) => p.gender != null && (GENDER_GROUPS[label] ?? [label]).includes(p.gender));
+    const clothing = all.filter((p) => !shoeAndAccessoryIds.has(p.id));
+    return take(newestProductImage(clothing.length > 0 ? clothing : all, true, used));
+  };
+  // Dizi elemanlari bu sirayla degerlendirilir: Kadin -> Erkek -> Cocuk -> Ayakkabi -> Aksesuar.
   const collections: CollectionBox[] = [
-    { label: "Kadın", count: kadinCount, href: "/kadin", image: newestProductImage(inGender("Kadın"), true) },
-    { label: "Erkek", count: erkekCount, href: "/erkek", image: newestProductImage(inGender("Erkek"), true) },
-    { label: "Çocuk", count: cocukCount, href: "/cocuk", image: newestProductImage(inGender("Çocuk"), true) },
+    { label: "Kadın", count: kadinCount, href: "/kadin", image: genderBoxImage("Kadın") },
+    { label: "Erkek", count: erkekCount, href: "/erkek", image: genderBoxImage("Erkek") },
+    { label: "Çocuk", count: cocukCount, href: "/cocuk", image: genderBoxImage("Çocuk") },
     { label: "Ayakkabı", count: ayakkabiCount, href: "/kategori/ayakkabi", image: categoryBoxImage("ayakkabi") },
     { label: "Aksesuar", count: aksesuarCount, href: "/kategori/aksesuar", image: categoryBoxImage("aksesuar") }
   ].filter((c) => c.count > 0 || ALWAYS_SHOWN_COLLECTIONS.has(c.label));

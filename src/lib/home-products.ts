@@ -104,18 +104,33 @@ export function pickBestsellers(products: PublishedProduct[], soldByProductId: M
 // katalogdaki gibi gri zeminde gosterilsin (bkz. lib/image-backdrop.ts).
 export type HomeImage = { url: string; greyBackdrop: boolean };
 
+// Anasayfa kutularinda daha once kullanilan urunler/gorseller: ayni urun
+// birden fazla gruba dustugunde (or. canta hem Kadin hem Aksesuar) kutular
+// ayni fotografi gostermesin diye sonraki secimler bunlari atlar.
+export type ImageExclusions = { productIds: Set<string>; urls: Set<string> };
+
 // Gruptaki en yeni, gorselli urunun ilk gorseli; featuredFirst ile once one
 // cikan (isFeatured) urunlere bakilir. Hic gorsel yoksa null (kart yazili kalir).
-export function newestProductImage(products: PublishedProduct[], featuredFirst = false): HomeImage | null {
+// exclude verilirse haric tutulmayan ilk aday secilir; hepsi haric ise kart
+// gorselsiz kalmasin diye yine en yeni (tekrar eden) gorsele dusulur.
+export function newestProductImage(
+  products: PublishedProduct[],
+  featuredFirst = false,
+  exclude?: ImageExclusions
+): (HomeImage & { productId: string }) | null {
   const sorted = [...products].sort(
     (a, b) =>
       (featuredFirst ? Number(b.isFeatured) - Number(a.isFeatured) : 0) || b.createdAt.getTime() - a.createdAt.getTime()
   );
+  let repeated: (HomeImage & { productId: string }) | null = null;
   for (const p of sorted) {
     const url = p.images[0]?.url ?? pickCoverImage(p.optionImages)?.url;
-    if (url) return { url, greyBackdrop: usesGreyBackdrop(p.brand?.name) };
+    if (!url) continue;
+    const image = { url, greyBackdrop: usesGreyBackdrop(p.brand?.name), productId: p.id };
+    if (!exclude || (!exclude.productIds.has(p.id) && !exclude.urls.has(url))) return image;
+    repeated ??= image;
   }
-  return null;
+  return repeated;
 }
 
 type StripCategory = { id: string; name: string; slug: string; sortOrder: number; imageUrl: string | null };
