@@ -11,6 +11,8 @@ export type CartLineIssue = "UNAVAILABLE" | "OUT_OF_STOCK";
 export type ResolvedCartLine = {
   productId: string;
   variantId: string;
+  // Meta Pixel content_ids icin (bkz. lib/meta/track.ts).
+  sku: string;
   quantity: number;
   name: string;
   size: string;

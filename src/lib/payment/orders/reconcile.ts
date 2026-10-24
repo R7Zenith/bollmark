@@ -16,6 +16,7 @@ import {
 } from "@/lib/payment/orders/evaluate";
 import { notifyAdminNewOrder, notifyAdminPaymentAttention, notifyCustomerOrderReceived } from "@/lib/order-notifications";
 import { revalidateOrderProducts } from "@/lib/revalidate-catalog";
+import { sendPurchaseToMeta } from "@/lib/meta/capi";
 
 // Odeme sonucunun TEK dogruluk kaynagi: yonlendirmedeki/webhook'taki hicbir alana
 // guvenilmez, sonuc her zaman token ile iyzico'dan sorgulanir (bkz. plan 5.B).
@@ -64,7 +65,7 @@ async function decrementStock(tx: Tx, items: { variantId: string | null; quantit
 }
 
 // Odeme dogrulaninca (best-effort, hata akisi bozmaz): tek birlesik onay maili + admin
-// bildirimi, terk edilmis sepeti "kurtarildi" isaretleme, denetim kaydi.
+// bildirimi, terk edilmis sepeti "kurtarildi" isaretleme, denetim kaydi, Meta Purchase (CAPI).
 async function afterPaid(orderId: string, detail: string) {
   const order = await prisma.order.findUnique({
     where: { id: orderId },
@@ -88,7 +89,8 @@ async function afterPaid(orderId: string, detail: string) {
       targetType: "Order",
       targetId: order.id,
       detail
-    })
+    }),
+    sendPurchaseToMeta(order.id)
   ]);
 }
 

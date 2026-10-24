@@ -9,10 +9,13 @@ import {
   type CartLineIssue,
   type ResolvedCartLine
 } from "@/lib/cart-shared";
+import { trackAddToCart } from "@/lib/meta/track";
 
 export type CartLine = {
   productId: string;
   variantId: string;
+  /** Meta Pixel content_ids icin (bkz. lib/meta/track.ts) - eski kayitli sepetlerde fiyat tazelemesiyle dolar. */
+  sku?: string;
   name: string;
   size: string;
   color: string;
@@ -109,6 +112,7 @@ function toCartLine(f: ResolvedCartLine): CartLine {
   return {
     productId: f.productId,
     variantId: f.variantId,
+    sku: f.sku,
     name: f.name,
     size: f.size,
     color: f.color,
@@ -177,6 +181,7 @@ function applyFresh(base: CartLine[], fresh: ResolvedCartLine[]) {
     }
     const updated: CartLine = {
       ...line,
+      sku: f.sku,
       name: f.name,
       size: f.size || line.size,
       color: f.color || line.color,
@@ -187,6 +192,7 @@ function applyFresh(base: CartLine[], fresh: ResolvedCartLine[]) {
       greyBackdrop: f.greyBackdrop
     };
     const same =
+      updated.sku === line.sku &&
       updated.name === line.name &&
       updated.size === line.size &&
       updated.color === line.color &&
@@ -507,6 +513,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addLine = (line: CartLine) => {
     versionRef.current++;
+    trackAddToCart(line);
     setLines((prev) => {
       const existing = prev.find((l) => l.variantId === line.variantId);
       if (existing) {

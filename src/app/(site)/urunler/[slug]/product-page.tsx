@@ -132,6 +132,7 @@ export async function renderProductPage(rawSlug: string, renk?: string) {
         initialColor={renk}
         variants={product.variants.map((v) => ({
           id: v.id,
+          sku: v.sku,
           size: optionValue(v, "Beden"),
           sizePosition: optionPosition(v, "Beden"),
           color: optionValue(v, "Renk"),

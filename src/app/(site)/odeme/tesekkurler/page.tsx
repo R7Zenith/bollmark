@@ -5,6 +5,9 @@ import { getPublicPaymentState } from "@/lib/payment/orders/state";
 import { ClearCartOnMount } from "@/components/clear-cart-on-mount";
 import { PaymentStatusPoller } from "@/components/payment-status-poller";
 import { RetryPaymentButton } from "@/components/retry-payment-button";
+import { MetaPurchase } from "@/components/meta-purchase";
+import { prisma } from "@/lib/prisma";
+import { metaTrackingEnabled, purchaseCustomData } from "@/lib/meta/capi";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -28,9 +31,20 @@ export default async function ThankYouPage({ searchParams }: { searchParams: Pro
   if (state === "FAILED") redirect(`/odeme/basarisiz?siparis=${encodeURIComponent(siparis)}`);
 
   if (state === "PAID") {
+    // Meta Purchase icin yalniz tutar + kalem SKU/adet/fiyat (kisisel veri yok).
+    const metaOrder = metaTrackingEnabled()
+      ? await prisma.order.findUnique({
+          where: { orderNumber: siparis },
+          select: {
+            totalCents: true,
+            items: { select: { variantId: true, quantity: true, unitPriceCents: true, variant: { select: { sku: true } } } }
+          }
+        })
+      : null;
     return (
       <div className="mx-auto max-w-xl px-6 py-24 text-center">
         <ClearCartOnMount />
+        {metaOrder && <MetaPurchase orderNumber={siparis} customData={purchaseCustomData(metaOrder)} />}
         <h1 className="font-display text-3xl">Teşekkürler!</h1>
         <p className="mt-4 text-ink/70">
           Siparişiniz alındı ve ödemeniz onaylandı. Sipariş numaranız: <strong>{siparis}</strong>

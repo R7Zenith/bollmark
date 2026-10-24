@@ -7,6 +7,7 @@ import { createPortal } from "react-dom";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { formatPrice } from "@/lib/format";
 import { SEARCH_MAX_LENGTH, SEARCH_MIN_LENGTH, highlightRanges, normalizeTr } from "@/lib/search-text";
+import { trackSearch } from "@/lib/meta/track";
 import type { SearchResult } from "@/app/(site)/api/arama/route";
 
 export type SearchChip = { label: string; href: string };
@@ -257,6 +258,8 @@ export function SearchOverlay({
   const remember = (q: string) => {
     const value = q.trim();
     if (value.length < SEARCH_MIN_LENGTH) return;
+    // Aramanin onaylandigi tek nokta (Enter, sonuc veya "tumunu gor" tiklamasi).
+    trackSearch(value);
     const norm = normalizeTr(value);
     const next = [value, ...recent.filter((r) => normalizeTr(r) !== norm)].slice(0, RECENT_LIMIT);
     setRecent(next);

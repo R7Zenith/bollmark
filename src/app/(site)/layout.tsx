@@ -8,6 +8,8 @@ import { CustomerSessionProvider } from "@/components/customer-session-provider"
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ConsentManager } from "@/components/consent/consent-manager";
+import { MetaPixel } from "@/components/meta-pixel";
+import { metaTrackingEnabled } from "@/lib/meta/capi";
 import { getMegaMenuData } from "@/lib/site-nav";
 import { baseOpenGraph, siteIcons } from "@/lib/site-metadata";
 import { getSiteUrl } from "@/lib/site-url";
@@ -75,6 +77,12 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <main className="flex-1">{children}</main>
               <SiteFooter />
               <ConsentManager />
+              {/* useSearchParams kullaniyor - SiteHeader ile ayni gerekceyle Suspense. */}
+              {metaTrackingEnabled() && (
+                <Suspense fallback={null}>
+                  <MetaPixel pixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID!} />
+                </Suspense>
+              )}
             </WishlistProvider>
           </CartProvider>
         </CustomerSessionProvider>

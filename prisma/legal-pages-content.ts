@@ -35,7 +35,7 @@ E-posta: bilgi@bollmark.com
 
 2. İşlenen Kişisel Veriler
 
-Sitemiz üzerinden alışveriş yapmanız veya üye olmanız halinde; ad-soyad, teslimat ve fatura adresi, telefon numarası, e-posta adresi, sipariş ve ödeme geçmişi bilgileri ile site kullanımınıza ilişkin IP adresi ve çerez verileri işlenebilir. Ödeme kartı bilgileriniz tarafımızca saklanmaz; ödeme işlemleri doğrudan iyzico'nun güvenli ödeme altyapısı üzerinden gerçekleştirilir.
+Sitemiz üzerinden alışveriş yapmanız veya üye olmanız halinde; ad-soyad, teslimat ve fatura adresi, telefon numarası, e-posta adresi, sipariş ve ödeme geçmişi bilgileri ile site kullanımınıza ilişkin IP adresi ve çerez verileri işlenebilir. Ödeme kartı bilgileriniz tarafımızca saklanmaz; ödeme işlemleri doğrudan iyzico'nun güvenli ödeme altyapısı üzerinden gerçekleştirilir. Pazarlama çerezlerine açık rıza vermeniz halinde, Meta Pixel aracılığıyla site üzerindeki etkileşimleriniz (görüntülediğiniz ürünler, sepete ekleme ve satın alma işlemleri gibi) ile tarayıcı ve cihaz bilgileriniz de işlenir.
 
 3. Kişisel Verilerin İşlenme Amaçları
 
@@ -45,14 +45,17 @@ Sitemiz üzerinden alışveriş yapmanız veya üye olmanız halinde; ad-soyad, 
 - Cayma hakkı ve iade süreçlerinin yönetilmesi
 - Dolandırıcılık ve kötüye kullanımın önlenmesi
 - Yasal düzenlemelerden doğan yükümlülüklerin yerine getirilmesi
+- Açık rızanız olması halinde, reklamlarımızın etkisinin ölçülmesi ve Meta (Facebook/Instagram) üzerinde size ilgili ürün ve kampanyaların gösterilmesi (hedefleme ve yeniden pazarlama)
 
 4. Kişisel Veri İşlemenin Hukuki Sebebi
 
-Kişisel verileriniz, KVKK'nın 5. maddesi uyarınca; bir sözleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olması, hukuki yükümlülüğün yerine getirilmesi ve veri sorumlusunun meşru menfaati hukuki sebeplerine dayanılarak işlenmektedir.
+Kişisel verileriniz, KVKK'nın 5. maddesi uyarınca; bir sözleşmenin kurulması veya ifasıyla doğrudan doğruya ilgili olması, hukuki yükümlülüğün yerine getirilmesi ve veri sorumlusunun meşru menfaati hukuki sebeplerine dayanılarak işlenmektedir. Pazarlama çerezleri ve Meta Pixel kapsamındaki işleme ile Meta'ya yapılan aktarım ise yalnızca açık rızanıza (KVKK m.5/1 ve m.9) dayanır.
 
 5. Kişisel Verilerin Aktarılması
 
 Kişisel verileriniz; siparişin teslimatının sağlanması amacıyla anlaşmalı kargo firmamız ile, ödeme işlemlerinin gerçekleştirilmesi amacıyla iyzico ödeme kuruluşu ile ve yasal olarak talep edilmesi halinde yetkili kamu kurum ve kuruluşları ile paylaşılabilir.
+
+Pazarlama çerezlerine açık rıza vermeniz halinde; çerez verileriniz, IP adresiniz ve tarayıcı bilgileriniz ile tek yönlü şifrelenmiş (SHA-256 ile hashlenmiş) olarak e-posta adresiniz, telefon numaranız, adınız-soyadınız, şehir ve posta kodunuz ve müşteri numaranız; reklam ölçümü ve hedefleme amacıyla reklam/ölçüm hizmet sağlayıcımız Meta Platforms Ireland Ltd. (Facebook/Instagram) ile paylaşılır. Meta'nın sunucuları yurt dışında bulunduğundan bu paylaşım KVKK m.9 kapsamında yurt dışına aktarım niteliğindedir ve yalnızca açık rızanıza dayanılarak gerçekleştirilir.
 
 6. Kişisel Veri Toplama Yöntemi
 
@@ -74,7 +77,7 @@ Bu haklarınızı kullanmak için taleplerinizi bilgi@bollmark.com adresine veya
 
 10. Çerez Politikası
 
-Sitemizde, sitenin çalışması için zorunlu çerezler kullanılmaktadır. Analitik ve pazarlama çerezleri ise yalnızca açık rızanız alınarak (KVKK m.5/1) etkinleştirilir; sitemizde şu anda bu tür çerezler kullanılmamaktadır. Kullanılan çerezler, saklama süreleri ve tercihlerinizi nasıl yönetebileceğiniz hakkında ayrıntılı bilgiye bollmark.com/cerez-politikasi adresindeki Çerez Politikası'ndan ulaşabilirsiniz. Çerez tercihlerinizi dilediğiniz zaman sayfanın altındaki "Çerez Tercihleri" bağlantısından değiştirebilir, ayrıca tarayıcı ayarlarınızdan çerezleri silebilirsiniz.
+Sitemizde, sitenin çalışması için zorunlu çerezler kullanılmaktadır. Analitik ve pazarlama çerezleri ise yalnızca açık rızanız alınarak (KVKK m.5/1) etkinleştirilir. Sitemizde pazarlama kategorisinde Meta Pixel kullanılmaktadır; analitik çerez şu anda kullanılmamaktadır. Pazarlama rızanızı geri almanız halinde Meta'ya yeni veri aktarılmaz; daha önce aktarılmış veriler Meta'nın kendi gizlilik politikasına tabidir. Kullanılan çerezler, saklama süreleri ve tercihlerinizi nasıl yönetebileceğiniz hakkında ayrıntılı bilgiye bollmark.com/cerez-politikasi adresindeki Çerez Politikası'ndan ulaşabilirsiniz. Çerez tercihlerinizi dilediğiniz zaman sayfanın altındaki "Çerez Tercihleri" bağlantısından değiştirebilir, ayrıca tarayıcı ayarlarınızdan çerezleri silebilirsiniz.
 
 11. Değişiklikler
 

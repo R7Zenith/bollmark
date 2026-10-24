@@ -12,6 +12,7 @@ import { LoyaltyField, type LoyaltyResult } from "@/components/loyalty-field";
 import { useBundleDiscount } from "@/lib/use-bundle-discount";
 import { calculateShippingCents } from "@/lib/shipping";
 import { CartNotices } from "@/components/cart-notices";
+import { trackAddPaymentInfo, trackInitiateCheckout } from "@/lib/meta/track";
 
 export interface SavedAddress {
   id: string;
@@ -89,6 +90,14 @@ export default function CheckoutForm({
     defaultShippingCents
   );
   const grandTotalCents = totalCents - totalDiscountCents + shippingCents;
+
+  // Meta InitiateCheckout: sayfa basina bir kez, sepet (localStorage) yuklenince.
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current || lines.length === 0) return;
+    checkoutTracked.current = true;
+    trackInitiateCheckout(lines);
+  }, [lines]);
 
   // Kullanici e-posta alanina yazip baska bir alana gectiginde (odeme
   // tamamlanmadan once) sepeti arka planda kaydeder - terk edilmis sepet
@@ -188,6 +197,8 @@ export default function CheckoutForm({
       if (payData.free) {
         router.push(`/odeme/tesekkurler?siparis=${createdOrderNumber.current}`);
       } else {
+        // Kart bilgisi iyzico'nun sayfasinda girilir: o adima gecis.
+        trackAddPaymentInfo(lines, grandTotalCents);
         window.location.href = payData.paymentPageUrl;
       }
     } catch {

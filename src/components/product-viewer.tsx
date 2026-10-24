@@ -11,6 +11,7 @@ import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/styles.css";
 import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
+import { trackViewContent } from "@/lib/meta/track";
 import { formatPrice } from "@/lib/format";
 import { effectivePrice } from "@/lib/variant";
 import { resolveProductDisplayPrice, type AutomaticPercentCampaign } from "@/lib/coupons";
@@ -93,6 +94,7 @@ function StockAlertForm({ variantId }: { variantId: string }) {
 
 type Variant = {
   id: string;
+  sku: string;
   size: string;
   sizePosition: number;
   color: string;
@@ -231,6 +233,13 @@ export function ProductViewer({
   const needsSize = size === null;
   const selectedPriceCents = selected ? effectivePrice({ priceCents }, selected) : priceCents;
 
+  // Meta ViewContent: urun basina bir kez; varyant secilmeden once oldugu icin
+  // urunun tum varyant SKU'lari (bkz. lib/meta/track.ts).
+  useEffect(() => {
+    trackViewContent({ name: productName, skus: variants.map((v) => v.sku), priceCents });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId]);
+
   // Basligin ustundeki "Son X Adet" rozeti icin katalogla ayni mantik (bkz.
   // lib/catalog.ts LOW_STOCK_THRESHOLD): tek bir beden degil, secili RENGIN
   // TUM bedenlerdeki toplam stogu esigin altindaysa gosterilir - butonlarin
@@ -336,6 +345,7 @@ export function ProductViewer({
     addLine({
       productId,
       variantId: selected.id,
+      sku: selected.sku,
       name: productName,
       size: selected.size,
       color,

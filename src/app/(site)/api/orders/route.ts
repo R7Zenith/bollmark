@@ -11,6 +11,7 @@ import { calculateShippingCents } from "@/lib/shipping";
 import { customerAuthOptions } from "@/lib/customer-auth";
 import { getPaymentSettings, getReadiness } from "@/lib/payment/settings";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
+import { buildOrderMetaContext } from "@/lib/meta/capi";
 
 const lineSchema = z.object({
   productId: z.string(),
@@ -123,6 +124,9 @@ export async function POST(req: NextRequest) {
 
   const storeSettings = await prisma.storeSettings.findUnique({ where: { id: "singleton" } });
   const defaultShippingCents = storeSettings?.defaultShippingCents ?? 0;
+  // Odeme onayi baska bir istekte (webhook/cron) gelebilir: Purchase icin
+  // siparis anindaki pazarlama rizasi ve tarayici baglami siparisle saklanir.
+  const metaCapiContext = buildOrderMetaContext(req.cookies, req.headers);
   // Bu siparisle bir otomatik kampanyanin kullanim limiti doldu mu (createOrder icinde set edilir).
   let campaignExhausted = false;
 
@@ -224,6 +228,7 @@ export async function POST(req: NextRequest) {
           shippingCents,
           totalCents,
           termsAcceptedAt: new Date(),
+          metaCapiContext,
           paymentStatus: "UNPAID",
           paymentExpiresAt: new Date(Date.now() + paymentSettings.orderExpiryMinutes * 60 * 1000),
           items: {

@@ -120,6 +120,7 @@ export function ProductCard({ product, rank }: { product: ProductCardData; rank?
     addLine({
       productId: product.productId,
       variantId: variant.variantId,
+      sku: variant.sku,
       name: product.name,
       size: variant.size,
       color: variant.color,

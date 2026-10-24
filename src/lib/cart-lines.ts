@@ -40,7 +40,7 @@ export async function resolveCartLines(inputs: CartLineInput[]): Promise<Resolve
     const product = productById.get(line.productId);
     const variant = product?.variants.find((v) => v.id === line.variantId);
     if (!product || !variant) {
-      return { ...line, name: "", size: "", color: "", image: "", priceCents: 0, compareAtCents: null, stock: 0, greyBackdrop: false, issue: "UNAVAILABLE" };
+      return { ...line, sku: "", name: "", size: "", color: "", image: "", priceCents: 0, compareAtCents: null, stock: 0, greyBackdrop: false, issue: "UNAVAILABLE" };
     }
 
     // Sepete eklerken product-viewer.tsx ile ayni secim: varyantin rengine ait
@@ -58,6 +58,7 @@ export async function resolveCartLines(inputs: CartLineInput[]): Promise<Resolve
 
     return {
       ...line,
+      sku: variant.sku,
       name: product.name,
       size: optionValue(variant, "Beden"),
       color: optionValue(variant, "Renk"),

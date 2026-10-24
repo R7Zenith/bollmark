@@ -61,6 +61,28 @@ const COOKIES: CookieRow[] = [
       "Çerez tercihlerinizi, tercih tarihini ve rızanızın kaydı için rastgele oluşturulmuş anonim bir ziyaretçi kimliğini saklar.",
     duration: "12 ay",
     category: "Zorunlu"
+  },
+  {
+    name: "_fbp",
+    provider: "Meta Platforms (üçüncü taraf, Meta Pixel)",
+    purpose:
+      "Tarayıcınızı ziyaretler arasında tanıyarak reklamlarımızın etkisini ölçmemizi ve Facebook/Instagram'da size ilgili ürünleri göstermemizi sağlar.",
+    duration: "90 gün",
+    category: "Pazarlama"
+  },
+  {
+    name: "_fbc",
+    provider: "Meta Platforms (üçüncü taraf, Meta Pixel)",
+    purpose: "Siteye bir Facebook/Instagram reklamına tıklayarak geldiyseniz bu tıklamayı kaydeder; reklam dönüşümlerini ölçmek için kullanılır.",
+    duration: "90 gün",
+    category: "Pazarlama"
+  },
+  {
+    name: "fr",
+    provider: "Meta Platforms (üçüncü taraf, facebook.com)",
+    purpose: "Meta'nın kendi alan adında, Facebook hesabınız açıksa reklam gösterimi ve ölçümü için kullandığı çerezdir.",
+    duration: "90 gün",
+    category: "Pazarlama"
   }
 ];
 
@@ -123,8 +145,19 @@ E-posta: bilgi@bollmark.com`}
         olarak kapalıdır.
       </p>
       <p className={pClass}>
-        Sitemizde şu anda analitik veya pazarlama çerezi kullanılmamaktadır. İleride bu kategorilerde çerez kullanılması
-        halinde, ilgili çerezler yalnızca açık rızanız alındıktan sonra etkinleştirilecek ve bu politika güncellenecektir.
+        Sitemizde pazarlama kategorisinde Meta Pixel (Meta Platforms) kullanılmaktadır; Meta Pixel ve çerezleri yalnızca
+        pazarlama çerezlerine açık rıza vermeniz halinde yüklenir. Analitik çerez şu anda kullanılmamaktadır. İleride bu
+        kategoride çerez kullanılması halinde, ilgili çerezler yalnızca açık rızanız alındıktan sonra etkinleştirilecek ve
+        bu politika güncellenecektir.
+      </p>
+      <p className={pClass}>
+        Pazarlama çerezlerine açık rıza vermeniz halinde; çerez verileriniz, IP adresiniz ve tarayıcı bilgileriniz ile tek
+        yönlü şifrelenmiş (hashlenmiş) olarak e-posta adresiniz, telefon numaranız, adınız-soyadınız, şehir ve posta
+        kodunuz ve müşteri numaranız, reklam ölçümü ve hedefleme amacıyla reklam/ölçüm hizmet sağlayıcımız Meta Platforms
+        Ireland Ltd. (Facebook/Instagram) ile paylaşılır. Meta&apos;nın sunucuları yurt dışında bulunduğundan bu paylaşım
+        KVKK&apos;nın 9. maddesi kapsamında yurt dışına aktarım niteliğindedir ve yalnızca açık rızanıza dayanır. Rızanızı
+        geri almanız halinde Meta&apos;ya yeni veri aktarılmaz; daha önce aktarılmış veriler Meta&apos;nın kendi gizlilik
+        politikasına tabidir.
       </p>
 
       <h2 className={h2Class}>4. Kullanılan Çerezler</h2>

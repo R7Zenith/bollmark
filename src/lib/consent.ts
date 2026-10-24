@@ -14,7 +14,7 @@ export type ConsentCategory = "analytics" | "marketing";
 export type ConsentState = Record<ConsentCategory, boolean>;
 export type StoredConsent = ConsentState & { v: string; ts: number; id: string };
 
-export const CONSENT_VERSION = "1";
+export const CONSENT_VERSION = "2"; // 2: Meta Pixel eklendi, pazarlama aciklamasinda Meta adi (bkz. META_PIXEL_CAPI_PLANI.md)
 export const CONSENT_COOKIE_NAME = "bm_consent";
 export const CONSENT_MAX_AGE_SECONDS = 60 * 60 * 24 * 365; // 12 ay
 // Tercih degisince yayinlanir; detail: ConsentState.

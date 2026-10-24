@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useRef, useState, ReactNode } from "react";
 import { useSession } from "next-auth/react";
+import { trackAddToWishlist } from "@/lib/meta/track";
 
 type WishlistContextValue = {
   ids: Set<string>;
@@ -70,6 +71,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   }, [status]);
 
   function toggle(productId: string) {
+    if (!ids.has(productId)) trackAddToWishlist(productId);
     if (status === "authenticated") {
       const isRemoving = ids.has(productId);
       setIds((prev) => {

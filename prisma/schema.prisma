@@ -335,6 +335,13 @@ model Order {
   paymentAttempts       PaymentAttempt[]
   paymentRefunds        PaymentRefund[]
 
+  // Meta Conversions API (bkz. META_PIXEL_CAPI_PLANI.md, lib/meta/capi.ts):
+  // siparis anindaki pazarlama rizasi varsa JSON {fbp, fbc, ua, test} - yoksa
+  // null ve Purchase hic gonderilmez. IP SAKLANMAZ. metaPurchaseSentAt
+  // Purchase'in siparis basina tek kez gitmesini saglar.
+  metaCapiContext       String?
+  metaPurchaseSentAt    DateTime?
+
   @@index([deletedAt])
   @@index([paymentStatus])
 }

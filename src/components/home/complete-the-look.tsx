@@ -112,6 +112,7 @@ export function CompleteLook({
       addLine({
         productId: option.productId,
         variantId: variant.variantId,
+        sku: variant.sku,
         name: option.name,
         size: variant.size,
         color: variant.color,

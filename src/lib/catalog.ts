@@ -11,15 +11,15 @@ import { sortBySeason } from "@/lib/seasons";
 // TUM varyantlari (bedenleri, secili renk grubu icinde) doner. Stokta hicbir
 // varyant yoksa bos dizi - kart zaten "Stokta Yok" gosterdigi icin buton
 // gizlenir/devre disi kalir (bkz. product-card.tsx).
-export type QuickAddVariant = { variantId: string; size: string; color: string };
+export type QuickAddVariant = { variantId: string; sku: string; size: string; color: string };
 
 function pickQuickAddVariants(
-  variants: (VariantOptionInclude & { id: string; stock: number })[]
+  variants: (VariantOptionInclude & { id: string; sku: string; stock: number })[]
 ): QuickAddVariant[] {
   return variants
     .filter((v) => v.stock > 0)
     .sort((a, b) => optionPosition(a, "Beden") - optionPosition(b, "Beden"))
-    .map((v) => ({ variantId: v.id, size: optionValue(v, "Beden"), color: optionValue(v, "Renk") }));
+    .map((v) => ({ variantId: v.id, sku: v.sku, size: optionValue(v, "Beden"), color: optionValue(v, "Renk") }));
 }
 
 // Genel urun gorseli (Product.images) yoksa - Excel/Koton aktariminda oldugu
@@ -254,6 +254,7 @@ type CatalogEntryProduct = {
   optionImages: { url: string; valueId: string; isCover: boolean }[];
   variants: {
     id: string;
+    sku: string;
     stock: number;
     options: {
       valueId: string;

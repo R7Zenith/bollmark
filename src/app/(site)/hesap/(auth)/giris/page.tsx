@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { trackCompleteRegistration } from "@/lib/meta/track";
 
 export default function HesapGirisPage() {
   const router = useRouter();
@@ -40,7 +41,8 @@ export default function HesapGirisPage() {
       name: String(form.get("name") || ""),
       email: String(form.get("email") || ""),
       phone: String(form.get("phone") || "") || undefined,
-      password: String(form.get("password") || "")
+      password: String(form.get("password") || ""),
+      metaEventId: crypto.randomUUID()
     };
 
     try {
@@ -55,6 +57,7 @@ export default function HesapGirisPage() {
         setLoading(false);
         return;
       }
+      trackCompleteRegistration(payload.metaEventId);
       const signInRes = await signIn("credentials", {
         email: payload.email,
         password: payload.password,
