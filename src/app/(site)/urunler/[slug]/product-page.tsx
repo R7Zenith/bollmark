@@ -122,6 +122,7 @@ export async function renderProductPage(rawSlug: string, renk?: string) {
         material={product.material}
         origin={product.origin}
         careInstructions={product.careInstructions}
+        defaultShippingCents={storeSettings?.defaultShippingCents ?? 0}
         priceCents={product.priceCents}
         compareAtCents={product.compareAtCents}
         categoryId={product.categoryId}

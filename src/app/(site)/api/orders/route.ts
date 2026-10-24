@@ -38,7 +38,7 @@ const orderSchema = z.object({
   // Client tarafindaki "required" disable yetmez - mesafeli satis sozlesmesi
   // onayi sunucuda da zorunlu tutulur (fiyat/indirim ile ayni "istemciden
   // gelen degere guvenme" prensibi).
-  termsAccepted: z.literal(true, { message: "Mesafeli satış sözleşmesini onaylamalısınız." }),
+  termsAccepted: z.literal(true, { message: "Ön bilgilendirme formunu ve mesafeli satış sözleşmesini onaylamalısınız." }),
   lines: z.array(lineSchema).min(1)
 });
 

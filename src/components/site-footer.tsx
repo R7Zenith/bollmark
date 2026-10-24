@@ -114,6 +114,11 @@ export function SiteFooter() {
                   </Link>
                 </li>
                 <li>
+                  <Link href="/on-bilgilendirme-formu" className={FOOTER_LINK_CLASS}>
+                    Ön Bilgilendirme Formu
+                  </Link>
+                </li>
+                <li>
                   <Link href="/cerez-politikasi" className={FOOTER_LINK_CLASS}>
                     Çerez Politikası
                   </Link>

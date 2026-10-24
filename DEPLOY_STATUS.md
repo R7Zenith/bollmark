@@ -1,6 +1,6 @@
 # Bollmark - Güncel Durum
 
-Son güncelleme: 2026-10-24
+Son güncelleme: 2026-10-25
 
 Bu dosya projenin **şu anki** durumunu kısa tutar. Yeni bir oturumda kaldığın
 yerden devam etmek için önce bunu, sonra gerekirse ilgili günlük dosyasını oku.
@@ -31,6 +31,7 @@ yerden devam etmek için önce bunu, sonra gerekirse ilgili günlük dosyasını
 |---|---|---|
 | Blob'dan R2'ye görsel taşıma | Taşıma (2026-10-12) ve Faz 3 kod temizliği (2026-10-13) bitti; kod artık Blob'a hiç yazmıyor/okumuyor. Kalan Faz 4: Blob deposunu kapatma, kullanıcı, 1–2 gün Blob grafiği izlendikten sonra. | `docs/planlar/BLOB_TAMAMEN_KALDIRMA_PLANI.md` |
 | Meta Pixel + Conversions API | Push edildi (2026-10-24). Vercel'e yalnız **Production** ortamına `NEXT_PUBLIC_META_PIXEL_ID` ve `META_CAPI_ACCESS_TOKEN` (sensitive) CLI ile eklendi; `META_TEST_EVENT_CODE` Vercel'de YOK (yalnız yerel `.env`). Ayrı redeploy yapılmadı, bu push'un yayını değişkenleri alır. `CONSENT_VERSION` 2 (herkese bant yeniden çıkar). `Order.metaCapiContext` / `metaPurchaseSentAt` db push ile eklendi. Gizlilik Politikası Meta maddeleri DB'ye hedefli yazıldı. Kalan: canlıda Olay Yöneticisi'nde AddToCart/InitiateCheckout/Purchase sunucu olaylarının ve tekilleştirmenin doğrulanması. | `docs/planlar/META_PIXEL_CAPI_PLANI.md` |
+| Ön Bilgilendirme Formu + ödeme onay kutusu + kargo bilgisi | Yerel commit'te, push edilmedi (2026-10-25). `/on-bilgilendirme-formu` (statik, kod tarafında), ödemede iki belge pencerede açılıyor (Ön Bilgilendirme siparişe özel). Ürün sayfası ve sepette kargo ücreti (panel > Ayarlar, şu an 350 TL), 1.500 TL eşiği ve 1-3 iş günü notu. DB değişikliği yok. Kalan: push; canlıda kutu işaretlenince "Ödemeye Geç"in açıldığının denenmesi (yerelde ödeme kapalı); satıcı telefonu ve MERSİS sitede yok. | — |
 
 ## Bu dosya nasıl güncellenir
 

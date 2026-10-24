@@ -13,6 +13,8 @@ import { useBundleDiscount } from "@/lib/use-bundle-discount";
 import { calculateShippingCents } from "@/lib/shipping";
 import { CartNotices } from "@/components/cart-notices";
 import { trackAddPaymentInfo, trackInitiateCheckout } from "@/lib/meta/track";
+import { InfoDrawer } from "@/components/info-drawer";
+import { PreInformationForm, type PreInformationOrder } from "@/components/legal/pre-information-form";
 
 export interface SavedAddress {
   id: string;
@@ -33,13 +35,16 @@ export default function CheckoutForm({
   defaultShippingCents,
   paymentMode,
   savedAddresses = [],
-  customerEmail
+  customerEmail,
+  contract
 }: {
   defaultShippingCents: number;
   /** Sanal POS hazir degilse null (odeme alinamaz) */
   paymentMode: "SANDBOX" | "LIVE" | null;
   savedAddresses?: SavedAddress[];
   customerEmail?: string;
+  /** Mesafeli Satis Sozlesmesi (LegalPage) - kayit yoksa null */
+  contract: { title: string; content: string } | null;
 }) {
   const { lines, totalCents, couponCode, refreshPrices, hasBlockingIssues } = useCart();
   const router = useRouter();
@@ -50,6 +55,11 @@ export default function CheckoutForm({
   const [loyalty, setLoyalty] = useState<LoyaltyResult>(null);
   const [addressChoice, setAddressChoice] = useState<string>(savedAddresses[0]?.id ?? "new");
   const [termsAccepted, setTermsAccepted] = useState(false);
+  // Onay kutusundaki iki belge sayfadan ayrilmadan pencerede acilir. On
+  // Bilgilendirme Formu'ndaki alici bilgileri pencere acildigi anda formdan okunur.
+  const [openDocument, setOpenDocument] = useState<"preInformation" | "contract" | null>(null);
+  const [preInformationBuyer, setPreInformationBuyer] = useState<PreInformationOrder["buyer"] | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const selectedAddress = savedAddresses.find((a) => a.id === addressChoice) ?? null;
   // Siparis olustu ama odeme baslatilamadiysa (ag hatasi vb.) tekrar denemede ayni siparis
   // kullanilir - ikinci bir siparis olusturulmaz.
@@ -216,6 +226,40 @@ export default function CheckoutForm({
     );
   }
 
+  const openPreInformation = () => {
+    const form = new FormData(formRef.current ?? undefined);
+    const field = (name: string) => String(form.get(name) || "").trim();
+    const district = field("district");
+    const city = field("city");
+    setPreInformationBuyer({
+      name: field("customerName"),
+      email: field("customerEmail"),
+      phone: field("customerPhone"),
+      address: [field("shippingAddress"), [district, city].filter(Boolean).join(" / "), field("postalCode")]
+        .filter(Boolean)
+        .join(", ")
+    });
+    setOpenDocument("preInformation");
+  };
+
+  const preInformationOrder: PreInformationOrder | null = preInformationBuyer && {
+    lines: lines.map((l) => ({
+      key: l.variantId,
+      name: l.name,
+      color: l.color,
+      size: l.size,
+      quantity: l.quantity,
+      lineTotalCents: l.priceCents * l.quantity
+    })),
+    subtotalCents: totalCents,
+    discountCents: totalDiscountCents,
+    shippingCents,
+    totalCents: grandTotalCents,
+    buyer: preInformationBuyer
+  };
+
+  const documentLinkClass = "underline hover:text-clay";
+
   const radioCardClass = (selected: boolean) =>
     `group relative cursor-pointer rounded-xl border p-4 pr-10 text-sm transition-all duration-200 ${
       selected ? "border-ink bg-ink/[0.03] shadow-sm" : "border-line hover:border-ink/40"
@@ -364,7 +408,7 @@ export default function CheckoutForm({
       </div>
 
       <div className="lg:order-1 lg:flex lg:justify-end lg:py-16 lg:pl-6 lg:pr-8 xl:pl-9">
-        <form onSubmit={handleSubmit} className="mx-auto w-full max-w-[580px] space-y-10 px-6 lg:mx-0 lg:px-0">
+        <form ref={formRef} onSubmit={handleSubmit} className="mx-auto w-full max-w-[580px] space-y-10 px-6 lg:mx-0 lg:px-0">
           <CartNotices />
 
           <section className="space-y-4">
@@ -535,15 +579,14 @@ export default function CheckoutForm({
                 className="mt-0.5"
               />
               <span>
-                <Link
-                  href="/sayfa/mesafeli-satis-sozlesmesi"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline hover:text-clay"
-                >
+                <button type="button" onClick={openPreInformation} className={documentLinkClass}>
+                  Ön Bilgilendirme Formu
+                </button>
+                &apos;nu ve{" "}
+                <button type="button" onClick={() => setOpenDocument("contract")} className={documentLinkClass}>
                   Mesafeli Satış Sözleşmesi
-                </Link>
-                &apos;ni okudum, kabul ediyorum.
+                </button>
+                &apos;ni okudum, onaylıyorum.
               </span>
             </label>
 
@@ -559,6 +602,33 @@ export default function CheckoutForm({
           </section>
         </form>
       </div>
+
+      <InfoDrawer
+        open={openDocument === "preInformation"}
+        onClose={() => setOpenDocument(null)}
+        title="Ön Bilgilendirme Formu"
+      >
+        {preInformationOrder && (
+          <PreInformationForm standardShippingCents={defaultShippingCents} order={preInformationOrder} />
+        )}
+      </InfoDrawer>
+      <InfoDrawer
+        open={openDocument === "contract"}
+        onClose={() => setOpenDocument(null)}
+        title="Mesafeli Satış Sözleşmesi"
+      >
+        {contract ? (
+          <p className="whitespace-pre-line text-sm leading-relaxed text-ink/80">{contract.content}</p>
+        ) : (
+          <p className="text-sm text-ink/80">
+            Sözleşme metni yüklenemedi.{" "}
+            <Link href="/sayfa/mesafeli-satis-sozlesmesi" target="_blank" className="underline">
+              Yeni sekmede açın
+            </Link>
+            .
+          </p>
+        )}
+      </InfoDrawer>
     </div>
   );
 }

@@ -14,6 +14,13 @@ export default async function CheckoutPage() {
 
   const readiness = getReadiness(await getPaymentSettings());
 
+  // Onay kutusundaki "Mesafeli Satis Sozlesmesi" linki sayfadan ayrilmadan
+  // pencerede acilir - metin /sayfa/mesafeli-satis-sozlesmesi ile ayni kayittan.
+  const contract = await prisma.legalPage.findUnique({
+    where: { slug: "mesafeli-satis-sozlesmesi" },
+    select: { title: true, content: true }
+  });
+
   // Misafir siparisi de desteklendigi icin requireCustomer() kullanilmiyor -
   // oturum varsa adres defteri onceden doldurmak icin opsiyonel okunuyor.
   const session = await getServerSession(customerAuthOptions);
@@ -31,6 +38,7 @@ export default async function CheckoutPage() {
       paymentMode={readiness.ready ? readiness.mode : null}
       savedAddresses={savedAddresses}
       customerEmail={session?.user?.email ?? undefined}
+      contract={contract}
     />
   );
 }

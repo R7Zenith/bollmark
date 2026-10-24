@@ -13,6 +13,7 @@ import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { trackViewContent } from "@/lib/meta/track";
 import { formatPrice } from "@/lib/format";
+import { DISPATCH_TEXT, SHIPPING_THRESHOLD_CENTS, shippingFeeSummary } from "@/lib/shipping";
 import { effectivePrice } from "@/lib/variant";
 import { resolveProductDisplayPrice, type AutomaticPercentCampaign } from "@/lib/coupons";
 import { ProductBadge } from "@/components/product-badge";
@@ -33,7 +34,7 @@ const LOW_STOCK_THRESHOLD = 3;
 //    `@keyframes textSwap`'inden alindi: 5.9s, -100%/-200%). Iki ticker
 //    ayni 2 mesaji FARKLI sirada gosteriyor (biri "kargo" ile, digeri
 //    "odeme" ile basliyor) - kucuk bir gorsel kayma/stagger hissi icin.
-const TICKER_MESSAGES = ["1500TL ve Üzerine Ücretsiz Kargo ve Teslimat", "Güvenli Online Ödeme"];
+const TICKER_MESSAGES = [`${formatPrice(SHIPPING_THRESHOLD_CENTS)} ve Üzerine Ücretsiz Kargo ve Teslimat`, "Güvenli Online Ödeme"];
 // 2) `.product__content-grid`: kenarlikli, kose yuvarlatilmis (1.4rem) 3
 //    kutudan olusan STATIK bir izgara (ikon ustte, etiket altta) - sadece
 //    orta+genis ekranlarda gorunur (`small-hide`).
@@ -132,6 +133,7 @@ export function ProductViewer({
   material,
   origin,
   careInstructions,
+  defaultShippingCents,
   priceCents,
   compareAtCents,
   categoryId,
@@ -157,6 +159,8 @@ export function ProductViewer({
   material: string | null;
   origin: string | null;
   careInstructions: string | null;
+  // StoreSettings.defaultShippingCents (panel > Ayarlar) - kargo bilgi satiri icin.
+  defaultShippingCents: number;
   priceCents: number;
   compareAtCents: number | null;
   categoryId: string | null;
@@ -817,6 +821,17 @@ export function ProductViewer({
               Son {selected.stock} adet kaldı. Acele edin.
             </p>
           )}
+
+          <div className="space-y-1.5 text-xs text-ink/70">
+            <p className="flex items-center gap-2">
+              <Truck size={14} className="shrink-0 text-ink/60" />
+              {shippingFeeSummary(defaultShippingCents)}
+            </p>
+            <p className="flex items-center gap-2">
+              <Check size={14} className="shrink-0 text-ink/60" />
+              {DISPATCH_TEXT}
+            </p>
+          </div>
 
           {descriptionHtml && (
             <div>

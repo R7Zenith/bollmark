@@ -49,6 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/urunler`, changeFrequency: "daily", priority: 0.9 },
     { url: `${BASE_URL}/iletisim`, changeFrequency: "yearly", priority: 0.4 },
     { url: `${BASE_URL}/cerez-politikasi`, changeFrequency: "yearly", priority: 0.3 },
+    { url: `${BASE_URL}/on-bilgilendirme-formu`, changeFrequency: "yearly", priority: 0.3 },
     ...[...catalogPaths]
       .filter((path) => !path.startsWith("/kategori/") || activeCategoryPaths.has(path))
       .map((path) => ({
