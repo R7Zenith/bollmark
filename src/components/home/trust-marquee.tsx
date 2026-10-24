@@ -27,7 +27,7 @@ export function TrustMarquee({
   ];
 
   return (
-    <div className="home-marquee mb-10 overflow-hidden bg-ink py-3 text-cream md:mb-12">
+    <div data-nosnippet className="home-marquee mb-10 overflow-hidden bg-ink py-3 text-cream md:mb-12">
       <div className="home-marquee__track flex w-max">
         {[0, 1].map((copy) => (
           <ul key={copy} aria-hidden={copy === 1 || undefined} className="flex shrink-0 items-center">

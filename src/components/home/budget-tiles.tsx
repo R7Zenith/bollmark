@@ -40,7 +40,7 @@ export function BudgetTiles({
   if (tiles.length === 0) return null;
 
   return (
-    <section className="px-4 pb-section md:px-6 xl:px-9">
+    <section data-nosnippet className="px-4 pb-section md:px-6 xl:px-9">
       <h2 className="mb-8 font-display text-3xl font-normal tracking-[-0.04em] md:mb-10 md:text-5xl">
         Bütçene <em className="font-accent italic font-normal">göre</em>
       </h2>

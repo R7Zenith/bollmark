@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: { default: "Bollmark | Modern Giyim", template: "%s | Bollmark" },
   description:
-    "Bollmark - özenle seçilmiş kumaşlar, minimal kesimler. Sezonun öne çıkan giyim parçaları.",
+    "Her gün için, her parça için: Bollmark'ta kadın, erkek ve çocuk giyim, ayakkabı ve aksesuarda yeni sezon. Özenle seçilmiş parçalarla tarzını keşfet.",
   icons: siteIcons,
   openGraph: baseOpenGraph,
   twitter: { card: "summary_large_image" },

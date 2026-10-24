@@ -12,8 +12,8 @@ export type BestsellerTab = { key: string; label: string; products: ProductCardD
 // (yalniz "Tumu") sekme cubugu hic gosterilmez. Kart izgarasi mobilde
 // Release'in "Just arrived" carousel'i gibi snap-x kaydirmali tek-kart-buyuk
 // (Ozel Koleksiyonlar bolumundeki teknikle ayni), masaustunde 4 sutun.
-// Her kartin gorselinin sol ustunde sira numarasi: siralama URUN bazinda oldugu icin
-// (pickBestsellers) ayni urunun renk kartlari ayni numarayi tasir.
+// Her kartin gorselinin sol ustunde sira numarasi: siralama URUN bazinda
+// (pickBestsellers), her urun tek kartla gelir (bkz. page.tsx).
 export function BestsellersTabs({ tabs }: { tabs: BestsellerTab[] }) {
   const [activeKey, setActiveKey] = useState(tabs[0]?.key);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});

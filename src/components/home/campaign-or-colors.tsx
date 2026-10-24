@@ -7,7 +7,7 @@ import { percentWithDative } from "@/lib/home-products";
 // kampanya indirimi); yoksa guncel sezonun en cok kartli renkleri.
 export function CampaignBand({ percent, endsAt }: { percent: number; endsAt: string | null }) {
   return (
-    <section className="mb-section bg-ink px-6 py-16 text-center text-cream md:py-24">
+    <section data-nosnippet className="mb-section bg-ink px-6 py-16 text-center text-cream md:py-24">
       <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-cream/70">Sezon fırsatı</p>
       <h2 className="mx-auto mt-4 max-w-3xl font-display text-5xl font-light leading-[1.05] tracking-[-0.04em] md:text-8xl">
         {percentWithDative(percent)} varan <em className="font-accent italic font-normal">indirim</em>

@@ -31,7 +31,7 @@ export function ShopByCategory({ strip, boxes }: { strip: StripCategoryItem[]; b
   const oddLast = boxes.length % 2 === 1;
 
   return (
-    <section className="px-4 pb-section md:px-6 xl:px-9">
+    <section data-nosnippet className="px-4 pb-section md:px-6 xl:px-9">
       <h2 className="mb-8 font-display text-3xl font-normal tracking-[-0.04em] md:mb-10 md:text-5xl">
         Ne <em className="font-accent italic font-normal">arıyorsun?</em>
       </h2>
@@ -69,6 +69,7 @@ export function ShopByCategory({ strip, boxes }: { strip: StripCategoryItem[]; b
               <Link
                 key={b.label}
                 href={b.href}
+                aria-label={b.count > 0 ? `${b.label}, ${b.count} ürün` : b.label}
                 className={`group relative block overflow-hidden ${
                   b.image && !b.image.greyBackdrop ? "bg-line" : "bg-image-bg"
                 } ${wide ? "col-span-2 aspect-[3/2] lg:col-span-1 lg:aspect-[3/4]" : "aspect-[3/4]"}`}
@@ -82,6 +83,13 @@ export function ShopByCategory({ strip, boxes }: { strip: StripCategoryItem[]; b
                     <span className="absolute inset-0 bg-gradient-to-t from-ink/55 via-transparent to-transparent" />
                   </>
                 )}
+                <span
+                  className={`absolute bottom-3 left-3 font-display text-xl font-light md:bottom-5 md:left-5 md:text-2xl ${
+                    b.image ? "text-cream" : "text-ink"
+                  }`}
+                >
+                  {b.label}
+                </span>
                 {b.count > 0 && (
                   <span
                     className={`absolute right-2 top-2 rounded-full px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.1em] md:right-3 md:top-3 ${
@@ -91,13 +99,6 @@ export function ShopByCategory({ strip, boxes }: { strip: StripCategoryItem[]; b
                     {b.count} ürün
                   </span>
                 )}
-                <span
-                  className={`absolute bottom-3 left-3 font-display text-xl font-light md:bottom-5 md:left-5 md:text-2xl ${
-                    b.image ? "text-cream" : "text-ink"
-                  }`}
-                >
-                  {b.label}
-                </span>
               </Link>
             );
           })}

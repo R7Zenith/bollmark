@@ -31,11 +31,15 @@ import {
 import { REVENUE_STATUSES } from "@/lib/orders";
 import { JsonLd } from "@/components/json-ld";
 import { homeJsonLd } from "@/lib/seo";
+import { baseOpenGraph } from "@/lib/site-metadata";
+
+const HOME_DESCRIPTION =
+  "Her gün için, her parça için: Bollmark'ta kadın, erkek ve çocuk giyim, ayakkabı ve aksesuarda yeni sezon. Özenle seçilmiş parçalarla tarzını keşfet.";
 
 export const metadata: Metadata = {
   title: "Bollmark | Modern Giyim",
-  description:
-    "Bollmark - özenle seçilmiş kumaşlar, minimal kesimler. Sezonun öne çıkan giyim parçalarını keşfedin.",
+  description: HOME_DESCRIPTION,
+  openGraph: { ...baseOpenGraph, description: HOME_DESCRIPTION },
   alternates: { canonical: "/" }
 };
 
@@ -212,14 +216,17 @@ export default async function HomePage() {
     .map(({ key, label, gender }) => ({
       key,
       label,
-      // Urun secimi (satis adedi/one cikan/en yeni) hep urun bazinda kalir
-      // (pickBestsellers degismedi) - sadece secilen urunler renk basina
-      // ayri karta bolunuyor, toplam kart sayisi yine ayni limitte kesiliyor.
+      // Urun secimi (satis adedi/one cikan/en yeni) urun bazinda; her urun
+      // tek kartla (stokta olan ilk rengi) gosterilir - diger renkler kartin
+      // altindaki renk yuvarlaklarinda zaten var.
       products: pickBestsellers(
         gender ? products.filter((p) => p.gender != null && (GENDER_GROUPS[gender] ?? [gender]).includes(p.gender)) : products,
         soldByProductId
       )
-        .flatMap(productToCatalogEntries)
+        .map((p) => {
+          const entries = productToCatalogEntries(p);
+          return entries.find((e) => !e.outOfStock) ?? entries[0];
+        })
         .slice(0, BESTSELLER_TAB_LIMIT)
         .map((entry) => catalogEntryToCardData(entry, automaticCampaigns))
     }))
