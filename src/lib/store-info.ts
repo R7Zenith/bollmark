@@ -12,7 +12,7 @@ export const STORE_INFO = {
   phone: null as string | null,
   instagramUrl: "https://www.instagram.com/koton.karacabey/",
   address: {
-    streetAddress: "Runguşpaşa Mah. 75. Sk. No:6/A",
+    streetAddress: "Runguçpaşa Mah. 75. Sk. No:6/A",
     addressLocality: "Karacabey",
     addressRegion: "Bursa",
     postalCode: "16700",

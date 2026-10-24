@@ -1,6 +1,6 @@
 # Çerez Bandı ve Rıza Yönetimi Planı (KVKK)
 
-Durum: devam ediyor (2026-10-24): kod yayında; ConsentLog tablosu (db push) kullanıcı onayı bekliyor.
+Durum: devam ediyor (2026-10-24): kod yayında, ConsentLog tablosu uygulandı; kalan Google Haritalar iframe kararı.
 
 Amaç: Bollmark sitesine KVKK uyumlu bir çerez onay bandı ve rıza yönetimi altyapısı kurmak. Bileşenler sitenin mevcut tasarım diliyle (Release teması esinli font, renk, boşluklar) birebir uyumlu olacak. Yüklü tasarım skill'leri (özellikle frontend-design) kullanılacak.
 

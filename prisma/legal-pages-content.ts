@@ -74,13 +74,13 @@ Bu haklarınızı kullanmak için taleplerinizi bilgi@bollmark.com adresine veya
 
 10. Çerez Politikası
 
-Sitemizde; sitenin çalışması için zorunlu çerezler ile site trafiğini analiz etmeye yönelik çerezler kullanılmaktadır. Tarayıcı ayarlarınızdan çerezleri yönetebilir veya silebilirsiniz.
+Sitemizde, sitenin çalışması için zorunlu çerezler kullanılmaktadır. Analitik ve pazarlama çerezleri ise yalnızca açık rızanız alınarak (KVKK m.5/1) etkinleştirilir; sitemizde şu anda bu tür çerezler kullanılmamaktadır. Kullanılan çerezler, saklama süreleri ve tercihlerinizi nasıl yönetebileceğiniz hakkında ayrıntılı bilgiye bollmark.com/cerez-politikasi adresindeki Çerez Politikası'ndan ulaşabilirsiniz. Çerez tercihlerinizi dilediğiniz zaman sayfanın altındaki "Çerez Tercihleri" bağlantısından değiştirebilir, ayrıca tarayıcı ayarlarınızdan çerezleri silebilirsiniz.
 
 11. Değişiklikler
 
 Bu Gizlilik Politikası, yasal düzenlemelerdeki değişiklikler veya işleme faaliyetlerimizdeki güncellemeler doğrultusunda revize edilebilir. Güncel metin her zaman bu sayfada yayınlanır.
 
-Son güncelleme: ${YAYIN_TARIHI}`
+Son güncelleme: 24 Ekim 2026`
   },
   {
     slug: "mesafeli-satis-sozlesmesi",
