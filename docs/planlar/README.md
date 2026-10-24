@@ -20,7 +20,6 @@ Kod yorumlarındaki `bkz. X_PLANI.md` atıfları dosya adıyla verilmiştir; dos
 | `BLOB_TAMAMEN_KALDIRMA_PLANI.md` | Taşıma ve Faz 3 kod temizliği bitti (2026-10-13). Kalan: Faz 4, Blob deposunu kapatma (kullanıcı) |
 | `SEO_TEKNIK_DENETIM_VE_PLAN.md` | Faz 1-4 uygulandı, Faz 5 kapatıldı (gerek görülmedi), Faz 6 devam ediyor |
 | `SEO_FAZ6_OZGUN_ACIKLAMA_VE_YONLENDIRME_PLANI.md` | Devam ediyor (2026-10-13): kod yazıldı, şema uygulandı, yönlendirmeler test edildi; 217 ürün taslağı API'siz yazıldı ve onay bekliyor (1 onaylı); commit yok. Kalan: kullanıcının admin'den taslakları onaylaması, commit. API ile üretim (buton, toplu script) kullanıcı kararıyla kaldırıldı; yeni ürünlerde taslak `scripts/ai-taslak-aktar.ts` akışıyla yazılır |
-| `CEREZ_BANDI_PLANI.md` | Yayında (2026-10-24), ConsentLog tablosu uygulandı, Gizlilik Politikası 10. madde güncellendi. Kalan: Google Haritalar iframe'i kararı |
 | `EXCEL_WE_COMPANY_MARKA_EKLEME_PLANI.md` | Kod uygulandı ve push edildi (2026-10-15): marka KOD7'den, WE Company → Bollmark, "çanta" kategorisi, UNISEX + addaki KADIN/ERKEK cinsiyeti, 2 ile başlayan barkod GTIN sayılmıyor. Kalan: kullanıcının WE dosyasını aktarması, sonra arşiv |
 
 ## Arşiv
@@ -66,6 +65,7 @@ içindeki her alt maddenin tek tek doğrulandığı anlamına gelmez.
 - `BENZER_URUNLER_CINSIYET_VE_RENK_PLANI.md` (kapatıldı 2026-10-14: 1. ve 2. adım uygulandı, opsiyonel 3. adım uygulanmadı)
 - `BEYAZ_ARKAPLAN_GRI_ZEMIN_TEST_PLANI.md`
 - `BOS_KATEGORI_YAKINDA_TASARIMI_PLANI.md`
+- `CEREZ_BANDI_PLANI.md` (kapatıldı 2026-10-24: Google Haritalar iframe'i kullanıcı kararıyla olduğu gibi kaldı)
 - `COCUK_MENU_VE_BEDEN_DUZELTME_PLANI.md`
 - `COK_MARKALI_GORSEL_BULMA_PLANI.md`
 - `CPU_KULLANIMI_AZALTMA_PLANI.md`
