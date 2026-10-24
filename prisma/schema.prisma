@@ -584,6 +584,22 @@ model LegalPage {
   updatedAt DateTime @updatedAt
 }
 
+// Cerez bandindaki her rıza seciminin ispat kaydi (KVKK, bkz.
+// CEREZ_BANDI_PLANI.md). visitorId bm_consent cerezinde tutulan rastgele
+// anonim kimliktir. Ham IP saklanmaz. userId giris yapmis musterinin id'si -
+// iliski bilerek kurulmadi, musteri silinse de rıza kaydi kalir.
+model ConsentLog {
+  id        String   @id @default(cuid())
+  visitorId String
+  analytics Boolean
+  marketing Boolean
+  version   String
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@index([visitorId])
+}
+
 // /iletisim (Bize Ulasin) formundan gelen mesajlar - admin panelde
 // /admin/mesajlar altinda listelenir. ipHash, hiz siniri (10 dk'da en fazla 3
 // gonderim) icin ham IP yerine tuzlanmis SHA-256 ozeti olarak tutulur

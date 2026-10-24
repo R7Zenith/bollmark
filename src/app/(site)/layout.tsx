@@ -7,6 +7,7 @@ import { WishlistProvider } from "@/lib/wishlist";
 import { CustomerSessionProvider } from "@/components/customer-session-provider";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { ConsentManager } from "@/components/consent/consent-manager";
 import { getMegaMenuData } from "@/lib/site-nav";
 import { baseOpenGraph, siteIcons } from "@/lib/site-metadata";
 import { getSiteUrl } from "@/lib/site-url";
@@ -73,6 +74,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   sayfanin en altina sabitliyoruz. */}
               <main className="flex-1">{children}</main>
               <SiteFooter />
+              <ConsentManager />
             </WishlistProvider>
           </CartProvider>
         </CustomerSessionProvider>

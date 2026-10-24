@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ShieldCheck, Truck, Undo2 } from "lucide-react";
 import { catalogHref } from "@/lib/catalog-url";
+import { openConsentPreferences } from "@/lib/consent";
 
 // logo-white.png'nin gercek en-boy orani (bkz. site-header.tsx LOGO_ASPECT_RATIO,
 // 1400x273px).
@@ -111,6 +112,16 @@ export function SiteFooter() {
                   <Link href="/sayfa/mesafeli-satis-sozlesmesi" className={FOOTER_LINK_CLASS}>
                     Mesafeli Satış Sözleşmesi
                   </Link>
+                </li>
+                <li>
+                  <Link href="/cerez-politikasi" className={FOOTER_LINK_CLASS}>
+                    Çerez Politikası
+                  </Link>
+                </li>
+                <li>
+                  <button type="button" onClick={openConsentPreferences} className={FOOTER_LINK_CLASS}>
+                    Çerez Tercihleri
+                  </button>
                 </li>
               </ul>
             </div>

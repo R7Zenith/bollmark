@@ -77,11 +77,17 @@ const config: Config = {
         "catalog-in": {
           from: { opacity: "0", transform: "translateY(12px)" },
           to: { opacity: "1", transform: "translateY(0)" }
+        },
+        // Cerez bandinin alttan girisi (bkz. consent/cookie-banner.tsx).
+        "consent-in": {
+          from: { transform: "translateY(100%)" },
+          to: { transform: "translateY(0)" }
         }
       },
       animation: {
         "search-in": "search-in 260ms ease-out both",
-        "catalog-in": "catalog-in 400ms ease-out both"
+        "catalog-in": "catalog-in 400ms ease-out both",
+        "consent-in": "consent-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both"
       }
     }
   },
