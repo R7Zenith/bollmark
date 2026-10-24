@@ -1,6 +1,7 @@
 # Excel Aktarımına Twister Markasını Ekleme Planı
 
 Tarih: 2026-10-13
+Durum: uygulandı (2026-10-13), push edildi; 22 Twister ürünü aktarıldı
 Örnek dosya: `ornek-veriler/TWISTER03102026CHECKLIST.xls` (253 satır, 22 ürün, 301 adet stok)
 
 ## Amaç

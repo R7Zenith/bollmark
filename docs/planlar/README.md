@@ -18,10 +18,7 @@ Kod yorumlarındaki `bkz. X_PLANI.md` atıfları dosya adıyla verilmiştir; dos
 | Plan | Durum |
 |---|---|
 | `BLOB_TAMAMEN_KALDIRMA_PLANI.md` | Taşıma ve Faz 3 kod temizliği bitti (2026-10-13). Kalan: Faz 4, Blob deposunu kapatma (kullanıcı) |
-| `SEO_TEKNIK_DENETIM_VE_PLAN.md` | Faz 1-4 uygulandı, Faz 5 kapatıldı (gerek görülmedi), Faz 6 devam ediyor |
-| `SEO_FAZ6_OZGUN_ACIKLAMA_VE_YONLENDIRME_PLANI.md` | Devam ediyor (2026-10-13): kod yazıldı, şema uygulandı, yönlendirmeler test edildi; 217 ürün taslağı API'siz yazıldı ve onay bekliyor (1 onaylı); commit yok. Kalan: kullanıcının admin'den taslakları onaylaması, commit. API ile üretim (buton, toplu script) kullanıcı kararıyla kaldırıldı; yeni ürünlerde taslak `scripts/ai-taslak-aktar.ts` akışıyla yazılır |
 | `META_PIXEL_CAPI_PLANI.md` | Uygulandı ve push edildi (2026-10-24). Kalan: canlıda Olay Yöneticisi doğrulaması (localhost'ta CAPI, IP olmadığı için "yetersiz müşteri bilgisi" ile reddediliyor; token/Pixel bağlantısı elle doğrulandı) |
-| `EXCEL_WE_COMPANY_MARKA_EKLEME_PLANI.md` | Kod uygulandı ve push edildi (2026-10-15): marka KOD7'den, WE Company → Bollmark, "çanta" kategorisi, UNISEX + addaki KADIN/ERKEK cinsiyeti, 2 ile başlayan barkod GTIN sayılmıyor. Kalan: kullanıcının WE dosyasını aktarması, sonra arşiv |
 
 ## Arşiv
 
@@ -56,6 +53,7 @@ içindeki her alt maddenin tek tek doğrulandığı anlamına gelmez.
 ### Uygulandı
 
 - `ADMIN_PANEL_PLAN.md`
+- `ANASAYFA_ALT_BOLUM_YENILEME_PLANI.md` (2026-10-23: üç faz da uygulandı)
 - `ANASAYFA_ALT_BOLUMLER_PLANI.md`
 - `ANASAYFA_HERO_METIN_BUTON_HIZALAMA_PLANI.md`
 - `ANASAYFA_KUTU_GORSEL_TEKRARI_PLANI.md`
@@ -63,6 +61,7 @@ içindeki her alt maddenin tek tek doğrulandığı anlamına gelmez.
 - `ANASAYFA_YENI_GELENLER_RENK_VARYANTI_PLANI.md`
 - `ANASAYFA_YENI_GELENLER_YENILENMIYOR_PLANI.md`
 - `ARAMA_CANLI_ONERI_PLANI.md`
+- `AVIF_GORSEL_YUKLEME_PLANI.md`
 - `BENZER_URUNLER_CINSIYET_VE_RENK_PLANI.md` (kapatıldı 2026-10-14: 1. ve 2. adım uygulandı, opsiyonel 3. adım uygulanmadı)
 - `BEYAZ_ARKAPLAN_GRI_ZEMIN_TEST_PLANI.md`
 - `BOS_KATEGORI_YAKINDA_TASARIMI_PLANI.md`
@@ -76,7 +75,9 @@ içindeki her alt maddenin tek tek doğrulandığı anlamına gelmez.
 - `EXCEL_KATEGORI_ESLEME_PLANI.md`
 - `EXCEL_KATEGORI_YANLIS_ESLESME_PLANI.md`
 - `EXCEL_KOTON_GORSEL_ARAMA_TAKILIYOR_PLANI.md`
+- `EXCEL_TWISTER_MARKA_EKLEME_PLANI.md`
 - `EXCEL_URUN_AKTARIM_PLANI.md`
+- `EXCEL_WE_COMPANY_MARKA_EKLEME_PLANI.md`
 - `EXCEL_URUN_KODU_ILE_ARAMA_PLANI.md`
 - `FAVICON_DUZELTME_PLANI.md`
 - `FAZ_A_UYGULAMA_PLANI.md`
@@ -119,6 +120,8 @@ içindeki her alt maddenin tek tek doğrulandığı anlamına gelmez.
 - `RELEASE_TEMA_BIREBIR_UYUM_PLANI.md`
 - `SATEEN_EXCEL_AKTARIM_PLANI.md`
 - `SEO_FAZ3_KATEGORI_URL_PLANI.md`
+- `SEO_FAZ6_OZGUN_ACIKLAMA_VE_YONLENDIRME_PLANI.md` (2026-10-24: 217 açıklama kullanıcı tarafından onaylandı; yeni ürünlerde taslak `scripts/ai-taslak-aktar.ts` akışıyla yazılır)
+- `SEO_TEKNIK_DENETIM_VE_PLAN.md` (Faz 1-4 ve 6 uygulandı, Faz 5 kapatıldı)
 - `SEO_FAZ5_GORSEL_ON_URETIM_PLANI.md` (kapatıldı 2026-10-13: madde 6 uygulandı, 1–5 gerek görülmedi; Search Console'da mobil hız uyarısı çıkarsa yeniden ele alınır)
 - `SEPET_ACILIR_CEKMECE_VE_HEADER_IKON_HOVER_PLANI.md`
 - `SEPET_HESAP_SENKRONU_VE_FIYAT_GUNCELLEME_PLANI.md`

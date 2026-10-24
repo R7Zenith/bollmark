@@ -1,6 +1,7 @@
 # AVIF Görsel Yükleme Desteği Planı
 
 Tarih: 2026-10-13
+Durum: uygulandı (2026-10-13), push edildi
 
 ## Sorun
 

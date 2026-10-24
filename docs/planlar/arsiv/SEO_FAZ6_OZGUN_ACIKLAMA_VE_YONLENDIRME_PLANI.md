@@ -1,7 +1,7 @@
 # SEO Faz 6: özgün ürün açıklamaları + ürün yönlendirmeleri
 
 **Tarih:** 13 Ekim 2026
-**Durum:** Devam ediyor (kod yazıldı, şema uygulandı; taslaklar API'siz, Claude Code oturumunda yazıldı ve admin'de onay bekliyor, bkz. docs/gunluk/2026-10.md)
+**Durum:** Uygulandı (2026-10-24): kod yayında, 217 ürün açıklaması yazıldı ve kullanıcı admin'den onayladı. Yeni ürünlerde taslak `scripts/ai-taslak-aktar.ts` akışıyla yazılır
 **Plandan sapma (kullanıcı kararı, 13 Ekim 2026):** API anahtarı alınmayacak. Bölüm A2-A3'teki Anthropic API çağrısı, `scripts/ai-aciklama-uret.ts` ve A4'teki "AI ile özgün açıklama üret" butonu kaldırıldı. Taslaklar Claude Code oturumunda yazılıp `scripts/ai-taslak-aktar.ts` ile kaydedilir; kalite kontrolü, taslak/onay akışı ve Bölüm B aynen geçerli.
 **Kaynak:** SEO_TEKNIK_DENETIM_VE_PLAN.md, madde 2.3 (kopya içerik) ve 2.12 (stok ve silinen ürün politikası)
 **Ön koşul:** GOOGLE_ARAMA_SONUCLARI_DUZELTME_PLANI.md uygulanmış ve site açılmış olmalı. Teknik olarak bağımsızdır, sıra yalnız öncelik içindir.

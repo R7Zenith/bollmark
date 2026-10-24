@@ -1,6 +1,6 @@
 # Excel Aktarımına WE Company Markasını Ekleme Planı
 
-Durum: uygulandı (2026-10-15), kod push edildi. Kalan: kullanıcının WE dosyasını aktarması
+Durum: uygulandı (2026-10-15), kod push edildi; WE dosyası kullanıcı tarafından aktarıldı
 Tarih: 2026-10-15
 Örnek dosya: `ornek-veriler/WE14102026CHECKLIST.xls` (7 satır, 1 ürün: `7S79002H`
 LENA KADIN KOL VE OMUZ ÇANTA, 7 renk, beden STD, toplam 12 adet stok)

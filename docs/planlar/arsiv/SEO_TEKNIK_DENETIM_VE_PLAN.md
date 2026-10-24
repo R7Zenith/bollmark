@@ -1,6 +1,7 @@
 # Bollmark — Teknik SEO Denetimi ve Uygulama Planı
 
 Tarih: 30 Eylül 2026
+Durum: uygulandı (2026-10-24): Faz 1-4 ve Faz 6 uygulandı, Faz 5 kapatıldı (gerek görülmedi)
 Kapsam: Kod tabanı incelemesi (robots.ts, sitemap.ts, layout, ürün/katalog/yasal sayfalar, next.config) + canlı site erişim testi.
 
 ---

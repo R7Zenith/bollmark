@@ -1,6 +1,7 @@
 # Anasayfa Alt Bölüm Yenileme Planı
 
 Tarih: 2026-10-22
+Durum: uygulandı (2026-10-23), üç faz da push edildi. Mağaza fotoğrafları (`public/magaza/`) henüz konmadı; konmazsa mağaza kartı yalnız metinle görünür
 Kapsam: `src/app/(site)/page.tsx` içinde **Yeni Gelenler bölümünün altındaki her şey**.
 Hero ve Yeni Gelenler'e DOKUNULMAZ.
 Görsel tartışma sayfası (mockup'lar): https://claude.ai/artifact/XkD95XVDNqMkBaZAEF5evR
