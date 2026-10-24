@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
+import { resolveVatRate } from "@/lib/vat";
 
 // Vega'nin "Site Tipi: Ticimax" secenegi, kullanicinin girdigi "Site Adi"
 // degerinin sonuna kendisi "/Servis/<Servis>.svc" ekleyip, Ticimax'in GERCEK
@@ -191,7 +192,7 @@ async function handleSelectUrun(rawBody: string) {
     skip: startIndex,
     take: pageSize,
     include: {
-      category: true,
+      category: { include: { parent: { select: { vatRate: true } } } },
       brand: true,
       variants: { include: { options: { include: { value: true } } } }
     }
@@ -205,6 +206,7 @@ async function handleSelectUrun(rawBody: string) {
   const items = products
     .map((product) => {
       const totalStock = product.variants.reduce((sum, variant) => sum + variant.stock, 0);
+      const vatRate = resolveVatRate(product);
       const variants = product.variants
         .map((variant) => {
           const priceCents = variant.priceCents ?? product.priceCents;
@@ -214,7 +216,7 @@ async function handleSelectUrun(rawBody: string) {
             `<a:Barkod>${xmlEscape(variant.barcode ?? variant.sku)}</a:Barkod>` +
             `<a:ID>${variant.vegaId}</a:ID>` +
             `<a:KdvDahil>true</a:KdvDahil>` +
-            `<a:KdvOrani>10</a:KdvOrani>` +
+            `<a:KdvOrani>${vatRate}</a:KdvOrani>` +
             `<a:ParaBirimiID>1</a:ParaBirimiID>` +
             `<a:SatisFiyati>${(priceCents / 100).toFixed(2)}</a:SatisFiyati>` +
             `<a:StokAdedi>${variant.stock}</a:StokAdedi>` +

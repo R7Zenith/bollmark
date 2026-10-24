@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/cerez-politikasi" }
 };
 
-const SON_GUNCELLEME = "24 Ekim 2026";
+const SON_GUNCELLEME = "25 Ekim 2026";
 
 type CookieRow = { name: string; provider: string; purpose: string; duration: string; category: string };
 
@@ -61,6 +61,20 @@ const COOKIES: CookieRow[] = [
       "Çerez tercihlerinizi, tercih tarihini ve rızanızın kaydı için rastgele oluşturulmuş anonim bir ziyaretçi kimliğini saklar.",
     duration: "12 ay",
     category: "Zorunlu"
+  },
+  {
+    name: "_ga",
+    provider: "Google (üçüncü taraf, Google Analytics)",
+    purpose: "Ziyaretçileri birbirinden ayırt ederek sitenin ve ürünlerin nasıl kullanıldığını istatistiksel olarak ölçmemizi sağlar.",
+    duration: "2 yıl",
+    category: "Analitik"
+  },
+  {
+    name: "_ga_YGXJVLGKJG",
+    provider: "Google (üçüncü taraf, Google Analytics)",
+    purpose: "Google Analytics'te ziyaret (oturum) bilgisini tutar; sayfa görüntülemeleri ve alışveriş adımlarının aynı ziyarete bağlanmasını sağlar.",
+    duration: "2 yıl",
+    category: "Analitik"
   },
   {
     name: "_fbp",
@@ -145,10 +159,18 @@ E-posta: bilgi@bollmark.com`}
         olarak kapalıdır.
       </p>
       <p className={pClass}>
-        Sitemizde pazarlama kategorisinde Meta Pixel (Meta Platforms) kullanılmaktadır; Meta Pixel ve çerezleri yalnızca
-        pazarlama çerezlerine açık rıza vermeniz halinde yüklenir. Analitik çerez şu anda kullanılmamaktadır. İleride bu
-        kategoride çerez kullanılması halinde, ilgili çerezler yalnızca açık rızanız alındıktan sonra etkinleştirilecek ve
-        bu politika güncellenecektir.
+        Sitemizde analitik kategorisinde Google Analytics (Google), pazarlama kategorisinde Meta Pixel (Meta Platforms)
+        kullanılmaktadır. Google Analytics ve çerezleri yalnızca analitik çerezlere, Meta Pixel ve çerezleri yalnızca
+        pazarlama çerezlerine açık rıza vermeniz halinde yüklenir.
+      </p>
+      <p className={pClass}>
+        Analitik çerezlere açık rıza vermeniz halinde; çerez verileriniz, IP adresiniz, tarayıcı ve cihaz bilgileriniz ile
+        site üzerindeki etkileşimleriniz (görüntülediğiniz sayfa ve ürünler, sepete ekleme ve satın alma işlemleri gibi),
+        sitenin kullanımının ölçülmesi ve geliştirilmesi amacıyla analitik hizmet sağlayıcımız Google Ireland Limited (Google
+        Analytics) ile paylaşılır. Google&apos;ın sunucuları yurt dışında bulunduğundan bu paylaşım KVKK&apos;nın 9.
+        maddesi kapsamında yurt dışına aktarım niteliğindedir ve yalnızca açık rızanıza dayanır. Rızanızı geri almanız
+        halinde Google&apos;a yeni veri aktarılmaz ve Google Analytics çerezleri cihazınızdan silinir; daha önce aktarılmış
+        veriler Google&apos;ın kendi gizlilik politikasına tabidir.
       </p>
       <p className={pClass}>
         Pazarlama çerezlerine açık rıza vermeniz halinde; çerez verileriniz, IP adresiniz ve tarayıcı bilgileriniz ile tek

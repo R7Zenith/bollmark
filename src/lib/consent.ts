@@ -4,17 +4,15 @@
 // (CONSENT_VERSION) degisirse eski tercih gecersiz sayilir ve bant tekrar
 // cikar - kategori/metin degisikliginde surumu artirin.
 //
-// Ileride eklenecek GA4 / Meta Pixel / Google Ads yukleyicileri scripti
-// KENDILIGINDEN yuklememeli, onConsentGranted ile sarmalanmalidir:
-//   onConsentGranted("analytics", () => { initGoogleConsent(); /* gtag.js yukle */ });
-//   onConsentGranted("marketing", () => { /* Meta Pixel'i yukle */ });
-// Boylece rıza yoksa script hic indirilmez, sonradan verilirse o an yuklenir.
+// Ucuncu taraf yukleyiciler (GA4: components/google-analytics.tsx, Meta Pixel:
+// components/meta-pixel.tsx) scripti KENDILIGINDEN yuklemez, ilgili kategorinin
+// rızasina baglidir: rıza yoksa script hic indirilmez, sonradan verilirse o an yuklenir.
 
 export type ConsentCategory = "analytics" | "marketing";
 export type ConsentState = Record<ConsentCategory, boolean>;
 export type StoredConsent = ConsentState & { v: string; ts: number; id: string };
 
-export const CONSENT_VERSION = "2"; // 2: Meta Pixel eklendi, pazarlama aciklamasinda Meta adi (bkz. META_PIXEL_CAPI_PLANI.md)
+export const CONSENT_VERSION = "3"; // 3: GA4 eklendi, analitik aciklamasinda Google Analytics adi (bkz. GA4_KURULUM_PLANI.md)
 export const CONSENT_COOKIE_NAME = "bm_consent";
 export const CONSENT_MAX_AGE_SECONDS = 60 * 60 * 24 * 365; // 12 ay
 // Tercih degisince yayinlanir; detail: ConsentState.
@@ -106,8 +104,8 @@ export function onConsentGranted(category: ConsentCategory, callback: () => void
 }
 
 // --- Google Consent Mode v2 ---
-// gtag.js su an yuklu degil; GA4/Ads eklendiginde yukleyici, gtag config'ten
-// ONCE initGoogleConsent() cagirmali.
+// GA4 yukleyicisi (components/google-analytics.tsx) gtag config'ten ONCE
+// initGoogleConsent() cagirir; ileride Google Ads eklenirse ayni gtag kullanilir.
 export const GOOGLE_CONSENT_DEFAULT = {
   ad_storage: "denied",
   analytics_storage: "denied",

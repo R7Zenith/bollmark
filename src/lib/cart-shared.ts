@@ -15,6 +15,9 @@ export type ResolvedCartLine = {
   sku: string;
   quantity: number;
   name: string;
+  // GA4 item_brand / item_category icin (bkz. lib/meta/track.ts); yoksa "".
+  brand: string;
+  category: string;
   size: string;
   color: string;
   image: string;

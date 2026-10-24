@@ -22,6 +22,7 @@ import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { redirectSlugChange, redirectDeletedProduct } from "@/lib/product-redirects";
 import { buildCategoryOptions } from "@/lib/category-tree";
 import { GENDER_OPTIONS, GENDER_OPTION_LABEL } from "@/lib/product-options";
+import { parseVatRate, VAT_RATES } from "@/lib/vat";
 import { snapshotStockAlerts, carryOverOrQueueRestock, sendRestockNotifications } from "@/lib/stock-alerts";
 
 // Bircok renk/varyanti olan urunlerde updateProduct'in transaction'i (sirayla
@@ -134,6 +135,7 @@ async function updateProduct(id: string, formData: FormData) {
   const costRaw = String(formData.get("cost") || "").trim();
   const costCents = costRaw ? Math.round(Number(costRaw) * 100) : null;
   const categoryId = String(formData.get("categoryId") || "") || null;
+  const vatRate = parseVatRate(formData.get("vatRate"));
   const status = String(formData.get("status") || "DRAFT") as "DRAFT" | "PUBLISHED" | "ARCHIVED";
   const brandId = String(formData.get("brandId") || "") || null;
   const seasonId = String(formData.get("seasonId") || "") || null;
@@ -212,6 +214,7 @@ async function updateProduct(id: string, formData: FormData) {
           compareAtCents,
           costCents,
           categoryId,
+          vatRate,
           status,
           brandId,
           seasonId,
@@ -547,6 +550,17 @@ export default async function EditProductPage({
                 {categoryOptions.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>KDV Oranı</label>
+              <select name="vatRate" defaultValue={product.vatRate ?? ""} className={`mt-1 ${inputClass}`}>
+                <option value="">Kategoriden al</option>
+                {VAT_RATES.map((rate) => (
+                  <option key={rate} value={rate}>
+                    %{rate}
                   </option>
                 ))}
               </select>

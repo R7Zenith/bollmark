@@ -31,7 +31,8 @@ export async function resolveCartLines(inputs: CartLineInput[]): Promise<Resolve
       variants: { include: variantOptionsInclude },
       images: { orderBy: { position: "asc" }, select: { url: true } },
       optionImages: { orderBy: { position: "asc" }, select: { valueId: true, url: true } },
-      brand: { select: { name: true } }
+      brand: { select: { name: true } },
+      category: { select: { name: true } }
     }
   });
   const productById = new Map(products.map((p) => [p.id, p]));
@@ -40,7 +41,7 @@ export async function resolveCartLines(inputs: CartLineInput[]): Promise<Resolve
     const product = productById.get(line.productId);
     const variant = product?.variants.find((v) => v.id === line.variantId);
     if (!product || !variant) {
-      return { ...line, sku: "", name: "", size: "", color: "", image: "", priceCents: 0, compareAtCents: null, stock: 0, greyBackdrop: false, issue: "UNAVAILABLE" };
+      return { ...line, sku: "", name: "", brand: "", category: "", size: "", color: "", image: "", priceCents: 0, compareAtCents: null, stock: 0, greyBackdrop: false, issue: "UNAVAILABLE" };
     }
 
     // Sepete eklerken product-viewer.tsx ile ayni secim: varyantin rengine ait
@@ -60,6 +61,8 @@ export async function resolveCartLines(inputs: CartLineInput[]): Promise<Resolve
       ...line,
       sku: variant.sku,
       name: product.name,
+      brand: product.brand?.name ?? "",
+      category: product.category?.name ?? "",
       size: optionValue(variant, "Beden"),
       color: optionValue(variant, "Renk"),
       image,

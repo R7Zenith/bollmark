@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ImageField } from "@/components/admin/image-field";
 import { GOOGLE_CATEGORIES } from "@/lib/google-categories";
+import { VAT_RATES } from "@/lib/vat";
 
 // Kategori olustur/duzenle formlarinda ortak kullanilan gorsel + aciklama +
 // SEO + aktif/pasif alanlari. ImageField client bilesen oldugu icin gorsel
@@ -14,6 +15,7 @@ export function CategoryFormFields({
   metaTitle,
   metaDescription,
   googleCategoryId,
+  vatRate,
   isActive,
   inputClassName
 }: {
@@ -22,6 +24,7 @@ export function CategoryFormFields({
   metaTitle?: string | null;
   metaDescription?: string | null;
   googleCategoryId?: number | null;
+  vatRate?: number | null;
   isActive?: boolean;
   inputClassName: string;
 }) {
@@ -38,6 +41,17 @@ export function CategoryFormFields({
         placeholder="Açıklama (opsiyonel, kategori sayfasında gösterilir)"
         className={inputClassName}
       />
+      <label className="block text-sm text-admin-text-muted">
+        Varsayılan KDV oranı (ürünlerde ayrıca belirtilmemişse)
+        <select name="vatRate" defaultValue={vatRate ?? ""} className={`mt-1 ${inputClassName}`}>
+          <option value="">Üst kategoriden al (yoksa %10)</option>
+          {VAT_RATES.map((rate) => (
+            <option key={rate} value={rate}>
+              %{rate}
+            </option>
+          ))}
+        </select>
+      </label>
       <label className="flex items-center gap-2 text-sm text-admin-text">
         <input
           type="checkbox"

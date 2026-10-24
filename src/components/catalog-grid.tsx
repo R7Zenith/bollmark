@@ -5,6 +5,7 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { ProductCard, type ProductCardData } from "@/components/product-card";
 import { CATALOG_PAGE_SIZE, CATALOG_SHOW_PARAM } from "@/lib/catalog-filters";
 import { loadMoreCatalog } from "@/app/(site)/urunler/actions";
+import { trackSelectItem, trackViewItemList, type ListItem } from "@/lib/meta/track";
 
 // Katalog grid'i + "Daha Fazla Goster" blogu (bkz. KATALOG_DAHA_FAZLA_YUKLE_PLANI.md).
 // Bilincli olarak sonsuz kaydirma YOK: yeni parti yalnizca butona basinca
@@ -15,6 +16,17 @@ import { loadMoreCatalog } from "@/app/(site)/urunler/actions";
 
 function cardKey(item: ProductCardData) {
   return `${item.productId}-${item.colorLabel ?? "tek"}`;
+}
+
+function toListItem(item: ProductCardData): ListItem {
+  return {
+    productId: item.productId,
+    name: item.name,
+    priceCents: item.priceCents,
+    brand: item.brand,
+    category: item.category,
+    color: item.colorLabel
+  };
 }
 
 // Geri tusu icin: Next geri donuste sayfanin ilk render'ini (ilk parti)
@@ -28,10 +40,13 @@ const loadedByQuery = new Map<string, ProductCardData[]>();
 export function CatalogGrid({
   initialItems,
   total,
-  query
+  query,
+  listName
 }: {
   initialItems: ProductCardData[];
   total: number;
+  // GA4 item_list_name (kategori basligi ya da "Arama sonuçları").
+  listName: string;
   // Sunucu aksiyonuna giden katalog sorgusu (goster haric; temiz yollarda
   // kategori/cinsiyet de icinde - adres cubuguna yazilmaz).
   query: string;
@@ -67,6 +82,16 @@ export function CatalogGrid({
   const [announcement, setAnnouncement] = useState("");
   const [failed, setFailed] = useState(false);
   const firstNewRef = useRef<HTMLDivElement>(null);
+
+  // GA4 view_item_list: grid basina (filtre/arama degisince key ile yeniden mount) bir kez,
+  // ilk gosterilen kartlarla. Ref, gelistirmedeki Strict Mode cift efektini de engeller.
+  const listTracked = useRef(false);
+  useEffect(() => {
+    if (listTracked.current) return;
+    listTracked.current = true;
+    trackViewItemList(listName, initial.map(toListItem));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const shown = items.length;
   // Adres cubugundaki mevcut yol ve parametreler + ?goster=N.
@@ -122,7 +147,7 @@ export function CatalogGrid({
               i >= animateFrom ? { animationDelay: `${Math.min((i - animateFrom) * 30, 300)}ms` } : undefined
             }
           >
-            <ProductCard product={item} />
+            <ProductCard product={item} onSelect={() => trackSelectItem(listName, toListItem(item), i)} />
           </div>
         ))}
       </div>

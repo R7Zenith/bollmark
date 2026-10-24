@@ -12,7 +12,7 @@ import { LoyaltyField, type LoyaltyResult } from "@/components/loyalty-field";
 import { useBundleDiscount } from "@/lib/use-bundle-discount";
 import { calculateShippingCents } from "@/lib/shipping";
 import { CartNotices } from "@/components/cart-notices";
-import { trackAddPaymentInfo, trackInitiateCheckout } from "@/lib/meta/track";
+import { trackAddPaymentInfo, trackAddShippingInfo, trackInitiateCheckout } from "@/lib/meta/track";
 import { InfoDrawer } from "@/components/info-drawer";
 import { PreInformationForm, type PreInformationOrder } from "@/components/legal/pre-information-form";
 
@@ -101,7 +101,7 @@ export default function CheckoutForm({
   );
   const grandTotalCents = totalCents - totalDiscountCents + shippingCents;
 
-  // Meta InitiateCheckout: sayfa basina bir kez, sepet (localStorage) yuklenince.
+  // Meta InitiateCheckout + GA4 begin_checkout: sayfa basina bir kez, sepet (localStorage) yuklenince.
   const checkoutTracked = useRef(false);
   useEffect(() => {
     if (checkoutTracked.current || lines.length === 0) return;
@@ -191,6 +191,7 @@ export default function CheckoutForm({
           return;
         }
         createdOrderNumber.current = data.orderNumber;
+        trackAddShippingInfo(lines, grandTotalCents, coupon && couponCode ? couponCode : null);
       }
 
       const payRes = await fetch("/api/odeme/baslat", {
@@ -208,7 +209,7 @@ export default function CheckoutForm({
         router.push(`/odeme/tesekkurler?siparis=${createdOrderNumber.current}`);
       } else {
         // Kart bilgisi iyzico'nun sayfasinda girilir: o adima gecis.
-        trackAddPaymentInfo(lines, grandTotalCents);
+        trackAddPaymentInfo(lines, grandTotalCents, coupon && couponCode ? couponCode : null);
         window.location.href = payData.paymentPageUrl;
       }
     } catch {

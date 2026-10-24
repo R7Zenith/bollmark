@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
@@ -233,14 +233,30 @@ export function ProductViewer({
   // guide"`), Bollmark'ta bu kisayol genel/urune bagli olmayan
   // SizeGuideModal'i acar (bkz. asagida sizeGuideModalOpen).
 
+  const wishlistItem = { name: productName, priceCents, brand: brandName, category: categoryName, color };
   const selected = size === null ? undefined : variants.find((v) => v.size === size && v.color === color);
   const needsSize = size === null;
   const selectedPriceCents = selected ? effectivePrice({ priceCents }, selected) : priceCents;
 
-  // Meta ViewContent: urun basina bir kez; varyant secilmeden once oldugu icin
-  // urunun tum varyant SKU'lari (bkz. lib/meta/track.ts).
+  // Meta ViewContent + GA4 view_item: urun basina bir kez; varyant secilmeden
+  // once oldugu icin urunun tum varyant SKU'lari (bkz. lib/meta/track.ts).
+  // Ref, gelistirmedeki Strict Mode cift efektinde ikinci gonderimi engeller.
+  const viewTrackedFor = useRef<string | null>(null);
   useEffect(() => {
-    trackViewContent({ name: productName, skus: variants.map((v) => v.sku), priceCents });
+    if (viewTrackedFor.current === productId) return;
+    viewTrackedFor.current = productId;
+    trackViewContent({
+      name: productName,
+      priceCents,
+      brand: brandName,
+      category: categoryName,
+      variants: variants.map((v) => ({
+        sku: v.sku,
+        color: v.color,
+        size: v.size,
+        priceCents: effectivePrice({ priceCents }, v)
+      }))
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productId]);
 
@@ -351,6 +367,8 @@ export function ProductViewer({
       variantId: selected.id,
       sku: selected.sku,
       name: productName,
+      brand: brandName ?? undefined,
+      category: categoryName ?? undefined,
       size: selected.size,
       color,
       priceCents: selectedPriceCents,
@@ -486,7 +504,7 @@ export function ProductViewer({
               kalp). */}
           <button
             type="button"
-            onClick={() => toggleWishlist(productId)}
+            onClick={() => toggleWishlist(productId, wishlistItem)}
             className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-cream/90 shadow"
             title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
           >
@@ -570,7 +588,7 @@ export function ProductViewer({
           <h1 className="font-display text-[21px] leading-[1.15] tracking-[-0.84px]">{productName}</h1>
           <button
             type="button"
-            onClick={() => toggleWishlist(productId)}
+            onClick={() => toggleWishlist(productId, wishlistItem)}
             className="mt-1 hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line hover:border-ink md:flex"
             title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
           >

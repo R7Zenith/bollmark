@@ -114,6 +114,8 @@ export function CompleteLook({
         variantId: variant.variantId,
         sku: variant.sku,
         name: option.name,
+        brand: option.brand ?? undefined,
+        category: option.category ?? undefined,
         size: variant.size,
         color: variant.color,
         priceCents: option.priceCents,

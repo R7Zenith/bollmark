@@ -5,9 +5,10 @@ import { getPublicPaymentState } from "@/lib/payment/orders/state";
 import { ClearCartOnMount } from "@/components/clear-cart-on-mount";
 import { PaymentStatusPoller } from "@/components/payment-status-poller";
 import { RetryPaymentButton } from "@/components/retry-payment-button";
-import { MetaPurchase } from "@/components/meta-purchase";
+import { PurchaseTracking } from "@/components/purchase-tracking";
 import { prisma } from "@/lib/prisma";
 import { metaTrackingEnabled, purchaseCustomData } from "@/lib/meta/capi";
+import { ga4Config, ga4PurchaseData, ga4PurchaseOrderSelect } from "@/lib/ga4";
 
 export const metadata: Metadata = { robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -31,20 +32,24 @@ export default async function ThankYouPage({ searchParams }: { searchParams: Pro
   if (state === "FAILED") redirect(`/odeme/basarisiz?siparis=${encodeURIComponent(siparis)}`);
 
   if (state === "PAID") {
-    // Meta Purchase icin yalniz tutar + kalem SKU/adet/fiyat (kisisel veri yok).
-    const metaOrder = metaTrackingEnabled()
-      ? await prisma.order.findUnique({
-          where: { orderNumber: siparis },
-          select: {
-            totalCents: true,
-            items: { select: { variantId: true, quantity: true, unitPriceCents: true, variant: { select: { sku: true } } } }
-          }
-        })
-      : null;
+    // Meta Purchase / GA4 purchase icin yalniz tutar, kargo, kupon kodu ve kalem
+    // SKU/ad/marka/kategori/varyant/adet/fiyat (kisisel veri yok).
+    const meta = metaTrackingEnabled();
+    const ga4 = ga4Config() !== null;
+    const order =
+      meta || ga4
+        ? await prisma.order.findUnique({ where: { orderNumber: siparis }, select: ga4PurchaseOrderSelect })
+        : null;
     return (
       <div className="mx-auto max-w-xl px-6 py-24 text-center">
         <ClearCartOnMount />
-        {metaOrder && <MetaPurchase orderNumber={siparis} customData={purchaseCustomData(metaOrder)} />}
+        {order && (
+          <PurchaseTracking
+            orderNumber={siparis}
+            metaData={meta ? purchaseCustomData(order) : null}
+            ga4Data={ga4 ? ga4PurchaseData(order) : null}
+          />
+        )}
         <h1 className="font-display text-3xl">Teşekkürler!</h1>
         <p className="mt-4 text-ink/70">
           Siparişiniz alındı ve ödemeniz onaylandı. Sipariş numaranız: <strong>{siparis}</strong>

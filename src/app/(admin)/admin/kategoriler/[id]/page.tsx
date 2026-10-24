@@ -77,6 +77,7 @@ export default async function CategoryDetailPage({
               metaTitle={category.metaTitle}
               metaDescription={category.metaDescription}
               googleCategoryId={category.googleCategoryId}
+              vatRate={category.vatRate}
               isActive={category.isActive}
               inputClassName={inputClass}
             />

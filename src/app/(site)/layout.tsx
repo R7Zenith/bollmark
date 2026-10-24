@@ -10,6 +10,8 @@ import { SiteFooter } from "@/components/site-footer";
 import { ConsentManager } from "@/components/consent/consent-manager";
 import { MetaPixel } from "@/components/meta-pixel";
 import { metaTrackingEnabled } from "@/lib/meta/capi";
+import { GoogleAnalytics } from "@/components/google-analytics";
+import { ga4Config } from "@/lib/ga4";
 import { getMegaMenuData } from "@/lib/site-nav";
 import { baseOpenGraph, siteIcons } from "@/lib/site-metadata";
 import { getSiteUrl } from "@/lib/site-url";
@@ -50,6 +52,7 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const menuData = await getMegaMenuData();
+  const ga4 = ga4Config();
 
   return (
     <html lang="tr" className={`${poppins.variable} ${cormorant.variable}`}>
@@ -81,6 +84,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               {metaTrackingEnabled() && (
                 <Suspense fallback={null}>
                   <MetaPixel pixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID!} />
+                </Suspense>
+              )}
+              {ga4 && (
+                <Suspense fallback={null}>
+                  <GoogleAnalytics measurementId={ga4.measurementId} debug={ga4.debug} />
                 </Suspense>
               )}
             </WishlistProvider>

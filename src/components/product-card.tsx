@@ -55,11 +55,25 @@ export type ProductCardData = {
   // Doluysa gorsel gri zemin + mix-blend-multiply ile gosterilir (beyaz
   // arkaplanli marka fotograflari icin - bkz. lib/image-backdrop.ts).
   greyBackdrop?: boolean;
+  // GA4 item_brand / item_category icin (bkz. lib/meta/track.ts) - yalniz
+  // katalog listesinde dolu (bkz. lib/catalog-listing.ts toCatalogCardProps).
+  brand?: string | null;
+  category?: string | null;
 };
 
 // rank: anasayfa "Çok Satanlar" sira numarasi - gorselin sol ustunde, varsa
 // rozetler onun altina iner (bkz. components/home/bestsellers-tabs.tsx).
-export function ProductCard({ product, rank }: { product: ProductCardData; rank?: number }) {
+// onSelect: urun sayfasina gitmek icin karta tiklaninca (GA4 select_item, bkz.
+// catalog-grid.tsx) - kalp/swatch gibi preventDefault yapan ic tiklamalarda cagrilmaz.
+export function ProductCard({
+  product,
+  rank,
+  onSelect
+}: {
+  product: ProductCardData;
+  rank?: number;
+  onSelect?: () => void;
+}) {
   const { ids, toggle } = useWishlist();
   const { addLine } = useCart();
   const isWishlisted = ids.has(product.productId);
@@ -122,6 +136,8 @@ export function ProductCard({ product, rank }: { product: ProductCardData; rank?
       variantId: variant.variantId,
       sku: variant.sku,
       name: product.name,
+      brand: product.brand ?? undefined,
+      category: product.category ?? undefined,
       size: variant.size,
       color: variant.color,
       priceCents: product.priceCents,
@@ -172,7 +188,14 @@ export function ProductCard({ product, rank }: { product: ProductCardData; rank?
   }, [sizePickerOpen]);
 
   return (
-    <Link href={href} className="group block" onMouseLeave={resetSwatchPreview}>
+    <Link
+      href={href}
+      className="group block"
+      onMouseLeave={resetSwatchPreview}
+      onClick={(e) => {
+        if (!e.defaultPrevented) onSelect?.();
+      }}
+    >
       <div className={`relative aspect-[3/4] overflow-hidden ${product.greyBackdrop ? "bg-image-bg" : "bg-line"}`}>
         <Image
           src={previewImage ?? product.image}
@@ -205,7 +228,13 @@ export function ProductCard({ product, rank }: { product: ProductCardData; rank?
           type="button"
           onClick={(e) => {
             e.preventDefault();
-            toggle(product.productId);
+            toggle(product.productId, {
+              name: product.name,
+              priceCents: product.priceCents,
+              brand: product.brand,
+              category: product.category,
+              color: product.colorLabel
+            });
           }}
           className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-cream/90 text-ink transition hover:bg-cream"
           title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}

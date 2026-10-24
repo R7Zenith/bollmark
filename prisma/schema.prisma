@@ -44,6 +44,9 @@ model Category {
   // Google urun taksonomisi kimligi (Merchant feed'deki google_product_category,
   // bkz. lib/google-categories.ts). Bossa ust kategorininki, o da yoksa 166.
   googleCategoryId Int?
+  // Varsayilan KDV orani (1 | 10 | 20, KDV dahil fiyattan ic yuzde - bkz. lib/vat.ts).
+  // Bossa ust kategorininki, o da yoksa %10. Urundeki vatRate bunu ezer.
+  vatRate         Int?
   isActive        Boolean    @default(true)
   sortOrder       Int        @default(0)
   products        Product[]
@@ -111,6 +114,7 @@ model Product {
   priceCents  Int
   compareAtCents Int?
   costCents   Int?          // opsiyonel - girilirse raporlarda kar marji hesaplanir
+  vatRate     Int?          // opsiyonel KDV orani (1 | 10 | 20) - doluysa kategorininkini ezer (bkz. lib/vat.ts)
   status      String        @default("DRAFT")
   categoryId  String?
   category    Category?     @relation(fields: [categoryId], references: [id])

@@ -9,7 +9,7 @@ import {
   type CartLineIssue,
   type ResolvedCartLine
 } from "@/lib/cart-shared";
-import { trackAddToCart } from "@/lib/meta/track";
+import { trackAddToCart, trackRemoveFromCart } from "@/lib/meta/track";
 
 export type CartLine = {
   productId: string;
@@ -17,6 +17,9 @@ export type CartLine = {
   /** Meta Pixel content_ids icin (bkz. lib/meta/track.ts) - eski kayitli sepetlerde fiyat tazelemesiyle dolar. */
   sku?: string;
   name: string;
+  /** GA4 item_brand / item_category icin - eski kayitli sepetlerde fiyat tazelemesiyle dolar. */
+  brand?: string;
+  category?: string;
   size: string;
   color: string;
   priceCents: number;
@@ -114,6 +117,8 @@ function toCartLine(f: ResolvedCartLine): CartLine {
     variantId: f.variantId,
     sku: f.sku,
     name: f.name,
+    brand: f.brand,
+    category: f.category,
     size: f.size,
     color: f.color,
     priceCents: f.priceCents,
@@ -183,6 +188,8 @@ function applyFresh(base: CartLine[], fresh: ResolvedCartLine[]) {
       ...line,
       sku: f.sku,
       name: f.name,
+      brand: f.brand,
+      category: f.category,
       size: f.size || line.size,
       color: f.color || line.color,
       image: f.image,
@@ -194,6 +201,8 @@ function applyFresh(base: CartLine[], fresh: ResolvedCartLine[]) {
     const same =
       updated.sku === line.sku &&
       updated.name === line.name &&
+      updated.brand === line.brand &&
+      updated.category === line.category &&
       updated.size === line.size &&
       updated.color === line.color &&
       updated.image === line.image &&
@@ -531,6 +540,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const removeLine = (variantId: string) => {
     versionRef.current++;
+    const removed = lines.find((l) => l.variantId === variantId);
+    if (removed) trackRemoveFromCart(removed);
     setLines((prev) => prev.filter((l) => l.variantId !== variantId));
     setPriceNotices((prev) => prev.filter((n) => n.variantId !== variantId));
     setLineIssues((prev) => {

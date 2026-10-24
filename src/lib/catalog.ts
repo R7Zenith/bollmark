@@ -181,6 +181,9 @@ export type CatalogEntry = {
   // Kart gorseli gri zemin + mix-blend-multiply ile mi gosterilsin (bkz.
   // lib/image-backdrop.ts usesGreyBackdrop).
   greyBackdrop: boolean;
+  // GA4 item_brand / item_category icin (bkz. lib/meta/track.ts).
+  brandName: string | null;
+  categoryName: string | null;
 };
 
 // Katalog verisinin (girisler, kategori filtresi, mega menu) unstable_cache
@@ -210,6 +213,7 @@ async function buildCatalogEntries(
       optionImages: { orderBy: { position: "asc" } },
       variants: { include: variantOptionsInclude },
       brand: { select: { name: true } },
+      category: { select: { name: true } },
       season: { select: { rank: true } }
     },
     // id: ayni createdAt'li (toplu Excel) urunlerde sira her istekte ayni
@@ -250,6 +254,8 @@ type CatalogEntryProduct = {
   gender: string | null;
   createdAt: Date;
   brand: { name: string } | null;
+  // Yalniz katalog listesinde (buildCatalogEntries) yuklenir - GA4 item_category icin.
+  category?: { name: string } | null;
   images: { url: string }[];
   optionImages: { url: string; valueId: string; isCover: boolean }[];
   variants: {
@@ -266,6 +272,8 @@ type CatalogEntryProduct = {
 export function productToCatalogEntries(p: CatalogEntryProduct): CatalogEntry[] {
   const colors = buildColorSwatches(p);
   const greyBackdrop = usesGreyBackdrop(p.brand?.name);
+  const brandName = p.brand?.name ?? null;
+  const categoryName = p.category?.name ?? null;
   // Urunun varyantlarinda gercekten var olan renkler (Renk ekseni, isColor:true).
   const colorLabelByValueId = new Map<string, { label: string; hex: string | null }>();
   for (const v of p.variants) {
@@ -300,7 +308,9 @@ export function productToCatalogEntries(p: CatalogEntryProduct): CatalogEntry[] 
         isNew: isNewProduct(p.createdAt),
         quickAddVariants: pickQuickAddVariants(p.variants),
         colors,
-        greyBackdrop
+        greyBackdrop,
+        brandName,
+        categoryName
       }
     ];
   }
@@ -331,7 +341,9 @@ export function productToCatalogEntries(p: CatalogEntryProduct): CatalogEntry[] 
       lowStockCount: !outOfStock && stock < LOW_STOCK_THRESHOLD ? stock : null,
       isNew: isNewProduct(p.createdAt),
       quickAddVariants: pickQuickAddVariants(colorVariants),
-      greyBackdrop
+      greyBackdrop,
+      brandName,
+      categoryName
     });
   }
   // Fotografi olmayan renk (ne kendi galerisi ne genel urun gorseli var) kartta

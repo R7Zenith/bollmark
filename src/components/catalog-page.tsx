@@ -345,6 +345,7 @@ export async function CatalogPage({ query, scope }: { query: CatalogQuery; scope
           initialItems={entries.slice(0, show).map((entry) => toCatalogCardProps(entry, automaticCampaigns))}
           total={entries.length}
           query={gridQuery}
+          listName={ara ? "Arama sonuçları" : bannerTitle}
         />
       )}
       </div>

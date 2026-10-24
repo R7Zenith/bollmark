@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2, Truck } from "lucide-react";
@@ -10,6 +10,7 @@ import { DISPATCH_TEXT, SHIPPING_THRESHOLD_CENTS, shippingFeeSummary } from "@/l
 import { CouponField, type CouponResult } from "@/components/coupon-field";
 import { useBundleDiscount } from "@/lib/use-bundle-discount";
 import { CartNotices } from "@/components/cart-notices";
+import { trackViewCart } from "@/lib/meta/track";
 
 export default function CartView({ defaultShippingCents }: { defaultShippingCents: number }) {
   const { lines, removeLine, updateQuantity, totalCents, totalCount, hasBlockingIssues } = useCart();
@@ -17,6 +18,14 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
   const discountCents = coupon?.discountCents ?? 0;
   const bundleDiscountCents = useBundleDiscount(lines);
   const couponLineDiscounts = new Map((coupon?.lineDiscounts ?? []).map((d) => [d.variantId, d.discountCents]));
+
+  // GA4 view_cart: sayfa basina bir kez, sepet (localStorage) yuklenince.
+  const cartTracked = useRef(false);
+  useEffect(() => {
+    if (cartTracked.current || lines.length === 0) return;
+    cartTracked.current = true;
+    trackViewCart(lines);
+  }, [lines]);
 
   if (lines.length === 0) {
     return (

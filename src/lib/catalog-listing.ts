@@ -155,6 +155,8 @@ export function toCatalogCardProps(entry: CatalogEntry, automaticCampaigns: Auto
     isNew: entry.isNew,
     quickAddVariants: entry.quickAddVariants,
     colors: entry.colors,
-    greyBackdrop: entry.greyBackdrop
+    greyBackdrop: entry.greyBackdrop,
+    brand: entry.brandName,
+    category: entry.categoryName
   };
 }

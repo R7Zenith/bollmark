@@ -27,7 +27,8 @@ const CATEGORIES: { key: keyof ConsentState | "necessary"; title: string; descri
   {
     key: "analytics",
     title: "Analitik çerezler",
-    description: "Sayfaların nasıl kullanıldığını ölçerek siteyi geliştirmemize yardımcı olur (ör. Google Analytics)."
+    description:
+      "Google Analytics ile sayfaların ve ürünlerin nasıl kullanıldığını ölçerek siteyi geliştirmemize yardımcı olur. Onay verirseniz bu kapsamdaki veriler yurt dışında bulunan Google'a aktarılır."
   },
   {
     key: "marketing",
@@ -111,7 +112,7 @@ function ConsentBar({
             sinif adi bilerek ham deger - o kurallar md: varyantini ezerdi. */}
         <p className="text-[0.8125rem] md:flex-1 leading-[1.125rem] text-ink md:text-[0.9375rem] md:leading-[1.375rem]">
           Size daha iyi bir alışveriş deneyimi sunabilmek için çerezlerden yararlanıyoruz. Zorunlu çerezler sitenin
-          çalışması için her zaman kullanılır; analitik ve pazarlama (Meta - Facebook/Instagram) çerezleri ise yalnızca
+          çalışması için her zaman kullanılır; analitik (Google Analytics) ve pazarlama (Meta - Facebook/Instagram) çerezleri ise yalnızca
           onayınızla etkinleştirilir.
           Ayrıntılı bilgi için{" "}
           <Link href="/cerez-politikasi" className="underline underline-offset-2">

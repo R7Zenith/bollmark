@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { isDescendantOf } from "@/lib/category-tree";
 import { categorySlug } from "@/lib/catalog-url";
+import { parseVatRate } from "@/lib/vat";
 
 function readCategoryFields(formData: FormData) {
   return {
@@ -13,6 +14,7 @@ function readCategoryFields(formData: FormData) {
     metaTitle: String(formData.get("metaTitle") || "").trim() || null,
     metaDescription: String(formData.get("metaDescription") || "").trim() || null,
     googleCategoryId: Number(formData.get("googleCategoryId")) || null,
+    vatRate: parseVatRate(formData.get("vatRate")),
     isActive: formData.get("isActive") === "on"
   };
 }
