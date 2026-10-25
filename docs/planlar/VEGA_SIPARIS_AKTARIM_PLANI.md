@@ -1,6 +1,6 @@
 # Vega Sipariş Aktarımı Planı
 
-Durum: bekliyor (araştırma + plan hazır, kullanıcı onayı bekliyor, 2026-10-25)
+Durum: devam ediyor. Faz 0 ve Faz 1 uygulandı (2026-10-25); sırada Faz 2 (şema onayı bekliyor)
 
 Bu oturumda kod, şema ve veritabanı değişikliği yapılmadı. Vercel logları
 yalnız okundu.
@@ -575,6 +575,8 @@ gövdesi elimizde. Gövdeden `WebSiparisFiltre` alanları ve namespace'i okundu.
 **Doğrulama:** Vega hata vermeden çekmeye devam ediyor; logda 2 dakikada bir
 `SelectSiparis basarili {donenAdet: 0}`; "desteklenmeyen metot" yok. Vega'nın
 hata/ileti ekranında sipariş hatası yok.
+
+> **Faz 0–1 sonucu (2026-10-25):** Faz 0 bulguları 2.1.0'da. Faz 1 canlıda (commit `fab3914`): `SelectSiparis` geçerli boş liste, `SetSiparisAktarildi`/`İptal` yalnız log; Faz 0 geçici logları kaldırıldı. 20:49 UTC'de iki sorgu da `SelectSiparis basarili` (donenAdet 0) aldı; hata varken her turda 3 istek geliyordu, şimdi 2 (Vega Fault sonrası bir kez yeniden deniyordu).
 
 ### Faz 2: Şema + gerçek siparişler
 
