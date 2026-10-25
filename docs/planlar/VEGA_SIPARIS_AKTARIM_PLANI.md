@@ -587,6 +587,10 @@ hata/ileti ekranında sipariş hatası yok.
 > 6. Vega listesinde doğru gelenler: Sipariş Id, tarih, Bireysel, il/ilçe, Müşteri Kodu `TM-<vegaId>`, ad/soyad, genel toplam, e-posta, ödeme durumu, KREDIKARTI/BANKAKART.
 > 7. Vega bir kez `UrunServis.SelectTedarikci` çağırdı (desteklenmeyen; şimdilik gerek yok).
 > 8. Sipariş silmek/iptal etmek site stoğunu geri eklemiyor (mevcut davranış); deneme sonrası stok elle düzeltildi.
+> 9. **5(d) cevaplandı: Vega kullanılabilir stok gönderiyor.** Sipariş Vega'ya düşünce Vega ayırdığı adetleri düşüp `VaryasyonGuncelle` ile gönderdi (2111: 0, 2113: 0); Vega'da iptal edilince serbest kalan stoğu kendisi geri gönderdi (2111: 1, 2113: 2). Kullanıcı Vega ekranında da ayırmayı doğruladı.
+> 10. Vega'da iptal **siteye bildirilmiyor** (SetSiparisDurum Iptal gelmedi). Vega'da iptal edilen müşteri siparişi sitede ayrıca iptal/iade edilmeli.
+> 11. Fatura tutarı: KDV dahil `Tutar` ile Vega satırı Tutar + KdvTutari olarak faturaladı (1.390 → 1.516,36). Satır artık KDV hariç birim + birim KDV gidiyor (commit `8be9d3c`); 2 adetlik denemede genel toplam 2.780 doğru göründü, detay ekranındaki fatura tutarı ilk gerçek siparişte kontrol edilecek. Ödeme tarihi düzeltmesi doğrulandı. "Sipariş No" ve "F. İsmi" sütunları `SiparisNo`/`SiparisKodu`/`AliciAdi` ile dolmadı (Vega'nın kaynağı bilinmiyor; Sipariş Id ve TM-<id> ile eşleştirilebilir).
+> 12. Vega `BaslangicIndex`'i SiparisServis'te sayfa numarası olarak 1'er artırıyor (commit `15976fe`).
 
 ### Faz 2: Şema + gerçek siparişler
 
