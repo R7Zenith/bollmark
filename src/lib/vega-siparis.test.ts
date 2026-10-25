@@ -83,8 +83,10 @@ test("baslik: ad/soyad, tutarlar, durum, kacisli adres, nesne alanlarinda tip et
   assert.match(xml, /<a:KargoTutari>350\.00<\/a:KargoTutari>/);
   assert.match(xml, /<a:ToplamTutar>1350\.00<\/a:ToplamTutar>/);
   assert.match(xml, /<a:SiparisTarihi>2026-10-26T12:00:00<\/a:SiparisTarihi>/);
-  assert.match(xml, /<a:SiparisKaynagi>BLM261026-1234<\/a:SiparisKaynagi><a:SiparisKodu>BLM261026-1234<\/a:SiparisKodu><a:SiparisNo>BLM261026-1234<\/a:SiparisNo>/);
-  assert.match(xml, /<a:ReferansNo i:nil="true"\/>/);
+  assert.match(xml, /<a:SiparisKaynagi>bollmark<\/a:SiparisKaynagi>/);
+  // Gecici Siparis No denemesi: aday alanlarda ayirt edici sayilar
+  assert.match(xml, /<a:SiparisKodu>102<\/a:SiparisKodu><a:SiparisNo>101<\/a:SiparisNo>/);
+  assert.match(xml, /<a:OdemeSiparisID>110<\/a:OdemeSiparisID>/);
   assert.match(xml, /<a:Tarih>2026-10-26T09:02:00<\/a:Tarih>/);
   assert.match(xml, /&lt;Daire 2&gt;/);
   assert.match(xml, /<a:Ulke><a:Alpha2Code>TR<\/a:Alpha2Code>/);

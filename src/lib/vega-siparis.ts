@@ -25,6 +25,12 @@ const DURUMLAR: Record<string, [number, string]> = {
 
 const ISTANBUL_OFFSET_MS = 3 * 60 * 60 * 1000;
 
+// GECICI DENEME (2026-10-26): Vega'nin "Siparis No" sutunu SiparisNo/SiparisKodu/ReferansNo'ya
+// BLM numarasi yazilinca bos kaldi. Hangi alani (ve kisa/sayisal deger isteyip istemedigini)
+// tek sipariste bulmak icin aday alanlara farkli kucuk sayilar (101-110) yaziliyor. Sonuc
+// gorulunce false yapilip bulunan alana siparis numarasi yazilacak.
+const SIPARIS_NO_DENEME = true;
+
 export function xmlEscape(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -68,6 +74,7 @@ const SCHEMAS = {
     Mail: "s", Maliyet: "d", Odemeler: "o", ParaBirimi: "s", Referer: "s", ReklamKaynagi: "s",
     // Alan adlari gercek bir Ticimax magazasinin SiparisServis WSDL'iyle karsilastirildi
     // (2026-10-26; PDF eski: SiparisNo/ReferansNo yok, bazi ID'ler farkli yazilmis).
+    BNPLNo: "s", MagazaTeslimKodu: "s", OzelAlan1: "s", OzelAlan2: "s", OzelAlan3: "s",
     ReferansNo: "s", SepetKampanyasiIndirimi: "d", SiparisDurumu: "s", SiparisKaynagi: "s", SiparisKodu: "s", SiparisNo: "s",
     SiparisNotu: "s", SiparisTarihi: "t",
     SiparisToplamTutari: "d", StokDustu: "b", TeslimatAdresi: "o", TeslimatGunu: "t", TeslimatSaati: "s",
@@ -86,7 +93,7 @@ const SCHEMAS = {
   WebUlke: { Alpha2Code: "s", Alpha3Code: "s" },
   WebSiparisOdeme: {
     BankaKomisyonu: "d", CheckSum: "s", HavaleBankaID: "i", HavaleHesapID: "i", ID: "i", KKOdemeBankaID: "i",
-    KapidaOdemeTutari: "d", OdemeIndirimi: "d", OdemeNotu: "s", OdemeSecenekID: "i", OdemeTipi: "i",
+    KapidaOdemeTutari: "d", OdemeIndirimi: "d", OdemeNotu: "s", OdemeSecenekID: "i", OdemeSiparisID: "s", OdemeTipi: "i",
     Onaylandi: "i", PosReferansID: "s", SiparisID: "i", TaksitSayisi: "i", Tarih: "t", Tutar: "d", UyeID: "i"
   },
   WebSiparisUrun: {
@@ -204,6 +211,7 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
 
   const odeme = element("WebSiparisOdeme", {
     ID: String(order.vegaId),
+    OdemeSiparisID: SIPARIS_NO_DENEME ? "110" : undefined,
     OdemeTipi: "0", // 0 = KrediKarti (iyzico); Vega eslemesi acik soru
     Onaylandi: "1",
     SiparisID: String(order.vegaId),
@@ -248,15 +256,23 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
     Mail: xmlEscape(order.customerEmail),
     Odemeler: odeme,
     ParaBirimi: "TL",
-    // Vega listesinde (2026-10-26 denemeleri): ikisi www.bollmark.com iken "No" sutunu
-    // "www.bollmark.com", "Site Adresi" "www.bollmark.com.com" oldu; bos iken "" ve ".com".
-    // "Siparis No" sutunu SiparisNo/SiparisKodu/ReferansNo'dan dolmadi. DENEME: hangisinin
-    // "No"ya gittigini ayirmak icin farkli degerler; sonuca gore sadelestirilecek.
-    Referer: "www.bollmark",
     SiparisDurumu: durumAdi,
-    SiparisKaynagi: xmlEscape(order.orderNumber),
-    SiparisKodu: xmlEscape(order.orderNumber),
-    SiparisNo: xmlEscape(order.orderNumber),
+    // Vega hem "No" sutununu (aynen) hem "Site Adresi"ni (sonuna ".com" ekleyerek) bu alandan
+    // dolduruyor; Referer'i okumuyor (2026-10-26 denemeleri). Faturadaki internet sitesi icin.
+    SiparisKaynagi: "bollmark",
+    ...(SIPARIS_NO_DENEME
+      ? {
+          SiparisNo: "101",
+          SiparisKodu: "102",
+          ReferansNo: "103",
+          OzelAlan1: "104",
+          OzelAlan2: "105",
+          OzelAlan3: "106",
+          BNPLNo: "107",
+          MagazaTeslimKodu: "108",
+          UyeMusteriKodu: "109"
+        }
+      : { SiparisKodu: xmlEscape(order.orderNumber), SiparisNo: xmlEscape(order.orderNumber) }),
     SiparisNotu: xmlEscape(order.note ?? ""),
     SiparisTarihi: formatVegaDate(order.createdAt),
     SiparisToplamTutari: money(order.totalCents),
