@@ -56,6 +56,7 @@ test("alanlar ordinal alfabetik sirada", () => {
   // Fatura adresinde isKurumsal (kucuk harf) en sonda
   const fatura = /<a:FaturaAdresi>(.*?)<\/a:FaturaAdresi>/.exec(xml)![1];
   assert.match(fatura, /<a:VergiNo>11111111111<\/a:VergiNo><a:isKurumsal>false<\/a:isKurumsal>$/);
+  assert.match(fatura, /<a:FirmaAdi>Ayşe Nur Yılmaz<\/a:FirmaAdi>/);
 });
 
 test("satir: indirimli birim fiyat, barkod, kimlikler, KDV", () => {

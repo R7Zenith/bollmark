@@ -230,6 +230,9 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
       Adres: adres,
       AliciAdi: xmlEscape(order.customerName),
       AliciTelefon: telefon,
+      // Vega/Arctos sevkiyat listesi alici adini buradan aliyor: bos giderse isimsiz
+      // gorunuyordu (kullanici, 2026-10-26). Bireysel/kurumsal ayrimi isKurumsal'da.
+      FirmaAdi: xmlEscape(order.customerName),
       ID: String(order.vegaId),
       Il: il,
       Ilce: ilce,
