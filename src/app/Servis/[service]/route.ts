@@ -368,7 +368,9 @@ async function handleSelectSiparis(rawBody: string) {
               })
         },
         orderBy: { vegaId: "asc" },
-        skip: startIndex,
+        // SiparisServis'te Vega BaslangicIndex'i sayfa numarasi gibi 1'er artiriyor
+        // (0, 1, 2... bos sayfa gelene kadar; UrunServis'te kayit sirasi). 2026-10-26 logu.
+        skip: startIndex * pageSize,
         take: pageSize,
         include: {
           items: {
