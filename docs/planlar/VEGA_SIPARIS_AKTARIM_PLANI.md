@@ -591,6 +591,11 @@ hata/ileti ekranında sipariş hatası yok.
 > 10. Vega'da iptal **siteye bildirilmiyor** (SetSiparisDurum Iptal gelmedi). Vega'da iptal edilen müşteri siparişi sitede ayrıca iptal/iade edilmeli.
 > 11. Fatura tutarı: KDV dahil `Tutar` ile Vega satırı Tutar + KdvTutari olarak faturaladı (1.390 → 1.516,36). Satır artık KDV hariç birim + birim KDV gidiyor (commit `8be9d3c`); 2 adetlik denemede genel toplam 2.780 doğru göründü, detay ekranındaki fatura tutarı ilk gerçek siparişte kontrol edilecek. Ödeme tarihi düzeltmesi doğrulandı. "Sipariş No" ve "F. İsmi" sütunları `SiparisNo`/`SiparisKodu`/`AliciAdi` ile dolmadı (Vega'nın kaynağı bilinmiyor; Sipariş Id ve TM-<id> ile eşleştirilebilir).
 > 12. Vega `BaslangicIndex`'i SiparisServis'te sayfa numarası olarak 1'er artırıyor (commit `15976fe`).
+> 13. **Gerçek Ticimax WSDL'i** (bir Ticimax mağazasının herkese açık `SiparisServis.svc?singleWsdl`'i) okundu: `WebSiparis` 106 alan; PDF eski. `SiparisNo`, `SiparisKodu`, `ReferansNo` var; bazı ID adları farklı (`FaturaAdresID`, `KargoFirmaID`, `IlID`, `IlceID`, satırda `SiparisID`) - düzeltildi.
+> 14. Vega `FaturaAdresi.FirmaAdi`'yı "Firma" sütunu ve Arctos sevkiyat listesi alıcı adı olarak kullanıyor → müşteri adı soyadı yazılıyor (`b3fe065`).
+> 15. Vega "No" sütununu `SiparisKaynagi`'ndan aynen, "Site Adresi"ni (faturadaki İnternet Sitesi) `SiparisKaynagi + ".com"` olarak dolduruyor; `Referer`'ı okumuyor → `SiparisKaynagi = "bollmark"` (Site Adresi bollmark.com).
+> 16. **"Sipariş No" sütunu veriyle doldurulamadı:** `SiparisNo`, `SiparisKodu`, `ReferansNo`, `OzelAlan1-3`, `BNPLNo`, `MagazaTeslimKodu`, `UyeMusteriKodu`, `OdemeSiparisID` alanlarına ayırt edici değerler (101-110) yazılan denemede hiçbiri görünmedi; `UyeMusteriKodu` Müşteri Kodu'nu da değiştirmedi (TM-<UyeID>). Vega'nın kendi alanı ya da bu sürümde Ticimax için bağlı değil. Kullanıcıya göre Ticimax döneminde sitedeki numara görünüyordu; Vega desteğine sorulabilir.
+> 17. Vega bazı siparişlerde `SetSiparisDurum(Onaylandi)` göndermedi (Id 19-22, "Onay Bekliyor" kaldı); o durumda stok koruması 24 saat üst sınırla biter.
 
 ### Faz 2: Şema + gerçek siparişler
 
