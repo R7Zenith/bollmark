@@ -248,17 +248,15 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
     Mail: xmlEscape(order.customerEmail),
     Odemeler: odeme,
     ParaBirimi: "TL",
-    // Vega faturasinda "Internet Sitesi" ".com" geldi (2026-10-26); kaynagi Vega'nin
-    // Site Adi ayari olabilir. Bu iki alani okuyorsa duzelir - ilk sipariste kontrol.
-    Referer: "https://www.bollmark.com",
+    // Vega listesinde (2026-10-26 denemeleri): ikisi www.bollmark.com iken "No" sutunu
+    // "www.bollmark.com", "Site Adresi" "www.bollmark.com.com" oldu; bos iken "" ve ".com".
+    // "Siparis No" sutunu SiparisNo/SiparisKodu/ReferansNo'dan dolmadi. DENEME: hangisinin
+    // "No"ya gittigini ayirmak icin farkli degerler; sonuca gore sadelestirilecek.
+    Referer: "www.bollmark",
     SiparisDurumu: durumAdi,
-    SiparisKaynagi: "www.bollmark.com",
-    // DENEME (2026-10-26): SiparisNo = BLM... gidince Vega'nin "Siparis No" sutunu bos kaldi.
-    // Hangi alanin/bicimin okundugunu tek sipariste ayirt etmek icin uc farkli yazim; sonuca
-    // gore sadelestirilecek (bkz. VEGA_SIPARIS_AKTARIM_PLANI.md).
-    ReferansNo: xmlEscape(order.orderNumber),
-    SiparisKodu: order.orderNumber.replace(/\D/g, ""),
-    SiparisNo: xmlEscape(order.orderNumber.replace(/-/g, "")),
+    SiparisKaynagi: xmlEscape(order.orderNumber),
+    SiparisKodu: xmlEscape(order.orderNumber),
+    SiparisNo: xmlEscape(order.orderNumber),
     SiparisNotu: xmlEscape(order.note ?? ""),
     SiparisTarihi: formatVegaDate(order.createdAt),
     SiparisToplamTutari: money(order.totalCents),
