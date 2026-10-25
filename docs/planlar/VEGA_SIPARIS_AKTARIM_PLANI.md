@@ -596,6 +596,7 @@ hata/ileti ekranında sipariş hatası yok.
 > 15. Vega "No" sütununu `SiparisKaynagi`'ndan aynen, "Site Adresi"ni (faturadaki İnternet Sitesi) `SiparisKaynagi + ".com"` olarak dolduruyor; `Referer`'ı okumuyor → `SiparisKaynagi = "bollmark"` (Site Adresi bollmark.com).
 > 16. **"Sipariş No" sütunu veriyle doldurulamadı:** `SiparisNo`, `SiparisKodu`, `ReferansNo`, `OzelAlan1-3`, `BNPLNo`, `MagazaTeslimKodu`, `UyeMusteriKodu`, `OdemeSiparisID` alanlarına ayırt edici değerler (101-110) yazılan denemede hiçbiri görünmedi; `UyeMusteriKodu` Müşteri Kodu'nu da değiştirmedi (TM-<UyeID>). Vega'nın kendi alanı ya da bu sürümde Ticimax için bağlı değil. Kullanıcıya göre Ticimax döneminde sitedeki numara görünüyordu; Vega desteğine sorulabilir.
 > 17. Vega bazı siparişlerde `SetSiparisDurum(Onaylandi)` göndermedi (Id 19-22, "Onay Bekliyor" kaldı); o durumda stok koruması 24 saat üst sınırla biter.
+> 18. **Arctos fatura serisi (kullanıcı ayarladı, 2026-10-26):** Toplu Sipariş İşlemleri > Faturalaştır, faturayı KOTON şubesi + ETICARET belge nevisiyle oluşturuyor; numara ön eki şubenin **ETicaretSeri** sütunundan geliyor (Şube Tanımları ekranı). Boşken `2026000000000005` gibi ön eksiz numara çıktı; kullanıcı KOTON'a `BLM` yazdı → internet satışı e-Arşiv faturaları `BLM2026…`. İlk gerçek faturada entegratörün BLM serisini kabul ettiği ve numaranın 1'den başladığı kontrol edilmeli. Faturadaki Belge ÖK-1 = `bollmark.com` (SiparisKaynagi). Her site siparişi Arctos'ta ayrı cari açıyor (`TM-<vegaId>`).
 
 ### Faz 2: Şema + gerçek siparişler
 
