@@ -2,6 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { resolveVatRate } from "@/lib/vat";
+import {
+  buildWebSiparisXml,
+  parseVegaDate,
+  VEGA_AKTIF_DURUMLAR,
+  VEGA_SIPARIS_BASLANGIC,
+  xmlEscape
+} from "@/lib/vega-siparis";
 
 // Vega'nin "Site Tipi: Ticimax" secenegi, kullanicinin girdigi "Site Adi"
 // degerinin sonuna kendisi "/Servis/<Servis>.svc" ekleyip, Ticimax'in GERCEK
@@ -35,15 +42,6 @@ const XSI_NS = "http://www.w3.org/2001/XMLSchema-instance";
 
 function logTcmx(label: string, detail: Record<string, unknown>) {
   console.log(`[vega-tcmx] ${label}`, JSON.stringify(detail));
-}
-
-function xmlEscape(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
 }
 
 // Etiket adindan sonra bosluk / "/" / ">" bekleniyor - aksi halde <ID> ararken
@@ -287,7 +285,26 @@ async function handleVaryasyonGuncelle(rawBody: string) {
     );
   }
 
-  const newStock = Math.max(0, Math.round(stokAdedi));
+  // Vega'nin henuz cekmedigi odenmis siparisler: site stogu odeme aninda zaten
+  // dustu, Vega ise siparisi cekince ayiriyor. Aradaki surede gelen Vega
+  // degeri bu adetleri icermiyor; dusulmezse satilan urun stoga geri yazilir
+  // (bkz. VEGA_SIPARIS_AKTARIM_PLANI.md bolum 5). 24 saat ust sinir: Vega hic
+  // cekmezse dusum sonsuza kadar surmesin.
+  const pending = await prisma.orderItem.aggregate({
+    _sum: { quantity: true },
+    where: {
+      variant: { vegaId },
+      order: {
+        deletedAt: null,
+        vegaFetchedAt: null,
+        paymentStatus: "PAID",
+        status: { in: VEGA_AKTIF_DURUMLAR },
+        paidAt: { gte: new Date(Math.max(VEGA_SIPARIS_BASLANGIC.getTime(), Date.now() - 24 * 60 * 60 * 1000)) }
+      }
+    }
+  });
+  const bekleyen = pending._sum.quantity ?? 0;
+  const newStock = Math.max(0, Math.round(stokAdedi) - bekleyen);
   // Vega stok degismese de her varyanti gonderir: onbellekteki sayfalar yalniz
   // stok gercekten degistiyse tazelenir (yoksa her senkron tum ISR sayfalarini
   // gecersiz kilardi, bkz. CPU_KULLANIMI_AZALTMA_PLANI.md).
@@ -297,7 +314,7 @@ async function handleVaryasyonGuncelle(rawBody: string) {
     data: { stock: newStock }
   });
 
-  logTcmx("VaryasyonGuncelle", { vegaId, stokAdedi, guncellenen: updated.count });
+  logTcmx("VaryasyonGuncelle", { vegaId, stokAdedi, bekleyen, guncellenen: updated.count });
   if (changed > 0) revalidateCatalog();
 
   return xmlResponse(
@@ -310,10 +327,14 @@ async function handleVaryasyonGuncelle(rawBody: string) {
 }
 
 // SiparisServis.svc (bkz. VEGA_SIPARIS_AKTARIM_PLANI.md). Vega iki sorgu atiyor
-// (2 dk'da bir): siparis cekme (SiparisTarihiBas = Vega'daki "Entegrasyon
-// Baslangici") ve durum cekme (DurumTarihiBas = simdi). Ikisinde de
-// EntegrasyonAktarildi = -1 (hepsi). Faz 1: gecerli BOS liste donuluyor -
-// siparisler henuz aktarilmiyor.
+// (2 dk'da bir), ikisinde de EntegrasyonAktarildi = -1 (hepsi):
+// - siparis cekme: SiparisTarihiBas = Vega'daki "Entegrasyon Baslangici".
+//   Suren odenmis siparislerden henuz alinmamislar + son 3 gunde alinanlar
+//   doner (Vega isleyemediyse tekrar dener; liste her 2 dk'da sinirsiz
+//   buyumez). Cift kaydi Vega sabit ID ile ayiriyor.
+// - durum cekme: DurumTarihiBas = simdi; yalniz Vega'nin aldigi ve o andan
+//   sonra degisen siparisler (iptal Vega'ya boyle gider).
+// VEGA_SIPARIS_AKTARIM=off ise bos liste (acil kapatma).
 async function handleSelectSiparis(rawBody: string) {
   const uyeKodu = extractTag(rawBody, "UyeKodu");
   if (!(await verifyUyeKodu(uyeKodu))) {
@@ -321,18 +342,70 @@ async function handleSelectSiparis(rawBody: string) {
     return xmlResponse(soapFault("UyeKodu hatali."), 500);
   }
 
+  const siparisTarihiBas = parseVegaDate(extractTag(rawBody, "SiparisTarihiBas"));
+  const durumTarihiBas = parseVegaDate(extractTag(rawBody, "DurumTarihiBas"));
+  const siparisId = Number(extractTag(rawBody, "SiparisID") ?? "0") || 0;
+  const startIndex = Number(extractTag(rawBody, "BaslangicIndex") ?? "0") || 0;
+  const pageSize = Math.min(500, Number(extractTag(rawBody, "KayitSayisi") ?? "100") || 100);
+  const kapali = process.env.VEGA_SIPARIS_AKTARIM === "off";
+
+  const orders = kapali
+    ? []
+    : await prisma.order.findMany({
+        where: {
+          deletedAt: null,
+          paymentStatus: { in: ["PAID", "PARTIALLY_REFUNDED", "REFUNDED"] },
+          paidAt: { gte: siparisTarihiBas && siparisTarihiBas > VEGA_SIPARIS_BASLANGIC ? siparisTarihiBas : VEGA_SIPARIS_BASLANGIC },
+          ...(siparisId > 0 ? { vegaId: siparisId } : {}),
+          ...(durumTarihiBas
+            ? { vegaFetchedAt: { not: null }, updatedAt: { gte: durumTarihiBas } }
+            : {
+                status: { in: VEGA_AKTIF_DURUMLAR },
+                OR: [{ vegaFetchedAt: null }, { vegaFetchedAt: { gte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) } }]
+              })
+        },
+        orderBy: { vegaId: "asc" },
+        skip: startIndex,
+        take: pageSize,
+        include: {
+          items: {
+            include: {
+              variant: { select: { vegaId: true, sku: true, barcode: true } },
+              product: {
+                select: {
+                  vegaId: true,
+                  name: true,
+                  vatRate: true,
+                  category: { select: { vatRate: true, parent: { select: { vatRate: true } } } }
+                }
+              }
+            }
+          }
+        }
+      });
+
+  // Ilk kez gonderilen siparisler "Vega'ya ulasti" sayilir: stok dusumu biter.
+  const yeni = orders.filter((order) => !order.vegaFetchedAt).map((order) => order.id);
+  if (yeni.length > 0) {
+    await prisma.order.updateMany({ where: { id: { in: yeni }, vegaFetchedAt: null }, data: { vegaFetchedAt: new Date() } });
+  }
+
   logTcmx("SelectSiparis basarili", {
-    siparisTarihiBas: extractTag(rawBody, "SiparisTarihiBas"),
-    durumTarihiBas: extractTag(rawBody, "DurumTarihiBas"),
-    entegrasyonAktarildi: extractTag(rawBody, "EntegrasyonAktarildi"),
-    baslangicIndex: extractTag(rawBody, "BaslangicIndex"),
-    donenAdet: 0
+    sorgu: durumTarihiBas ? "durum" : "siparis",
+    kapali,
+    siparisId,
+    startIndex,
+    donenAdet: orders.length,
+    ilkKez: yeni.length,
+    siparisNo: orders.slice(0, 10).map((order) => order.orderNumber)
   });
 
   return xmlResponse(
     soapEnvelope(
       `<SelectSiparisResponse xmlns="http://tempuri.org/">` +
-        `<SelectSiparisResult xmlns:a="${DATA_NS}" xmlns:i="${XSI_NS}"/>` +
+        `<SelectSiparisResult xmlns:a="${DATA_NS}" xmlns:i="${XSI_NS}">` +
+        orders.map(buildWebSiparisXml).join("") +
+        `</SelectSiparisResult>` +
         `</SelectSiparisResponse>`
     )
   );

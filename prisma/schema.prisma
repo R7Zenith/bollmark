@@ -346,6 +346,14 @@ model Order {
   metaCapiContext       String?
   metaPurchaseSentAt    DateTime?
 
+  // Vega (Ticimax taklidi SiparisServis, bkz. VEGA_SIPARIS_AKTARIM_PLANI.md):
+  // Ticimax siparis kimligini int bekliyor (Product.vegaId ile ayni gerekce);
+  // Vega cift kaydi bu ID ile ayiriyor. vegaFetchedAt siparisin SelectSiparis
+  // cevabinda Vega'ya ilk gonderildigi an - o ana kadar Vega stok gonderiminde
+  // bu siparisin adetleri dusulur.
+  vegaId                Int       @unique @default(autoincrement())
+  vegaFetchedAt         DateTime?
+
   @@index([deletedAt])
   @@index([paymentStatus])
 }
