@@ -309,13 +309,59 @@ async function handleVaryasyonGuncelle(rawBody: string) {
   );
 }
 
+// SiparisServis.svc (bkz. VEGA_SIPARIS_AKTARIM_PLANI.md). Vega iki sorgu atiyor
+// (2 dk'da bir): siparis cekme (SiparisTarihiBas = Vega'daki "Entegrasyon
+// Baslangici") ve durum cekme (DurumTarihiBas = simdi). Ikisinde de
+// EntegrasyonAktarildi = -1 (hepsi). Faz 1: gecerli BOS liste donuluyor -
+// siparisler henuz aktarilmiyor.
+async function handleSelectSiparis(rawBody: string) {
+  const uyeKodu = extractTag(rawBody, "UyeKodu");
+  if (!(await verifyUyeKodu(uyeKodu))) {
+    logTcmx("SelectSiparis yetkisiz", {});
+    return xmlResponse(soapFault("UyeKodu hatali."), 500);
+  }
+
+  logTcmx("SelectSiparis basarili", {
+    siparisTarihiBas: extractTag(rawBody, "SiparisTarihiBas"),
+    durumTarihiBas: extractTag(rawBody, "DurumTarihiBas"),
+    entegrasyonAktarildi: extractTag(rawBody, "EntegrasyonAktarildi"),
+    baslangicIndex: extractTag(rawBody, "BaslangicIndex"),
+    donenAdet: 0
+  });
+
+  return xmlResponse(
+    soapEnvelope(
+      `<SelectSiparisResponse xmlns="http://tempuri.org/">` +
+        `<SelectSiparisResult xmlns:a="${DATA_NS}" xmlns:i="${XSI_NS}"/>` +
+        `</SelectSiparisResponse>`
+    )
+  );
+}
+
+// Vega'nin bu cagrilari yapip yapmadigi henuz bilinmiyor; simdilik yalniz
+// loglaniyor (Ticimax'ta donus tipi void).
+function aktarildiHandler(method: "SetSiparisAktarildi" | "SetSiparisAktarildiIptal"): Handler {
+  return async (rawBody) => {
+    const uyeKodu = extractTag(rawBody, "UyeKodu");
+    if (!(await verifyUyeKodu(uyeKodu))) {
+      logTcmx(`${method} yetkisiz`, {});
+      return xmlResponse(soapFault("UyeKodu hatali."), 500);
+    }
+    logTcmx(method, { siparisId: extractTag(rawBody, "siparisId") });
+    return xmlResponse(soapEnvelope(`<${method}Response xmlns="http://tempuri.org/"/>`));
+  };
+}
+
 type Handler = (rawBody: string) => Promise<NextResponse>;
 
 const methods: Record<string, Handler> = {
   SelectKategori: handleSelectKategori,
   SelectUrunCount: handleSelectUrunCount,
   SelectUrun: handleSelectUrun,
-  VaryasyonGuncelle: handleVaryasyonGuncelle
+  VaryasyonGuncelle: handleVaryasyonGuncelle,
+  SelectSiparis: handleSelectSiparis,
+  SetSiparisAktarildi: aktarildiHandler("SetSiparisAktarildi"),
+  SetSiparisAktarildiIptal: aktarildiHandler("SetSiparisAktarildiIptal")
 };
 
 export async function POST(request: NextRequest, context: { params: Promise<{ service: string }> }) {
@@ -345,17 +391,4 @@ export async function POST(request: NextRequest, context: { params: Promise<{ se
   }
 
   return handler(rawBody);
-}
-
-// Gecici (VEGA_SIPARIS_AKTARIM_PLANI.md Faz 0): Vega'nin GET istekleri (orn.
-// ?wsdl) iz birakmiyordu; yalniz loglanip 405 donuluyor.
-export async function GET(request: NextRequest, context: { params: Promise<{ service: string }> }) {
-  const { service } = await context.params;
-  logTcmx("GET istegi", {
-    service,
-    search: request.nextUrl.search,
-    soapAction: request.headers.get("soapaction"),
-    userAgent: request.headers.get("user-agent")
-  });
-  return new NextResponse(null, { status: 405, headers: { Allow: "POST" } });
 }
