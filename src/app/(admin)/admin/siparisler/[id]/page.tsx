@@ -22,6 +22,9 @@ import { Card } from "@/components/admin/card";
 import { Badge } from "@/components/admin/badge";
 import { Button } from "@/components/admin/button";
 import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
+import { Thumb } from "@/components/admin/bundle-product-picker";
+import { firstImageUrl, pickCoverImage } from "@/lib/catalog";
+import { optionValue } from "@/lib/variant-attributes";
 import { OrderFeedback } from "@/components/admin/order-feedback";
 import { OrderDeleteButton, OrderRestoreButton } from "@/components/admin/order-delete-restore-actions";
 import { OrderPaymentCard } from "@/components/admin/order-payment-card";
@@ -85,7 +88,17 @@ export default async function OrderDetailPage({
   const order = await prisma.order.findUnique({
     where: { id },
     include: {
-      items: { include: { product: true } },
+      items: {
+        include: {
+          product: {
+            include: {
+              images: { orderBy: { position: "asc" }, take: 1 },
+              optionImages: { orderBy: { position: "asc" }, select: { url: true, valueId: true, isCover: true } }
+            }
+          },
+          variant: { include: { options: { include: { value: { include: { attribute: true } } } } } }
+        }
+      },
       shipment: true,
       coupon: { select: { code: true, name: true } },
       _count: { select: { paymentAttempts: true } }
@@ -196,14 +209,33 @@ export default async function OrderDetailPage({
         <div className="space-y-6 md:col-span-2">
           <Card title="Ürünler">
             <div className="divide-y divide-admin-border">
-              {order.items.map((item) => (
-                <div key={item.id} className="flex justify-between py-3 text-sm text-admin-text first:pt-0 last:pb-0">
-                  <span>
-                    {item.product.name} × {item.quantity}
-                  </span>
-                  <span>{formatPrice(item.totalCents)}</span>
-                </div>
-              ))}
+              {order.items.map((item) => {
+                const renk = item.variant ? optionValue(item.variant, "Renk") : "";
+                const beden = item.variant ? optionValue(item.variant, "Beden") : "";
+                // Katalogdaki gibi: once siparisteki rengin vitrin fotografi, yoksa urunun ilk fotografi.
+                const renkValueId = item.variant?.options.find((o) => o.value.attribute.isColor)?.valueId;
+                const image =
+                  pickCoverImage(item.product.optionImages.filter((img) => img.valueId === renkValueId))?.url ??
+                  firstImageUrl(item.product);
+                const detay = [
+                  item.product.code && `Kod: ${item.product.code}`,
+                  item.variant && `Stok kodu: ${item.variant.sku}`,
+                  renk && `Renk: ${renk}`,
+                  beden && `Beden: ${beden}`
+                ].filter(Boolean);
+                return (
+                  <div key={item.id} className="flex items-center gap-3 py-3 text-sm text-admin-text first:pt-0 last:pb-0">
+                    <Thumb image={image} className="h-16 w-12" />
+                    <div className="min-w-0 flex-1">
+                      <div>
+                        {item.product.name} × {item.quantity}
+                      </div>
+                      {detay.length > 0 && <div className="mt-0.5 text-xs text-admin-text-muted">{detay.join(" · ")}</div>}
+                    </div>
+                    <span className="shrink-0">{formatPrice(item.totalCents)}</span>
+                  </div>
+                );
+              })}
               <div className="space-y-1 pt-3 text-sm text-admin-text">
                 <div className="flex justify-between text-admin-text-muted">
                   <span>Ara Toplam</span>
