@@ -53,17 +53,68 @@ function money(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
-// WCF DataContract alanlari ordinal alfabetik sirada olmali (UrunServis'te
-// dogrulandi). Sirayi elle tutmak yerine burada siralaniyor. Nesne tipindeki
-// alan (orn. TeslimatAdresi) dogrudan alanlarini icerir; tip adi etiketi
-// (orn. <a:WebSiparisUrun>) yalniz liste elemanlarinda olur.
-function fields(list: [string, string][]): string {
-  const sorted = [...list].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
-  return sorted.map(([name, value]) => `<a:${name}>${value}</a:${name}>`).join("");
+// Ticimax DataContract alanlarinin TAMAMI (SiparisServis.pdf). Gercek WCF
+// cevabi her alani her zaman yazar (deger tipleri varsayilanla, referanslar
+// i:nil). Yalniz doldurdugumuz alanlar gidince Vega siparisi okuyup tutarini
+// topladi ama listesine kaydetmedi (canli deneme 2026-10-26) - bu yuzden hepsi
+// gonderiliyor. Turler: i int, d double, b bool, t datetime, s string, o nesne/liste.
+type Kind = "i" | "d" | "b" | "t" | "s" | "o";
+const SCHEMAS = {
+  WebSiparis: {
+    AdiSoyadi: "s", Durum: "i", EntegrasyonAktarildi: "b", FaturaAdresId: "i", FaturaAdresi: "o", FaturaNo: "s",
+    FaturaTarihi: "t", HediyeCeki: "s", HediyeCekiTutari: "d", HediyePaketiNotu: "s", HediyePaketiTutari: "d",
+    HediyePaketiVar: "b", ID: "i", IPAdresi: "s", IndirimTutari: "d", KargoAdresID: "i", KargoEntegrasyonID: "i",
+    KargoEntegrasyonTakipNo: "s", KargoFirmaId: "i", KargoTakipNo: "s", KargoTutari: "d", Kaynak: "i", Kur: "d",
+    Mail: "s", Maliyet: "d", Odemeler: "o", ParaBirimi: "s", Referer: "s", ReklamKaynagi: "s",
+    // SiparisNo PDF tablosunda yok (metin cikariminda dusmus olabilir) ama filtrede ve Vega listesinde var.
+    SepetKampanyasiIndirimi: "d", SiparisDurumu: "s", SiparisKaynagi: "s", SiparisNo: "s", SiparisNotu: "s", SiparisTarihi: "t",
+    SiparisToplamTutari: "d", StokDustu: "b", TeslimatAdresi: "o", TeslimatGunu: "t", TeslimatSaati: "s",
+    ToplamKdv: "d", ToplamTutar: "d", Tutar: "d", Urunler: "o", UyeAdi: "s", UyeID: "i", UyeMusteriKodu: "s",
+    UyeSoyadi: "s"
+  },
+  FaturaAdres: {
+    Adres: "s", AliciTelefon: "s", EntegrasyonId: "s", FirmaAdi: "s", ID: "i", Il: "s", IlId: "i", IlKodu: "s",
+    Ilce: "s", IlceId: "i", IlceKodu: "s", Ulke: "o", VergiDairesi: "s", VergiNo: "s", isKurumsal: "b"
+  },
+  TeslimatAdres: {
+    Adres: "s", AdresTarifi: "s", AliciAdi: "s", AliciTelefon: "s", ID: "i", Il: "s", IlId: "i", IlKodu: "s",
+    Ilce: "s", IlceId: "i", IlceKodu: "s", PostaKodu: "s", Ulke: "o"
+  },
+  WebUlke: { Alpha2Code: "s", Alpha3Code: "s" },
+  WebSiparisOdeme: {
+    BankaKomisyonu: "d", CheckSum: "s", HavaleBankaID: "i", HavaleHesapID: "i", ID: "i", KKOdemeBankaID: "i",
+    KapidaOdemeTutari: "d", OdemeIndirimi: "d", OdemeNotu: "s", OdemeSecenekID: "i", OdemeTipi: "i",
+    Onaylandi: "i", PosReferansID: "s", SiparisID: "i", TaksitSayisi: "i", Tarih: "t", Tutar: "d", UyeID: "i"
+  },
+  WebSiparisUrun: {
+    Adet: "d", Barkod: "s", Durum: "i", DurumAd: "s", ID: "i", IslemAd: "s", IslemID: "i", KampanyaID: "i",
+    KampanyaIndirimTutari: "d", KdvOrani: "i", KdvTutari: "d", MagazaAtamaTarihi: "t", MagazaDurum: "i",
+    MagazaGonderimTarihi: "t", MagazaID: "i", MagazaKodu: "s", Maliyet: "d", SiparisId: "i", StokKodu: "s",
+    TedarikciID: "i", TedarikciKodu: "s", TedarikciKodu2: "s", Tutar: "d", UrunAdi: "s", UrunID: "i", UrunKartiID: "i"
+  }
+} satisfies Record<string, Record<string, Kind>>;
+type SchemaName = keyof typeof SCHEMAS;
+type Values<T extends SchemaName> = Partial<Record<keyof (typeof SCHEMAS)[T], string>>;
+
+const DEFAULTS: Record<Kind, string | null> = { i: "0", d: "0", b: "false", t: "0001-01-01T00:00:00", s: null, o: null };
+
+// Alanlar ordinal alfabetik sirada (WCF varsayilani, UrunServis'te dogrulandi).
+// Nesne tipindeki alan (orn. TeslimatAdresi) dogrudan alanlarini icerir; tip
+// adi etiketi (orn. <a:WebSiparisUrun>) yalniz liste elemanlarinda olur.
+function fields<T extends SchemaName>(schema: T, values: Values<T>): string {
+  const kinds: Record<string, Kind> = SCHEMAS[schema];
+  const given: Record<string, string | undefined> = values;
+  return Object.keys(kinds)
+    .sort((a, b) => (a < b ? -1 : a > b ? 1 : 0))
+    .map((name) => {
+      const value = given[name] ?? DEFAULTS[kinds[name]];
+      return value === null ? `<a:${name} i:nil="true"/>` : `<a:${name}>${value}</a:${name}>`;
+    })
+    .join("");
 }
 
-function element(tag: string, list: [string, string][]): string {
-  return `<a:${tag}>${fields(list)}</a:${tag}>`;
+function element<T extends SchemaName>(schema: T, values: Values<T>): string {
+  return `<a:${schema}>${fields(schema, values)}</a:${schema}>`;
 }
 
 export type VegaOrderInput = {
@@ -118,10 +169,7 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
   // Vega'nin onayladigi (SetSiparisDurum "Onaylandi") odenmis siparis Ticimax'taki gibi Onaylandi gorunur.
   const [durum, durumAdi] =
     order.status === "PAID" && order.vegaFetchedAt ? [2, "Onaylandi"] : (DURUMLAR[order.status] ?? DURUMLAR.PAID);
-  const ulke = fields([
-    ["Alpha2Code", "TR"],
-    ["Alpha3Code", "TUR"]
-  ]);
+  const ulke = fields("WebUlke", { Alpha2Code: "TR", Alpha3Code: "TUR" });
 
   let toplamKdv = vatFromGrossCents(order.shippingCents, SHIPPING_VAT_RATE);
   const urunler = order.items
@@ -130,94 +178,88 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
       const kdvOrani = resolveVatRate(item.product);
       const kdv = vatFromGrossCents(paid, kdvOrani);
       toplamKdv += kdv;
-      return element("WebSiparisUrun", [
-        ["Adet", String(item.quantity)],
-        ["Barkod", xmlEscape(item.variant ? (item.variant.barcode ?? item.variant.sku) : "")],
+      return element("WebSiparisUrun", {
+        Adet: String(item.quantity),
+        Barkod: xmlEscape(item.variant ? (item.variant.barcode ?? item.variant.sku) : ""),
         // Satir kimligi siparisler arasi tekil olsun diye siparis ID'sinden turetiliyor.
-        ["ID", String(order.vegaId * 1000 + index + 1)],
-        ["KdvOrani", String(kdvOrani)],
-        ["KdvTutari", money(kdv)],
-        ["SiparisId", String(order.vegaId)],
-        ["StokKodu", xmlEscape(item.variant?.sku ?? "")],
+        ID: String(order.vegaId * 1000 + index + 1),
+        KdvOrani: String(kdvOrani),
+        KdvTutari: money(kdv),
+        SiparisId: String(order.vegaId),
+        StokKodu: xmlEscape(item.variant?.sku ?? ""),
         // Birim fiyat (KDV dahil); satir toplami = Tutar x Adet varsayimi (planda acik soru).
-        ["Tutar", money(paid / item.quantity)],
-        ["UrunAdi", xmlEscape(item.product.name)],
-        ["UrunID", String(item.variant?.vegaId ?? 0)],
-        ["UrunKartiID", String(item.product.vegaId)]
-      ]);
+        Tutar: money(paid / item.quantity),
+        UrunAdi: xmlEscape(item.product.name),
+        UrunID: String(item.variant?.vegaId ?? 0),
+        UrunKartiID: String(item.product.vegaId)
+      });
     })
     .join("");
 
-  const odemeTarihi = formatVegaDate(order.paidAt ?? order.createdAt);
-  const odeme = element("WebSiparisOdeme", [
-    ["ID", String(order.vegaId)],
-    ["OdemeTipi", "0"], // 0 = KrediKarti (iyzico); Vega eslemesi acik soru
-    ["Onaylandi", "1"],
-    ["SiparisID", String(order.vegaId)],
-    ["TaksitSayisi", String(order.installment ?? 1)],
-    ["Tarih", odemeTarihi],
-    ["Tutar", money(order.totalCents)]
-  ]);
+  const odeme = element("WebSiparisOdeme", {
+    ID: String(order.vegaId),
+    OdemeTipi: "0", // 0 = KrediKarti (iyzico); Vega eslemesi acik soru
+    Onaylandi: "1",
+    SiparisID: String(order.vegaId),
+    TaksitSayisi: String(order.installment ?? 1),
+    Tarih: formatVegaDate(order.paidAt ?? order.createdAt),
+    Tutar: money(order.totalCents),
+    UyeID: String(order.vegaId)
+  });
 
   const adres = xmlEscape(order.shippingAddress);
   const il = xmlEscape(order.city);
   const ilce = xmlEscape(order.district);
   const telefon = xmlEscape(order.customerPhone);
 
-  return element("WebSiparis", [
-    ["AdiSoyadi", xmlEscape(order.customerName)],
-    ["Durum", String(durum)],
+  return element("WebSiparis", {
+    AdiSoyadi: xmlEscape(order.customerName),
+    Durum: String(durum),
     // Vega SetSiparisAktarildi cagirmiyor; Ticimax'ta da bu durumda hep false kalirdi.
-    ["EntegrasyonAktarildi", "false"],
-    [
-      "FaturaAdresi",
-      fields([
-        ["Adres", adres],
-        ["AliciTelefon", telefon],
-        ["FirmaAdi", ""],
-        ["ID", String(order.vegaId)],
-        ["Il", il],
-        ["Ilce", ilce],
-        ["Ulke", ulke],
-        ["VergiDairesi", ""],
-        // Bireysel fatura: Ticimax doneminde de TC yerine 11111111111 yaziliyordu.
-        ["VergiNo", "11111111111"],
-        ["isKurumsal", "false"]
-      ])
-    ],
-    ["ID", String(order.vegaId)],
-    ["KargoTutari", money(order.shippingCents)],
-    ["Kur", "1"],
-    ["Mail", xmlEscape(order.customerEmail)],
-    ["Odemeler", odeme],
-    ["ParaBirimi", "TL"],
-    ["SiparisDurumu", durumAdi],
-    ["SiparisNo", xmlEscape(order.orderNumber)],
-    ["SiparisNotu", xmlEscape(order.note ?? "")],
-    ["SiparisTarihi", formatVegaDate(order.createdAt)],
-    ["SiparisToplamTutari", money(order.totalCents)],
-    ["StokDustu", "true"],
-    [
-      "TeslimatAdresi",
-      fields([
-        ["Adres", adres],
-        ["AliciAdi", xmlEscape(order.customerName)],
-        ["AliciTelefon", telefon],
-        ["ID", String(order.vegaId)],
-        ["Il", il],
-        ["Ilce", ilce],
-        ["PostaKodu", xmlEscape(order.postalCode ?? "")],
-        ["Ulke", ulke]
-      ])
-    ],
-    ["ToplamKdv", money(toplamKdv)],
-    ["ToplamTutar", money(order.totalCents)],
-    ["Tutar", money(order.totalCents)],
-    ["Urunler", urunler],
-    ["UyeAdi", xmlEscape(ad)],
+    EntegrasyonAktarildi: "false",
+    FaturaAdresId: String(order.vegaId),
+    FaturaAdresi: fields("FaturaAdres", {
+      Adres: adres,
+      AliciTelefon: telefon,
+      ID: String(order.vegaId),
+      Il: il,
+      Ilce: ilce,
+      Ulke: ulke,
+      // Bireysel fatura: Ticimax doneminde de TC yerine 11111111111 yaziliyordu.
+      VergiNo: "11111111111",
+      isKurumsal: "false"
+    }),
+    ID: String(order.vegaId),
+    KargoAdresID: String(order.vegaId),
+    KargoTutari: money(order.shippingCents),
+    Kur: "1",
+    Mail: xmlEscape(order.customerEmail),
+    Odemeler: odeme,
+    ParaBirimi: "TL",
+    SiparisDurumu: durumAdi,
+    SiparisNo: xmlEscape(order.orderNumber),
+    SiparisNotu: xmlEscape(order.note ?? ""),
+    SiparisTarihi: formatVegaDate(order.createdAt),
+    SiparisToplamTutari: money(order.totalCents),
+    StokDustu: "true",
+    TeslimatAdresi: fields("TeslimatAdres", {
+      Adres: adres,
+      AliciAdi: xmlEscape(order.customerName),
+      AliciTelefon: telefon,
+      ID: String(order.vegaId),
+      Il: il,
+      Ilce: ilce,
+      PostaKodu: xmlEscape(order.postalCode ?? ""),
+      Ulke: ulke
+    }),
+    ToplamKdv: money(toplamKdv),
+    ToplamTutar: money(order.totalCents),
+    Tutar: money(order.totalCents),
+    Urunler: urunler,
+    UyeAdi: xmlEscape(ad),
     // Vega "Musteri Kodu"nu buradan uretiyor olabilir; 0 tum siparisleri tek
     // cariye toplardi. Hesap zorunlu olmadigi icin siparis basina tekil deger.
-    ["UyeID", String(order.vegaId)],
-    ["UyeSoyadi", xmlEscape(soyad)]
-  ]);
+    UyeID: String(order.vegaId),
+    UyeSoyadi: xmlEscape(soyad)
+  });
 }

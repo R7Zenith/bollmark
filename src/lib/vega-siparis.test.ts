@@ -46,7 +46,9 @@ test("formatVegaDate: Istanbul saati, ek yok", () => {
 
 test("alanlar ordinal alfabetik sirada", () => {
   const xml = buildWebSiparisXml(order());
-  const top = [...xml.matchAll(/<a:(\w+)>/g)].map((m) => m[1]);
+  // Ust duzey alanlar: ic nesnelerde de ayni adlar (ID, UyeID) var, once onlar cikarilir.
+  const flat = xml.replace(/<a:(FaturaAdresi|TeslimatAdresi|Odemeler|Urunler)>.*?<\/a:\1>/g, "<a:$1>");
+  const top = [...flat.matchAll(/<a:(\w+)[ >]/g)].map((m) => m[1]);
   const idx = (name: string) => top.indexOf(name);
   assert.ok(idx("AdiSoyadi") < idx("Durum"));
   assert.ok(idx("ID") < idx("KargoTutari"));
@@ -82,7 +84,16 @@ test("baslik: ad/soyad, tutarlar, durum, kacisli adres, nesne alanlarinda tip et
   assert.match(xml, /&lt;Daire 2&gt;/);
   assert.match(xml, /<a:Ulke><a:Alpha2Code>TR<\/a:Alpha2Code>/);
   assert.doesNotMatch(xml, /<a:TeslimatAdres>|<a:FaturaAdres>/);
-  assert.match(xml, /<a:Odemeler><a:WebSiparisOdeme>.*<a:Tutar>1350\.00<\/a:Tutar><\/a:WebSiparisOdeme><\/a:Odemeler>/);
+  assert.match(xml, /<a:Odemeler><a:WebSiparisOdeme>.*<a:Tutar>1350\.00<\/a:Tutar><a:UyeID>7<\/a:UyeID><\/a:WebSiparisOdeme><\/a:Odemeler>/);
+});
+
+test("doldurulmayan alanlar WCF varsayilaniyla yazilir", () => {
+  const xml = buildWebSiparisXml(order());
+  assert.match(xml, /<a:FaturaTarihi>0001-01-01T00:00:00<\/a:FaturaTarihi>/);
+  assert.match(xml, /<a:FaturaNo i:nil="true"\/>/);
+  assert.match(xml, /<a:HediyePaketiVar>false<\/a:HediyePaketiVar>/);
+  assert.match(xml, /<a:MagazaAtamaTarihi>0001-01-01T00:00:00<\/a:MagazaAtamaTarihi>/);
+  assert.equal((xml.match(/<a:WebSiparisUrun>/g) ?? []).length, 1);
 });
 
 test("Vega onayladiysa Onaylandi", () => {
