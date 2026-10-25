@@ -61,14 +61,14 @@ function money(cents: number): string {
 type Kind = "i" | "d" | "b" | "t" | "s" | "o";
 const SCHEMAS = {
   WebSiparis: {
-    AdiSoyadi: "s", Durum: "i", EntegrasyonAktarildi: "b", FaturaAdresId: "i", FaturaAdresi: "o", FaturaNo: "s",
+    AdiSoyadi: "s", Durum: "i", EntegrasyonAktarildi: "b", FaturaAdresID: "i", FaturaAdresi: "o", FaturaNo: "s",
     FaturaTarihi: "t", HediyeCeki: "s", HediyeCekiTutari: "d", HediyePaketiNotu: "s", HediyePaketiTutari: "d",
     HediyePaketiVar: "b", ID: "i", IPAdresi: "s", IndirimTutari: "d", KargoAdresID: "i", KargoEntegrasyonID: "i",
-    KargoEntegrasyonTakipNo: "s", KargoFirmaId: "i", KargoTakipNo: "s", KargoTutari: "d", Kaynak: "i", Kur: "d",
+    KargoEntegrasyonTakipNo: "s", KargoFirmaID: "i", KargoTakipNo: "s", KargoTutari: "d", Kaynak: "i", Kur: "d",
     Mail: "s", Maliyet: "d", Odemeler: "o", ParaBirimi: "s", Referer: "s", ReklamKaynagi: "s",
-    // SiparisKodu/SiparisNo PDF tablosunda yok (metin cikariminda dusmus olabilir) ama filtrede var. Yalniz
-    // SiparisNo gidince Vega'nin "Siparis No" sutunu bos kaldi (2026-10-26); ikisi de yaziliyor.
-    SepetKampanyasiIndirimi: "d", SiparisDurumu: "s", SiparisKaynagi: "s", SiparisKodu: "s", SiparisNo: "s",
+    // Alan adlari gercek bir Ticimax magazasinin SiparisServis WSDL'iyle karsilastirildi
+    // (2026-10-26; PDF eski: SiparisNo/ReferansNo yok, bazi ID'ler farkli yazilmis).
+    ReferansNo: "s", SepetKampanyasiIndirimi: "d", SiparisDurumu: "s", SiparisKaynagi: "s", SiparisKodu: "s", SiparisNo: "s",
     SiparisNotu: "s", SiparisTarihi: "t",
     SiparisToplamTutari: "d", StokDustu: "b", TeslimatAdresi: "o", TeslimatGunu: "t", TeslimatSaati: "s",
     ToplamKdv: "d", ToplamTutar: "d", Tutar: "d", Urunler: "o", UyeAdi: "s", UyeID: "i", UyeMusteriKodu: "s",
@@ -76,12 +76,12 @@ const SCHEMAS = {
   },
   // AliciAdi PDF'te yok; gonderilmeyince Vega'da "Fatura Adi" bos kaldi (bilinmeyen alani Vega yok sayar).
   FaturaAdres: {
-    Adres: "s", AliciAdi: "s", AliciTelefon: "s", EntegrasyonId: "s", FirmaAdi: "s", ID: "i", Il: "s", IlId: "i", IlKodu: "s",
-    Ilce: "s", IlceId: "i", IlceKodu: "s", Ulke: "o", VergiDairesi: "s", VergiNo: "s", isKurumsal: "b"
+    Adres: "s", AliciAdi: "s", AliciTelefon: "s", EntegrasyonId: "s", FirmaAdi: "s", ID: "i", Il: "s", IlID: "i", IlKodu: "s",
+    Ilce: "s", IlceID: "i", IlceKodu: "s", Ulke: "o", VergiDairesi: "s", VergiNo: "s", isKurumsal: "b"
   },
   TeslimatAdres: {
-    Adres: "s", AdresTarifi: "s", AliciAdi: "s", AliciTelefon: "s", ID: "i", Il: "s", IlId: "i", IlKodu: "s",
-    Ilce: "s", IlceId: "i", IlceKodu: "s", PostaKodu: "s", Ulke: "o"
+    Adres: "s", AdresTarifi: "s", AliciAdi: "s", AliciTelefon: "s", ID: "i", Il: "s", IlID: "i", IlKodu: "s",
+    Ilce: "s", IlceID: "i", IlceKodu: "s", PostaKodu: "s", Ulke: "o"
   },
   WebUlke: { Alpha2Code: "s", Alpha3Code: "s" },
   WebSiparisOdeme: {
@@ -92,7 +92,7 @@ const SCHEMAS = {
   WebSiparisUrun: {
     Adet: "d", Barkod: "s", Durum: "i", DurumAd: "s", ID: "i", IslemAd: "s", IslemID: "i", KampanyaID: "i",
     KampanyaIndirimTutari: "d", KdvOrani: "i", KdvTutari: "d", MagazaAtamaTarihi: "t", MagazaDurum: "i",
-    MagazaGonderimTarihi: "t", MagazaID: "i", MagazaKodu: "s", Maliyet: "d", SiparisId: "i", StokKodu: "s",
+    MagazaGonderimTarihi: "t", MagazaID: "i", MagazaKodu: "s", Maliyet: "d", SiparisID: "i", StokKodu: "s",
     TedarikciID: "i", TedarikciKodu: "s", TedarikciKodu2: "s", Tutar: "d", UrunAdi: "s", UrunID: "i", UrunKartiID: "i"
   }
 } satisfies Record<string, Record<string, Kind>>;
@@ -192,7 +192,7 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
         KdvOrani: String(kdvOrani),
         // Birim basina (adet > 1'de Vega'nin carpip carpmadigi ilk cok adetli sipariste dogrulanacak).
         KdvTutari: money(birimKdv),
-        SiparisId: String(order.vegaId),
+        SiparisID: String(order.vegaId),
         StokKodu: xmlEscape(item.variant?.sku ?? ""),
         Tutar: money(birimBrut - birimKdv),
         UrunAdi: xmlEscape(item.product.name),
@@ -225,7 +225,7 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
     Durum: String(durum),
     // Vega SetSiparisAktarildi cagirmiyor; Ticimax'ta da bu durumda hep false kalirdi.
     EntegrasyonAktarildi: "false",
-    FaturaAdresId: String(order.vegaId),
+    FaturaAdresID: String(order.vegaId),
     FaturaAdresi: fields("FaturaAdres", {
       Adres: adres,
       AliciAdi: xmlEscape(order.customerName),
@@ -253,8 +253,12 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
     Referer: "https://www.bollmark.com",
     SiparisDurumu: durumAdi,
     SiparisKaynagi: "www.bollmark.com",
-    SiparisKodu: xmlEscape(order.orderNumber),
-    SiparisNo: xmlEscape(order.orderNumber),
+    // DENEME (2026-10-26): SiparisNo = BLM... gidince Vega'nin "Siparis No" sutunu bos kaldi.
+    // Hangi alanin/bicimin okundugunu tek sipariste ayirt etmek icin uc farkli yazim; sonuca
+    // gore sadelestirilecek (bkz. VEGA_SIPARIS_AKTARIM_PLANI.md).
+    ReferansNo: xmlEscape(order.orderNumber),
+    SiparisKodu: order.orderNumber.replace(/\D/g, ""),
+    SiparisNo: xmlEscape(order.orderNumber.replace(/-/g, "")),
     SiparisNotu: xmlEscape(order.note ?? ""),
     SiparisTarihi: formatVegaDate(order.createdAt),
     SiparisToplamTutari: money(order.totalCents),
