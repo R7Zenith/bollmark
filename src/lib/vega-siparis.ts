@@ -248,7 +248,11 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
     Mail: xmlEscape(order.customerEmail),
     Odemeler: odeme,
     ParaBirimi: "TL",
+    // Vega faturasinda "Internet Sitesi" ".com" geldi (2026-10-26); kaynagi Vega'nin
+    // Site Adi ayari olabilir. Bu iki alani okuyorsa duzelir - ilk sipariste kontrol.
+    Referer: "https://www.bollmark.com",
     SiparisDurumu: durumAdi,
+    SiparisKaynagi: "www.bollmark.com",
     SiparisKodu: xmlEscape(order.orderNumber),
     SiparisNo: xmlEscape(order.orderNumber),
     SiparisNotu: xmlEscape(order.note ?? ""),
