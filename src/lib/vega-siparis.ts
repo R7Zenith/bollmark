@@ -25,11 +25,6 @@ const DURUMLAR: Record<string, [number, string]> = {
 
 const ISTANBUL_OFFSET_MS = 3 * 60 * 60 * 1000;
 
-// GECICI DENEME (2026-10-26): Vega'nin "Siparis No" sutunu SiparisNo/SiparisKodu/ReferansNo'ya
-// BLM numarasi yazilinca bos kaldi. Hangi alani (ve kisa/sayisal deger isteyip istemedigini)
-// tek sipariste bulmak icin aday alanlara farkli kucuk sayilar (101-110) yaziliyor. Sonuc
-// gorulunce false yapilip bulunan alana siparis numarasi yazilacak.
-const SIPARIS_NO_DENEME = true;
 
 export function xmlEscape(value: string): string {
   return value
@@ -211,7 +206,6 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
 
   const odeme = element("WebSiparisOdeme", {
     ID: String(order.vegaId),
-    OdemeSiparisID: SIPARIS_NO_DENEME ? "110" : undefined,
     OdemeTipi: "0", // 0 = KrediKarti (iyzico); Vega eslemesi acik soru
     Onaylandi: "1",
     SiparisID: String(order.vegaId),
@@ -260,19 +254,11 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
     // Vega hem "No" sutununu (aynen) hem "Site Adresi"ni (sonuna ".com" ekleyerek) bu alandan
     // dolduruyor; Referer'i okumuyor (2026-10-26 denemeleri). Faturadaki internet sitesi icin.
     SiparisKaynagi: "bollmark",
-    ...(SIPARIS_NO_DENEME
-      ? {
-          SiparisNo: "101",
-          SiparisKodu: "102",
-          ReferansNo: "103",
-          OzelAlan1: "104",
-          OzelAlan2: "105",
-          OzelAlan3: "106",
-          BNPLNo: "107",
-          MagazaTeslimKodu: "108",
-          UyeMusteriKodu: "109"
-        }
-      : { SiparisKodu: xmlEscape(order.orderNumber), SiparisNo: xmlEscape(order.orderNumber) }),
+    // Vega'nin "Siparis No" sutunu bunlardan (ve ReferansNo, OzelAlan1-3, BNPLNo,
+    // MagazaTeslimKodu, UyeMusteriKodu, OdemeSiparisID'den) dolmuyor - 2026-10-26'da
+    // ayirt edici degerlerle denendi. Ticimax'ta dogru alanlar bunlar, yaziliyor.
+    SiparisKodu: xmlEscape(order.orderNumber),
+    SiparisNo: xmlEscape(order.orderNumber),
     SiparisNotu: xmlEscape(order.note ?? ""),
     SiparisTarihi: formatVegaDate(order.createdAt),
     SiparisToplamTutari: money(order.totalCents),
