@@ -85,6 +85,63 @@ Embarcadero istemcisinden **yine istek yok**; son 40 dakikadaki tüm bot dışı
 istekler de tarandı, Vega izi yok. Yani istek ya henüz başlamadı ya da
 Worker'da 404 ile kalıyor (1. neden). Faz 0 loglaması hâlâ gerekli.
 
+### 2.1.0 ÇÖZÜLDÜ (2026-10-25 gece): istek yakalandı
+
+**Neden ulaşmıyordu:** Vega sipariş isteğinde Site Adı'nın başına gerçekten
+**`www.`** ekliyor (ürün/stok isteklerinde eklemiyor). workers.dev sertifikası
+`www.bollmark-vega-bridge.ozilevent.workers.dev`'i kapsamadığı için TLS el
+sıkışması düşüyordu (curl ile doğrulandı: DNS çözülüyor, TLS hata 35).
+
+**Çözüm (uygulandı, kullanıcı onayıyla):** Worker'a iki özel alan adı
+bağlandı: `vega.bollmark.com` ve `www.vega.bollmark.com` (`wrangler.toml`
+`routes`, `workers_dev = true` korundu). Vega'da Site Adı =
+`vega.bollmark.com`. Stok/ürün `vega.bollmark.com`'a, sipariş
+`www.vega.bollmark.com`'a gidiyor; ikisi de Worker → `bollmark.com/Servis/...`.
+Not: yeni ad sertifika kayıtlarından öğrenilip botlarca taranıyor (`.env`,
+`.git` vb.); Worker yalnız `/Servis/` ve `/api/vega/panelapi/` iletiyor,
+gerisi 404. `/Servis/` her metotta `UyeKodu` doğruluyor.
+
+**Yakalanan gerçek istek** (Worker + Vercel runtime logu, 20:40:56 UTC):
+
+```
+POST https://www.vega.bollmark.com/Servis/SiparisServis.svc
+SOAPAction: http://tempuri.org/ISiparisServis/SelectSiparis
+User-Agent: Embarcadero SOAP 1.4
+```
+
+İki farklı gövde geliyor (filtre alanları `xmlns="http://schemas.datacontract.org/2004/07/"`,
+UrunServis ile aynı namespace):
+
+1. **Sipariş çekme** ("Sipariş Güncelleme", 2 dk):
+   `SiparisTarihiBas = 2022-08-01T00:00:11Z` (Vega'daki "Entegrasyon
+   Başlangıcı"), **`EntegrasyonAktarildi = -1`** (hepsi), `OdemeDurumu = -1`,
+   `OdemeTipi = -1`, `SiparisDurumu = -1`, `SiparisID = 0`, `UyeID = 0`;
+   sayfalama `BaslangicIndex = 0`, `KayitSayisi = 100`, `SiralamaDegeri = ID`,
+   `SiralamaYonu = ASC`.
+2. **Durum çekme** ("Durum Güncelleme", 2 dk): aynı alanlar, ama
+   `SiparisTarihiBas` yerine **`DurumTarihiBas = <şu an>`**. Değer
+   `2026-10-25T23:40:55Z`: sonunda `Z` olmasına rağmen **yerel saat**
+   (İstanbul; UTC 20:40:55). Uygulamada `Z` yok sayılıp İstanbul saati
+   olarak okunmalı.
+
+**Sonuçlar (planı değiştiren):**
+
+- Vega "aktarılmayanlar" filtresi **kullanmıyor** (`-1`); her seferinde
+  başlangıç tarihinden bu yana tüm siparişleri ID sırasıyla 100'lük
+  sayfalarla istiyor. Çift kaydı Vega'nın kendisi `ID` ile önlüyor olmalı.
+  Bizim tarafta **sabit ve kalıcı `ID`** şart; "aktarıldı" bayrağına göre
+  filtrelemek yanlış olur.
+- `SetSiparisAktarildi` henüz gelmedi (sipariş dönmediği için normal); gelip
+  gelmeyeceği Faz 2'de görülecek. Stok koruması ona bağlanmamalı (5(b)
+  güncellendi).
+- İptal/durum değişikliği Vega'ya **`DurumTarihiBas`** sorgusuyla gidiyor:
+  bu tarihten sonra durumu değişen siparişler `Durum = 8 (Iptal)` vb. ile
+  dönerse Vega'nın siparişi iptal edip stoğu bırakması beklenir (kullanıcı:
+  "Vega'da iptal edilince stok siteye geri geliyordu"). Sitede `Order.updatedAt`
+  bu filtre için kullanılabilir (fazla kayıt dönmesi zararsız).
+- Şu an site her iki sorguya "desteklenmeyen metot" SOAP Fault'u (500)
+  dönüyor; Vega sessizce yutuyor. Faz 1 bunu geçerli boş listeye çevirir.
+
 ### 2.1.1 Vega sipariş ekranı (kullanıcı ekran görüntüsü, 2026-10-25)
 
 VegaSanalMağaza v9.9.0.6, sol menüde "Tümü" ve "TiciMax" sekmeleri, liste boş.
@@ -365,6 +422,16 @@ Ticimax entegratörlerinin olağan döngüsü: `SelectSiparis` (aktarılmayanlar
 `Order.vegaTransferredAt` ile kaydedebilir (şema önerisi). Vega çağırmıyorsa
 (b)'deki zaman sınırlı yedek kullanılır.
 
+> **Güncelleme (istek yakalandıktan sonra):** Vega `EntegrasyonAktarildi = -1`
+> ile soruyor ve `SetSiparisAktarildi` çağırdığı henüz görülmedi. Bu yüzden
+> "aktarıldı" anı olarak **siparişin `SelectSiparis` cevabında Vega'ya ilk
+> kez gönderildiği an** kaydedilir (alan adı `vegaFetchedAt`; Vega 2 dk'da
+> bir çektiği ve aldığını hemen işlediği için yeterli). `SetSiparisAktarildi`
+> gelirse ek doğrulama olarak loglanır. Böylece Vega kapalıyken (gece)
+> verilen sipariş, sabah Vega çekene kadar korunur; sabit 30 dakikalık
+> sınıra gerek kalmaz, yalnız güvenlik için geniş bir üst sınır (ör. 24 saat)
+> konur. Aşağıdaki sorguda `vegaTransferredAt` yerine `vegaFetchedAt` okunmalı.
+
 ### (b) Bekleme aralığı için hafif koruma (önerilen, en az kod)
 
 `handleVaryasyonGuncelle` içinde, yazmadan önce tek bir toplama sorgusu:
@@ -445,6 +512,10 @@ siparişiyle birlikte):
 ---
 
 ## 6. Şema değişikliği (onay bekliyor, yapılmadı)
+
+> **Güncelleme:** İkinci alanın anlamı "Vega'ya ilk gönderildiği an" oldu
+> (bkz. 2.1.0 ve 5. bölüm); adı `vegaFetchedAt` önerilir. `vegaId` aynen
+> gerekli, hatta daha kritik: Vega çift kaydı yalnız `ID` ile ayırıyor.
 
 ```prisma
 model Order {
