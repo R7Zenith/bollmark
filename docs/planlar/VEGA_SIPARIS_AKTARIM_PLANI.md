@@ -1,6 +1,6 @@
 # Vega Sipariş Aktarımı Planı
 
-Durum: devam ediyor. Faz 0 ve Faz 1 uygulandı (2026-10-25); sırada Faz 2 (şema onayı bekliyor)
+Durum: devam ediyor. Faz 0-3 canlıda (2026-10-26); test siparişi Vega listesine düştü. Kalan: stok ayırma doğrulaması (5(d)), ilk gerçek müşteri siparişi, Vega'dan gelen diğer durumlar
 
 Bu oturumda kod, şema ve veritabanı değişikliği yapılmadı. Vercel logları
 yalnız okundu.
@@ -577,6 +577,16 @@ gövdesi elimizde. Gövdeden `WebSiparisFiltre` alanları ve namespace'i okundu.
 hata/ileti ekranında sipariş hatası yok.
 
 > **Faz 0–1 sonucu (2026-10-25):** Faz 0 bulguları 2.1.0'da. Faz 1 canlıda (commit `fab3914`): `SelectSiparis` geçerli boş liste, `SetSiparisAktarildi`/`İptal` yalnız log; Faz 0 geçici logları kaldırıldı. 20:49 UTC'de iki sorgu da `SelectSiparis basarili` (donenAdet 0) aldı; hata varken her turda 3 istek geliyordu, şimdi 2 (Vega Fault sonrası bir kez yeniden deniyordu).
+
+> **Faz 2-3 sonucu (2026-10-26 gece):** `Order.vegaId` + `vegaFetchedAt` (kullanıcı onayıyla db push), `lib/vega-siparis.ts` (birim testli), `SelectSiparis` gerçek siparişler, `SetSiparisDurum`, stok koruması canlıda. Canlı denemelerde öğrenilenler:
+> 1. Ödenmiş yeni sipariş **OnayBekliyor (1)** gitmeli; Onaylandi (2) ile Vega yalnız "Kargo Bekleyen" sayacını artırdı, listeye almadı.
+> 2. Vega yeni siparişi alınca hemen `SetSiparisDurum(<request><Durum>Onaylandi</Durum><SiparisID>N</SiparisID></request>)` çağırıyor; bu Vega'nın kesin alım onayı, `vegaFetchedAt` bu anda yazılıyor (stok koruması burada biter). Cevap `SetSiparisDurumResult{ErrorMessage, IsErros}`.
+> 3. **DataContract alanlarının TAMAMI gönderilmeli** (WCF varsayılanları: 0, false, `0001-01-01T00:00:00`, `i:nil`). Yalnız doldurulan alanlar gidince Vega tutarı topladı ama siparişi kaydetmedi.
+> 4. `EntegrasyonAktarildi` hep false; Vega `SetSiparisAktarildi` çağırmıyor.
+> 5. "Sipariş No" sütunu `SiparisNo` ile dolmadı → `SiparisKodu` da yazılıyor; ödeme `Tarih`'i Vega UTC sayıyor (3 saat ileri göründü) → UTC gönderiliyor. İkisi bir sonraki siparişte doğrulanacak.
+> 6. Vega listesinde doğru gelenler: Sipariş Id, tarih, Bireysel, il/ilçe, Müşteri Kodu `TM-<vegaId>`, ad/soyad, genel toplam, e-posta, ödeme durumu, KREDIKARTI/BANKAKART.
+> 7. Vega bir kez `UrunServis.SelectTedarikci` çağırdı (desteklenmeyen; şimdilik gerek yok).
+> 8. Sipariş silmek/iptal etmek site stoğunu geri eklemiyor (mevcut davranış); deneme sonrası stok elle düzeltildi.
 
 ### Faz 2: Şema + gerçek siparişler
 
