@@ -285,8 +285,8 @@ async function handleVaryasyonGuncelle(rawBody: string) {
     );
   }
 
-  // Vega'nin henuz cekmedigi odenmis siparisler: site stogu odeme aninda zaten
-  // dustu, Vega ise siparisi cekince ayiriyor. Aradaki surede gelen Vega
+  // Vega'nin henuz almadigi (SetSiparisDurum ile onaylamadigi) odenmis
+  // siparisler: site stogu odeme aninda zaten dustu, Vega ise siparisi alinca ayiriyor. Aradaki surede gelen Vega
   // degeri bu adetleri icermiyor; dusulmezse satilan urun stoga geri yazilir
   // (bkz. VEGA_SIPARIS_AKTARIM_PLANI.md bolum 5). 24 saat ust sinir: Vega hic
   // cekmezse dusum sonsuza kadar surmesin.
@@ -329,8 +329,8 @@ async function handleVaryasyonGuncelle(rawBody: string) {
 // SiparisServis.svc (bkz. VEGA_SIPARIS_AKTARIM_PLANI.md). Vega iki sorgu atiyor
 // (2 dk'da bir), ikisinde de EntegrasyonAktarildi = -1 (hepsi):
 // - siparis cekme: SiparisTarihiBas = Vega'daki "Entegrasyon Baslangici".
-//   Suren odenmis siparislerden henuz alinmamislar + son 3 gunde alinanlar
-//   doner (Vega isleyemediyse tekrar dener; liste her 2 dk'da sinirsiz
+//   Suren odenmis siparislerden Vega'nin henuz onaylamadiklari (en cok 7
+//   gunluk) + son 3 gunde onayladiklari doner (liste her 2 dk'da sinirsiz
 //   buyumez). Cift kaydi Vega sabit ID ile ayiriyor.
 // - durum cekme: DurumTarihiBas = simdi; yalniz Vega'nin aldigi ve o andan
 //   sonra degisen siparisler (iptal Vega'ya boyle gider).
@@ -361,7 +361,10 @@ async function handleSelectSiparis(rawBody: string) {
             ? { vegaFetchedAt: { not: null }, updatedAt: { gte: durumTarihiBas } }
             : {
                 status: { in: VEGA_AKTIF_DURUMLAR },
-                OR: [{ vegaFetchedAt: null }, { vegaFetchedAt: { gte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) } }]
+                OR: [
+                  { vegaFetchedAt: null, paidAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
+                  { vegaFetchedAt: { gte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) } }
+                ]
               })
         },
         orderBy: { vegaId: "asc" },
@@ -384,19 +387,13 @@ async function handleSelectSiparis(rawBody: string) {
         }
       });
 
-  // Ilk kez gonderilen siparisler "Vega'ya ulasti" sayilir: stok dusumu biter.
-  const yeni = orders.filter((order) => !order.vegaFetchedAt).map((order) => order.id);
-  if (yeni.length > 0) {
-    await prisma.order.updateMany({ where: { id: { in: yeni }, vegaFetchedAt: null }, data: { vegaFetchedAt: new Date() } });
-  }
-
   logTcmx("SelectSiparis basarili", {
     sorgu: durumTarihiBas ? "durum" : "siparis",
     kapali,
     siparisId,
     startIndex,
     donenAdet: orders.length,
-    ilkKez: yeni.length,
+    onayBekleyen: orders.filter((order) => !order.vegaFetchedAt).length,
     siparisNo: orders.slice(0, 10).map((order) => order.orderNumber)
   });
 
@@ -407,6 +404,43 @@ async function handleSelectSiparis(rawBody: string) {
         orders.map(buildWebSiparisXml).join("") +
         `</SelectSiparisResult>` +
         `</SelectSiparisResponse>`
+    )
+  );
+}
+
+// Vega siparisi icine alinca "Onaylandi" yaziyor (canli yakalama 2026-10-26):
+//   <request><Durum>Onaylandi</Durum><SiparisID>16</SiparisID></request>
+// Bu, Vega'nin siparisi aldiginin kesin isareti: vegaFetchedAt yazilir (stok
+// dusumu biter, siparis artik "Onaylandi" gorunur). Diger durumlar (Paketleniyor,
+// KargoyaVerildi, Iptal...) sitede henuz uygulanmiyor; loglanip hata donuluyor.
+async function handleSetSiparisDurum(rawBody: string) {
+  const uyeKodu = extractTag(rawBody, "UyeKodu");
+  if (!(await verifyUyeKodu(uyeKodu))) {
+    logTcmx("SetSiparisDurum yetkisiz", {});
+    return xmlResponse(soapFault("UyeKodu hatali."), 500);
+  }
+
+  const durum = extractTag(rawBody, "Durum") ?? "";
+  const siparisId = Number(extractTag(rawBody, "SiparisID") ?? "0") || 0;
+  let hata: string | null = null;
+  if (durum !== "Onaylandi") {
+    hata = `Durum uygulanmiyor: ${durum}`;
+  } else {
+    const order = await prisma.order.findUnique({ where: { vegaId: siparisId }, select: { id: true } });
+    if (!order) hata = "Siparis bulunamadi.";
+    else await prisma.order.updateMany({ where: { id: order.id, vegaFetchedAt: null }, data: { vegaFetchedAt: new Date() } });
+  }
+
+  logTcmx("SetSiparisDurum", { siparisId, durum, hata });
+
+  return xmlResponse(
+    soapEnvelope(
+      `<SetSiparisDurumResponse xmlns="http://tempuri.org/">` +
+        `<SetSiparisDurumResult xmlns:a="${DATA_NS}" xmlns:i="${XSI_NS}">` +
+        (hata ? `<a:ErrorMessage>${xmlEscape(hata)}</a:ErrorMessage>` : `<a:ErrorMessage i:nil="true"/>`) +
+        `<a:IsErros>${hata ? "true" : "false"}</a:IsErros>` +
+        `</SetSiparisDurumResult>` +
+        `</SetSiparisDurumResponse>`
     )
   );
 }
@@ -433,6 +467,7 @@ const methods: Record<string, Handler> = {
   SelectUrun: handleSelectUrun,
   VaryasyonGuncelle: handleVaryasyonGuncelle,
   SelectSiparis: handleSelectSiparis,
+  SetSiparisDurum: handleSetSiparisDurum,
   SetSiparisAktarildi: aktarildiHandler("SetSiparisAktarildi"),
   SetSiparisAktarildiIptal: aktarildiHandler("SetSiparisAktarildiIptal")
 };

@@ -85,6 +85,11 @@ test("baslik: ad/soyad, tutarlar, durum, kacisli adres, nesne alanlarinda tip et
   assert.match(xml, /<a:Odemeler><a:WebSiparisOdeme>.*<a:Tutar>1350\.00<\/a:Tutar><\/a:WebSiparisOdeme><\/a:Odemeler>/);
 });
 
+test("Vega onayladiysa Onaylandi", () => {
+  const xml = buildWebSiparisXml(order({ vegaFetchedAt: new Date("2026-10-26T09:05:00Z") }));
+  assert.match(xml, /<a:Durum>2<\/a:Durum><a:EntegrasyonAktarildi>false<\/a:EntegrasyonAktarildi>/);
+});
+
 test("tutari 0 olan siparis: satir 0, iptal durumu", () => {
   const xml = buildWebSiparisXml(
     order({ totalCents: 0, shippingCents: 0, status: "CANCELLED", items: [{ ...order().items[0], paidCents: null }] })

@@ -115,7 +115,9 @@ function splitName(fullName: string): [string, string] {
 
 export function buildWebSiparisXml(order: VegaOrderInput): string {
   const [ad, soyad] = splitName(order.customerName);
-  const [durum, durumAdi] = DURUMLAR[order.status] ?? DURUMLAR.PAID;
+  // Vega'nin onayladigi (SetSiparisDurum "Onaylandi") odenmis siparis Ticimax'taki gibi Onaylandi gorunur.
+  const [durum, durumAdi] =
+    order.status === "PAID" && order.vegaFetchedAt ? [2, "Onaylandi"] : (DURUMLAR[order.status] ?? DURUMLAR.PAID);
   const ulke = fields([
     ["Alpha2Code", "TR"],
     ["Alpha3Code", "TUR"]
