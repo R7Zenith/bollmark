@@ -73,8 +73,9 @@ test("baslik: ad/soyad, tutarlar, durum, kacisli adres, nesne alanlarinda tip et
   assert.match(xml, /^<a:WebSiparis>/);
   assert.match(xml, /<a:UyeAdi>Ayşe Nur<\/a:UyeAdi>/);
   assert.match(xml, /<a:UyeSoyadi>Yılmaz<\/a:UyeSoyadi>/);
-  assert.match(xml, /<a:Durum>2<\/a:Durum>/);
-  assert.match(xml, /<a:SiparisDurumu>Onaylandi<\/a:SiparisDurumu>/);
+  assert.match(xml, /<a:Durum>1<\/a:Durum>/);
+  assert.match(xml, /<a:SiparisDurumu>OnayBekliyor<\/a:SiparisDurumu>/);
+  assert.match(xml, /<a:EntegrasyonAktarildi>false<\/a:EntegrasyonAktarildi>/);
   assert.match(xml, /<a:KargoTutari>350\.00<\/a:KargoTutari>/);
   assert.match(xml, /<a:ToplamTutar>1350\.00<\/a:ToplamTutar>/);
   assert.match(xml, /<a:SiparisTarihi>2026-10-26T12:00:00<\/a:SiparisTarihi>/);

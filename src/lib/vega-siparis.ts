@@ -11,8 +11,11 @@ export const VEGA_SIPARIS_BASLANGIC = new Date("2026-10-25T21:00:00Z");
 export const VEGA_AKTIF_DURUMLAR = ["PAID", "PREPARING", "SHIPPED", "DELIVERED"];
 
 // Ticimax WebSiparisDurumlari (PDF + PHP istemcisi): Durum (int) ve SiparisDurumu (ad).
+// Odenmis yeni siparis Ticimax'taki gibi "OnayBekliyor": "Onaylandi" (2)
+// gonderilince Vega yalniz "Kargo Bekleyen" sayacini artirdi, listeye almadi
+// (canli deneme 2026-10-26).
 const DURUMLAR: Record<string, [number, string]> = {
-  PAID: [2, "Onaylandi"],
+  PAID: [1, "OnayBekliyor"],
   PREPARING: [4, "Paketleniyor"],
   SHIPPED: [6, "KargoyaVerildi"],
   DELIVERED: [7, "TeslimEdildi"],
@@ -162,7 +165,8 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
   return element("WebSiparis", [
     ["AdiSoyadi", xmlEscape(order.customerName)],
     ["Durum", String(durum)],
-    ["EntegrasyonAktarildi", order.vegaFetchedAt ? "true" : "false"],
+    // Vega SetSiparisAktarildi cagirmiyor; Ticimax'ta da bu durumda hep false kalirdi.
+    ["EntegrasyonAktarildi", "false"],
     [
       "FaturaAdresi",
       fields([
