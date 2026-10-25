@@ -19,6 +19,7 @@ Kod yorumlarındaki `bkz. X_PLANI.md` atıfları dosya adıyla verilmiştir; dos
 |---|---|
 | `BLOB_TAMAMEN_KALDIRMA_PLANI.md` | Taşıma ve Faz 3 kod temizliği bitti (2026-10-13). Kalan: Faz 4, Blob deposunu kapatma (kullanıcı) |
 | `META_PIXEL_CAPI_PLANI.md` | Uygulandı ve push edildi (2026-10-24). Kalan: canlıda Olay Yöneticisi doğrulaması (localhost'ta CAPI, IP olmadığı için "yetersiz müşteri bilgisi" ile reddediliyor; token/Pixel bağlantısı elle doğrulandı) |
+| `VEGA_SIPARIS_AKTARIM_PLANI.md` | Bekliyor (2026-10-25): araştırma + plan hazır, kullanıcı onayı ve Vega tarafı soruların cevabı bekleniyor. İlk adım Faz 0 (Vega'nın sipariş isteğini yakalama) |
 
 ## Arşiv
 

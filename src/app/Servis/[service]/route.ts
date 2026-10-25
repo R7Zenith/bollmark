@@ -346,3 +346,16 @@ export async function POST(request: NextRequest, context: { params: Promise<{ se
 
   return handler(rawBody);
 }
+
+// Gecici (VEGA_SIPARIS_AKTARIM_PLANI.md Faz 0): Vega'nin GET istekleri (orn.
+// ?wsdl) iz birakmiyordu; yalniz loglanip 405 donuluyor.
+export async function GET(request: NextRequest, context: { params: Promise<{ service: string }> }) {
+  const { service } = await context.params;
+  logTcmx("GET istegi", {
+    service,
+    search: request.nextUrl.search,
+    soapAction: request.headers.get("soapaction"),
+    userAgent: request.headers.get("user-agent")
+  });
+  return new NextResponse(null, { status: 405, headers: { Allow: "POST" } });
+}

@@ -30,6 +30,10 @@ export default {
     const url = new URL(request.url);
     const normalizedPath = url.pathname.replace(/\/{2,}/g, "/");
 
+    // Gecici (VEGA_SIPARIS_AKTARIM_PLANI.md Faz 0): Vega'nin siparis isteginin
+    // nereye gittigini gormek icin her istek loglaniyor.
+    console.log(request.method, url.pathname, url.search, request.headers.get("soapaction"), request.headers.get("user-agent"));
+
     if (!ALLOWED_PREFIXES.some((prefix) => normalizedPath.startsWith(prefix))) {
       return new Response("Not found", { status: 404 });
     }
