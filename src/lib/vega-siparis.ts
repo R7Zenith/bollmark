@@ -74,8 +74,9 @@ const SCHEMAS = {
     ToplamKdv: "d", ToplamTutar: "d", Tutar: "d", Urunler: "o", UyeAdi: "s", UyeID: "i", UyeMusteriKodu: "s",
     UyeSoyadi: "s"
   },
+  // AliciAdi PDF'te yok; gonderilmeyince Vega'da "Fatura Adi" bos kaldi (bilinmeyen alani Vega yok sayar).
   FaturaAdres: {
-    Adres: "s", AliciTelefon: "s", EntegrasyonId: "s", FirmaAdi: "s", ID: "i", Il: "s", IlId: "i", IlKodu: "s",
+    Adres: "s", AliciAdi: "s", AliciTelefon: "s", EntegrasyonId: "s", FirmaAdi: "s", ID: "i", Il: "s", IlId: "i", IlKodu: "s",
     Ilce: "s", IlceId: "i", IlceKodu: "s", Ulke: "o", VergiDairesi: "s", VergiNo: "s", isKurumsal: "b"
   },
   TeslimatAdres: {
@@ -176,21 +177,24 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
   let toplamKdv = vatFromGrossCents(order.shippingCents, SHIPPING_VAT_RATE);
   const urunler = order.items
     .map((item, index) => {
-      const paid = linePaidCents(order, item);
+      // Vega fatura tutarini Tutar + KdvTutari olarak hesapliyor: KDV dahil
+      // Tutar gonderilince 1.390 TL'lik satir 1.516,36 faturalandi (2026-10-26).
+      // Bu yuzden birim fiyat KDV haric; net + KDV kurusu kurusuna KDV dahil birim fiyata esit.
+      const birimBrut = Math.round(linePaidCents(order, item) / item.quantity);
       const kdvOrani = resolveVatRate(item.product);
-      const kdv = vatFromGrossCents(paid, kdvOrani);
-      toplamKdv += kdv;
+      const birimKdv = Math.round(vatFromGrossCents(birimBrut, kdvOrani));
+      toplamKdv += birimKdv * item.quantity;
       return element("WebSiparisUrun", {
         Adet: String(item.quantity),
         Barkod: xmlEscape(item.variant ? (item.variant.barcode ?? item.variant.sku) : ""),
         // Satir kimligi siparisler arasi tekil olsun diye siparis ID'sinden turetiliyor.
         ID: String(order.vegaId * 1000 + index + 1),
         KdvOrani: String(kdvOrani),
-        KdvTutari: money(kdv),
+        // Birim basina (adet > 1'de Vega'nin carpip carpmadigi ilk cok adetli sipariste dogrulanacak).
+        KdvTutari: money(birimKdv),
         SiparisId: String(order.vegaId),
         StokKodu: xmlEscape(item.variant?.sku ?? ""),
-        // Birim fiyat (KDV dahil); satir toplami = Tutar x Adet varsayimi (planda acik soru).
-        Tutar: money(paid / item.quantity),
+        Tutar: money(birimBrut - birimKdv),
         UrunAdi: xmlEscape(item.product.name),
         UrunID: String(item.variant?.vegaId ?? 0),
         UrunKartiID: String(item.product.vegaId)
@@ -224,6 +228,7 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
     FaturaAdresId: String(order.vegaId),
     FaturaAdresi: fields("FaturaAdres", {
       Adres: adres,
+      AliciAdi: xmlEscape(order.customerName),
       AliciTelefon: telefon,
       ID: String(order.vegaId),
       Il: il,

@@ -63,9 +63,10 @@ test("satir: indirimli birim fiyat, barkod, kimlikler, KDV", () => {
   const urun = /<a:WebSiparisUrun>(.*?)<\/a:WebSiparisUrun>/.exec(xml)![1];
   assert.match(urun, /<a:Adet>2<\/a:Adet>/);
   assert.match(urun, /<a:Barkod>8690000000001<\/a:Barkod>/);
-  assert.match(urun, /<a:Tutar>500\.00<\/a:Tutar>/);
+  // KDV haric birim + birim KDV = KDV dahil birim (500,00)
+  assert.match(urun, /<a:Tutar>454\.55<\/a:Tutar>/);
   assert.match(urun, /<a:KdvOrani>10<\/a:KdvOrani>/);
-  assert.match(urun, /<a:KdvTutari>90\.91<\/a:KdvTutari>/);
+  assert.match(urun, /<a:KdvTutari>45\.45<\/a:KdvTutari>/);
   assert.match(urun, /<a:UrunID>758<\/a:UrunID><a:UrunKartiID>42<\/a:UrunKartiID>/);
   assert.match(urun, /<a:UrunAdi>Bluz &amp; Etek<\/a:UrunAdi>/);
 });
