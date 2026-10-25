@@ -66,8 +66,10 @@ const SCHEMAS = {
     HediyePaketiVar: "b", ID: "i", IPAdresi: "s", IndirimTutari: "d", KargoAdresID: "i", KargoEntegrasyonID: "i",
     KargoEntegrasyonTakipNo: "s", KargoFirmaId: "i", KargoTakipNo: "s", KargoTutari: "d", Kaynak: "i", Kur: "d",
     Mail: "s", Maliyet: "d", Odemeler: "o", ParaBirimi: "s", Referer: "s", ReklamKaynagi: "s",
-    // SiparisNo PDF tablosunda yok (metin cikariminda dusmus olabilir) ama filtrede ve Vega listesinde var.
-    SepetKampanyasiIndirimi: "d", SiparisDurumu: "s", SiparisKaynagi: "s", SiparisNo: "s", SiparisNotu: "s", SiparisTarihi: "t",
+    // SiparisKodu/SiparisNo PDF tablosunda yok (metin cikariminda dusmus olabilir) ama filtrede var. Yalniz
+    // SiparisNo gidince Vega'nin "Siparis No" sutunu bos kaldi (2026-10-26); ikisi de yaziliyor.
+    SepetKampanyasiIndirimi: "d", SiparisDurumu: "s", SiparisKaynagi: "s", SiparisKodu: "s", SiparisNo: "s",
+    SiparisNotu: "s", SiparisTarihi: "t",
     SiparisToplamTutari: "d", StokDustu: "b", TeslimatAdresi: "o", TeslimatGunu: "t", TeslimatSaati: "s",
     ToplamKdv: "d", ToplamTutar: "d", Tutar: "d", Urunler: "o", UyeAdi: "s", UyeID: "i", UyeMusteriKodu: "s",
     UyeSoyadi: "s"
@@ -202,7 +204,9 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
     Onaylandi: "1",
     SiparisID: String(order.vegaId),
     TaksitSayisi: String(order.installment ?? 1),
-    Tarih: formatVegaDate(order.paidAt ?? order.createdAt),
+    // Vega bu tarihi (SiparisTarihi'nin aksine) UTC sayip yerel saate ceviriyor: Istanbul
+    // saati gidince 3 saat ileri gorundu (2026-10-26). Bu yuzden UTC, ekisiz.
+    Tarih: (order.paidAt ?? order.createdAt).toISOString().slice(0, 19),
     Tutar: money(order.totalCents),
     UyeID: String(order.vegaId)
   });
@@ -237,6 +241,7 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
     Odemeler: odeme,
     ParaBirimi: "TL",
     SiparisDurumu: durumAdi,
+    SiparisKodu: xmlEscape(order.orderNumber),
     SiparisNo: xmlEscape(order.orderNumber),
     SiparisNotu: xmlEscape(order.note ?? ""),
     SiparisTarihi: formatVegaDate(order.createdAt),
