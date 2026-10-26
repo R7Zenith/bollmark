@@ -281,6 +281,13 @@ export function trackSearch(query: string) {
   ga4("search", { search_term: query });
 }
 
+// WhatsApp ve Instagram DM tiklamalari. Yalniz tarayici olayi; CAPI kopyasi yok.
+export function trackContact(method: "whatsapp" | "instagram", productCode?: string) {
+  const params = { method, ...(productCode && { product_code: productCode }) };
+  fire("Contact", params);
+  ga4("contact", params);
+}
+
 export function trackInitiateCheckout(lines: CartLineLike[]) {
   const eventId = crypto.randomUUID();
   const data = cartData(lines);

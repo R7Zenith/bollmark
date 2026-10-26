@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ContactForm } from "@/components/contact-form";
+import { InstagramDmLink, WhatsAppLink } from "@/components/contact-links";
+import { legalIdentityRows, openingHoursLines, phoneDisplay, STORE_INFO } from "@/lib/store-info";
 
 export const metadata: Metadata = {
   title: "Bize Ulaşın",
@@ -17,6 +19,7 @@ const MAP_QUERY = "75. Sk. No:6/A, Runguçpaşa, Karacabey, Bursa";
 const MAP_SRC = `https://maps.google.com/maps?q=${encodeURIComponent(MAP_QUERY)}&hl=tr&z=16&output=embed`;
 
 const sectionTitleClass = "text-[10px] font-medium tracking-[1px] uppercase text-ink";
+const linkClass = "text-ink underline underline-offset-2";
 
 export default function ContactPage() {
   return (
@@ -38,8 +41,29 @@ export default function ContactPage() {
           <section className="mt-10">
             <h2 className={sectionTitleClass}>Çalışma Saatleri</h2>
             <ul className="mt-3 space-y-1 text-sm text-ink/80">
-              <li>Pazartesi - Cumartesi: 10:00 - 19:00</li>
-              <li>Pazar: Kapalı</li>
+              {openingHoursLines().map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          </section>
+
+          <section className="mt-10">
+            <h2 className={sectionTitleClass}>İletişim</h2>
+            <ul className="mt-3 space-y-1 text-sm text-ink/80">
+              {STORE_INFO.whatsappActive && (
+                <li>
+                  <WhatsAppLink className={linkClass} />
+                </li>
+              )}
+              <li>
+                E-posta:{" "}
+                <a href={`mailto:${STORE_INFO.email}`} className={linkClass}>
+                  {STORE_INFO.email}
+                </a>
+              </li>
+              <li>
+                <InstagramDmLink className={linkClass}>Instagram&apos;dan mesaj gönder</InstagramDmLink>
+              </li>
             </ul>
           </section>
 
@@ -50,6 +74,25 @@ export default function ContactPage() {
           <section className="mt-10">
             <h2 className={sectionTitleClass}>Mağaza Adresi</h2>
             <p className="mt-3 text-sm text-ink/80">{STORE_ADDRESS}</p>
+          </section>
+
+          <section className="mt-10">
+            <h2 className={sectionTitleClass}>Satıcı Bilgileri</h2>
+            <dl className="mt-3 space-y-1 text-sm text-ink/80">
+              {legalIdentityRows().map((row) => (
+                <div key={row.label}>
+                  <dt className="inline">{row.label}: </dt>
+                  <dd className="inline">{row.value}</dd>
+                </div>
+              ))}
+              {/* Numara yalniz WhatsApp icin (aramalar acilmaz) - duz metin, tel: linki yok. */}
+              {STORE_INFO.phone && (
+                <div>
+                  <dt className="inline">Telefon / WhatsApp: </dt>
+                  <dd className="inline">{phoneDisplay(STORE_INFO.phone)}</dd>
+                </div>
+              )}
+            </dl>
           </section>
         </div>
       </div>

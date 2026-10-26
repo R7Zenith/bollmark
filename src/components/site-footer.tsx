@@ -6,6 +6,8 @@ import { usePathname } from "next/navigation";
 import { ShieldCheck, Truck, Undo2 } from "lucide-react";
 import { catalogHref } from "@/lib/catalog-url";
 import { openConsentPreferences } from "@/lib/consent";
+import { INSTAGRAM_URL, STORE_INFO } from "@/lib/store-info";
+import { InstagramDmLink, InstagramIcon, WhatsAppLink } from "@/components/contact-links";
 
 // logo-white.png'nin gercek en-boy orani (bkz. site-header.tsx LOGO_ASPECT_RATIO,
 // 1400x273px).
@@ -38,16 +40,6 @@ const TRUST_ITEMS = [
 const IYZICO_LOGO_BAND = { src: "/payment/iyzico-logo-band-white.svg", width: 456, height: 32 };
 
 const FOOTER_LINK_CLASS = "nav-underline inline-block text-cream";
-
-function InstagramIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <rect x="3" y="3" width="18" height="18" rx="5" />
-      <circle cx="12" cy="12" r="4" />
-      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
 
 export function SiteFooter() {
   // Odeme sayfasinda (aktif checkout formu) footer tamamen kaldiriliyor -
@@ -139,10 +131,18 @@ export function SiteFooter() {
                     Bize Ulaşın
                   </Link>
                 </li>
+                {STORE_INFO.whatsappActive && (
+                  <li>
+                    <WhatsAppLink className={FOOTER_LINK_CLASS} />
+                  </li>
+                )}
                 <li>
                   <a href="mailto:bilgi@bollmark.com" className={FOOTER_LINK_CLASS}>
                     bilgi@bollmark.com
                   </a>
+                </li>
+                <li>
+                  <InstagramDmLink className={FOOTER_LINK_CLASS}>Instagram&apos;dan mesaj gönder</InstagramDmLink>
                 </li>
               </ul>
             </div>
@@ -183,7 +183,7 @@ export function SiteFooter() {
           </div>
           <div className="flex shrink-0 items-center gap-4">
             <a
-              href="https://www.instagram.com/koton.karacabey/"
+              href={INSTAGRAM_URL}
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Instagram"

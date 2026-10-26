@@ -1,16 +1,15 @@
 import Link from "next/link";
 import { formatPrice } from "@/lib/format";
-import { STORE_INFO } from "@/lib/store-info";
+import { legalIdentityRows, phoneDisplay, STORE_INFO } from "@/lib/store-info";
 import { DISPATCH_TEXT, SHIPPING_THRESHOLD_CENTS, shippingFeeSummary } from "@/lib/shipping";
 
 // On Bilgilendirme Formu (6502 sayili Kanun m.48, Mesafeli Sozlesmeler
 // Yonetmeligi m.5). Hem /on-bilgilendirme-formu (genel metin) hem odeme
 // adimindaki pencere (order verilir, siparise ozel ozet eklenir) bu metni
-// kullanir. Satici unvani ve vergi bilgisi Mesafeli Satis Sozlesmesi Madde 1 ve
-// Cerez Politikasi ile ayni; adres/e-posta STORE_INFO'dan. Telefon STORE_INFO'da
-// tanimlanirsa satici bilgilerine kendiliginden eklenir.
+// kullanir. Satici bilgileri (unvan, MERSIS, vergi, telefon, adres, e-posta)
+// STORE_INFO'dan; null alanlar gosterilmez.
 
-export const PRE_INFORMATION_UPDATED_AT = "25 Ekim 2026";
+export const PRE_INFORMATION_UPDATED_AT = "26 Ekim 2026";
 
 export type PreInformationOrder = {
   lines: { key: string; name: string; color: string; size: string; quantity: number; lineTotalCents: number }[];
@@ -96,12 +95,17 @@ export function PreInformationForm({
       </p>
 
       <h2 className={h2Class}>1. Satıcı Bilgileri</h2>
-      <p className={`${pClass} whitespace-pre-line`}>
-        {`Unvan: Oğuzhan Leventoğlu (Bollmark)
-Vergi Dairesi / No: Karacabey Vergi Dairesi – 6080753452
-Adres: ${sellerAddress}${STORE_INFO.phone ? `\nTelefon: ${STORE_INFO.phone}` : ""}
-E-posta: ${STORE_INFO.email}`}
-      </p>
+      <div className={pClass}>
+        {legalIdentityRows().map((row) => (
+          <p key={row.label}>
+            {row.label}: {row.value}
+          </p>
+        ))}
+        <p>Adres: {sellerAddress}</p>
+        {/* Numara yalniz WhatsApp icin (aramalar acilmaz) - duz metin. */}
+        {STORE_INFO.phone && <p>Telefon / WhatsApp: {phoneDisplay(STORE_INFO.phone)}</p>}
+        <p>E-posta: {STORE_INFO.email}</p>
+      </div>
 
       {order && <OrderSummary order={order} />}
 

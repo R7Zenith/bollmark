@@ -8,6 +8,7 @@ import { CustomerSessionProvider } from "@/components/customer-session-provider"
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ConsentManager } from "@/components/consent/consent-manager";
+import { FloatingInstagramButton } from "@/components/contact-links";
 import { MetaPixel } from "@/components/meta-pixel";
 import { metaTrackingEnabled } from "@/lib/meta/capi";
 import { GoogleAnalytics } from "@/components/google-analytics";
@@ -79,6 +80,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   sayfanin en altina sabitliyoruz. */}
               <main className="flex-1">{children}</main>
               <SiteFooter />
+              <FloatingInstagramButton />
               <ConsentManager />
               {/* useSearchParams kullaniyor - SiteHeader ile ayni gerekceyle Suspense. */}
               {metaTrackingEnabled() && (

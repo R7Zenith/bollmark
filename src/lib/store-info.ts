@@ -7,10 +7,27 @@
 export const STORE_INFO = {
   brandName: "Bollmark",
   email: "bilgi@bollmark.com",
-  // Magazanin telefonu yok (30 Eylul 2026). Olursa uluslararasi bicimde
-  // girilir, ornek "+90 224 000 00 00".
-  phone: null as string | null,
-  instagramUrl: "https://www.instagram.com/koton.karacabey/",
+  // Bulutfon sabit numara (26 Ekim 2026). Yalniz WhatsApp Business icin
+  // kullanilir, aramalar acilmaz - bu yuzden sitede tel: linki yok; yasal
+  // metinlerde "Telefon / WhatsApp" duz metin. Uluslararasi bicimde; gosterim
+  // ve wa.me linki asagidaki yardimcilarla turetilir - baska dosyaya yazilmaz.
+  phone: "+90 224 323 01 21" as string | null,
+  // WhatsApp Business bu numarada acilinca true yapilir; o zamana kadar wa.me
+  // linkleri (footer, iletisim, anasayfa karti) gizli.
+  whatsappActive: false,
+  // Yasal kimlik (Mesafeli Sozlesmeler Yon. 5/1-c, e-ticaret hizmet saglayici
+  // yon.; bkz. docs/planlar/ILETISIM_TELEFON_VE_INSTAGRAM_DM_PLANI.md). MERSIS
+  // ve VKN kullanicidan alindi (26 Ekim 2026); unvan ve vergi dairesi Mesafeli
+  // Satis Sozlesmesi / Gizlilik Politikasi'nda zaten yazan degerler. KEP
+  // kullanici bildirince doldurulacak - deger uydurulmaz, null olan gosterilmez.
+  legalName: "Oğuzhan Leventoğlu (Bollmark)" as string | null,
+  mersisNo: "1667655626000001" as string | null,
+  taxOffice: "Karacabey Vergi Dairesi" as string | null,
+  taxNo: "6080753452" as string | null,
+  kepAddress: null as string | null,
+  // Profil ve DM linki bundan turetilir (asagida); "bollmark" hesabina
+  // gecilince yalniz bu satir degisir.
+  instagramUsername: "koton.karacabey",
   address: {
     streetAddress: "Runguçpaşa Mah. 75. Sk. No:6/A",
     addressLocality: "Karacabey",
@@ -33,3 +50,49 @@ export const STORE_INFO = {
     closes: "19:00"
   }
 };
+
+export const INSTAGRAM_URL = `https://www.instagram.com/${STORE_INFO.instagramUsername}/`;
+export const INSTAGRAM_DM_URL = `https://ig.me/m/${STORE_INFO.instagramUsername}`;
+
+// "+90 224 323 01 21" -> "0 (224) 323 01 21" (yurt ici okunus).
+export function phoneDisplay(phone: string): string {
+  const digits = phone.replace(/\D/g, "").replace(/^90/, "");
+  return `0 (${digits.slice(0, 3)}) ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8)}`;
+}
+
+// "+90 224 323 01 21" -> "https://wa.me/902243230121".
+export function whatsappHref(phone: string): string {
+  return `https://wa.me/${phone.replace(/\D/g, "")}`;
+}
+
+// Yasal kimlik satirlari (etiket, deger) - null alanlar atlanir. Footer,
+// iletisim sayfasi ve On Bilgilendirme Formu ayni listeyi kullanir.
+export function legalIdentityRows(): { label: string; value: string }[] {
+  const rows: [string, string | null][] = [
+    ["Ticaret Unvanı", STORE_INFO.legalName],
+    ["MERSİS No", STORE_INFO.mersisNo],
+    ["Vergi Dairesi", STORE_INFO.taxOffice],
+    ["Vergi No", STORE_INFO.taxNo],
+    ["KEP Adresi", STORE_INFO.kepAddress]
+  ];
+  return rows.filter((row): row is [string, string] => !!row[1]).map(([label, value]) => ({ label, value }));
+}
+
+// Pazar kapali: openingHours.days'te olmayan gunler.
+const DAY_LABELS: Record<string, string> = {
+  Monday: "Pazartesi",
+  Tuesday: "Salı",
+  Wednesday: "Çarşamba",
+  Thursday: "Perşembe",
+  Friday: "Cuma",
+  Saturday: "Cumartesi",
+  Sunday: "Pazar"
+};
+
+// Ardisik gunler tek satirda: "Pazartesi - Cumartesi: 10:00 - 19:00", "Pazar: Kapalı".
+export function openingHoursLines(): string[] {
+  const { days, opens, closes } = STORE_INFO.openingHours;
+  const closed = Object.keys(DAY_LABELS).filter((d) => !days.includes(d));
+  const open = days.length > 1 ? `${DAY_LABELS[days[0]]} - ${DAY_LABELS[days[days.length - 1]]}` : DAY_LABELS[days[0]];
+  return [`${open}: ${opens} - ${closes}`, ...closed.map((d) => `${DAY_LABELS[d]}: Kapalı`)];
+}

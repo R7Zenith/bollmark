@@ -1,5 +1,5 @@
 import { getSiteUrl } from "@/lib/site-url";
-import { STORE_INFO } from "@/lib/store-info";
+import { INSTAGRAM_URL, STORE_INFO } from "@/lib/store-info";
 import type { getProductBySlug } from "@/lib/catalog";
 import { resolveProductDisplayPrice, matchAutomaticDiscount, type AutomaticPercentCampaign } from "@/lib/coupons";
 import { descriptionToPlainText } from "@/lib/description-html";
@@ -52,7 +52,7 @@ export function homeJsonLd() {
         url: siteUrl,
         logo: `${siteUrl}/logo.png`,
         email: STORE_INFO.email,
-        sameAs: [STORE_INFO.instagramUrl]
+        sameAs: [INSTAGRAM_URL]
       },
       {
         "@type": "WebSite",
@@ -74,7 +74,8 @@ export function homeJsonLd() {
         url: siteUrl,
         image: `${siteUrl}/og-default.jpg`,
         email: STORE_INFO.email,
-        ...(STORE_INFO.phone && { telephone: STORE_INFO.phone }),
+        // telephone bilerek yok: numara yalniz WhatsApp icin, aramalar acilmaz
+        // (Google'da "Ara" butonu cikmasin; bkz. store-info.ts).
         parentOrganization: { "@id": organizationId },
         address: { "@type": "PostalAddress", ...address },
         openingHoursSpecification: {

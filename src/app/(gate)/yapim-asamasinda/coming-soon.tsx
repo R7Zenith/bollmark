@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { INSTAGRAM_URL } from "@/lib/store-info";
 
 type TimeLeft = {
   days: number;
@@ -46,7 +47,7 @@ const WEAVE_ROWS: { word: string; pattern: ("front" | "back")[] }[] = [
   { word: "SOON", pattern: ["back", "front", "front", "back"] }
 ];
 
-const SOCIAL_LINKS = [{ label: "Instagram", href: "https://www.instagram.com/koton.karacabey/" }];
+const SOCIAL_LINKS = [{ label: "Instagram", href: INSTAGRAM_URL }];
 
 function InstagramGlyph() {
   return (

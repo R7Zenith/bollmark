@@ -30,7 +30,9 @@ Bollmark ailesi olarak, kaliteli ürünü uygun fiyatla ve güvenilir bir alış
 
 Veri sorumlusu: Oğuzhan Leventoğlu (Bollmark)
 Vergi Dairesi / No: Karacabey Vergi Dairesi – 6080753452
+MERSİS No: 1667655626000001
 Adres: Runguçpaşa Mah. 75. Sk. No:6/A Karacabey/Bursa
+Telefon / WhatsApp: 0 (224) 323 01 21
 E-posta: bilgi@bollmark.com
 
 2. İşlenen Kişisel Veriler
@@ -86,7 +88,7 @@ Sitemizde, sitenin çalışması için zorunlu çerezler kullanılmaktadır. Ana
 
 Bu Gizlilik Politikası, yasal düzenlemelerdeki değişiklikler veya işleme faaliyetlerimizdeki güncellemeler doğrultusunda revize edilebilir. Güncel metin her zaman bu sayfada yayınlanır.
 
-Son güncelleme: 25 Ekim 2026`
+Son güncelleme: 26 Ekim 2026`
   },
   {
     slug: "mesafeli-satis-sozlesmesi",
@@ -96,7 +98,9 @@ Son güncelleme: 25 Ekim 2026`
 SATICI
 Unvan: Oğuzhan Leventoğlu (Bollmark)
 Vergi Dairesi / No: Karacabey Vergi Dairesi – 6080753452
+MERSİS No: 1667655626000001
 Adres: Runguçpaşa Mah. 75. Sk. No:6/A Karacabey/Bursa
+Telefon / WhatsApp: 0 (224) 323 01 21
 E-posta: bilgi@bollmark.com
 
 ALICI
@@ -140,7 +144,7 @@ Madde 9 – Yürürlük
 
 ALICI, Site üzerinden verdiği siparişe ait ödemeyi gerçekleştirdiğinde işbu sözleşmenin tüm koşullarını kabul etmiş sayılır.
 
-Son güncelleme: ${YAYIN_TARIHI}`
+Son güncelleme: 26 Ekim 2026`
   },
   {
     slug: "kargo-bilgisi",

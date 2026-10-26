@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Minus, Plus } from "lucide-react";
 import { formatPrice } from "@/lib/format";
 import { SHIPPING_THRESHOLD_CENTS } from "@/lib/shipping";
+import { STORE_INFO } from "@/lib/store-info";
+import { WhatsAppLink } from "@/components/contact-links";
 
 // SSS ve magaza bolumu (anasayfada ayri yerlerde). Cevaplar yalniz kodda /
 // yasal sayfalarda dogrulanabilen bilgilerden yazildi (uydurma yok):
@@ -76,12 +78,12 @@ const SMALL_GRID_COLS = ["", "grid-cols-1", "grid-cols-2", "grid-cols-3"];
 
 // Sol: SSS, sag: magaza (fotograflar + kart); mobilde alt alta. Alt bosluk
 // yok: sayfanin son bolumu, footer kendi mt-section'ini getiriyor.
+// Numara StoreSettings.contactPhone'dan degil STORE_INFO'dan (tek kaynak, 26 Ekim
+// 2026); yalniz WhatsApp linki olarak, WhatsApp acilinca gorunur.
 export function FaqAndStore({
-  contactPhone,
   contactEmail,
   defaultShippingCents
 }: {
-  contactPhone: string;
   contactEmail: string;
   defaultShippingCents: number;
 }) {
@@ -164,9 +166,13 @@ export function FaqAndStore({
           </h2>
           <p className="mt-6 text-base text-ink">{STORE_NAME_LINE}</p>
           <address className="mt-2 text-sm not-italic leading-relaxed text-ink/70">{STORE_ADDRESS}</address>
-          {(contactPhone || contactEmail) && (
+          {(STORE_INFO.whatsappActive || contactEmail) && (
             <ul className="mt-4 space-y-1 text-sm text-ink/70">
-              {contactPhone && <li>{contactPhone}</li>}
+              {STORE_INFO.whatsappActive && (
+                <li>
+                  <WhatsAppLink className="hover:text-ink" />
+                </li>
+              )}
               {contactEmail && <li>{contactEmail}</li>}
             </ul>
           )}

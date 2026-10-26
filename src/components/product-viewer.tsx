@@ -20,6 +20,7 @@ import { ProductBadge } from "@/components/product-badge";
 import { usesGreyBackdrop } from "@/lib/image-backdrop";
 import { InfoDrawer } from "@/components/info-drawer";
 import { SizeGuideModal } from "@/components/size-guide-modal";
+import { AskOnInstagramButton } from "@/components/contact-links";
 
 // Bu esikten dusuk stok "Son N adet" uyarisi gosterir - e-posta gerektirmeyen
 // salt UI bir isaret. Ileride StoreSettings'e tasinabilir (Faz A'ya dahil degil).
@@ -126,6 +127,7 @@ function orderedOptionValues(variants: Variant[], value: (v: Variant) => string,
 export function ProductViewer({
   productId,
   productName,
+  productCode,
   categoryName,
   brandName,
   breadcrumb,
@@ -149,6 +151,8 @@ export function ProductViewer({
 }: {
   productId: string;
   productName: string;
+  // Product.code (urun/stil kodu) - "Instagram'dan sor" mesajinda; yoksa varyant SKU'su.
+  productCode: string | null;
   categoryName: string | null;
   brandName: string | null;
   // Mobilde fotografin ustunde gosterilen "Anasayfa / Kadin / Elbise" gibi
@@ -832,6 +836,13 @@ export function ProductViewer({
           )}
 
           {outOfStock && selected && <StockAlertForm variantId={selected.id} />}
+
+          <AskOnInstagramButton
+            productName={productName}
+            color={color || null}
+            size={size}
+            productCode={productCode ?? selected?.sku ?? variants.find((v) => v.color === color)?.sku ?? ""}
+          />
 
           {!outOfStock && selected && selected.stock <= LOW_STOCK_THRESHOLD && (
             <p className="flex items-center gap-2 text-xs text-ink/70">

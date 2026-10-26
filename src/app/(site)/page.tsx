@@ -360,7 +360,6 @@ export default async function HomePage() {
 
       {/* SSS (sol) + Karacabey magazasi (sag), canlidaki gibi yan yana. */}
       <FaqAndStore
-        contactPhone={storeSettings?.contactPhone ?? ""}
         contactEmail={storeSettings?.contactEmail ?? ""}
         defaultShippingCents={storeSettings?.defaultShippingCents ?? 0}
       />

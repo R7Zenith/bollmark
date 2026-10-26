@@ -115,6 +115,7 @@ export async function renderProductPage(rawSlug: string, renk?: string) {
       <ProductViewer
         productId={product.id}
         productName={product.name}
+        productCode={product.code}
         categoryName={product.category?.name ?? null}
         brandName={product.brand?.name ?? null}
         breadcrumb={breadcrumb}
