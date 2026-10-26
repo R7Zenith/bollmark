@@ -1,6 +1,6 @@
 # Meta Katalog Bağlantısı Planı
 
-Durum: devam ediyor (Aşama B kodu localhost'ta; R2 JPEG kopyaları için yerel R2 anahtarı ve 5 görsellik deneme bekleniyor)
+Durum: devam ediyor (Aşama B kodu `meta-katalog` dalında; R2 JPEG kopyaları bitti, kontrol "sorun yok"; `main`'e merge/push kullanıcı onayı bekliyor)
 
 Tarih: 26 Ekim 2026
 
