@@ -1,6 +1,6 @@
 # Meta Katalog Bağlantısı Planı
 
-Durum: devam ediyor (Aşama B kodu `meta-katalog` dalında; R2 JPEG kopyaları bitti, kontrol "sorun yok"; `main`'e merge/push kullanıcı onayı bekliyor)
+Durum: Uygulandı (2026-10-26). Kalan: 24–48 saat sonra Commerce Manager'da eşleşme oranı kontrolü (hedef ≥%90)
 
 Tarih: 26 Ekim 2026
 

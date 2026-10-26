@@ -18,7 +18,7 @@ Kod yorumlarındaki `bkz. X_PLANI.md` atıfları dosya adıyla verilmiştir; dos
 | Plan | Durum |
 |---|---|
 | `BLOB_TAMAMEN_KALDIRMA_PLANI.md` | Taşıma ve Faz 3 kod temizliği bitti (2026-10-13). Kalan: Faz 4, Blob deposunu kapatma (kullanıcı) |
-| `META_KATALOG_PLANI.md` | Devam ediyor: Aşama B kodu `meta-katalog` dalında (2026-10-26); R2 JPEG kopyaları bitti, kontrol betiği "sorun yok". Kalan: kullanıcı onayıyla `main`'e merge/push, Commerce Manager kurulumu |
+| `META_KATALOG_PLANI.md` | Uygulandı (2026-10-26). Kalan: 24–48 saat sonra Commerce Manager'da eşleşme oranı kontrolü (hedef ≥%90) |
 | `META_PIXEL_CAPI_PLANI.md` | Uygulandı ve push edildi (2026-10-24). Kalan: canlıda Olay Yöneticisi doğrulaması (localhost'ta CAPI, IP olmadığı için "yetersiz müşteri bilgisi" ile reddediliyor; token/Pixel bağlantısı elle doğrulandı) |
 | `VEGA_SIPARIS_AKTARIM_PLANI.md` | Devam ediyor: Faz 0-3 canlıda (2026-10-26), test siparişi Vega listesine düştü. Kalan: stok ayırma doğrulaması, ilk gerçek sipariş |
 
