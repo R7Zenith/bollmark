@@ -5,6 +5,7 @@ import type { ProductCardData } from "@/components/product-card";
 import { firstImageUrl } from "@/lib/catalog";
 import { resolveProductDisplayPrice } from "@/lib/coupons";
 import { usesGreyBackdrop } from "@/lib/image-backdrop";
+import { getItemGroupId } from "@/lib/item-group-id";
 
 export default async function HesapFavorilerimPage() {
   const session = await requireCustomer();
@@ -26,6 +27,7 @@ export default async function HesapFavorilerimPage() {
 
   const products: ProductCardData[] = items.map((item) => ({
     productId: item.product.id,
+    itemGroupId: getItemGroupId(item.product),
     slug: item.product.slug,
     name: item.product.name,
     priceCents: item.product.priceCents,

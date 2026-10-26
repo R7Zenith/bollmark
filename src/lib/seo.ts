@@ -7,6 +7,7 @@ import { istanbulDateKey } from "@/lib/format";
 import { SHIPPING_THRESHOLD_CENTS } from "@/lib/shipping";
 import { effectivePrice } from "@/lib/variant";
 import { optionValue } from "@/lib/variant-attributes";
+import { getItemGroupId } from "@/lib/item-group-id";
 
 const DESCRIPTION_MAX_LENGTH = 160;
 
@@ -246,7 +247,7 @@ export function buildProductJsonLd(
     "@type": "ProductGroup",
     name: product.name,
     url: productUrl,
-    productGroupID: product.code ?? product.id,
+    productGroupID: getItemGroupId(product),
     ...common,
     ...(allImages.length > 0 && { image: allImages }),
     variesBy: [

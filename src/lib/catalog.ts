@@ -6,6 +6,7 @@ import { genderWhere } from "@/lib/catalog-url";
 import { optionPosition, optionValue, variantOptionsInclude, type VariantOptionInclude } from "@/lib/variant-attributes";
 import { usesGreyBackdrop } from "@/lib/image-backdrop";
 import { sortBySeason } from "@/lib/seasons";
+import { getItemGroupId } from "@/lib/item-group-id";
 
 // Katalog/kart gorunumunde "+" hizli sepete ekle butonu icin - stokta olan
 // TUM varyantlari (bedenleri, secili renk grubu icinde) doner. Stokta hicbir
@@ -151,6 +152,8 @@ export const getProductBySlug = cache(async (slug: string) => {
 // urunler/[slug]/page.tsx + product-viewer.tsx).
 export type CatalogEntry = {
   productId: string;
+  // Meta AddToWishlist icin (bkz. lib/item-group-id.ts).
+  itemGroupId: string;
   slug: string;
   name: string;
   priceCents: number;
@@ -245,6 +248,7 @@ export const getCatalogEntries = unstable_cache(buildCatalogEntries, ["catalog-e
 // kart olarak gostermek icin ayni fonksiyonu kullanir.
 type CatalogEntryProduct = {
   id: string;
+  code: string | null;
   slug: string;
   name: string;
   priceCents: number;
@@ -292,6 +296,7 @@ export function productToCatalogEntries(p: CatalogEntryProduct): CatalogEntry[] 
     return [
       {
         productId: p.id,
+        itemGroupId: getItemGroupId(p),
         slug: p.slug,
         name: p.name,
         priceCents: p.priceCents,
@@ -325,6 +330,7 @@ export function productToCatalogEntries(p: CatalogEntryProduct): CatalogEntry[] 
     const secondColorImage = colorImages.find((img) => img !== cover);
     entries.push({
       productId: p.id,
+      itemGroupId: getItemGroupId(p),
       slug: p.slug,
       name: p.name,
       priceCents: p.priceCents,

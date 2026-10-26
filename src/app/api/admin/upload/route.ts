@@ -29,9 +29,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const original = Buffer.from(await file.arrayBuffer());
-    const { buffer, contentType, ext } = await compressImage(original);
+    const { buffer, contentType, ext, jpeg } = await compressImage(original);
     const baseName = file.name.replace(/\.[^./\\]+$/, "");
-    const url = await uploadImage({ folder: "admin-upload", nameHint: baseName, buffer, contentType, ext });
+    const url = await uploadImage({ folder: "admin-upload", nameHint: baseName, buffer, contentType, ext, jpeg });
     return NextResponse.json({ url });
   } catch (error) {
     if (error instanceof R2ConfigError) {

@@ -238,8 +238,8 @@ export async function reuploadImageToBlob(
     const res = await fetchWithTimeout(sourceUrl, { headers: { "User-Agent": USER_AGENT } });
     if (!res.ok) return null;
     const original = Buffer.from(await res.arrayBuffer());
-    const { buffer, contentType, ext } = await compressImage(original);
-    return await uploadImage({ folder, nameHint: pathHint, buffer, contentType, ext });
+    const { buffer, contentType, ext, jpeg } = await compressImage(original);
+    return await uploadImage({ folder, nameHint: pathHint, buffer, contentType, ext, jpeg });
   } catch (error) {
     console.error(`Görsel indirilip yeniden yüklenemedi (${sourceUrl}):`, error);
     return null;

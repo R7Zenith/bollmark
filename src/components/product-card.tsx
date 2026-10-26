@@ -12,6 +12,8 @@ import type { QuickAddVariant } from "@/lib/catalog";
 
 export type ProductCardData = {
   productId: string;
+  // Meta AddToWishlist content_ids (feed'deki item_group_id, bkz. lib/item-group-id.ts).
+  itemGroupId: string;
   slug: string;
   name: string;
   priceCents: number;
@@ -228,7 +230,7 @@ export function ProductCard({
           type="button"
           onClick={(e) => {
             e.preventDefault();
-            toggle(product.productId, {
+            toggle(product.productId, product.itemGroupId, {
               name: product.name,
               priceCents: product.priceCents,
               brand: product.brand,

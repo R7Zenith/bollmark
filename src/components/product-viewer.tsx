@@ -12,6 +12,7 @@ import "yet-another-react-lightbox/styles.css";
 import { useCart } from "@/lib/cart";
 import { useWishlist } from "@/lib/wishlist";
 import { trackViewContent } from "@/lib/meta/track";
+import { getItemGroupId } from "@/lib/item-group-id";
 import { formatPrice } from "@/lib/format";
 import { DISPATCH_TEXT, SHIPPING_THRESHOLD_CENTS, shippingFeeSummary } from "@/lib/shipping";
 import { effectivePrice } from "@/lib/variant";
@@ -238,6 +239,7 @@ export function ProductViewer({
   // SizeGuideModal'i acar (bkz. asagida sizeGuideModalOpen).
 
   const wishlistItem = { name: productName, priceCents, brand: brandName, category: categoryName, color };
+  const itemGroupId = getItemGroupId({ id: productId, code: productCode });
   const selected = size === null ? undefined : variants.find((v) => v.size === size && v.color === color);
   const needsSize = size === null;
   const selectedPriceCents = selected ? effectivePrice({ priceCents }, selected) : priceCents;
@@ -508,7 +510,7 @@ export function ProductViewer({
               kalp). */}
           <button
             type="button"
-            onClick={() => toggleWishlist(productId, wishlistItem)}
+            onClick={() => toggleWishlist(productId, itemGroupId, wishlistItem)}
             className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-cream/90 shadow"
             title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
           >
@@ -592,7 +594,7 @@ export function ProductViewer({
           <h1 className="font-display text-[21px] leading-[1.15] tracking-[-0.84px]">{productName}</h1>
           <button
             type="button"
-            onClick={() => toggleWishlist(productId, wishlistItem)}
+            onClick={() => toggleWishlist(productId, itemGroupId, wishlistItem)}
             className="mt-1 hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line hover:border-ink md:flex"
             title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
           >

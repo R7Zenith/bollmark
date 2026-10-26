@@ -37,29 +37,45 @@ function asciiSlug(text: string): string {
   return slug || "gorsel";
 }
 
+async function putObject(r2: NonNullable<ReturnType<typeof r2Config>>, key: string, buffer: Buffer, contentType: string) {
+  // client.fetch() DEGIL: o, govdeyi bir Request nesnesine sarar; Next.js'in fetch'i bunu
+  // akis (chunked) olarak gonderir ve R2 Content-Length olmadigi icin 411 doner. Sadece
+  // imza basliklari alinip govde dogrudan Uint8Array olarak (uzunlugu belli) gonderilir.
+  const body = new Uint8Array(buffer);
+  const signed = await r2.client.sign(`${r2.endpoint}/${key}`, {
+    method: "PUT",
+    body,
+    headers: { "Content-Type": contentType, "Cache-Control": "public, max-age=31536000, immutable" }
+  });
+  const res = await fetch(signed.url, { method: "PUT", headers: signed.headers, body, cache: "no-store" });
+  if (!res.ok) throw new Error(`R2 yüklemesi başarısız (${res.status}): ${key}`);
+}
+
+// jpeg verilirse (compressImage ciktisi) ayni adla .jpg kopyasi da yazilir - Meta
+// katalogu WebP kabul etmiyor (bkz. jpegCopyUrl, lib/merchant-feed.ts).
 export async function uploadImage(input: {
   folder: string;
   nameHint: string;
   buffer: Buffer;
   contentType: string;
   ext: string;
+  jpeg?: Buffer;
 }): Promise<string> {
   const r2 = r2Config();
   if (!r2) throw new R2ConfigError();
 
-  const key = `${input.folder}/${asciiSlug(input.nameHint)}-${randomBytes(4).toString("hex")}.${input.ext}`;
-  // client.fetch() DEGIL: o, govdeyi bir Request nesnesine sarar; Next.js'in fetch'i bunu
-  // akis (chunked) olarak gonderir ve R2 Content-Length olmadigi icin 411 doner. Sadece
-  // imza basliklari alinip govde dogrudan Uint8Array olarak (uzunlugu belli) gonderilir.
-  const body = new Uint8Array(input.buffer);
-  const signed = await r2.client.sign(`${r2.endpoint}/${key}`, {
-    method: "PUT",
-    body,
-    headers: { "Content-Type": input.contentType, "Cache-Control": "public, max-age=31536000, immutable" }
-  });
-  const res = await fetch(signed.url, { method: "PUT", headers: signed.headers, body, cache: "no-store" });
-  if (!res.ok) throw new Error(`R2 yüklemesi başarısız (${res.status}): ${key}`);
-  return `${r2.publicBaseUrl}/${key}`;
+  const base = `${input.folder}/${asciiSlug(input.nameHint)}-${randomBytes(4).toString("hex")}`;
+  await Promise.all([
+    putObject(r2, `${base}.${input.ext}`, input.buffer, input.contentType),
+    input.jpeg && putObject(r2, `${base}.jpg`, input.jpeg, "image/jpeg")
+  ]);
+  return `${r2.publicBaseUrl}/${base}.${input.ext}`;
+}
+
+// R2'deki .webp gorselin JPEG kopyasinin adresi; kopyasi olmayan (R2 disi ya da
+// WebP olmayan) gorselde null.
+export function jpegCopyUrl(url: string): string | null {
+  return isR2Url(url) && url.endsWith(".webp") ? url.replace(/\.webp$/, ".jpg") : null;
 }
 
 export function isR2Url(url: string): boolean {
@@ -76,8 +92,10 @@ export function isR2Url(url: string): boolean {
 export async function deleteR2Urls(urls: string[]): Promise<void> {
   const r2 = r2Config();
   if (!r2 || urls.length === 0) return;
+  // .webp ile birlikte JPEG kopyasi da silinir (yoksa R2 sessizce 204 doner).
+  const withCopies = urls.flatMap((url) => [url, jpegCopyUrl(url)].filter((u): u is string => u !== null));
   const results = await Promise.allSettled(
-    urls.map(async (url) => {
+    withCopies.map(async (url) => {
       const res = await r2.client.fetch(`${r2.endpoint}${new URL(url).pathname}`, { method: "DELETE" });
       if (!res.ok) throw new Error(`${res.status} ${url}`);
     })

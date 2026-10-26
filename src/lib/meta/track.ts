@@ -256,9 +256,10 @@ export function trackViewCart(lines: CartLineLike[]) {
   ga4("view_cart", ga4CartData(lines));
 }
 
-// Favoriler urun bazli (varyant yok): content_ids / item_id = Product.id (katalogda item_group_id).
-export function trackAddToWishlist(productId: string, item?: Omit<ListItem, "productId">) {
-  fire("AddToWishlist", { content_type: "product_group", content_ids: [productId] });
+// Favoriler urun bazli (varyant yok): Meta content_ids = feed'deki item_group_id
+// (bkz. lib/item-group-id.ts); GA4 item_id = Product.id (liste olaylariyla ayni).
+export function trackAddToWishlist(productId: string, itemGroupId: string, item?: Omit<ListItem, "productId">) {
+  fire("AddToWishlist", { content_type: "product_group", content_ids: [itemGroupId] });
   ga4("add_to_wishlist", {
     currency: CURRENCY,
     value: item ? item.priceCents / 100 : 0,

@@ -10,7 +10,7 @@ type WishlistTrackItem = Omit<ListItem, "productId">;
 type WishlistContextValue = {
   ids: Set<string>;
   isAuthenticated: boolean;
-  toggle: (productId: string, item?: WishlistTrackItem) => void;
+  toggle: (productId: string, itemGroupId: string, item?: WishlistTrackItem) => void;
 };
 
 const WishlistContext = createContext<WishlistContextValue | null>(null);
@@ -73,8 +73,8 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     })();
   }, [status]);
 
-  function toggle(productId: string, item?: WishlistTrackItem) {
-    if (!ids.has(productId)) trackAddToWishlist(productId, item);
+  function toggle(productId: string, itemGroupId: string, item?: WishlistTrackItem) {
+    if (!ids.has(productId)) trackAddToWishlist(productId, itemGroupId, item);
     if (status === "authenticated") {
       const isRemoving = ids.has(productId);
       setIds((prev) => {

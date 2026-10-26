@@ -142,6 +142,7 @@ type AutomaticCampaigns = Awaited<ReturnType<typeof getActiveAutomaticPercentCam
 export function toCatalogCardProps(entry: CatalogEntry, automaticCampaigns: AutomaticCampaigns): ProductCardData {
   return {
     productId: entry.productId,
+    itemGroupId: entry.itemGroupId,
     slug: entry.slug,
     name: entry.name,
     priceCents: entry.priceCents,

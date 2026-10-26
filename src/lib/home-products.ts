@@ -23,6 +23,7 @@ const FALLBACK_IMAGE = "/gorsel-yakinda.svg";
 export function catalogEntryToCardData(entry: CatalogEntry, campaigns: AutomaticPercentCampaign[]): ProductCardData {
   return {
     productId: entry.productId,
+    itemGroupId: entry.itemGroupId,
     slug: entry.slug,
     name: entry.name,
     priceCents: entry.priceCents,
