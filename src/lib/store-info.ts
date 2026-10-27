@@ -26,9 +26,9 @@ export const STORE_INFO = {
   taxOffice: "Karacabey Vergi Dairesi" as string | null,
   taxNo: "6080753452" as string | null,
   kepAddress: null as string | null,
-  // Profil ve DM linki bundan turetilir (asagida); "bollmark" hesabina
-  // gecilince yalniz bu satir degisir.
-  instagramUsername: "koton.karacabey",
+  // Profil ve DM linki bundan turetilir (asagida). 27 Ekim 2026'da
+  // koton.karacabey -> bollmarkcom ("bollmark" Instagram'da alinamadi).
+  instagramUsername: "bollmarkcom",
   address: {
     streetAddress: "Runguçpaşa Mah. 75. Sk. No:6/A",
     addressLocality: "Karacabey",
