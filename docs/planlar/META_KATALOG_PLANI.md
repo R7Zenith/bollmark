@@ -1,6 +1,6 @@
 # Meta Katalog Bağlantısı Planı
 
-Durum: Uygulandı (2026-10-26). Kalan: 24–48 saat sonra Commerce Manager'da eşleşme oranı kontrolü (hedef ≥%90)
+Durum: Uygulandı (2026-10-26). Kalan: 29–30 Ekim'de eşleşme oranı kontrolü (hedef ≥%90), 2026 ürün setleri, Instagram ürün etiketleme uygunluğu.
 
 Tarih: 26 Ekim 2026
 
@@ -253,3 +253,27 @@ feed'inde). Vercel Firewall'a dokunulmayacak; feed Commerce Manager'da denenecek
    - Tarayıcı olayına bakılır.
 6. Sepet → Ödemeye geç → **InitiateCheckout**: sepetteki her satırın SKU'su.
 7. Her olayda `currency` `TRY`. Feed'de olmayan bir kimlik görürsen hangi olay olduğunu not et.
+
+## Commerce Manager kontrolü (2026-10-27)
+
+- Katalog → Olaylar: eşleşme oranı %0, AddToCart / Purchase / ViewContent "Eksik". Sebep:
+  Meta oranı 28 Eyl – 25 Eki aralığından hesaplıyor, katalog 26 Ekim'de bağlandı. Piksel
+  çalışıyor (son olay 13 dk önce). 29–30 Ekim'de tekrar bakılacak.
+- Eylemler sekmesindeki "Ürünler reklam olaylarıyla eşleşmiyor" hatası aynı %0 uyarısı;
+  şimdilik işlem yok.
+- Ürünler sayfası: 1.414 ürün (95 sayfa). "Uygun değil" görünen varyantlar "Stokta yok"
+  olanlar; stoklu varyantlar "Uygun". Grup satırı, içinde stoksuz varyant varsa "Uygun
+  değil" görünüyor. Sorun değil.
+- Olaylar özetinde katalog "2,8 B ürün" gösteriyor, Ürünler 1.414, feed 1.661 item. Fark
+  takipte, Ürünler sayfasında eski XMLExport ürünü görülmedi (grup kodları yeni feed'den).
+- Ürün setleri: mevcut setler 2023'ten kalma, çoğu 0 ürün (eski feed alanlarına göre
+  filtreli, eski dinamik reklamlarda kullanılıyor). Silinmeyecek; yeni setler "2026 -"
+  önekiyle kurulacak (kullanıcı sonra kuracak):
+  - 2026 - Kadın: gender = female + age_group = adult
+  - 2026 - Erkek: gender = male + age_group = adult
+  - 2026 - Çocuk: age_group = kids
+  - 2026 - Stokta: availability = in stock
+
+  Yeni setler kurulunca eski 2023 setleri temizlenecek.
+- Instagram ürün etiketleme: önce İşletme Ayarları'nda bollmark.com alan adı doğrulaması
+  kontrol edilecek, sonra Commerce Manager'da satış kanalı seçeneğine bakılacak.
