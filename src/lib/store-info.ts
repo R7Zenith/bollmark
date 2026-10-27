@@ -12,9 +12,10 @@ export const STORE_INFO = {
   // metinlerde "Telefon / WhatsApp" duz metin. Uluslararasi bicimde; gosterim
   // ve wa.me linki asagidaki yardimcilarla turetilir - baska dosyaya yazilmaz.
   phone: "+90 224 323 01 21" as string | null,
-  // WhatsApp Business bu numarada acilinca true yapilir; o zamana kadar wa.me
-  // linkleri (footer, iletisim, anasayfa karti) gizli.
-  whatsappActive: false,
+  // WhatsApp Business bu numarada 27 Ekim 2026'da acildi. false yapilirsa wa.me
+  // linkleri (footer, iletisim, anasayfa karti, yuzen buton menusu, urun
+  // sayfasi) gizlenir, yerine yalniz Instagram DM kalir.
+  whatsappActive: true,
   // Yasal kimlik (Mesafeli Sozlesmeler Yon. 5/1-c, e-ticaret hizmet saglayici
   // yon.; bkz. docs/planlar/ILETISIM_TELEFON_VE_INSTAGRAM_DM_PLANI.md). MERSIS
   // ve VKN kullanicidan alindi (26 Ekim 2026); unvan ve vergi dairesi Mesafeli
@@ -47,7 +48,7 @@ export const STORE_INFO = {
   openingHours: {
     days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
     opens: "10:00",
-    closes: "19:00"
+    closes: "19:30"
   }
 };
 
@@ -60,9 +61,11 @@ export function phoneDisplay(phone: string): string {
   return `0 (${digits.slice(0, 3)}) ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8)}`;
 }
 
-// "+90 224 323 01 21" -> "https://wa.me/902243230121".
-export function whatsappHref(phone: string): string {
-  return `https://wa.me/${phone.replace(/\D/g, "")}`;
+// "+90 224 323 01 21" -> "https://wa.me/902243230121"; text varsa sohbet
+// kutusuna hazir mesaj olarak gelir (?text=).
+export function whatsappHref(phone: string, text?: string): string {
+  const base = `https://wa.me/${phone.replace(/\D/g, "")}`;
+  return text ? `${base}?text=${encodeURIComponent(text)}` : base;
 }
 
 // Yasal kimlik satirlari (etiket, deger) - null alanlar atlanir. Footer,
@@ -89,7 +92,7 @@ const DAY_LABELS: Record<string, string> = {
   Sunday: "Pazar"
 };
 
-// Ardisik gunler tek satirda: "Pazartesi - Cumartesi: 10:00 - 19:00", "Pazar: Kapalı".
+// Ardisik gunler tek satirda: "Pazartesi - Cumartesi: 10:00 - 19:30", "Pazar: Kapalı".
 export function openingHoursLines(): string[] {
   const { days, opens, closes } = STORE_INFO.openingHours;
   const closed = Object.keys(DAY_LABELS).filter((d) => !days.includes(d));

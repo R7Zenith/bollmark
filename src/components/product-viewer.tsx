@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
-import { useRouter } from "next/navigation";
 import { Heart, Minus, Plus, Truck, RotateCcw, ShieldCheck, Check, ZoomIn, Clock, ChevronRight } from "lucide-react";
 import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
@@ -21,7 +20,7 @@ import { ProductBadge } from "@/components/product-badge";
 import { usesGreyBackdrop } from "@/lib/image-backdrop";
 import { InfoDrawer } from "@/components/info-drawer";
 import { SizeGuideModal } from "@/components/size-guide-modal";
-import { AskOnInstagramButton } from "@/components/contact-links";
+import { AskAboutProduct } from "@/components/contact-links";
 
 // Bu esikten dusuk stok "Son N adet" uyarisi gosterir - e-posta gerektirmeyen
 // salt UI bir isaret. Ileride StoreSettings'e tasinabilir (Faz A'ya dahil degil).
@@ -152,7 +151,7 @@ export function ProductViewer({
 }: {
   productId: string;
   productName: string;
-  // Product.code (urun/stil kodu) - "Instagram'dan sor" mesajinda; yoksa varyant SKU'su.
+  // Product.code (urun/stil kodu) - "WhatsApp'tan sor" / "Instagram'dan sor" mesajinda; yoksa varyant SKU'su.
   productCode: string | null;
   categoryName: string | null;
   brandName: string | null;
@@ -192,7 +191,6 @@ export function ProductViewer({
   const greyBackdrop = usesGreyBackdrop(brandName);
   const { addLine, openDrawer } = useCart();
   const { ids: wishlistIds, isAuthenticated, toggle: toggleWishlist } = useWishlist();
-  const router = useRouter();
   const isWishlisted = wishlistIds.has(productId);
 
   const sizes = orderedOptionValues(variants, (v) => v.size, (v) => v.sizePosition);
@@ -393,13 +391,6 @@ export function ProductViewer({
     if (!selected || outOfStock) return;
     addToCart();
     openDrawer();
-  };
-
-  const handleBuyNow = () => {
-    if (blockIfSizeMissing()) return;
-    if (!selected || outOfStock) return;
-    addToCart();
-    router.push("/odeme");
   };
 
   // Embla, gercek bir surukleme sonrasi tarayicinin sentezledigi "click"
@@ -828,23 +819,12 @@ export function ProductViewer({
             </button>
           </div>
 
-          {!outOfStock && (
-            <button
-              onClick={handleBuyNow}
-              className="h-[46px] w-full rounded-[50px] border border-ink bg-transparent text-[10px] uppercase tracking-[1.4px] text-ink transition duration-300 hover:bg-ink hover:text-cream"
-            >
-              Hemen Al
-            </button>
-          )}
+          {/* "Hemen Al" kaldirildi (27 Ekim 2026): Sepete Ekle cekmeceyi acip
+              odemeye zaten tek tikla goturuyor; Hemen Al sepetteki diger
+              urunleri de odemeye tasiyordu ve mobilde ikinci tam genislik
+              hap butonu aciklamayi asagi itiyordu. */}
 
           {outOfStock && selected && <StockAlertForm variantId={selected.id} />}
-
-          <AskOnInstagramButton
-            productName={productName}
-            color={color || null}
-            size={size}
-            productCode={productCode ?? selected?.sku ?? variants.find((v) => v.color === color)?.sku ?? ""}
-          />
 
           {!outOfStock && selected && selected.stock <= LOW_STOCK_THRESHOLD && (
             <p className="flex items-center gap-2 text-xs text-ink/70">
@@ -922,6 +902,14 @@ export function ProductViewer({
               Beden Tablosu
               <ChevronRight size={18} className="text-ink/40" />
             </button>
+            {/* Sepete Ekle altinda kalabalik yapiyordu; ayni satir dilinde
+                dorduncu satir olarak buraya alindi (27 Ekim 2026). */}
+            <AskAboutProduct
+              productName={productName}
+              color={color || null}
+              size={size}
+              productCode={productCode ?? selected?.sku ?? variants.find((v) => v.color === color)?.sku ?? ""}
+            />
           </div>
 
           {/* release-main.myshopify.com/products/top-8'de IKI AYRI ticker
