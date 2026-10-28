@@ -2,7 +2,9 @@ import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { CATALOG_TAG } from "@/lib/catalog";
-import { genderWhere } from "@/lib/catalog-url";
+import { catalogHref, genderWhere } from "@/lib/catalog-url";
+import { pickCoverImage } from "@/lib/catalog";
+import type { MegaMenuCard } from "@/lib/mega-menu-cards";
 
 export type MenuCategory = { id: string; name: string; slug: string; imageUrl: string | null };
 
@@ -15,6 +17,9 @@ export type MegaMenuData = {
   erkekCocuk: MenuCategory[];
   cocuk: MenuCategory[];
   aksesuar: MenuCategory[];
+  // Aksesuar panelinin sagindaki kartlar: Kadin/Erkek'teki gibi sabit gorsel
+  // degil, kategorinin en yeni yayindaki urununun fotografi.
+  aksesuarCards: MegaMenuCard[];
 };
 
 async function getGenderCategories(genderLabel: string): Promise<MenuCategory[]> {
@@ -43,20 +48,50 @@ async function getAksesuarCategories(): Promise<MenuCategory[]> {
   return aksesuar?.children ?? [];
 }
 
+const AKSESUAR_CARD_CATEGORIES = [
+  { slug: "canta", title: "Çanta" },
+  { slug: "parfum", title: "Parfüm" }
+];
+
+async function getAksesuarCards(): Promise<MegaMenuCard[]> {
+  const cards = await Promise.all(
+    AKSESUAR_CARD_CATEGORIES.map(async ({ slug, title }) => {
+      const product = await prisma.product.findFirst({
+        where: {
+          status: "PUBLISHED",
+          category: { slug },
+          OR: [{ images: { some: {} } }, { optionImages: { some: {} } }]
+        },
+        orderBy: { createdAt: "desc" },
+        select: {
+          images: { orderBy: { position: "asc" }, take: 1, select: { url: true } },
+          optionImages: { orderBy: { position: "asc" }, select: { url: true, isCover: true } }
+        }
+      });
+      const image = product?.images[0]?.url ?? (product && pickCoverImage(product.optionImages)?.url);
+      if (!image) return null;
+      return { image, alt: `${title} koleksiyonu`, label: "YENİ GELENLER", title, href: catalogHref({ category: slug }) };
+    })
+  );
+  return cards.filter((card) => card !== null);
+}
+
 // DB cagrilari onbellekte; urun/kategori degisince revalidateCatalog()
 // (lib/revalidate-catalog.ts) gecersiz kilar, revalidate 3600 emniyet agi.
 const cacheOptions = { tags: [CATALOG_TAG], revalidate: 3600 };
 const getCachedGenderCategories = unstable_cache(getGenderCategories, ["menu-gender-categories"], cacheOptions);
 const getCachedAksesuarCategories = unstable_cache(getAksesuarCategories, ["menu-aksesuar-categories"], cacheOptions);
+const getCachedAksesuarCards = unstable_cache(getAksesuarCards, ["menu-aksesuar-cards"], cacheOptions);
 
 export const getMegaMenuData = cache(async (): Promise<MegaMenuData> => {
-  const [kadin, erkek, kizCocuk, erkekCocuk, cocuk, aksesuar] = await Promise.all([
+  const [kadin, erkek, kizCocuk, erkekCocuk, cocuk, aksesuar, aksesuarCards] = await Promise.all([
     getCachedGenderCategories("Kadın"),
     getCachedGenderCategories("Erkek"),
     getCachedGenderCategories("Kız Çocuk"),
     getCachedGenderCategories("Erkek Çocuk"),
     getCachedGenderCategories("Çocuk"),
-    getCachedAksesuarCategories()
+    getCachedAksesuarCategories(),
+    getCachedAksesuarCards()
   ]);
-  return { kadin, erkek, kizCocuk, erkekCocuk, cocuk, aksesuar };
+  return { kadin, erkek, kizCocuk, erkekCocuk, cocuk, aksesuar, aksesuarCards };
 });

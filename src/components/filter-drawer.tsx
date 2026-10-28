@@ -20,6 +20,10 @@ import {
 
 export type FilterDrawerCategory = { name: string; slug: string };
 
+// Mega menudeki cinsiyet sekmeleriyle ayni secenekler; "Çocuk" Kiz/Erkek
+// Cocuk urunlerini birlikte kapsar (bkz. lib/catalog-url.ts GENDER_GROUPS).
+const GENDER_OPTIONS = ["Kadın", "Erkek", "Çocuk"];
+
 const FOCUSABLE =
   'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])';
 const INITIAL_COLOR_COUNT = 5;
@@ -125,6 +129,7 @@ function DrawerPanel({
   facets,
   categories,
   activeCategory,
+  activeGender,
   applied,
   visible,
   onApply,
@@ -133,15 +138,17 @@ function DrawerPanel({
   facets: CatalogFacets;
   categories: FilterDrawerCategory[];
   activeCategory: string | null;
+  activeGender: string | null;
   applied: CatalogFilters;
   visible: boolean;
-  onApply: (filters: CatalogFilters, category: string | null) => void;
+  onApply: (filters: CatalogFilters, category: string | null, gender: string | null) => void;
   onClose: () => void;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const [draft, setDraft] = useState<CatalogFilters>(applied);
   const [category, setCategory] = useState<string | null>(activeCategory);
+  const [gender, setGender] = useState<string | null>(activeGender);
   const [minText, setMinText] = useState(applied.minPrice !== null ? String(applied.minPrice) : "");
   const [maxText, setMaxText] = useState(applied.maxPrice !== null ? String(applied.maxPrice) : "");
   const [showAllColors, setShowAllColors] = useState(false);
@@ -195,12 +202,13 @@ function DrawerPanel({
     let minPrice = parsePriceText(minText);
     let maxPrice = parsePriceText(maxText);
     if (minPrice !== null && maxPrice !== null && minPrice > maxPrice) [minPrice, maxPrice] = [maxPrice, minPrice];
-    onApply({ ...draft, minPrice, maxPrice }, category);
+    onApply({ ...draft, minPrice, maxPrice }, category, gender);
   };
 
   const clear = () => {
     setDraft(EMPTY_FILTERS);
     setCategory(null);
+    setGender(null);
     setMinText("");
     setMaxText("");
   };
@@ -243,6 +251,14 @@ function DrawerPanel({
       <p className="px-6 pb-4 text-[36px] font-normal leading-[36px] tracking-[-1.44px]">Filtrele</p>
 
       <div className="flex-1 overflow-y-auto border-t border-line px-6">
+        <Section id="cinsiyet" title="Cinsiyet" defaultOpen={activeGender !== null}>
+          {GENDER_OPTIONS.map((g) => (
+            <Checkbox key={g} checked={gender === g} onChange={(on) => setGender(on ? g : null)}>
+              <Label>{g}</Label>
+            </Checkbox>
+          ))}
+        </Section>
+
         {categories.length > 0 && (
           <Section id="kategori" title="Kategori" defaultOpen={activeCategory !== null}>
             {categories.map((c) => (
@@ -381,8 +397,9 @@ export function FilterDrawer({
   facets: CatalogFacets;
   categories: FilterDrawerCategory[];
   activeCategory: string | null;
+  activeGender: string | null;
   applied: CatalogFilters;
-  onApply: (filters: CatalogFilters, category: string | null) => void;
+  onApply: (filters: CatalogFilters, category: string | null, gender: string | null) => void;
 }) {
   // `rendered`: cekmece DOM'da mi (kapanis animasyonu bitene kadar true kalir),
   // `entered`: acilis icin bir sonraki frame gecti mi - transform transition'i

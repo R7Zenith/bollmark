@@ -57,8 +57,8 @@ function PromoCard({
   );
 }
 
-// Masaustu Kadin/Erkek mega menusunun sag tarafindaki portre gorsel karti
-// (icerik lib/mega-menu-cards.ts'te). Mobil menu bunu kullanmaz. Hover efekti
+// Masaustu Kadin/Erkek/Aksesuar mega menusunun sag tarafindaki portre gorsel
+// karti (icerik lib/mega-menu-cards.ts'te; Aksesuar'inki lib/site-nav.ts'te). Mobil menu bunu kullanmaz. Hover efekti
 // bilincli olarak yok.
 function MegaMenuImageCard({ card }: { card: MegaMenuCard }) {
   return (
@@ -197,6 +197,25 @@ function useActiveCatalog() {
   };
 }
 
+// Kadin/Erkek mega menusundeki kategori gruplari (kategori slug'ina gore).
+// Grup ici sira admin'deki kategori sirasindan gelir; o cinsiyette bos kalan
+// grup gizlenir, burada olmayan yeni bir kategori "Diğer" altina duser.
+const MENU_GROUPS = [
+  { title: "Üst Giyim", slugs: ["bluz", "gomlek", "tisort", "sweatshirt", "kazak-suveter", "hirka"] },
+  { title: "Alt Giyim", slugs: ["pantolon", "kot-pantolon", "etek", "sort", "esofman-alti"] },
+  { title: "Dış Giyim", slugs: ["ceket", "mont-kaban", "trenckot", "yelek"] },
+  { title: "Elbise & Takım", slugs: ["elbise", "takim", "esofman"] },
+  { title: "Aksesuar", slugs: ["canta", "ayakkabi", "parfum"] }
+];
+
+function groupMenuCategories(categories: MenuCategory[]): { title: string; categories: MenuCategory[] }[] {
+  const grouped = new Set(MENU_GROUPS.flatMap((g) => g.slugs));
+  return [
+    ...MENU_GROUPS.map((g) => ({ title: g.title, categories: categories.filter((c) => g.slugs.includes(c.slug)) })),
+    { title: "Diğer", categories: categories.filter((c) => !grouped.has(c.slug)) }
+  ].filter((g) => g.categories.length > 0);
+}
+
 function GenderPanel({ gender, categories }: { gender: GenderKey; categories: MenuCategory[] }) {
   const genderLabel = GENDER_LABEL[gender];
   const { activeSlug, activeGender } = useActiveCatalog();
@@ -208,15 +227,37 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
   const allProductsHref = catalogHref({ gender: genderLabel });
   const isAllProductsActive = !activeSlug && activeGender === genderLabel;
   const cards = MEGA_MENU_CARDS[gender];
+  const groups = groupMenuCategories(categories);
 
   // Release'de panel iceriginin max-width'i YOK: her ekran genisliginde tam
-  // viewport, yan bosluk sabit 36px (px-9), dikey 32px (py-8). Solda metin
-  // sutunlari, sagda (varsa) 2 portre kart: kartlar sagda toplanir, aralarinda
-  // 20px bosluk, toplam genislik en fazla 970px (kart basi ~475px).
+  // viewport, yan bosluk sabit 36px (px-9), dikey 32px (py-8). Solda kategori
+  // gruplari 3 sutunlu izgarada ("Öne Çıkanlar" en sonda), sagda (varsa) 2
+  // portre kart: aralarinda 20px bosluk, toplam genislik en fazla 710px (kart
+  // basi ~345px) - gruplar sayesinde panel kisaldigi icin kartlar da kucuk.
   return (
     <div className="absolute inset-x-0 top-full w-full border-b border-line bg-cream">
-      <div className="flex px-9 py-8">
-        <div className={`grid grid-cols-2 content-start gap-x-3 gap-y-3 ${cards.length > 0 ? "flex-1" : "w-1/2"}`}>
+      <div className="flex gap-10 px-9 py-8">
+        <div className={`grid grid-cols-3 content-start gap-x-6 gap-y-9 ${cards.length > 0 ? "flex-1" : "w-3/4"}`}>
+          {groups.map((group) => (
+            <div key={group.title}>
+              <p className={GROUP_HEADING_CLASS}>{group.title}</p>
+              <ul className="space-y-2">
+                {group.categories.map((category) => {
+                  const isActive = activeSlug === category.slug && activeGender === genderLabel;
+                  return (
+                    <li key={category.id}>
+                      <Link
+                        href={catalogHref({ gender: genderLabel, category: category.slug })}
+                        className={isActive ? GROUP_LINK_ACTIVE_CLASS : GROUP_LINK_CLASS}
+                      >
+                        {category.name}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
           <div>
             <p className={GROUP_HEADING_CLASS}>Öne Çıkanlar</p>
             <ul className="space-y-2">
@@ -227,27 +268,9 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
               </li>
             </ul>
           </div>
-          <div>
-            <p className={GROUP_HEADING_CLASS}>Kategoriler</p>
-            <ul className="space-y-2">
-              {categories.map((category) => {
-                const isActive = activeSlug === category.slug && activeGender === genderLabel;
-                return (
-                  <li key={category.id}>
-                    <Link
-                      href={catalogHref({ gender: genderLabel, category: category.slug })}
-                      className={isActive ? GROUP_LINK_ACTIVE_CLASS : GROUP_LINK_CLASS}
-                    >
-                      {category.name}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
         </div>
         {cards.length > 0 && (
-          <div className="flex w-[70%] max-w-[970px] gap-5">
+          <div className="flex w-[45%] max-w-[710px] gap-5">
             {cards.map((card) => (
               <MegaMenuImageCard key={card.href} card={card} />
             ))}
@@ -258,14 +281,13 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
   );
 }
 
-function AksesuarPanel({ categories }: { categories: MenuCategory[] }) {
+function AksesuarPanel({ categories, cards }: { categories: MenuCategory[]; cards: MegaMenuCard[] }) {
   const { activeSlug } = useActiveCatalog();
-  const promoImage = categories.find((c) => c.imageUrl) ?? null;
 
   return (
     <div className="absolute inset-x-0 top-full w-full border-b border-line bg-cream">
-      <div className="grid grid-cols-2 px-9 py-8">
-        <div>
+      <div className="flex px-9 py-8">
+        <div className={cards.length > 0 ? "flex-1" : "w-1/2"}>
           <p className={GROUP_HEADING_CLASS}>Kategoriler</p>
           <ul className="space-y-2">
             {categories.map((category) => {
@@ -283,9 +305,11 @@ function AksesuarPanel({ categories }: { categories: MenuCategory[] }) {
             })}
           </ul>
         </div>
-        {promoImage && (
-          <div className="flex gap-6">
-            <PromoCard category={promoImage} href={catalogHref({ category: promoImage.slug })} headline="Aksesuar Koleksiyonu" />
+        {cards.length > 0 && (
+          <div className="flex w-[70%] max-w-[970px] gap-5">
+            {cards.map((card) => (
+              <MegaMenuImageCard key={card.href} card={card} />
+            ))}
           </div>
         )}
       </div>
@@ -861,7 +885,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
           </div>
         </div>
 
-        {openMenu === "aksesuar" && <AksesuarPanel categories={menuData.aksesuar} />}
+        {openMenu === "aksesuar" && <AksesuarPanel categories={menuData.aksesuar} cards={menuData.aksesuarCards} />}
         {openMenu === "cocuk" && <CocukPanel menuData={menuData} />}
         {(openMenu === "kadin" || openMenu === "erkek") && (
           <GenderPanel gender={openMenu} categories={menuData[openMenu]} />

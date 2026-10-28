@@ -159,9 +159,10 @@ export function CatalogToolbar({
   };
 
   // Filtre cekmecesi/cipleri: kategori + tum filtre param'larini birlikte yazar,
-  // cinsiyet/sirala olduklari gibi kalir. Kategori yolda tasinir (/erkek ->
-  // /erkek/gomlek); yalniz arama sonuclarinda (/urunler?ara=) sorguda kalir.
-  const applyFilters = (next: CatalogFilters, category: string | null) => {
+  // sirala oldugu gibi kalir; cinsiyet verilmezse mevcut kapsam korunur (cipler).
+  // Kategori/cinsiyet yolda tasinir (/erkek -> /erkek/gomlek); yalniz arama
+  // sonuclarinda (/urunler?ara=) sorguda kalir.
+  const applyFilters = (next: CatalogFilters, category: string | null, nextGender: string | null = gender) => {
     const params = new URLSearchParams(searchParams.toString());
     writeCatalogFilters(params, next);
     params.delete(CATALOG_SHOW_PARAM);
@@ -169,8 +170,10 @@ export function CatalogToolbar({
     if (params.has("ara")) {
       if (category) params.set("kategori", category);
       else params.delete("kategori");
+      if (nextGender) params.set("cinsiyet", nextGender);
+      else params.delete("cinsiyet");
     } else {
-      path = catalogHref({ gender, category });
+      path = catalogHref({ gender: nextGender, category });
     }
     const query = params.toString();
     router.push(query ? `${path}?${query}` : path);
@@ -254,9 +257,10 @@ export function CatalogToolbar({
         facets={facets}
         categories={categories}
         activeCategory={activeCategory}
+        activeGender={gender}
         applied={filters}
-        onApply={(next, category) => {
-          applyFilters(next, category);
+        onApply={(next, category, nextGender) => {
+          applyFilters(next, category, nextGender);
           closeDrawer();
         }}
       />
