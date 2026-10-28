@@ -204,14 +204,18 @@ export default async function HomePage() {
   const budget = countBudgetTiers(products.flatMap(productToCatalogEntries), automaticCampaigns);
   const seasonColors = campaignPercent > 0 ? [] : pickSeasonColors(products);
 
-  // D) Cok satanlar: sekme basina ayri liste (Tumu/Kadin/Erkek/Cocuk), urunu
-  // olmayan sekme gizlenir. Kart verisi Yeni Gelenler ile ayni yardimciyla.
+  // D) Cok satanlar: sekme basina ayri liste (Tumu/Kadin/Erkek/Cocuk/Aksesuar),
+  // urunu olmayan sekme gizlenir. Kart verisi Yeni Gelenler ile ayni yardimciyla.
+  // Tumu ve cinsiyet sekmeleri yalniz giyim; ayakkabi/aksesuar agaci (parfum
+  // dahil) yalniz Aksesuar sekmesinde - cinsiyet kutularindaki ayrimla ayni.
   const soldByProductId = new Map(soldGroups.map((g) => [g.productId, g._sum.quantity ?? 0]));
+  const clothingProducts = products.filter((p) => !shoeAndAccessoryIds.has(p.id));
   const bestsellerTabs: BestsellerTab[] = [
     { key: "tumu", label: "Tümü", gender: null },
     { key: "kadin", label: "Kadın", gender: "Kadın" },
     { key: "erkek", label: "Erkek", gender: "Erkek" },
-    { key: "cocuk", label: "Çocuk", gender: "Çocuk" }
+    { key: "cocuk", label: "Çocuk", gender: "Çocuk" },
+    { key: "aksesuar", label: "Aksesuar", gender: null }
   ]
     .map(({ key, label, gender }) => ({
       key,
@@ -220,7 +224,11 @@ export default async function HomePage() {
       // tek kartla (stokta olan ilk rengi) gosterilir - diger renkler kartin
       // altindaki renk yuvarlaklarinda zaten var.
       products: pickBestsellers(
-        gender ? products.filter((p) => p.gender != null && (GENDER_GROUPS[gender] ?? [gender]).includes(p.gender)) : products,
+        key === "aksesuar"
+          ? products.filter((p) => shoeAndAccessoryIds.has(p.id))
+          : gender
+            ? clothingProducts.filter((p) => p.gender != null && (GENDER_GROUPS[gender] ?? [gender]).includes(p.gender))
+            : clothingProducts,
         soldByProductId
       )
         .map((p) => {
