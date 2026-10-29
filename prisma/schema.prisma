@@ -8,6 +8,9 @@ generator client {
   // Kucuk (2,3 MB) sorgu derleyicisi: varsayilan "fast" wasm 4,6 MB ve her
   // Vercel function'ina giriyor (bkz. DEPLOY_STATUS.md, Functions Storage).
   compilerBuild = "small"
+  // Kalp Topla: KalpHeart'taki kismi unique indeks semada tanimli kalsin diye
+  // (ayri SQL ile eklenseydi sonraki her db push onu silmek isterdi).
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
@@ -128,6 +131,7 @@ model Product {
   gender      String?
   tags        Tag[]
   isFeatured  Boolean       @default(false)
+  kalpToplaExcluded Boolean @default(false) // "Kalp Topla dışı": bar görünmez, kupon uygulanmaz/taşınmaz (KALP_TOPLA_PLANI.md)
   images      ProductImage[]
   variants    ProductVariant[]
   optionImages ProductOptionImage[]
@@ -354,6 +358,10 @@ model Order {
   vegaId                Int       @unique @default(autoincrement())
   vegaFetchedAt         DateTime?
 
+  // Kalp Topla (KALP_TOPLA_PLANI.md 4.1)
+  kalpDiscountCents Int @default(0)       // rapor ve özet için
+  kalpTestAt        DateTime?             // Y12: test kuponuyla verilmiş sipariş; kampanya raporlarından hariç
+
   @@index([deletedAt])
   @@index([paymentStatus])
 }
@@ -374,6 +382,15 @@ model Customer {
   loyaltyLedger LoyaltyTransaction[]
   wishlistItems WishlistItem[]
   cart          CustomerCart?
+
+  // Kalp Topla (KALP_TOPLA_PLANI.md 4.1)
+  emailVerifiedAt       DateTime?
+  referralCode          String?  @unique   // kişisel davet kodu (ilk ihtiyaçta üretilir)
+  referredById          String?            // davet eden üye (bir kez yazılır)
+  inviteTargetProductId String?            // genel davet linkinde +2'nin hedef ürünü
+  marketingEmailAt      DateTime?          // dolu = e-posta onayı var (her değişiklik MarketingConsentLog'a da)
+  marketingWhatsappAt   DateTime?          // Faz 2 için toplanır, ilk sürümde ileti yok
+  pushPromptDismissedAt DateTime?          // push sorusu reddedildi: 7 gün sorulmaz
 }
 
 // Giris yapmis musterinin cihazlar arasi sepeti (bkz. lib/cart.tsx, api/sepet).
@@ -385,6 +402,7 @@ model CustomerCart {
   customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   linesJson  String   @default("[]")
   couponCode String?
+  kalpSelectionJson String @default("{}") // Kalp Topla: { manual: variantId[], removed: variantId[] }
   updatedAt  DateTime @updatedAt
 }
 
@@ -431,6 +449,14 @@ model ReturnRequest {
   adminNote    String?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  // Kalp Topla (KALP_TOPLA_PLANI.md 4.1, T6/Y6)
+  exchangeVariantId      String?   // değişim ürünü/varyantı
+  exchangeUnitCents      Int?      // değişim ürününün hesaplanan birim fiyatı
+  exchangeDiffCents      Int?      // + müşteriden alınacak, - müşteriye ödenecek
+  exchangeDiffSettledAt  DateTime? // admin "tahsil edildi / iade edildi" işaretledi
+  exchangeDiffSettledBy  String?   // işaretleyen admin e-postası
+  kalpHandledAt          DateTime? // kupon geri yükleme/taşıma bir kez yapılsın diye
 }
 
 // Indirim kodu / kampanya (v1: yuzde, sabit tutar, ucretsiz kargo). Kod hep
@@ -502,6 +528,9 @@ model OrderItem {
   paymentTransactionId String?
   paidCents            Int?
   refundedCents        Int     @default(0)
+  // Kalp Topla (KALP_TOPLA_PLANI.md 4.1)
+  kalpCouponId          String?  @unique  // bu satıra uygulanan Kalp Topla kuponu
+  kalpOriginalUnitCents Int?              // kuponsuz olsaydı ödenecek birim fiyat
 }
 
 // Magaza geneli ayarlar - tek satirlik "singleton" kayit (id her zaman "singleton")
@@ -752,4 +781,207 @@ model PaymentLog {
 
   @@index([createdAt])
   @@index([orderId])
+}
+
+// ============================================================================
+// Kalp Topla kampanyası (KALP_TOPLA_PLANI.md bölüm 4.2). Tablolar birbirine
+// plan gereği yalnız id alanlarıyla bağlı (FK yok). Kısmi unique indeks
+// KalpHeart'ta, Prisma partialIndexes önizleme özelliğiyle tanımlı.
+// ============================================================================
+
+model KalpToplaSettings {
+  id                 String   @id @default("singleton")
+  mode               String   @default("OFF")  // OFF | HIDDEN | LIVE (Y10)
+  testerCustomerIds  String[] @default([])     // HIDDEN modunda kampanyayı görenler
+  threshold          Int      @default(10)     // yalnız YENİ turlara uygulanır (T16)
+  testThreshold      Int      @default(2)      // Y12: yalnız HIDDEN modda açılan (test) turlara uygulanır
+  discountPercent    Int      @default(50)
+  couponHours        Int      @default(48)
+  heartQuota         Int      @default(3)
+  inviteBonus        Int      @default(2)
+  refundExtraHours   Int      @default(24)
+  // Y2 kötüye kullanım eşikleri (yalnız davet bonusunu etkiler, üyeliği/kalbi/kuponu engellemez)
+  sameDeviceMaxAccounts Int   @default(1)      // aynı cihazdan bu sayıyı aşan hesapların bonusu "incelemede" (1 = ikinci ve sonrası)
+  sameIpWindowHours  Int      @default(24)
+  sameIpMinAccounts  Int      @default(3)      // pencere içinde aynı IP özetinden bu kadar ya da fazla yeni hesap: yalnız "aynı IP" işareti
+  updatedAt          DateTime @updatedAt
+}
+
+// Y4: npm paketine ek, admin'in elle engellediği alan adları.
+model BlockedEmailDomain {
+  id             String   @id @default(cuid())
+  domain         String   @unique   // küçük harf, ör. "ornekmail.com"
+  createdByEmail String
+  createdAt      DateTime @default(now())
+}
+
+// Y2/Y3: kötüye kullanım kontrolü için cihaz ve IP görülmeleri. 90 gün sonra silinir.
+// Kayıt ve girişte yazılır (davet edenin cihazı da eşleşebilsin diye).
+model CustomerDevice {
+  id         String   @id @default(cuid())
+  customerId String
+  deviceId   String             // bm_cihaz çerezindeki rastgele kimlik
+  ipHash     String?            // IP'nin tuzlanmış SHA-256 özeti (ham IP tutulmaz)
+  event      String             // SIGNUP | LOGIN
+  createdAt  DateTime @default(now())
+  @@index([deviceId, createdAt])
+  @@index([ipHash, event, createdAt])
+  @@index([customerId])
+  @@index([createdAt])          // 90 gün temizliği
+}
+
+model KalpBar {
+  productId      String   @id
+  currentRoundId String   @unique
+  points         Int      @default(0)   // açık turdaki ACTIVE kalp + APPLIED bonus toplamı
+  closedRounds   Int      @default(0)
+  updatedAt      DateTime @updatedAt
+}
+
+model KalpRound {
+  id        String    @id @default(cuid())
+  productId String
+  roundNo   Int
+  threshold Int                          // tur açıldığı andaki eşik (T16); test turunda testThreshold (Y12)
+  status    String    @default("OPEN")   // OPEN | CLOSED
+  isTest    Boolean   @default(false)    // HIDDEN modunda açılan test turu (Y12)
+  closedAt  DateTime?
+  createdAt DateTime  @default(now())
+  @@unique([productId, roundNo])
+}
+
+model KalpHeart {
+  id         String    @id @default(cuid())
+  customerId String
+  productId  String
+  roundId    String
+  // PENDING (doğrulanmamış, hak kullanır) | ACTIVE | WITHDRAWN | WON
+  status     String    @default("ACTIVE")
+  createdAt  DateTime  @default(now())
+  endedAt    DateTime?
+  @@index([customerId, status])
+  @@index([roundId, status])
+  @@index([productId, createdAt])
+  // Bir üyenin aynı üründe tek açık (PENDING/ACTIVE) kalbi olur. Koşul, Postgres'in
+  // sakladığı biçimle yazıldı; "status IN (...)" yazılırsa db push her seferinde fark görür.
+  @@unique([customerId, productId], map: "KalpHeart_open_unique", where: raw("status = ANY (ARRAY['PENDING'::text, 'ACTIVE'::text])"))
+}
+
+model KalpInvite {
+  id              String    @id @default(cuid())
+  inviterId       String
+  inviteeId       String    @unique      // bir kişi yalnız bir kez davet edilmiş sayılır
+  productId       String?                // linkin bağlı olduğu ürün
+  // PENDING_VERIFICATION | UNDER_REVIEW | CREDITED (bonus kredisi oluştu, bkz. KalpBonusCredit)
+  // | CANCELLED (admin)
+  status          String    @default("PENDING_VERIFICATION")
+  reviewReasons   String[]  @default([]) // incelemeye düşüren nedenler: SAME_DEVICE | SAME_DEVICE_AS_INVITER
+  sameIpFlagAt    DateTime?              // Y2/Y13: yalnız işaret, durumu ve bonusu etkilemez
+  isTest          Boolean   @default(false) // HIDDEN modda oluşan test daveti (Y12)
+  reviewedByEmail String?
+  reviewedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  verifiedAt      DateTime?
+  @@index([inviterId, status])
+  @@index([status, createdAt])
+}
+
+// Bonus puanlarının nerede durduğunu tutar. Bir davet tek kredi ile başlar.
+// Bonus bir barı eşiğin üstüne taşırsa kredi bölünür: eşiğe kadar olan kısım
+// ROUND_CLOSED, artan kısım yeni bir WAITING kredisi olur, 30 gün baştan (Y11).
+model KalpBonusCredit {
+  id         String    @id @default(cuid())
+  inviteId   String
+  customerId String               // bonusun sahibi (davet eden)
+  points     Int                  // bu kredideki puan
+  // WAITING (bekleyen bonus) | APPLIED (bir bardaki kalbe bağlı) | ROUND_CLOSED (işini gördü)
+  // | VOID_WITHDRAWN (bağlı kalp geri çekildi) | EXPIRED (30 gün doldu) | CANCELLED (admin)
+  status     String    @default("WAITING")
+  heartId    String?              // APPLIED iken bağlı kalp
+  roundId    String?
+  splitFromId String?             // Y11: artan kısımdan doğduysa ana kredi
+  expiresAt  DateTime?            // WAITING iken bitiş (30 gün, kampanya kapalıyken de işler; bölünmede baştan)
+  isTest     Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  @@index([customerId, status])
+  @@index([heartId, status])
+  @@index([status, expiresAt])
+}
+
+model KalpCoupon {
+  id              String    @id @default(cuid())
+  code            String    @unique      // ör. "KALP-7KD2QX"
+  customerId      String
+  roundId         String
+  discountPercent Int
+  expiresAt       DateTime
+  status          String    @default("AVAILABLE") // AVAILABLE | RESERVED | USED | TEST_CANCELLED (Y15)
+  usedAt          DateTime?
+  restoredAt      DateTime?
+  expiringEmailAt DateTime?              // "son 6 saat" e-postası/olayı üretildi (kupon başına 1, Y1)
+  isTest          Boolean   @default(false) // test turundan kazanılan kupon (Y12)
+  createdAt       DateTime  @default(now())
+  @@index([customerId, status, expiresAt])
+}
+
+model Notification {
+  id          String    @id @default(cuid())
+  customerId  String
+  type        String    // COUPON_WON | BAR_NEAR | INVITE_JOINED | COUPON_EXPIRING | BONUS_EXPIRED | COUPON_RESTORED
+  eventKey    String    @unique
+  title       String
+  body        String
+  link        String?
+  payloadJson String    @default("{}")
+  readAt      DateTime?
+  // PENDING | SENT | SKIPPED_DAILY_LIMIT | SKIPPED_NO_CONSENT | NOT_APPLICABLE | FAILED
+  emailStatus String    @default("PENDING")
+  pushStatus  String    @default("PENDING")
+  createdAt   DateTime  @default(now())
+  @@index([customerId, createdAt])
+  @@index([emailStatus, createdAt])
+}
+
+// Y1: BAR_NEAR ve INVITE_JOINED e-postaları için kişi başı günde 1 (İstanbul günü).
+model ReminderEmailDay {
+  id             String   @id @default(cuid())
+  customerId     String
+  dayKey         String   // "2026-11-03" (istanbulDateKey)
+  notificationId String   // o günün e-postasını alan olay
+  createdAt      DateTime @default(now())
+  @@unique([customerId, dayKey])
+}
+
+model PushSubscription {
+  id         String   @id @default(cuid())
+  customerId String
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  createdAt  DateTime @default(now())
+}
+
+model MarketingConsentLog {
+  id          String    @id @default(cuid())
+  customerId  String
+  email       String
+  channel     String    // EMAIL | PUSH | WHATSAPP
+  granted     Boolean
+  source      String    // KAYIT_FORMU | HESAP_AYARLARI | KALP_PENCERESI | ABONELIK_IPTAL_LINKI
+  ip          String?   // Y3: ham IP; onay geri çekildikten 3 yıl sonra null'lanır
+  ipPurgedAt  DateTime?
+  textVersion String
+  createdAt   DateTime  @default(now())
+  @@index([customerId, channel, createdAt])
+  @@index([createdAt])
+}
+
+model EmailVerificationToken {
+  id         String    @id @default(cuid())
+  customerId String
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
 }

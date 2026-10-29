@@ -180,7 +180,7 @@ Bu dosya yalnız plandır, kod yazılmadı. Uygulama ayrı bir görevde, fazlar 
 
 ## 4. Veri modeli
 
-Tüm değişiklikler eklemeli. Önce **test Neon branch'inde** `prisma db push` ile denenir, canlıya yayın fazında uygulanır (T13). Kısmi unique indeksler `scripts/kalp-topla-indeksler.sql` ile eklenir.
+Tüm değişiklikler eklemeli ve kullanıcı onayıyla `prisma db push` ile canlı DB'ye uygulanır (T13 güncel). Kısmi unique indeks Prisma şemasında `partialIndexes` önizleme özelliğiyle tanımlanır, ayrı SQL dosyası yoktur (kullanıcı kararı 2026-10-30: ayrı SQL olsaydı sonraki her `db push` onu silmek isterdi).
 
 ### 4.1 Mevcut tablolara eklenecek alanlar
 
@@ -301,7 +301,7 @@ model KalpHeart {
   @@index([roundId, status])
   @@index([productId, createdAt])
 }
-// SQL: CREATE UNIQUE INDEX ... ON "KalpHeart"("customerId","productId") WHERE status IN ('PENDING','ACTIVE');
+// Şemada: @@unique([customerId, productId], where: raw("status = ANY (ARRAY['PENDING'::text, 'ACTIVE'::text])")) (partialIndexes; Postgres'in sakladığı biçim)
 
 model KalpInvite {
   id              String    @id @default(cuid())
@@ -919,7 +919,7 @@ Her faz localhost'ta, **canlı veritabanına** bağlı olarak test edilir (T13 g
 |---|---|---|
 | **0. Yerel ortam güvenliği (T13 güncel)** ✅ Tamamlandı (2026-10-30) | Test branch'i yok, localhost canlı DB'yi kullanır (`.env` veritabanı ayarına dokunulmaz). 1) Yerelde gönderilen TÜM e-postalar yalnız ozilevent@gmail.com'a gider, konuya "[TEST → asıl alıcı: ...]" eklenir; yalnız yerel ortam değişkeniyle (`MAIL_DEV_REDIRECT`) çalışır, Vercel'de tanımsız. 2) Localhost'ta web push yalnız kullanıcının kendi hesaplarına gönderilir (push kodu Faz 8'de bu kuralla yazılır). 3) Localhost'ta iyzico sandbox kontrolü. 4) Localhost'tan Vega'ya istek gitmediğinin kontrolü. **Karar (2026-10-30):** Localhost test siparişleri Vega'ya düşebilir, kabul edildi; gerekirse Vega'dan elle silinir. Vega tarafında önlem ya da kod değişikliği yapılmaz. 5) Vercel, canlı deploy, Neon, iyzico/Vega/e-posta/DNS/Meta panellerine dokunulmaz. | E-posta yönlendirmesi, iyzico ve Vega kontrollerinin sonucu kullanıcıya raporlanır. Canlı siteye dokunulmadığı doğrulanır. |
 | **1. Kaydedilenler (T9)** ✅ Tamamlandı (2026-10-30) | Favori → yer imi + "Kaydet / Kaydedilenler", sayfa taşıma + 301. Ayrı yayınlanabilir. | Kaydet/çıkar, misafir senkronu, eski URL, Meta/GA4 olayları. |
-| **2. Temel** | Şema (tümü), ayarlar (mod + test hesapları + test eşiği + kötüye kullanım eşikleri + engelli alan adları), ürün checkbox'ı, denetim eylemleri, `campaignStateFor` + `durum` ucu. Mod `OFF`. | Ayarlar, mod geçişleri, işlem geçmişi. |
+| **2. Temel** ✅ Tamamlandı (2026-10-30) | Şema (tümü), ayarlar (mod + test hesapları + test eşiği + kötüye kullanım eşikleri + engelli alan adları), ürün checkbox'ı, denetim eylemleri, `campaignStateFor` + `durum` ucu. Mod `OFF`. | Ayarlar, mod geçişleri, işlem geçmişi. |
 | **3. Üyelik ve onay** | E-posta doğrulama, T12/Y7 script'i (test branch'inde kuru + gerçek), geçici e-posta engeli (paket + admin listesi), `bm_cihaz` + `CustomerDevice`, kayıt formu, İletişim tercihleri (push satırı özellik tespitli), `MarketingConsentLog` (ham IP), abonelikten çıkma, onay CSV'si, temizlik cron'u. | Doğrulama akışı. Geçici alan adıyla kayıt reddi. Onay log satırları. Girişsiz çıkış. CSV. Temizlik cron'u tarih kaydırılmış test verisinde IP'leri siler. |
 | **4. Bar ve kalp** | `bar.ts`, kalp uçları, ürün sayfası bileşeni, misafir akışı, ilk kalp penceresi (e-posta kutusu; push bölümü Faz 8'de bağlanır), katalog rozeti, Kalplerim (kalpler, hak), FROZEN/INVISIBLE davranışı, gizli mod görünürlüğü, test turları (test eşiği) ve Açık'a geçişte test sıfırlaması (Y12). | Eşik 3 ile tur kapanışı. Eşzamanlılık script'i. HIDDEN'da test dışı hesap hiçbir öğe görmez, test turları test eşiğiyle açılır. FROZEN'da geri çekme çalışır. 10.9 sıfırlama senaryosu. |
 | **5. Davet** | Davet kodu, `/davet/...`, çerez + gizli alan, cihaz kuralları (inceleme) ve aynı IP işareti (Y2/Y13), bonus kredileri ve yerleştirme (T4/Y5), artan kısmın bölünüp beklemeye dönmesi (Y11), 30 gün dolumu, admin Davetler ekranı (tek tık onay/iptal, Y11 iptal kuralı). | 10.2 senaryoları. |
@@ -931,7 +931,7 @@ Her faz localhost'ta, **canlı veritabanına** bağlı olarak test edilir (T13 g
 | **11. Yayın** | Aşağıdaki kontrol listesi. | Listenin tamamı. |
 
 ### 9.1 Yayın fazı kontrol listesi (Y10)
-1. Canlı DB'ye şema (`db push`) ve SQL indeksleri. Vercel'e env'ler: VAPID, abonelik HMAC anahtarı, `DEVICE_IP_SALT`.
+1. Canlı DB'ye şema (`db push`, kısmi indeks dahil). Vercel'e env'ler: VAPID, abonelik HMAC anahtarı, `DEVICE_IP_SALT`.
 2. T12/Y7 script'i canlıda önce kuru çalıştırılır, sayılar kullanıcıya gösterilir, onayla gerçek çalıştırılır.
 3. Gizlilik, Çerez ve Kampanya koşulları metinleri DB'ye hedefli yazılır (kullanıcı onayıyla).
 4. Admin'de mod **Gizli yayın**. Test hesapları olarak kullanıcının kendi hesabı ve en az bir ek hesap eklenir (test eşiği varsayılan 2). İki test hesabı aynı ürüne kalp verir, test turu dolar, kuponlar oluşur (Y12).

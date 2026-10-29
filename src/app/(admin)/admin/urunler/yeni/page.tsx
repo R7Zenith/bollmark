@@ -119,6 +119,7 @@ async function createProduct(formData: FormData) {
   const careInstructions = String(formData.get("careInstructions") || "").trim() || null;
   const gender = String(formData.get("gender") || "").trim() || null;
   const isFeatured = formData.get("isFeatured") === "on";
+  const kalpToplaExcluded = formData.get("kalpToplaExcluded") === "on";
   const tagIds = parseTagIdsJson(String(formData.get("tagIds") || "[]"));
   const images = parseProductImagesJson(String(formData.get("images") || "[]"));
   const variants = parseVariantsJson(String(formData.get("variantsJson") || "[]"));
@@ -157,6 +158,7 @@ async function createProduct(formData: FormData) {
           careInstructions,
           gender,
           isFeatured,
+          kalpToplaExcluded,
           tags: { connect: tagIds.map((tagId) => ({ id: tagId })) },
           images: {
             create: images.map((img, i) => ({ url: img.url, alt: img.alt, position: i }))
@@ -359,6 +361,16 @@ export default async function NewProductPage({
                   className="h-4 w-4 rounded border-admin-border text-admin-accent focus:ring-admin-accent"
                 />
                 Öne Çıkan Ürün
+              </label>
+            </div>
+            <div className="flex items-end pb-2.5">
+              <label className="flex items-center gap-2 text-sm text-admin-text">
+                <input
+                  type="checkbox"
+                  name="kalpToplaExcluded"
+                  className="h-4 w-4 rounded border-admin-border text-admin-accent focus:ring-admin-accent"
+                />
+                Kalp Topla dışı
               </label>
             </div>
           </div>

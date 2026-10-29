@@ -23,7 +23,8 @@ import {
   Mail,
   CreditCard,
   CalendarRange,
-  ChevronDown
+  ChevronDown,
+  Heart
 } from "lucide-react";
 import { isPathAllowedForRole } from "@/lib/roles";
 import { Logo } from "@/components/admin/logo";
@@ -62,6 +63,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/admin/kampanyalar", label: "Kampanyalar", icon: Percent },
       { href: "/admin/bundle-kampanyalari", label: "Bundle Kampanyaları", icon: Percent },
+      { href: "/admin/kalp-topla", label: "Kalp Topla", icon: Heart },
       { href: "/admin/terk-edilmis-sepetler", label: "Terk Edilmiş Sepetler", icon: ShoppingCart }
     ]
   },
