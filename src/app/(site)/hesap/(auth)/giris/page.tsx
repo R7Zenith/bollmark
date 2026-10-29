@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { trackCompleteRegistration } from "@/lib/meta/track";
+import { CONSENT_TEXTS } from "@/lib/kalp-topla/consent-texts";
 
 export default function HesapGirisPage() {
   const router = useRouter();
@@ -42,6 +43,8 @@ export default function HesapGirisPage() {
       email: String(form.get("email") || ""),
       phone: String(form.get("phone") || "") || undefined,
       password: String(form.get("password") || ""),
+      marketingEmail: form.get("marketingEmail") === "on",
+      marketingWhatsapp: form.get("marketingWhatsapp") === "on",
       metaEventId: crypto.randomUUID()
     };
 
@@ -156,6 +159,21 @@ export default function HesapGirisPage() {
                 <label htmlFor="kayit-password" className={labelClass}>Şifre (en az 8 karakter)</label>
                 <input id="kayit-password" name="password" type="password" autoComplete="new-password" required minLength={8} className={inputClass} />
               </div>
+              <label className="flex items-start gap-3 text-xs text-ink/80">
+                <input type="checkbox" name="marketingEmail" className="mt-0.5 h-4 w-4 shrink-0" />
+                {CONSENT_TEXTS.EMAIL.text}
+              </label>
+              <label className="flex items-start gap-3 text-xs text-ink/80">
+                <input type="checkbox" name="marketingWhatsapp" className="mt-0.5 h-4 w-4 shrink-0" />
+                {CONSENT_TEXTS.WHATSAPP.text}
+              </label>
+              <p className="text-[11px] text-ink/60">
+                Kişisel verilerinin işlenmesi hakkında bilgi için{" "}
+                <a href="/sayfa/gizlilik-politikasi" target="_blank" className="underline hover:text-ink">
+                  Aydınlatma Metni
+                </a>
+                &apos;ni oku.
+              </p>
               {error && <p className="text-sm text-red-600">{error}</p>}
               <button type="submit" disabled={loading} className={primaryButtonClass}>
                 {loading ? "İşleniyor..." : "Hesap Oluştur"}

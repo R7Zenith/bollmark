@@ -63,7 +63,8 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/admin/kampanyalar", label: "Kampanyalar", icon: Percent },
       { href: "/admin/bundle-kampanyalari", label: "Bundle Kampanyaları", icon: Percent },
-      { href: "/admin/kalp-topla", label: "Kalp Topla", icon: Heart },
+      { href: "/admin/kalp-topla", label: "Kalp Topla", icon: Heart, exact: true },
+      { href: "/admin/kalp-topla/onaylar", label: "Kalp Topla Onayları", icon: FileText },
       { href: "/admin/terk-edilmis-sepetler", label: "Terk Edilmiş Sepetler", icon: ShoppingCart }
     ]
   },

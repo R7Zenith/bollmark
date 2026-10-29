@@ -9,7 +9,8 @@ const navItems = [
   { href: "/hesap/siparislerim", label: "Siparişlerim" },
   { href: "/hesap/adreslerim", label: "Adreslerim" },
   { href: "/hesap/puanlarim", label: "Puanlarım" },
-  { href: "/hesap/kaydedilenler", label: "Kaydedilenler" }
+  { href: "/hesap/kaydedilenler", label: "Kaydedilenler" },
+  { href: "/hesap/tercihler", label: "İletişim Tercihleri" }
 ];
 
 export function HesapNav() {

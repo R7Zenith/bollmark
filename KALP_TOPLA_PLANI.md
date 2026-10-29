@@ -530,6 +530,7 @@ Hız sınırı: üye başına dakikada en çok 20 kalp işlemi.
   - `customerId` = üye **veya** `customerEmail` üyenin e-postasıyla büyük/küçük harf duyarsız eşit (misafir siparişleri dahil).
 
   Diğer mevcut üyeler ilk kalpte doğrulama e-postası alır.
+  - **Kullanıcı kararı (2026-10-30, Faz 3):** her yeni kayıtta, kampanya modundan bağımsız, kampanyadan bahsetmeyen genel bir doğrulama e-postası gider. Script şimdi yalnız kuru çalıştırılır, gerçek çalıştırma yayın fazında (9.1 madde 2).
 - **Geçici e-posta (Y4):** `api/musteri-kayit` tüm kayıtlarda alan adını kontrol eder:
   - (1) `disposable-email-domains-js` paketi,
   - (2) `BlockedEmailDomain` tablosu. Alt alan adları da üst alan adıyla eşleşir.
@@ -696,7 +697,7 @@ Günlük temizlik cron'u (`/api/cron/kalp-topla-temizlik`, günde 1):
 ### 6.5 Hesap ayarları: İletişim tercihleri (`hesap/(panel)/tercihler`)
 - Telefon (opsiyonel).
 - ☐ e-posta onayı (`HESAP_AYARLARI`).
-- Tarayıcı bildirimleri aç/kapat: **yalnız push destekleniyorsa** görünür. Desteklenmiyorsa bu satır hiç gösterilmez.
+- Tarayıcı bildirimleri aç/kapat: **yalnız push destekleniyorsa** görünür. Desteklenmiyorsa bu satır hiç gösterilmez. (Kullanıcı kararı 2026-10-30: bu satır push altyapısıyla birlikte Faz 8'de eklenir.)
 - ☐ WhatsApp onayı ("yakında" notu).
 - Her değişiklik `MarketingConsentLog`'a yazılır (IP + metin sürümü).
 
@@ -750,7 +751,7 @@ Günlük temizlik cron'u (`/api/cron/kalp-topla-temizlik`, günde 1):
   - Filtreler: incelemede / kredilendi / bekleyen / iptal / **aynı IP işaretli**.
   - Sütunlar: davet eden, davetli, inceleme nedenleri (aynı cihaz, davet edenle aynı cihaz), **"aynı IP" rozeti** (yalnız bilgi), aynı cihaz/IP özetinden hesap sayısı, kredi durumu (uygulanan / bekleyen / artan kısımdan doğan).
   - Tek tıkla **Onayla** / **İptal** (iptal için açıklama opsiyonel). "Aynı IP" işaretli ama incelemede olmayan bir daveti admin isterse yine iptal edebilir.
-- **Onaylar (T3):** liste + CSV (`GET /api/admin/kalp-topla/onaylar.csv`, tarih aralığı, UTF-8 BOM). Sütunlar: müşteri id, e-posta, kanal, verildi/geri çekildi, tarih-saat (İstanbul), kaynak, IP (silinmişse "silindi (3 yıl)"), metin sürümü. İndirme denetim kaydına yazılır.
+- **Onaylar (T3):** liste + CSV (`GET /api/admin/kalp-topla/onaylar.csv`, tarih aralığı, UTF-8 BOM). Sütunlar: müşteri id, e-posta, kanal, verildi/geri çekildi, tarih-saat (İstanbul), kaynak, IP (silinmişse "silindi (3 yıl)"), metin sürümü. İndirme denetim kaydına yazılır (`KALP_TOPLA_ONAY_CSV_INDIRILDI`).
 - **Ürün formu:** "Kalp Topla dışı" checkbox'ı.
 - **İade ekranı:** kuponlu satır etiketi, değişim ürünü seçimi, hesaplanan fiyat, **"Müşteriden alınacak / Müşteriye ödenecek: X TL"**, "Fark tahsil edildi" / "Fark iade edildi" butonları (Y6).
 - **Menü:** "Kalp Topla" (Ayarlar / Rapor / Davetler / Onaylar), yalnız ADMIN.
@@ -837,7 +838,7 @@ Ortak tasarım:
   > Sepetinde en çok kazandıran ürüne otomatik uygulanır.
   > **[Alışverişe başla]**
 
-**Doğrulama e-postası** (işlemsel, onaydan bağımsız): Konu `Bollmark: e-postanı doğrula, kalbin sayılsın ❤️`, buton `[E-postamı doğrula]`, 24 saat.
+**Doğrulama e-postası** (işlemsel, onaydan bağımsız): Konu `Bollmark: e-postanı doğrula, kalbin sayılsın ❤️`, buton `[E-postamı doğrula]`, 24 saat. Kayıtta giden doğrulama e-postası (Faz 3 kararı) kampanyadan bahsetmez: konu `Bollmark: e-posta adresini doğrula`.
 
 ### 7.5 Web push (T15)
 - Yalnız tarayıcıda doğrudan destekleyen cihazlarda sunulur (Android ve masaüstü tarayıcılar). Desteği özellik tespiti belirler (`serviceWorker`, `PushManager`, `Notification`).
@@ -920,12 +921,12 @@ Her faz localhost'ta, **canlı veritabanına** bağlı olarak test edilir (T13 g
 | **0. Yerel ortam güvenliği (T13 güncel)** ✅ Tamamlandı (2026-10-30) | Test branch'i yok, localhost canlı DB'yi kullanır (`.env` veritabanı ayarına dokunulmaz). 1) Yerelde gönderilen TÜM e-postalar yalnız ozilevent@gmail.com'a gider, konuya "[TEST → asıl alıcı: ...]" eklenir; yalnız yerel ortam değişkeniyle (`MAIL_DEV_REDIRECT`) çalışır, Vercel'de tanımsız. 2) Localhost'ta web push yalnız kullanıcının kendi hesaplarına gönderilir (push kodu Faz 8'de bu kuralla yazılır). 3) Localhost'ta iyzico sandbox kontrolü. 4) Localhost'tan Vega'ya istek gitmediğinin kontrolü. **Karar (2026-10-30):** Localhost test siparişleri Vega'ya düşebilir, kabul edildi; gerekirse Vega'dan elle silinir. Vega tarafında önlem ya da kod değişikliği yapılmaz. 5) Vercel, canlı deploy, Neon, iyzico/Vega/e-posta/DNS/Meta panellerine dokunulmaz. | E-posta yönlendirmesi, iyzico ve Vega kontrollerinin sonucu kullanıcıya raporlanır. Canlı siteye dokunulmadığı doğrulanır. |
 | **1. Kaydedilenler (T9)** ✅ Tamamlandı (2026-10-30) | Favori → yer imi + "Kaydet / Kaydedilenler", sayfa taşıma + 301. Ayrı yayınlanabilir. | Kaydet/çıkar, misafir senkronu, eski URL, Meta/GA4 olayları. |
 | **2. Temel** ✅ Tamamlandı (2026-10-30) | Şema (tümü), ayarlar (mod + test hesapları + test eşiği + kötüye kullanım eşikleri + engelli alan adları), ürün checkbox'ı, denetim eylemleri, `campaignStateFor` + `durum` ucu. Mod `OFF`. | Ayarlar, mod geçişleri, işlem geçmişi. |
-| **3. Üyelik ve onay** | E-posta doğrulama, T12/Y7 script'i (test branch'inde kuru + gerçek), geçici e-posta engeli (paket + admin listesi), `bm_cihaz` + `CustomerDevice`, kayıt formu, İletişim tercihleri (push satırı özellik tespitli), `MarketingConsentLog` (ham IP), abonelikten çıkma, onay CSV'si, temizlik cron'u. | Doğrulama akışı. Geçici alan adıyla kayıt reddi. Onay log satırları. Girişsiz çıkış. CSV. Temizlik cron'u tarih kaydırılmış test verisinde IP'leri siler. |
+| **3. Üyelik ve onay** ✅ Tamamlandı (2026-10-30) | E-posta doğrulama (her yeni kayıtta e-posta), T12/Y7 script'i (şimdi kuru, gerçek yayın fazında), geçici e-posta engeli (paket + admin listesi), `bm_cihaz` + `CustomerDevice`, kayıt formu, İletişim tercihleri (push satırı Faz 8'de), `MarketingConsentLog` (ham IP), abonelikten çıkma, onay CSV'si, temizlik cron'u. | Doğrulama akışı. Geçici alan adıyla kayıt reddi. Onay log satırları. Girişsiz çıkış. CSV. Temizlik cron'u tarih kaydırılmış test verisinde IP'leri siler. |
 | **4. Bar ve kalp** | `bar.ts`, kalp uçları, ürün sayfası bileşeni, misafir akışı, ilk kalp penceresi (e-posta kutusu; push bölümü Faz 8'de bağlanır), katalog rozeti, Kalplerim (kalpler, hak), FROZEN/INVISIBLE davranışı, gizli mod görünürlüğü, test turları (test eşiği) ve Açık'a geçişte test sıfırlaması (Y12). | Eşik 3 ile tur kapanışı. Eşzamanlılık script'i. HIDDEN'da test dışı hesap hiçbir öğe görmez, test turları test eşiğiyle açılır. FROZEN'da geri çekme çalışır. 10.9 sıfırlama senaryosu. |
 | **5. Davet** | Davet kodu, `/davet/...`, çerez + gizli alan, cihaz kuralları (inceleme) ve aynı IP işareti (Y2/Y13), bonus kredileri ve yerleştirme (T4/Y5), artan kısmın bölünüp beklemeye dönmesi (Y11), 30 gün dolumu, admin Davetler ekranı (tek tık onay/iptal, Y11 iptal kuralı). | 10.2 senaryoları. |
 | **6. Fiyat, sepet ve sipariş** | `priceCart` + `api/sepet/fiyat`, `pricing.ts` + testler, sepet/ödeme arayüzü, puan tavanı, `api/orders` bölme ve rezervasyon, USED/serbest bırakma. | Sandbox ödeme. iyzico sepet toplamı = sipariş toplamı. Vega'ya gidecek sipariş yanıtının (`vega-siparis.ts`) bölünmüş satırlarla doğru üretildiği birim testle doğrulanır. Canlı Vega kontrolü yayın fazında yapılır (Y10). Localhost sandbox test siparişlerinin (ortak DB üzerinden) Vega'ya düşmesi kabul edildi, bu faz için açık nokta değildir; gerekirse Vega'dan elle silinir (Faz 0 kararı). |
 | **7. İade ve değişim** | TAMAMLANDI + ücret iadesiyle geri yükleme, değişim ürünü/fiyat/fark, "fark tahsil/iade edildi" işaretleme. | 10.7 senaryoları. |
-| **8. Bildirimler** | Outbox, zil, 4 e-posta şablonu, günlük sınır (Y1), "son 6 saat" sınır dışı, push (özellik tespiti, sw.js, VAPID, ilk kalp penceresinin push bölümü), saatlik cron. Localhost'ta push yalnız kullanıcının kendi hesaplarına gönderilir (Faz 0 kural 2). | 10.10 senaryoları. Push Chrome masaüstü ve Android'de. iPhone Safari'de push bölümünün hiç çıkmadığı kontrol edilir. |
+| **8. Bildirimler** | Outbox, zil, 4 e-posta şablonu, günlük sınır (Y1), "son 6 saat" sınır dışı, push (özellik tespiti, sw.js, VAPID, ilk kalp penceresinin push bölümü, İletişim tercihlerindeki push satırı), saatlik cron. Localhost'ta push yalnız kullanıcının kendi hesaplarına gönderilir (Faz 0 kural 2). | 10.10 senaryoları. Push Chrome masaüstü ve Android'de. iPhone Safari'de push bölümünün hiç çıkmadığı kontrol edilir. |
 | **9. Vitrin** | `/kalp-topla`, duyuru şeridi, ilk ziyaret penceresi, kampanya koşulları, Gizlilik ve Çerez metinleri (8.1, 8.2). | Ekran görüntüleri, çerez bandıyla çakışma. |
 | **10. Rapor** | Rapor, talep, bonus sayıları, müşteri detayı. | Test verisiyle elle sayım. |
 | **11. Yayın** | Aşağıdaki kontrol listesi. | Listenin tamamı. |

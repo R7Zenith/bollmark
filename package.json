@@ -26,6 +26,7 @@
     "aws4fetch": "^1.0.20",
     "bcryptjs": "^2.4.3",
     "cheerio": "^1.2.0",
+    "disposable-email-domains-js": "1.26.0",
     "embla-carousel-react": "^8.6.0",
     "lucide-react": "^1.35.0",
     "next": "16.4.2",

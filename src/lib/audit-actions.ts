@@ -30,7 +30,8 @@ export const auditActions = [
   "KALP_TOPLA_TEST_SIFIRLANDI",
   "KALP_TOPLA_DAVET_ONAYLANDI",
   "KALP_TOPLA_DAVET_IPTAL",
-  "KALP_TOPLA_DEGISIM_FARK_KAPANDI"
+  "KALP_TOPLA_DEGISIM_FARK_KAPANDI",
+  "KALP_TOPLA_ONAY_CSV_INDIRILDI"
 ] as const;
 
 export const auditActionLabel: Record<string, string> = {
@@ -62,5 +63,6 @@ export const auditActionLabel: Record<string, string> = {
   KALP_TOPLA_TEST_SIFIRLANDI: "Kalp Topla Test Verisi Sıfırlandı",
   KALP_TOPLA_DAVET_ONAYLANDI: "Kalp Topla Daveti Onaylandı",
   KALP_TOPLA_DAVET_IPTAL: "Kalp Topla Daveti İptal Edildi",
-  KALP_TOPLA_DEGISIM_FARK_KAPANDI: "Değişim Farkı Kapatıldı"
+  KALP_TOPLA_DEGISIM_FARK_KAPANDI: "Değişim Farkı Kapatıldı",
+  KALP_TOPLA_ONAY_CSV_INDIRILDI: "Onay Kayıtları CSV İndirildi"
 };
