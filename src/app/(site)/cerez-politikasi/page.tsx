@@ -102,7 +102,7 @@ const COOKIES: CookieRow[] = [
 
 const STORAGE: { name: string; purpose: string }[] = [
   { name: "bollmark-cart", purpose: "Sepetinizdeki ürünleri ve uyguladığınız kupon kodunu hatırlar." },
-  { name: "bollmark-wishlist", purpose: "Giriş yapmadan favorilere eklediğiniz ürünleri hatırlar." },
+  { name: "bollmark-wishlist", purpose: "Giriş yapmadan kaydettiğiniz ürünleri hatırlar." },
   { name: "bollmark:recent-searches", purpose: "Son aramalarınızı arama panelinde göstermek için saklar." }
 ];
 

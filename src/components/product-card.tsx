@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
-import { Heart, Plus, Check, X } from "lucide-react";
+import { Bookmark, Plus, Check, X } from "lucide-react";
 import { formatPrice } from "@/lib/format";
 import { useWishlist } from "@/lib/wishlist";
 import { useCart } from "@/lib/cart";
@@ -239,9 +239,9 @@ export function ProductCard({
             });
           }}
           className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-cream/90 text-ink transition hover:bg-cream"
-          title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
+          title={isWishlisted ? "Kaydedildi" : "Kaydet"}
         >
-          <Heart size={16} fill={isWishlisted ? "currentColor" : "none"} />
+          <Bookmark size={16} fill={isWishlisted ? "currentColor" : "none"} />
         </button>
         {rank != null && (
           <span className="absolute left-2 top-1 font-accent text-5xl font-normal italic leading-none text-ink [text-shadow:0_0_12px_rgba(255,255,255,0.9)] sm:left-3 md:text-6xl">

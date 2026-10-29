@@ -7,7 +7,7 @@ import { resolveProductDisplayPrice } from "@/lib/coupons";
 import { usesGreyBackdrop } from "@/lib/image-backdrop";
 import { getItemGroupId } from "@/lib/item-group-id";
 
-export default async function HesapFavorilerimPage() {
+export default async function HesapKaydedilenlerPage() {
   const session = await requireCustomer();
   const customerId = session.user!.id!;
 
@@ -42,10 +42,10 @@ export default async function HesapFavorilerimPage() {
 
   return (
     <div>
-      <h2 className="font-display text-xl">Favorilerim</h2>
+      <h2 className="font-display text-xl">Kaydedilenler</h2>
 
       {products.length === 0 ? (
-        <p className="mt-6 text-sm text-ink/60">Henüz favori ürününüz yok.</p>
+        <p className="mt-6 text-sm text-ink/60">Henüz kaydettiğiniz bir ürün yok.</p>
       ) : (
         <div className="mt-6">
           <FavorilerimGrid products={products} />

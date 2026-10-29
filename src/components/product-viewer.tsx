@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
-import { Heart, Minus, Plus, Truck, RotateCcw, ShieldCheck, Check, ZoomIn, Clock, ChevronRight } from "lucide-react";
+import { Bookmark, Minus, Plus, Truck, RotateCcw, ShieldCheck, Check, ZoomIn, Clock, ChevronRight } from "lucide-react";
 import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/styles.css";
@@ -503,9 +503,9 @@ export function ProductViewer({
             type="button"
             onClick={() => toggleWishlist(productId, itemGroupId, wishlistItem)}
             className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-cream/90 shadow"
-            title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
+            title={isWishlisted ? "Kaydedildi" : "Kaydet"}
           >
-            <Heart size={17} fill={isWishlisted ? "currentColor" : "none"} />
+            <Bookmark size={17} fill={isWishlisted ? "currentColor" : "none"} />
           </button>
         </div>
       </div>
@@ -587,14 +587,14 @@ export function ProductViewer({
             type="button"
             onClick={() => toggleWishlist(productId, itemGroupId, wishlistItem)}
             className="mt-1 hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line hover:border-ink md:flex"
-            title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
+            title={isWishlisted ? "Kaydedildi" : "Kaydet"}
           >
-            <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
+            <Bookmark size={18} fill={isWishlisted ? "currentColor" : "none"} />
           </button>
         </div>
         {!isAuthenticated && (
           <p className="mt-1 text-center text-xs text-ink/50 md:text-left">
-            Favorileriniz bu cihazda saklanıyor, kalıcı olması için giriş yapın.
+            Kaydettikleriniz bu cihazda saklanıyor, kalıcı olması için giriş yapın.
           </p>
         )}
         {/* Mobilde rozetler masaustundeki gibi basligin UZERINDE degil, urun
