@@ -1,11 +1,15 @@
+import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { getKalpSettings } from "@/lib/kalp-topla/settings";
+import { getTestResetSummary } from "@/lib/kalp-topla/test-reset";
+import { formatPrice } from "@/lib/format";
 import { Card } from "@/components/admin/card";
 import { KalpToplaFeedback } from "@/components/admin/kalp-topla-feedback";
 import {
   addBlockedDomain,
   addKalpTester,
+  confirmKalpLive,
   removeBlockedDomain,
   removeKalpTester,
   saveKalpMode,
@@ -42,10 +46,10 @@ function NumberInput({ name, label, value }: { name: string; label: string; valu
 export default async function AdminKalpToplaPage({
   searchParams
 }: {
-  searchParams: Promise<{ basarili?: string; hata?: string }>;
+  searchParams: Promise<{ basarili?: string; hata?: string; onay?: string }>;
 }) {
   await requireAdmin();
-  const { basarili, hata } = await searchParams;
+  const { basarili, hata, onay } = await searchParams;
 
   const settings = await getKalpSettings();
   const [testers, openRounds, blockedDomains] = await Promise.all([
@@ -57,12 +61,58 @@ export default async function AdminKalpToplaPage({
     prisma.blockedEmailDomain.findMany({ orderBy: { domain: "asc" } })
   ]);
   const isHidden = settings.mode === "HIDDEN";
+  const resetSummary = onay === "acik" && settings.mode !== "LIVE" ? await getTestResetSummary() : null;
 
   return (
     <div className="max-w-2xl space-y-8">
       <h1 className="text-2xl font-semibold text-admin-text">Kalp Topla · Ayarlar</h1>
 
       <KalpToplaFeedback basarili={basarili} hata={hata} />
+
+      {resetSummary && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="dialog" aria-modal="true" aria-labelledby="kalp-live-title">
+          <div className="w-full max-w-lg rounded-lg bg-admin-surface p-6 shadow-xl">
+            <h2 id="kalp-live-title" className="text-lg font-semibold text-admin-text">
+              Herkese açılınca test verisi sıfırlanacak
+            </h2>
+            <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-admin-text">
+              <li>{resetSummary.rounds} test turu ve {resetSummary.hearts} kalp silinecek</li>
+              <li>{resetSummary.invites} davet ve {resetSummary.waitingBonuses} bekleyen bonus silinecek</li>
+              <li>{resetSummary.unusedCoupons} kullanılmamış test kuponu iptal edilecek (test-iptal)</li>
+            </ul>
+            <p className="mt-3 text-xs text-admin-text-muted">
+              Test edilen ürünlerin barları normal eşikle ({settings.threshold}) sıfırdan başlar. Ödenmiş test
+              siparişleri ({resetSummary.paidOrders}) silinmez, raporlardan hariç tutulur.
+            </p>
+
+            {resetSummary.unpaidOrders.length > 0 && (
+              <div className="mt-4 rounded-md bg-amber-50 px-4 py-3 text-sm text-amber-900">
+                <p className="font-medium">Test kuponu bekleyen ödenmemiş siparişler iptal edilecek:</p>
+                <ul className="mt-2 space-y-1 text-xs">
+                  {resetSummary.unpaidOrders.map((o) => (
+                    <li key={o.id}>
+                      {o.orderNumber} · {o.customerName} · {formatPrice(o.totalCents)} ·{" "}
+                      {o.createdAt.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" })}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end gap-3">
+              <Link href="/admin/kalp-topla" className="rounded-md border border-admin-border px-4 py-2.5 text-sm text-admin-text hover:bg-admin-bg">
+                Vazgeç
+              </Link>
+              <form action={confirmKalpLive}>
+                {resetSummary.unpaidOrders.length > 0 && <input type="hidden" name="cancelOrders" value="1" />}
+                <button className={buttonClass}>
+                  {resetSummary.unpaidOrders.length > 0 ? "Siparişleri iptal et ve devam et" : "Onayla ve herkese aç"}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Card title="Mod">
         <form action={saveKalpMode} className="space-y-4">

@@ -15,7 +15,7 @@ const STALE_ATTEMPT_MS = 2 * 60 * 1000;
 const ERROR_GRACE_MS = 6 * 60 * 60 * 1000;
 const RECONCILE_CONCURRENCY = 5;
 
-async function expireAttemptsIfDead(orderId: string): Promise<{ allowCancel: boolean; reasons: string[] }> {
+export async function expireAttemptsIfDead(orderId: string): Promise<{ allowCancel: boolean; reasons: string[] }> {
   const attempts = await prisma.paymentAttempt.findMany({ where: { orderId, status: "INITIATED" } });
   let allowCancel = true;
   const reasons: string[] = [];

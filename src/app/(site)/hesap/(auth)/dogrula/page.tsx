@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getServerSession } from "next-auth";
 import { customerAuthOptions } from "@/lib/customer-auth";
 import { verifyEmailToken } from "@/lib/kalp-topla/email-verification";
+import { activatePendingHearts } from "@/lib/kalp-topla/bar";
 import { resendVerification } from "./actions";
 
 export const metadata = { title: "E-posta doğrulama", robots: { index: false } };
@@ -22,7 +23,12 @@ export default async function HesapDogrulaPage({
   searchParams: Promise<{ token?: string; durum?: string }>;
 }) {
   const { token, durum } = await searchParams;
-  const key = token ? (await verifyEmailToken(token)).result : (durum ?? "invalid");
+  const verification = token ? await verifyEmailToken(token) : null;
+  const key = verification ? verification.result : (durum ?? "invalid");
+  // Plan 5.4: dogrulanan uyenin bekleyen kalpleri sayilir (kampanya o uye icin aciksa).
+  if (verification?.result === "verified" && verification.customerId) {
+    await activatePendingHearts(verification.customerId);
+  }
   const message = MESSAGES[key] ?? MESSAGES.invalid;
   const canResend = key === "expired" || key === "invalid";
   const session = canResend ? await getServerSession(customerAuthOptions) : null;

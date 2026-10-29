@@ -6,6 +6,7 @@ import { useToast } from "@/components/admin/toast";
 
 const successMessages: Record<string, string> = {
   mod: "Kampanya modu kaydedildi.",
+  "acik-sifirlandi": "Test verisi sıfırlandı, kampanya herkese açıldı.",
   degerler: "Kampanya değerleri kaydedildi.",
   "test-eklendi": "Test hesabı eklendi.",
   "test-cikarildi": "Test hesabı çıkarıldı.",
@@ -15,6 +16,7 @@ const successMessages: Record<string, string> = {
 
 const errorMessages: Record<string, string> = {
   mod: "Geçersiz mod seçimi.",
+  "odeme-suruyor": "Ödeme işlemi sürüyor, birkaç dakika sonra tekrar deneyin.",
   deger: "Tüm değerler 1 veya daha büyük tam sayı olmalı; indirim oranı en çok 100.",
   eposta: "Müşteri e-postasını yazın.",
   "musteri-yok": "Bu e-postayla kayıtlı müşteri bulunamadı.",

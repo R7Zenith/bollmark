@@ -21,6 +21,7 @@ import { usesGreyBackdrop } from "@/lib/image-backdrop";
 import { InfoDrawer } from "@/components/info-drawer";
 import { SizeGuideModal } from "@/components/size-guide-modal";
 import { AskAboutProduct } from "@/components/contact-links";
+import { KalpBar } from "@/components/kalp-topla/kalp-bar";
 
 // Bu esikten dusuk stok "Son N adet" uyarisi gosterir - e-posta gerektirmeyen
 // salt UI bir isaret. Ileride StoreSettings'e tasinabilir (Faz A'ya dahil degil).
@@ -643,6 +644,7 @@ export function ProductViewer({
           </div>
           <span className="text-[10px] uppercase tracking-wide text-ink/40">KDV dahildir.</span>
         </div>
+        <KalpBar productId={productId} />
         {bundleInfo && bundleInfo.otherProductNames.length > 0 && (
           <div className="mt-3 border border-clay/40 bg-clay/5 px-4 py-3 text-sm text-ink/80">
             <p>

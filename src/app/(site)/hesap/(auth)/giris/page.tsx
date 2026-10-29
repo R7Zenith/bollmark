@@ -1,14 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { trackCompleteRegistration } from "@/lib/meta/track";
 import { CONSENT_TEXTS } from "@/lib/kalp-topla/consent-texts";
 
+// Kalp Topla misafir akisi (plan 6.1): ?sekme=kayit&callbackUrl=/urunler/..&kalp=urunId.
+// Giris/kayit sonrasi ayni urune ?kalp= ile donulur, kalp orada otomatik verilir.
+// Yalniz site ici yollar kabul edilir (acik yonlendirme olmasin).
+function afterAuthPath(searchParams: URLSearchParams): string {
+  const callbackUrl = searchParams.get("callbackUrl") ?? "";
+  if (!callbackUrl.startsWith("/") || callbackUrl.startsWith("//") || callbackUrl.startsWith("/\\")) return "/hesap";
+  const kalp = searchParams.get("kalp");
+  if (!kalp) return callbackUrl;
+  return `${callbackUrl}${callbackUrl.includes("?") ? "&" : "?"}kalp=${encodeURIComponent(kalp)}`;
+}
+
 export default function HesapGirisPage() {
+  return (
+    <Suspense>
+      <HesapGiris />
+    </Suspense>
+  );
+}
+
+function HesapGiris() {
   const router = useRouter();
-  const [tab, setTab] = useState<"giris" | "kayit">("giris");
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<"giris" | "kayit">(searchParams.get("sekme") === "kayit" ? "kayit" : "giris");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -29,7 +49,7 @@ export default function HesapGirisPage() {
       setError("E-posta veya şifre hatalı.");
       return;
     }
-    router.push("/hesap");
+    router.push(afterAuthPath(searchParams));
     router.refresh();
   };
 
@@ -71,7 +91,7 @@ export default function HesapGirisPage() {
         setTab("giris");
         return;
       }
-      router.push("/hesap");
+      router.push(afterAuthPath(searchParams));
       router.refresh();
     } catch {
       setError("Bir sorun oluştu, lütfen tekrar deneyin.");

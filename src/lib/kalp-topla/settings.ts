@@ -34,12 +34,22 @@ export async function getKalpSettings(): Promise<Omit<KalpToplaSettings, "update
 // - OFF (onceden acilmis)    -> herkese FROZEN
 // - HIDDEN                   -> test hesabina ACTIVE, digerlerine INVISIBLE
 // - LIVE                     -> herkese ACTIVE
+// Kullanici karari (2026-10-30, Faz 4): OFF'ta yalniz test turu varsa
+// (kampanya hic herkese acilmamis) yalniz test hesaplari FROZEN gorur.
 export async function campaignStateFor(customerId: string | null): Promise<KalpCampaignState> {
-  const settings = await getKalpSettings();
+  return campaignStateFrom(await getKalpSettings(), customerId);
+}
+
+export async function campaignStateFrom(
+  settings: Pick<KalpToplaSettings, "mode" | "testerCustomerIds">,
+  customerId: string | null
+): Promise<KalpCampaignState> {
+  const isTester = Boolean(customerId && settings.testerCustomerIds.includes(customerId));
   if (settings.mode === "LIVE") return "ACTIVE";
-  if (settings.mode === "HIDDEN") {
-    return customerId && settings.testerCustomerIds.includes(customerId) ? "ACTIVE" : "INVISIBLE";
-  }
-  const anyRound = await prisma.kalpRound.findFirst({ select: { id: true } });
+  if (settings.mode === "HIDDEN") return isTester ? "ACTIVE" : "INVISIBLE";
+  const anyRound = await prisma.kalpRound.findFirst({
+    where: isTester ? {} : { isTest: false },
+    select: { id: true }
+  });
   return anyRound ? "FROZEN" : "INVISIBLE";
 }

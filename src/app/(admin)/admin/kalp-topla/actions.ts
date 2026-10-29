@@ -6,6 +6,7 @@ import { requireAdmin } from "@/lib/require-admin";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit-log";
 import { getKalpSettings, type KalpMode } from "@/lib/kalp-topla/settings";
+import { getTestResetSummary, switchToLiveWithReset } from "@/lib/kalp-topla/test-reset";
 
 const PAGE = "/admin/kalp-topla";
 const MODES: KalpMode[] = ["OFF", "HIDDEN", "LIVE"];
@@ -45,6 +46,10 @@ export async function saveKalpMode(formData: FormData) {
   if (!MODES.includes(mode)) redirect(`${PAGE}?hata=mod`);
 
   const current = await getKalpSettings();
+  // Y12/Y15: test verisi varken Acik'a gecis once onay penceresinden gecer.
+  if (mode === "LIVE" && current.mode !== "LIVE" && (await getTestResetSummary())) {
+    redirect(`${PAGE}?onay=acik`);
+  }
   if (current.mode !== mode) {
     await upsertSettings({ mode });
     await logAudit({
@@ -57,6 +62,25 @@ export async function saveKalpMode(formData: FormData) {
   }
   revalidatePath(PAGE);
   redirect(`${PAGE}?basarili=mod`);
+}
+
+// Onay penceresindeki "Onayla ve aç" / "Siparişleri iptal et ve devam et".
+export async function confirmKalpLive(formData: FormData) {
+  const session = await requireAdmin();
+  const current = await getKalpSettings();
+  if (current.mode === "LIVE") redirect(PAGE);
+  const result = await switchToLiveWithReset({
+    cancelOrders: formData.get("cancelOrders") === "1",
+    ...actor(session),
+    previousModeLabel: MODE_LABEL[current.mode as KalpMode] ?? current.mode
+  });
+  revalidatePath(PAGE);
+  if (!result.ok) {
+    // Pencere acildiktan sonra yeni bir odenmemis test siparisi olustuysa liste yeniden gosterilir.
+    if (result.reason === "ORDERS_NOT_CONFIRMED") redirect(`${PAGE}?onay=acik`);
+    redirect(`${PAGE}?hata=odeme-suruyor`);
+  }
+  redirect(`${PAGE}?basarili=${result.summary ? "acik-sifirlandi" : "mod"}`);
 }
 
 export async function saveKalpValues(formData: FormData) {

@@ -8,6 +8,7 @@ import { formatPrice } from "@/lib/format";
 import { useWishlist } from "@/lib/wishlist";
 import { useCart } from "@/lib/cart";
 import { ProductBadge } from "@/components/product-badge";
+import { KalpCardBadge } from "@/components/kalp-topla/kalp-card-badge";
 import type { QuickAddVariant } from "@/lib/catalog";
 
 export type ProductCardData = {
@@ -259,6 +260,7 @@ export function ProductCard({
             )}
           </div>
         )}
+        <KalpCardBadge productId={product.productId} />
         {product.quickAddVariants && product.quickAddVariants.length > 0 && !product.outOfStock && (
           <div ref={sizePickerRef} className="absolute bottom-2 right-2 sm:bottom-3 sm:right-3">
             <button
