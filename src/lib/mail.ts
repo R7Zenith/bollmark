@@ -20,12 +20,16 @@ export async function sendMail(params: { to: string; subject: string; html: stri
     console.error("E-posta gonderilemedi (RESEND_API_KEY tanimli degil, yoksayildi).");
     return;
   }
+  // Yerel gelistirme guvenligi (Kalp Topla Faz 0): yerel .env'de tanimliysa
+  // TUM e-postalar bu adrese gider, asil alici konuya yazilir. Vercel'de
+  // tanimli olmadigi icin canli davranis degismez.
+  const devRedirect = process.env.MAIL_DEV_REDIRECT;
   try {
     const resend = new Resend(apiKey);
     await resend.emails.send({
       from: process.env.MAIL_FROM ?? "Bollmark <onboarding@resend.dev>",
-      to: params.to,
-      subject: params.subject,
+      to: devRedirect || params.to,
+      subject: devRedirect ? `[TEST → asıl alıcı: ${params.to}] ${params.subject}` : params.subject,
       html: params.html,
       replyTo: params.replyTo
     });
