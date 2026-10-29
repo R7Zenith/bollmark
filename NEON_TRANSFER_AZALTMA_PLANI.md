@@ -1,6 +1,7 @@
 # Neon Veri Transferi (Egress) Azaltma Planı
 
-Durum: Plan onaylandı (2026-10-29), adım adım uygulanıyor. Kararlar: öneri 4
+Durum: **Durduruldu (2026-10-30).** Adım 1 yerel commit'te, push edilmedi; devam için
+dosya sonundaki "Uygulama durumu" bölümüne bak. Plan onaylandı (2026-10-29). Kararlar: öneri 4
 **ertelendi**, öneri 9 şimdilik **yapılmayacak**, pg_stat_statements **kurulmayacak**,
 eksik indeksler öncelikli. Uygulama sırası: 1 → indeksler → 3 → 2+7 → 5, 6, 8.
 
@@ -378,3 +379,123 @@ söyleyince yapılır.
 
 Kaba hedef: 1–3 ile canlı trafikte günde ~70–100 MB azalma, yani aylık ~2–3 GB.
 4 ile localhost'un tamamı kalkar.
+
+## Uygulama durumu (2026-10-30, iş durduruldu)
+
+Neon işi kullanıcı kararıyla **durduruldu**; sıradaki iş `KALP_TOPLA_PLANI.md`.
+Kaldığımız yerden devam etmek için bu bölüm yeterli.
+
+### Özet tablo
+
+| Adım | Durum |
+|---|---|
+| 1. Vega stok değişikliği yalnız ilgili ürünü tazelesin | **Tamamlandı.** Yerel commit `82a6d76`, **push edilmedi** |
+| 2. Eksik indeks (`ProductVariant.productId`) | **Teklif hazır, onay bekliyor.** Uygulanmadı |
+| 3. Bot engeli (ElevenlabsCrawler, MJ12bot, AhrefsBot) | Başlanmadı. Karar verildi: üçü de engellenecek |
+| 2 + 7. `include` → `select` daraltma (feed dahil) | Başlanmadı |
+| 5, 6, 8 | Başlanmadı |
+| 4. Yerel Postgres | **Ertelendi** (kullanıcı kararı) |
+| 9. Vega'da gecikmeli katalog tazeleme | **Yapılmayacak** (şimdilik) |
+| 10. pg_stat_statements | **Kurulmayacak** |
+
+Uygulama kuralları değişmedi:
+- Her adım önce localhost'ta gösterilir ve doğrulanır.
+- Onaydan sonra önce `DEPLOY_STATUS.md` güncellenir, sonra yerel commit atılır.
+- Kullanıcı söylemeden push edilmez.
+- Beklenmedik bir risk çıkarsa durulur ve kullanıcıya sorulur.
+
+### Adım 1 — tamamlandı (yerel commit `82a6d76`, push edilmedi)
+
+**Kök neden:** mega menü önbelleği (`src/lib/site-nav.ts`) `catalog` etiketini
+kullanıyordu. Menü layout'ta olduğu için bu etiket tüm vitrin ISR sayfalarına
+yapışıyordu. Bu yüzden her Vega stok değişikliği tüm ürün, renk, sepet ve yasal
+sayfaları sildiriyordu.
+
+**Değişiklik:**
+- Menüye ayrı bir `menu` etiketi (`MENU_TAG`) verildi.
+- `src/lib/revalidate-catalog.ts`:
+  - `revalidateCatalog()` eskisi gibi çalışıyor, ek olarak menü etiketini de siliyor.
+  - Yeni `revalidateProductStock(productId)` yalnız o ürünün sayfasını ve renk
+    sayfalarını, ayrıca katalog, ana sayfa, arama ve kombinleri tazeliyor. Menüye
+    dokunmuyor.
+- `src/app/Servis/[service]/route.ts`: `VaryasyonGuncelle` artık yeni fonksiyonu
+  kullanıyor.
+- Admin ürün kaydı bilinçli olarak değişmedi, çünkü menüyü etkileyen alanlar
+  içeriyor.
+
+**Doğrulama (yerel `next build` + `next start`):**
+- Türkçe karakterli bir üründe yeni kodun ürettiği renk sayfası etiketi, sayfanın
+  önbellek etiketiyle birebir aynı.
+- Ürün ve renk sayfalarında artık `catalog` etiketi yok, yerine `menu` var.
+- tsc, lint, testler 117/117 temiz.
+
+**Push sonrası yapılacak:** `vercel logs requests` ile `/urunler/[slug]` REVALIDATED
+ve MISS sayılarını önceki 24 saatle karşılaştırmak. Önceki değerler: REVALIDATED 334,
+MISS 252; renk sayfaları REVALIDATED 94, MISS 116.
+
+### Adım 2 — indeks teklifi, onay bekliyor
+
+- **Eklenecek:** `prisma/schema.prisma` içinde `model ProductVariant`'a `@@index([productId])`.
+- **Çalışacak SQL:** `prisma migrate diff` ile üretildi. Canlı DB ile mevcut şema
+  arasında başka fark yok.
+  `CREATE INDEX "ProductVariant_productId_idx" ON "ProductVariant"("productId");`
+- **Komut:** `npm run db:push`. Canlı veritabanında çalışır; localhost ile canlı aynı DB.
+- **Kanıt:** EXPLAIN ANALYZE'a göre tek ürünlük varyant sorgusu bile
+  `Seq Scan on "ProductVariant"` yapıyor (1.863 satırdan 1 satır). Bu tarama ürün
+  sayfasında, Benzer Ürünler'de, Vega tazelemede ve admin listesinde oluyor.
+- **Eklenmeyenler ve nedeni:**
+  - `ProductVariantOption` ve `ProductOptionImage`: mevcut birleşik indeksler tek
+    ürün sorgularında zaten kullanılıyor.
+  - Tüm katalogu çeken sorgular: satırların %90'ından fazlasını okudukları için
+    tam tarama doğru seçim.
+  - `VariantAttributeValue`, `Category`, `Brand`, `OrderItem`, `ProductImage`:
+    0–157 satır; bu boyutta tam tarama daha hızlı.
+  - `Product.categoryId`: 320 satır, tarama 0,1 ms.
+- **Onaydan sonra:** önce şemaya eklenir, `npm run db:push` çalıştırılır, aynı
+  sorguların artık indeks kullandığı EXPLAIN ile gösterilir.
+- **Önemli:** Bu indeks compute kotasını **düşürmez** (bkz. aşağıdaki bulgu).
+  Sorgu hızı için doğru bir iyileştirme, CU-saat için değil.
+
+### Compute bulgusu — karar bekliyor
+
+- Neon'da CU-saat, compute boyutu çarpı uyanık kalma süresi olarak sayılıyor.
+  Compute 5 dakika boşta kalınca uyuyor; bu süre ücretsiz planda kapatılamıyor.
+  Sorgunun ağır ya da hafif olması neredeyse fark etmiyor.
+- **28–29 Ekim'in 24 saatlik Vercel loglarına göre:**
+  - Veritabanı günde **~22,7 saat uyanık**.
+  - Vega `SiparisServis` 2 dakikada bir 2 istek atıyordu (gece dahil saatte 60
+    istek). Tek başına günde ~18,7 saat uyanık tutuyordu. Bu sorgulama 26 Ekim'de
+    sipariş aktarımı canlıya alınınca başladı.
+  - Vega hariç trafik (ziyaretçi, bot, dinamik katalog sayfaları) da günde
+    ~17,8 saat uyanık tutuyor.
+  - 22,7 saat × 0,25 CU ≈ günde **~5,7 CU-saat**. 30 Ekim'de kullanım 100 CU-saatin
+    89,5'indeydi.
+- **Kullanıcının yaptığı değişiklik (2026-10-30):** Vega'daki sipariş sorgulama
+  aralığı **2 dakikadan 30 dakikaya** çıkarıldı; stok gönderimi değişmedi. Bu
+  Vega'nın payını büyük ölçüde kaldırmalı. Ama Vega hariç trafik tek başına günde
+  ~17,8 saat uyanık tuttuğu için toplam uyanık süre o kadar düşmeyebilir.
+  **Etkisi ölçülecek.** Ölçmek için:
+  - 24 saatlik `vercel logs requests -e production --since 24h -n 10000 --json`
+    alınır.
+  - Veritabanına giden istekler (`pathType=streaming_func` veya
+    `cacheResult` MISS/REVALIDATED/STALE) zamana göre dizilir.
+  - Her isteğe 5 dakikalık uyanıklık penceresi eklenip birleştirilir ve toplam
+    süre hesaplanır.
+  - Neon konsolunda günlük CU-saat artışı da not edilir.
+- **Seçenekler (karar bekliyor; (a)'nın gerekip gerekmediği 30 dakika değişikliği
+  ölçüldükten sonra konuşulacak):**
+  - **(a)** Vega `SelectSiparis` ve Üye Kodu doğrulamasını veritabanına gitmeden
+    önbellekten yanıtlamak. Önbellek yalnız sipariş ödenince ya da durumu
+    değişince tazelenir. Tek başına yetmez; bot engeli (adım 3) ve katalog
+    sayfalarındaki önbelleksiz küçük sorgularla birlikte düşünülmeli.
+  - **(b)** Neon ücretli planına (Launch) geçmek. Fiyat henüz web'den doğrulanmadı.
+  - **(c)** İkisi birden.
+- **Kullanıcı kararı:** kota dolarsa **Neon Launch'a geçilecek**.
+- **Açık kontrol:** Neon konsolunda fatura döneminin sıfırlanma tarihi.
+  Dokümanda ücretsiz plan için tam gün yazmıyor.
+
+### Ölçülen tasarruflar
+
+- **Adım 1:** henüz canlıda değil, tasarruf ölçülmedi. Tahmin: ~25–35 MB/gün egress,
+  ayrıca sepet ve yasal sayfaların gereksiz yeniden üretimi biter.
+- **Diğer adımlar:** başlanmadı.
