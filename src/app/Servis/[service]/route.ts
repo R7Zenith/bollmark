@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { revalidateCatalog } from "@/lib/revalidate-catalog";
+import { revalidateProductStock } from "@/lib/revalidate-catalog";
 import { resolveVatRate } from "@/lib/vat";
 import {
   buildWebSiparisXml,
@@ -308,14 +308,18 @@ async function handleVaryasyonGuncelle(rawBody: string) {
   // Vega stok degismese de her varyanti gonderir: onbellekteki sayfalar yalniz
   // stok gercekten degistiyse tazelenir (yoksa her senkron tum ISR sayfalarini
   // gecersiz kilardi, bkz. CPU_KULLANIMI_AZALTMA_PLANI.md).
-  const changed = await prisma.productVariant.count({ where: { vegaId, stock: { not: newStock } } });
+  // Yalniz bu urunun sayfalari tazelenir, tum urun sayfalari degil.
+  const changed = await prisma.productVariant.findFirst({
+    where: { vegaId, stock: { not: newStock } },
+    select: { productId: true }
+  });
   const updated = await prisma.productVariant.updateMany({
     where: { vegaId },
     data: { stock: newStock }
   });
 
   logTcmx("VaryasyonGuncelle", { vegaId, stokAdedi, bekleyen, guncellenen: updated.count });
-  if (changed > 0) revalidateCatalog();
+  if (changed) await revalidateProductStock(changed.productId);
 
   return xmlResponse(
     soapEnvelope(

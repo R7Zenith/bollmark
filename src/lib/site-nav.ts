@@ -1,7 +1,6 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import { prisma } from "@/lib/prisma";
-import { CATALOG_TAG } from "@/lib/catalog";
 import { catalogHref, genderWhere } from "@/lib/catalog-url";
 import { pickCoverImage } from "@/lib/catalog";
 import type { MegaMenuCard } from "@/lib/mega-menu-cards";
@@ -78,7 +77,11 @@ async function getAksesuarCards(): Promise<MegaMenuCard[]> {
 
 // DB cagrilari onbellekte; urun/kategori degisince revalidateCatalog()
 // (lib/revalidate-catalog.ts) gecersiz kilar, revalidate 3600 emniyet agi.
-const cacheOptions = { tags: [CATALOG_TAG], revalidate: 3600 };
+// Ayri etiket: menu layout'ta oldugu icin etiketi TUM vitrin sayfalarina
+// yayilir. CATALOG_TAG'i paylassaydi her Vega stok degisimi tum urun
+// sayfalarini silerdi (bkz. NEON_TRANSFER_AZALTMA_PLANI.md oneri 1).
+export const MENU_TAG = "menu";
+const cacheOptions = { tags: [MENU_TAG], revalidate: 3600 };
 const getCachedGenderCategories = unstable_cache(getGenderCategories, ["menu-gender-categories"], cacheOptions);
 const getCachedAksesuarCategories = unstable_cache(getAksesuarCategories, ["menu-aksesuar-categories"], cacheOptions);
 const getCachedAksesuarCards = unstable_cache(getAksesuarCards, ["menu-aksesuar-cards"], cacheOptions);
