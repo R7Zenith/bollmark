@@ -1,5 +1,30 @@
 # Bollmark - Güncel Durum
 
+## KALDIĞIM YER (2026-10-30, Kalp Topla Faz 4)
+
+- Dal: **`kalp-topla-wip`** (origin'de var). `main`'e birleştirilmedi; `main` push edilmedi.
+  Bu dalın Vercel deploy'u `vercel.json` içindeki `git.deploymentEnabled` ile kapalı.
+- **Faz 4 kodu bitti;** tip kontrolü, lint, 127/127 birim testi ve build temiz. Planda Faz 4
+  henüz "Tamamlandı" işaretli DEĞİL.
+- Kullanıcı kararları (Faz 4): bekleyen kalp, kampanya o üye için açık değilken bekler, açılınca
+  sayılır; Kapalı modda yalnız test turu varsa yalnız test hesapları donuk görür; Kalplerim'de
+  kupon listesi var; Y15 testi silinmiş işaretli sahte siparişlerle yapılacak.
+- **Bekleyen adımlar** (ikisi de çalıştırılmadan önce kullanıcının YENİDEN açık onayı beklenir):
+  1. Senaryo testi: `npx tsx scripts/kalp-topla-senaryo-faz4.ts` (eşzamanlılık, tur kapanışı,
+     hak sınırı, donuk mod, gizli mod, Açık'a geçiş sıfırlaması; yalnız kendi kayıtlarını siler,
+     ayarı geri yükler; DB'de kampanya verisi varsa hiçbir şey yazmadan durur).
+  2. Ekran görüntüleri: `npx tsx scripts/kalp-topla-ekran-faz4.ts hazirla`, ardından `next start`
+     ile masaüstü/mobil görüntüler (Playwright projeye eklenmez, geçici klasöre kurulur), sonra
+     `npx tsx scripts/kalp-topla-ekran-faz4.ts temizle`.
+- 2026-10-30 akşam salt okuma kontrolü: Kalp Topla kalp/tur/kupon/bar = 0; ayar Kapalı + 1 test hesabı.
+- **Faz 4 onaylanınca:** planda Faz 4'ü "✅ Tamamlandı" işaretle, `kalp-topla-wip` dalını `main`'e
+  birleştir, `vercel.json`'daki `kalp-topla-wip` satırını kaldır. **`main`'e push kullanıcının açık
+  izni olmadan yapılmaz.**
+- **Diğer bilgisayarda ilk iş:** `.env`'de `MAIL_DEV_REDIRECT=ozilevent@gmail.com` satırı var mı
+  bak, yoksa ekle; `DATABASE_URL` ve diğer gerekli değişkenlerin İSİMLERİNİ (değerlerini değil)
+  `.env.example` ile karşılaştırıp eksikleri kullanıcıya söyle (Kalp Topla için yalnız yerelde
+  olanlar: `DEVICE_IP_SALT`, `UNSUBSCRIBE_SECRET`, `MAIL_DEV_REDIRECT`); `npm install` çalıştır.
+
 Son güncelleme: 2026-10-30
 
 Bu dosya projenin **şu anki** durumunu kısa tutar. Yeni bir oturumda kaldığın
