@@ -7,6 +7,7 @@ import { applyShipmentUpdate } from "@/lib/shipment";
 import { notifyCustomerStatusChange } from "@/lib/order-notifications";
 import { awardLoyaltyPoints } from "@/lib/loyalty";
 import { releaseOrderCoupons } from "@/lib/kalp-topla/order-coupons";
+import { isLineFullyRefunded, wasShipped } from "@/lib/kalp-topla/return-rules";
 import { logAudit } from "@/lib/audit-log";
 import { checkManualStatusChange } from "@/lib/payment/order-guard";
 import {
@@ -108,6 +109,18 @@ export default async function OrderDetailPage({
   });
   if (!order) notFound();
   const isDeleted = order.deletedAt !== null;
+  const kalpCoupons = await prisma.kalpCoupon.findMany({
+    where: { id: { in: order.items.flatMap((item) => (item.kalpCouponId ? [item.kalpCouponId] : [])) } },
+    select: { id: true, code: true, status: true, expiresAt: true }
+  });
+  const kalpCouponById = new Map(kalpCoupons.map((c) => [c.id, c]));
+  const kalpCouponNote = (item: (typeof order.items)[number]) => {
+    const coupon = item.kalpCouponId ? kalpCouponById.get(item.kalpCouponId) : undefined;
+    if (!coupon) return "";
+    if (item.kalpRestoredAt) return ` · ${coupon.code} geri yüklendi (${formatDate(item.kalpRestoredAt)})`;
+    const expiredOnRefund = coupon.status === "USED" && coupon.expiresAt <= new Date() && isLineFullyRefunded(item) && !wasShipped(order);
+    return ` · ${coupon.code}${expiredOnRefund ? " · süresi dolduğu için geri yüklenmedi" : ""}`;
+  };
 
   if (order.viewedAt === null && !isDeleted) {
     await prisma.order.update({ where: { id: order.id }, data: { viewedAt: new Date() } });
@@ -231,7 +244,7 @@ export default async function OrderDetailPage({
                     <div className="min-w-0 flex-1">
                       <div>
                         {item.product.name} × {item.quantity}
-                        {item.kalpCouponId && <span className="ml-2 text-xs text-admin-text-muted">Kalp Topla kuponlu</span>}
+                        {item.kalpCouponId && <span className="ml-2 text-xs text-admin-text-muted">Kalp Topla kuponlu{kalpCouponNote(item)}</span>}
                       </div>
                       {detay.length > 0 && <div className="mt-0.5 text-xs text-admin-text-muted">{detay.join(" · ")}</div>}
                     </div>

@@ -202,8 +202,9 @@ model Customer {
 }
 
 model OrderItem {
-  kalpCouponId          String?  @unique  // bu satıra uygulanan Kalp Topla kuponu
+  kalpCouponId          String?           // bu satıra uygulanan Kalp Topla kuponu (tekil değil: geri dönen kupon yeniden kullanılır, indeksli)
   kalpOriginalUnitCents Int?              // kuponsuz olsaydı ödenecek birim fiyat
+  kalpRestoredAt        DateTime?         // kupon bu satırdan bir kez geri yüklendi
 }
 
 model Order {
@@ -631,6 +632,7 @@ Kupon geçerliliği her okumada `expiresAt > now` ile kontrol edilir. "Süresi d
   - farklı kampanyalı ürün → kupon taşınır, yeni fiyat `min(esas × %50, mevcutEnIyi)`;
   - farklı "Kalp Topla dışı" ürün → kupon TAMAMLANDI'da kalan süresiyle geri yüklenir, fark = yeni ürünün güncel fiyatı − ödenen kuponlu fiyat.
 - **Fark (Y6):** otomatik tahsilat/iade yok. Ekranda açıkça "Müşteriden alınacak: X TL" ya da "Müşteriye ödenecek: X TL" yazar. Tahsilat/iade bugünkü gibi elle yapılır. Admin **"Fark tahsil edildi"** / **"Fark iade edildi"** butonuyla işaretler: `exchangeDiffSettledAt/By`, denetim kaydı `KALP_TOPLA_DEGISIM_FARK_KAPANDI`. Fark kapanmadan talep TAMAMLANDI yapılırsa uyarı çıkar (engellemez).
+- **Kullanıcı kararı (2026-10-31):** kargodan önce ödemesi iptal edilen ya da tam iade edilen kuponlu satırda iade talebi aranmaz; kupon iyzico başarısından sonra döner. Süresi dolmuşsa dönmez, denetim kaydı ve sipariş notu olur. Kalan süre: iade anında süre bitmemişse `expiresAt − usedAt`, bitmişse kargolanmış iadede `refundExtraHours`.
 - Admin iade ekranında kuponlu satır "Kalp Topla kuponlu · ödenen X TL (normal Y TL)" etiketiyle görünür.
 
 ### 5.9 Veri saklama ve temizlik (Y3)
@@ -926,8 +928,8 @@ Her faz localhost'ta, **canlı veritabanına** bağlı olarak test edilir (T13 g
 | **3. Üyelik ve onay** ✅ Tamamlandı (2026-10-30) | E-posta doğrulama (her yeni kayıtta e-posta), T12/Y7 script'i (şimdi kuru, gerçek yayın fazında), geçici e-posta engeli (paket + admin listesi), `bm_cihaz` + `CustomerDevice`, kayıt formu, İletişim tercihleri (push satırı Faz 8'de), `MarketingConsentLog` (ham IP), abonelikten çıkma, onay CSV'si, temizlik cron'u. | Doğrulama akışı. Geçici alan adıyla kayıt reddi. Onay log satırları. Girişsiz çıkış. CSV. Temizlik cron'u tarih kaydırılmış test verisinde IP'leri siler. |
 | **4. Bar ve kalp** ✅ Tamamlandı (2026-10-30) | `bar.ts`, kalp uçları, ürün sayfası bileşeni, misafir akışı, ilk kalp penceresi (e-posta kutusu; push bölümü Faz 8'de bağlanır), katalog rozeti, Kalplerim (kalpler, hak), FROZEN/INVISIBLE davranışı, gizli mod görünürlüğü, test turları (test eşiği) ve Açık'a geçişte test sıfırlaması (Y12). | Eşik 3 ile tur kapanışı. Eşzamanlılık script'i. HIDDEN'da test dışı hesap hiçbir öğe görmez, test turları test eşiğiyle açılır. FROZEN'da geri çekme çalışır. 10.9 sıfırlama senaryosu. |
 | **5. Davet** ✅ Tamamlandı (2026-10-30) | Davet kodu, `/davet/...`, çerez + gizli alan, cihaz kuralları (inceleme) ve aynı IP işareti (Y2/Y13), bonus kredileri ve yerleştirme (T4/Y5), artan kısmın bölünüp beklemeye dönmesi (Y11), 30 gün dolumu, admin Davetler ekranı (tek tık onay/iptal, Y11 iptal kuralı). | 10.2 senaryoları. |
-| **6. Fiyat, sepet ve sipariş** | `priceCart` + `api/sepet/fiyat`, `pricing.ts` + testler, sepet/ödeme arayüzü, puan tavanı, `api/orders` bölme ve rezervasyon, USED/serbest bırakma. | Sandbox ödeme. iyzico sepet toplamı = sipariş toplamı. Vega'ya gidecek sipariş yanıtının (`vega-siparis.ts`) bölünmüş satırlarla doğru üretildiği birim testle doğrulanır. Canlı Vega kontrolü yayın fazında yapılır (Y10). Localhost sandbox test siparişlerinin (ortak DB üzerinden) Vega'ya düşmesi kabul edildi, bu faz için açık nokta değildir; gerekirse Vega'dan elle silinir (Faz 0 kararı). |
-| **7. İade ve değişim** | TAMAMLANDI + ücret iadesiyle geri yükleme, değişim ürünü/fiyat/fark, "fark tahsil/iade edildi" işaretleme. | 10.7 senaryoları. |
+| **6. Fiyat, sepet ve sipariş** ✅ Tamamlandı (2026-10-30; kullanıcı kararıyla ödemeyi yarıda bırakma, 2 adet + puan ve 1280/375 ekran görüntüleri yapılmadan kapatıldı, yayın öncesi bakılacak) | `priceCart` + `api/sepet/fiyat`, `pricing.ts` + testler, sepet/ödeme arayüzü, puan tavanı, `api/orders` bölme ve rezervasyon, USED/serbest bırakma. | Sandbox ödeme. iyzico sepet toplamı = sipariş toplamı. Vega'ya gidecek sipariş yanıtının (`vega-siparis.ts`) bölünmüş satırlarla doğru üretildiği birim testle doğrulanır. Canlı Vega kontrolü yayın fazında yapılır (Y10). Localhost sandbox test siparişlerinin (ortak DB üzerinden) Vega'ya düşmesi kabul edildi, bu faz için açık nokta değildir; gerekirse Vega'dan elle silinir (Faz 0 kararı). |
+| **7. İade ve değişim** ✅ Tamamlandı (2026-10-31) | TAMAMLANDI + ücret iadesiyle geri yükleme, değişim ürünü/fiyat/fark, "fark tahsil/iade edildi" işaretleme. | 10.7 senaryoları. |
 | **8. Bildirimler** | Outbox, zil, 4 e-posta şablonu, günlük sınır (Y1), "son 6 saat" sınır dışı, push (özellik tespiti, sw.js, VAPID, ilk kalp penceresinin push bölümü, İletişim tercihlerindeki push satırı), saatlik cron. Localhost'ta push yalnız kullanıcının kendi hesaplarına gönderilir (Faz 0 kural 2). | 10.10 senaryoları. Push Chrome masaüstü ve Android'de. iPhone Safari'de push bölümünün hiç çıkmadığı kontrol edilir. |
 | **9. Vitrin** | `/kalp-topla`, duyuru şeridi, ilk ziyaret penceresi, kampanya koşulları, Gizlilik ve Çerez metinleri (8.1, 8.2). | Ekran görüntüleri, çerez bandıyla çakışma. |
 | **10. Rapor** | Rapor, talep, bonus sayıları, müşteri detayı. | Test verisiyle elle sayım. |

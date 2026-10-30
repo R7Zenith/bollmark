@@ -1,22 +1,37 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-10-30, Kalp Topla Faz 6)
+## KALDIĞIM YER (2026-10-31, Kalp Topla Faz 7)
 
-- Dal `kalp-topla-wip`, `main`'e birleştirilmedi. **Faz 6 (fiyat, sepet, sipariş) kodu yerel commit'te, push yok, faz henüz tamamlanmadı.**
-  Şema değişmedi. Planda Faz 6 "Tamamlandı" işaretli DEĞİL.
+- Dal `kalp-topla-wip`, `main`'e birleştirilmedi, push edilmedi. **Faz 7 (iade ve değişim) ✅ kullanıcı onayıyla kapatıldı, yerel commit.**
+- **Yapılan:** kupon geri yükleme (satır başına bir kez, `OrderItem.kalpRestoredAt`), değişimde kupon taşıma/geri yükleme, stok koduyla fark hesabı, "fark tahsil/iade edildi", fark açıkken tamamlamada uyarı. Sipariş listesinde "Dikkat gerekiyor" notu.
+- **Kullanıcı kararları:** kargodan önce ödemesi iptal edilen veya tam iade edilen kuponlu satırda iade talebi aranmaz, kupon iyzico başarısından sonra döner; süresi dolmuşsa dönmez, denetim kaydı ve sipariş detayında not olur. Kargolanmış siparişte tamamlanmış iade talebi + ücret iadesi şartı aynen. Ödeme alındıktan sonra kupon USED yapılamazsa sipariş durmaz, "Dikkat gerekiyor" notu düşer.
+- **Süre kuralı (plan 5.8 yorumu):** iade anında süre bitmemişse kullanım anındaki kalan süre verilir; bitmişse kargolanmış iadede `refundExtraHours`.
+- **DB (canlı, kullanıcı onaylı, 2026-10-31):** `OrderItem.kalpCouponId` unique kalktı, normal indeks oldu; `kalpRestoredAt` eklendi. Çift kullanım koruması artık kupon durumunda. `prisma/migrations/20261031000000_kalp_kupon_unique_kaldir/migration.sql`, `prisma db execute --file` ile uygulandı (proje `db push` düzeninde, `_prisma_migrations` tablosu yok). `migrate diff` boş.
+- **Doğrulama:** 163/163 birim testi, tip kontrolü ve lint temiz; `scripts/kalp-topla-senaryo-faz7.ts` senaryoları hatasız. Gerçek sandbox: `BLM261031-7095` ödendi, iptal edildi, kupon döndü, ikinci iptal reddedildi. `/api/orders` eşzamanlı iki istek: 201 ve 409. Admin ekranındaki "Ödemeyi İptal" butonu ve 1280/375 ekran görüntüleri denenmedi.
+- **Temizlik:** kt7 test üyesi, kuponları ve 13 siparişi (`BLM261031-7095`, `BLM261031-4967` dahil) tek transaction'da silindi. PaymentLog satırları durur (yabancı anahtar yok).
+- **Elle yapılacak:**
+  - `BLM261030-5986` ve `BLM261031-7095` Vega'da elle kontrol edilmeli (ikisinde de `vegaFetchedAt` boştu, bu tek başına kanıt değil). 7095 sitede artık yok.
+  - Neon `yedek-faz7-kupon-unique` branch'i birkaç gün sonra elle silinmeli (otomatik silme kapalı).
+- `BLM261030-5986` kuponu USED kaldı, test kuponu; dokunulmadı.
+- Sıradaki: Faz 8 (bildirimler).
+
+## Önceki not (2026-10-30, Kalp Topla Faz 6)
+
+- Dal `kalp-topla-wip`, `main`'e birleştirilmedi. **Faz 6 (fiyat, sepet, sipariş) ✅ kullanıcı kararıyla kapatıldı, kod dalda (`047e514`).**
+  Şema değişmedi. Aşağıdaki bekleyen testler yapılmadı, yayın öncesi bakılacak.
 - **Yapılan:** `priceCart` ve `/api/sepet/fiyat`, otomatik/elle kupon, kuponlu adedin satıra bölünmesi, kupon RESERVED/USED/serbest
   bırakma, puan tavanı (T7), iyzico sepetinde kuponlu satıra indirim dağıtılmaması. Faz 5 elle testi: otomatik +2, "İncelemede", Onayla geçti;
   İptal elle denenmedi. Bar mesajı "İstersen arkadaşını çağır" oldu; bilgisayarda "Arkadaşını çağır" doğrudan site penceresini açıyor.
 - **Sandbox testi:** `BLM261030-5986` (vegaId 27): 3.190 TL ürün kuponla 1.595 TL ödendi, Ödemeyi İptal ile iade edildi, kupon USED kaldı
   (geri yükleme Faz 7). Sepet testi kullanıcıda geçti.
-- **Bekleyen testler:** ödemeyi yarıda bırakma (DB'de bu siparişten yok), stok geri geliş kontrolü, 2 adet + puan, 1280/375 ekran görüntüleri.
+- **Ertelenen testler (yayın öncesi):** ödemeyi yarıda bırakma (DB'de bu siparişten yok), 2 adet + puan (DB'de yok), 1280/375 ekran görüntüleri. Stok geri gelişi kullanıcı gözlemi, DB'den doğrulanmadı.
   Canlıdaki eski kod test siparişini iptal ederse kuponu bırakmaz: test boyunca canlı admin sipariş listesini açma.
 - **Vega:** Test siparişinde `vegaFetchedAt` boş kaldı, iade Vega'ya otomatik gitmez; Vega'da elle iptal edilmeli. Kullanıcıya göre
   `SiparisNotu` Vega'da "Sipariş No" sütununda görünüyor; çözüm ayrı oturumda.
 - **Yerel `.env`:** `SITE_URL=http://localhost:3000`, `PAYMENT_LOCAL_TEST=1` ve `IYZICO_SANDBOX_*` var (anahtarlar DB'deki sandbox kaydından kopyalandı,
   DB'ye yazılmadı). Bu ayar yalnız yerelde çalışır, Vercel'e eklenmez, sipariş notuna `LOCAL TEST` yazar. Admin'deki "Sandbox bağlantısını test et"e basılmaz.
 - `/api/kuponlar/dogrula` artık kullanılmıyor, planda kaldırılacak.
-- Sıradaki: bekleyen Faz 6 testleri, sonra Faz 7.
+- Sıradaki: Faz 7 (iade ve değişim).
 
 ## Önceki not (2026-10-30, Kalp Topla Faz 5)
 
@@ -71,7 +86,7 @@
   `.env.example` ile karşılaştırıp eksikleri kullanıcıya söyle (Kalp Topla için yalnız yerelde
   olanlar: `DEVICE_IP_SALT`, `UNSUBSCRIBE_SECRET`, `MAIL_DEV_REDIRECT`); `npm install` çalıştır.
 
-Son güncelleme: 2026-10-30
+Son güncelleme: 2026-10-31
 
 Bu dosya projenin **şu anki** durumunu kısa tutar. Yeni bir oturumda kaldığın
 yerden devam etmek için önce bunu, sonra gerekirse ilgili günlük dosyasını oku.
@@ -109,6 +124,8 @@ yerden devam etmek için önce bunu, sonra gerekirse ilgili günlük dosyasını
 | 27 Ekim ürünlerinin açıklama taslakları | DB'ye yazıldı (2026-10-27, kod değişikliği yok). 27 Ekim'de eklenen 16 ürüne (11 parfüm, 4 gömlek, 1 ceket) `scripts/ai-taslak-aktar.ts --iceri` ile yalnız `descriptionDraft` yazıldı, `originalDescription` bir kez doldu; `description` değişmedi. Kalan: kullanıcının admin'de "Açıklama: taslak bekliyor" filtresinden okuyup onaylaması. | `docs/planlar/arsiv/SEO_FAZ6_OZGUN_ACIKLAMA_VE_YONLENDIRME_PLANI.md` |
 | Vega sipariş aktarımı | Canlıda (2026-10-26). Vega Site Adı `vega.bollmark.com` (sipariş isteği `www.` ekli geliyor; Worker'a iki özel alan adı bağlı). Ödenmiş siparişler (2026-10-26 00:00 sonrası) Vega'ya düşüyor, Vega stoğu ayırıp kullanılabilir stoğu geri gönderiyor (doğrulandı), sitede stok koruması aktif; fatura tutarı/KDV, firma adı, Site Adresi `bollmark.com` doğru. Arctos fatura serisi KOTON şubesi ETicaretSeri = `BLM` (kullanıcı). Acil kapatma `VEGA_SIPARIS_AKTARIM=off`. Kalan: Vega "Sipariş No" sütunu boş (veriyle dolmuyor, Vega/Arctos desteğine sorulacak); Vega'da iptal siteye bildirilmiyor (elle); ilk gerçek siparişte BLM fatura serisinin entegratörde kabulü | `docs/planlar/VEGA_SIPARIS_AKTARIM_PLANI.md` |
 | Kalp Topla kampanyası | Uygulama başladı. **T13 güncellendi (2026-10-30):** test Neon branch'i yok, geliştirme canlı DB'de; şema yalnız eklemeli, her şema/veri scripti kullanıcı onaylı, test verisi `isTest`. **Faz 0 (yerel ortam güvenliği) ✅ tamamlandı, yerel commit (push yok):** yerel `.env`'de `MAIL_DEV_REDIRECT` ile tüm e-postalar ozilevent@gmail.com'a, konuda asıl alıcı (`src/lib/mail.ts`; Vercel'e eklenmez). iyzico yerelde kod gereği sandbox. Yerel sandbox test siparişleri ortak DB üzerinden Vega'ya düşebilir: kullanıcı kabul etti, gerekirse Vega'dan elle silinir, önlem yok. Admin'de "Sandbox bağlantısını test et"e basılmamalı (canlı ödeme hazırlığını bozar, Faz 6'da ele alınacak). **Faz 1 (Kaydedilenler, T9) ✅ tamamlandı, yerel commit (push yok):** favori butonu yer imi ikonu + "Kaydet / Kaydedildi", Hesabım'da "Kaydedilenler" (`/hesap/kaydedilenler`), eski `/hesap/favorilerim` 301 (`next.config.mjs`). DB, `api/favoriler`, localStorage anahtarı ve Meta/GA4 olay adları değişmedi. **Faz 2 (Temel) ✅ tamamlandı, yerel commit (push yok):** Kalp Topla şeması canlı DB'ye eklendi (2026-10-30, kullanıcı onaylı; 14 yeni tablo + mevcut 6 tabloya nullable/varsayılanlı alanlar; `db push` iki yeni unique alanda genel veri kaybı uyarısı verdiği için `--accept-data-loss` yerine incelenmiş ekleme-only SQL `prisma db execute` ile uygulandı, ardından `db push` "in sync"). Kısmi indeks `KalpHeart_open_unique` şemada (`partialIndexes` önizleme özelliği; koşul Postgres'in sakladığı `= ANY (ARRAY[...])` biçiminde, yoksa db push her seferinde fark görür). `/admin/kalp-topla` ayarlar (mod, test hesapları, test eşiği, değerler, kötüye kullanım eşikleri, engelli alan adları), ürün formunda "Kalp Topla dışı", denetim kodları, `campaignStateFor` + `GET /api/kalp-topla/durum`. Mod Kapalı (ayar satırı henüz yok, varsayılanlar). Açık'a geçiş onay/sıfırlama penceresi Faz 4'te. **Faz 3 (Üyelik ve onay) ✅ tamamlandı, yerel commit (push yok):** her yeni kayıtta genel doğrulama e-postası (kullanıcı kararı) + `/hesap/dogrula`; geçici e-posta engeli (`disposable-email-domains-js` 1.26.0 sabit + admin listesi); `bm_cihaz` + `CustomerDevice` (kayıt/giriş, IP tuzlu özet); kayıt formunda e-posta/WhatsApp onay kutuları; Hesabım > İletişim Tercihleri (push satırı Faz 8'de); `MarketingConsentLog` (ham IP); `/abonelik/iptal` + `POST /api/abonelik/iptal` (HMAC); admin Kalp Topla Onayları + CSV; günlük temizlik cron'u (`vercel.json` 03:30). T12 script'i yalnız kuru çalıştı (uygun üye 0); gerçek çalıştırma yayın fazında. Yeni env'ler yalnız yerel `.env`'de: `DEVICE_IP_SALT`, `UNSUBSCRIBE_SECRET` — Vercel'e yayın fazında eklenecek. Gizlilik/Çerez metinleri (bm_cihaz, ham IP) Faz 9'da; bu kod o metinlerden önce canlıya alınmamalı. **Faz 4 (Bar ve kalp) ✅ tamamlandı, yerel commit (`kalp-topla-wip`).** **Faz 5 (Davet) ✅ tamamlandı, commit `kalp-topla-wip`.** Sıradaki: Faz 6. | `KALP_TOPLA_PLANI.md` |
+| Ödeme ekranı Sipariş Özeti paneli | Açık (2026-10-31). Bilgisayarda `/odeme` ekranında panel kapalı geliyor (`checkout-form.tsx`, `details`), müşteri tutarı göremeyebilir; satışı etkileyebilir. Faz 7'den sonra bakılacak. | — |
+| Kalp Topla test kalıntıları | `BLM261030-5986` ve `BLM261031-7095` Vega'da elle kontrol edilecek. Neon `yedek-faz7-kupon-unique` branch'i birkaç gün sonra silinecek. | — |
 | Neon veri transferi (egress) + compute azaltma | **Durduruldu (2026-10-30)**, sıradaki iş Kalp Topla. Kota durumu: 5 GB egress'in ~%80'i, compute 100 CU-saatin 89,5'i dolu; aşılırsa compute dönem sonuna kadar askıya alınır. Kota dolarsa kullanıcı Neon Launch'a geçecek. **Adım 1 yerel commit `82a6d76`, push edilmedi:** menüye ayrı `menu` etiketi verildi; Vega stok değişikliği artık yalnız o ürünü tazeliyor. Adım 2 (`ProductVariant.productId` indeksi, `npm run db:push`) teklif edildi, onay bekliyor; uygulanmadı. Compute bulgusu: DB günde ~22,7 saat uyanık, Vega `SiparisServis` 2 dakikada bir sorguluyordu. **Kullanıcı 2026-10-30'da Vega sipariş sorgulama aralığını 30 dakikaya çıkardı** (stok gönderimi değişmedi). Etkisi ölçülecek; (a) Vega yanıtını önbellekten verme / (b) Launch / (c) ikisi kararı bekliyor. Kalan: push kararı, 30 dk etkisinin ölçümü, adım 2'nin onayı, adım 3 ve sonrası. | `NEON_TRANSFER_AZALTMA_PLANI.md` ("Uygulama durumu") | `NEON_TRANSFER_AZALTMA_PLANI.md` |
 | Parfüm → Aksesuar alt kategorisi | Uygulandı (2026-10-28). DB'de parentId Aksesuar (ortak DB, canlıda da geçerli); Çok Satanlar'a Aksesuar sekmesi, diğer sekmeler yalnız giyim. Adresler değişmedi. Kalan: Aksesuar kutusu şu an parfüm görseli gösteriyor; istenirse admin'den Aksesuar kategorisine görsel. | `docs/gunluk/2026-10.md` |
 

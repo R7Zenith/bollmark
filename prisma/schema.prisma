@@ -529,8 +529,13 @@ model OrderItem {
   paidCents            Int?
   refundedCents        Int     @default(0)
   // Kalp Topla (KALP_TOPLA_PLANI.md 4.1)
-  kalpCouponId          String?  @unique  // bu satıra uygulanan Kalp Topla kuponu
+  // Tekil degil: geri donen kupon yeni sipariste de kullanilir, eski satirdaki kayit kalir.
+  // Cift kullanimi kuponun durumu (RESERVED/USED) engeller.
+  kalpCouponId          String?           // bu satıra uygulanan Kalp Topla kuponu
   kalpOriginalUnitCents Int?              // kuponsuz olsaydı ödenecek birim fiyat
+  kalpRestoredAt        DateTime?         // kupon bu satırdan bir kez geri yüklendi
+
+  @@index([kalpCouponId])
 }
 
 // Magaza geneli ayarlar - tek satirlik "singleton" kayit (id her zaman "singleton")

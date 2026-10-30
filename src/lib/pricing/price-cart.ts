@@ -75,7 +75,7 @@ async function loadKalp(db: Tx, customerId: string | null, code: string | null) 
   };
 }
 
-async function withCurrentBest(db: Tx, lines: PriceLine[]): Promise<KalpPriceLine[]> {
+export async function withCurrentBest(db: Tx, lines: PriceLine[]): Promise<KalpPriceLine[]> {
   const campaigns = await getActiveAutomaticPercentCampaigns(db);
   return lines.map((line) => ({
     variantId: line.variantId,
