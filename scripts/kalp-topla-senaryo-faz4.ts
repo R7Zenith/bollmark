@@ -6,13 +6,17 @@
 // - KalpToplaSettings'i gecici olarak degistirir, sonunda eski haline getirir.
 // - Y15 icin silinmis-isaretli (deletedAt dolu: admin listesinde ve Vega'da
 //   gorunmez), odeme denemesi olmayan 2 sahte siparis acar.
-// - Sonunda yalniz kendi olusturdugu satirlari siler ve kalan sayisini yazar.
+// - Baslamadan once ayarlari scripts/.kalp-topla-yedek-<tarih>.json dosyasina yazar.
+// - Sonunda (hata ya da Ctrl+C dahil) yalniz kendi olusturdugu satirlari siler
+//   ve kalan sayisini yazar.
 // - E-posta gondermez (RESEND_API_KEY bu surecte kaldirilir).
 //
 // Calistirma: npx tsx scripts/kalp-topla-senaryo-faz4.ts
+// Yarida kalirsa: npx tsx scripts/kalp-topla-senaryo-faz4.ts temizle
 import "dotenv/config";
 import Module from "node:module";
 import path from "node:path";
+import { cleanupTestData, prepareRun, recoverFromLatestBackup, TEST_ACTOR, watchInterrupt } from "./kalp-topla-test-guvenlik";
 
 delete process.env.RESEND_API_KEY;
 // "server-only" Next'in icinde gelir; script disinda bos modul yuklenir.
@@ -24,7 +28,7 @@ moduleWithResolve._resolveFilename = function (request: string, ...rest: unknown
 };
 
 const RUN = Date.now().toString(36);
-const ACTOR = "kt4-senaryo";
+const assertRunning = watchInterrupt();
 let passed = 0;
 let failed = 0;
 
@@ -32,27 +36,20 @@ function check(name: string, ok: boolean, detail = "") {
   if (ok) passed += 1;
   else failed += 1;
   console.log(`${ok ? "OK  " : "HATA"} ${name}${detail ? ` (${detail})` : ""}`);
+  assertRunning();
 }
 
 async function main() {
   const { prisma } = await import("../src/lib/prisma");
+  if (process.argv[2] === "temizle") {
+    await recoverFromLatestBackup(prisma);
+    return;
+  }
   const bar = await import("../src/lib/kalp-topla/bar");
   const { campaignStateFrom, getKalpSettings } = await import("../src/lib/kalp-topla/settings");
   const { getTestResetSummary, switchToLiveWithReset } = await import("../src/lib/kalp-topla/test-reset");
 
-  const [hearts0, rounds0, coupons0, bars0] = await Promise.all([
-    prisma.kalpHeart.count(),
-    prisma.kalpRound.count(),
-    prisma.kalpCoupon.count(),
-    prisma.kalpBar.count()
-  ]);
-  if (hearts0 + rounds0 + coupons0 + bars0 > 0) {
-    console.log(`DB'de mevcut Kalp Topla verisi var (kalp ${hearts0}, tur ${rounds0}, kupon ${coupons0}, bar ${bars0}). Hicbir sey yazilmadi.`);
-    return;
-  }
-
-  const startedAt = new Date();
-  const originalSettings = await prisma.kalpToplaSettings.findUnique({ where: { id: "singleton" } });
+  const backup = await prepareRun(prisma, "senaryo");
   const products = await prisma.product.findMany({
     where: { status: "PUBLISHED", kalpToplaExcluded: false },
     select: { id: true, priceCents: true },
@@ -62,7 +59,6 @@ async function main() {
   if (products.length < 6) throw new Error("En az 6 yayinda urun gerekli.");
   const P = products.map((p) => p.id);
   const customerIds: string[] = [];
-  const orderIds: string[] = [];
 
   const setSettings = (data: Record<string, unknown>) =>
     prisma.kalpToplaSettings.upsert({ where: { id: "singleton" }, create: { id: "singleton", ...data }, update: data });
@@ -197,13 +193,12 @@ async function main() {
           subtotalCents: products[0].priceCents,
           totalCents: products[0].priceCents,
           deletedAt: new Date(),
-          deletedByEmail: ACTOR,
+          deletedByEmail: TEST_ACTOR,
           ...data
         }
       });
     const unpaid = await fakeOrder(1, { status: "PENDING_PAYMENT", paymentStatus: "UNPAID" });
     const paid = await fakeOrder(2, { status: "DELIVERED", paymentStatus: "PAID" });
-    orderIds.push(unpaid.id, paid.id);
     for (const [order, coupon] of [
       [unpaid, reservedCoupon],
       [paid, usedCoupon]
@@ -228,7 +223,7 @@ async function main() {
     );
     check("Odenmemis test siparisi listede", summary?.unpaidOrders.length === 1 && summary.unpaidOrders[0].id === unpaid.id);
 
-    const actor = { actorEmail: ACTOR, actorRole: "SISTEM", previousModeLabel: "Gizli yayın" };
+    const actor = { actorEmail: TEST_ACTOR, actorRole: "SISTEM", previousModeLabel: "Gizli yayın" };
     const declined = await switchToLiveWithReset({ ...actor, cancelOrders: false });
     check(
       "Vazgec/onaysiz: hicbir sey degismez",
@@ -250,7 +245,7 @@ async function main() {
     check("Kullanilmamis test kuponlari TEST_CANCELLED", (await prisma.kalpCoupon.count({ where: { isTest: true, status: "AVAILABLE" } })) === 0 && (await prisma.kalpCoupon.count({ where: { isTest: true, status: "TEST_CANCELLED" } })) === expected.unused + 1);
     check("Odenmemis siparis iptal, kuponu TEST_CANCELLED", (await prisma.order.findUniqueOrThrow({ where: { id: unpaid.id } })).status === "CANCELLED" && (await prisma.kalpCoupon.findUniqueOrThrow({ where: { id: reservedCoupon.id } })).status === "TEST_CANCELLED");
     check("Odenmis test siparisi silinmedi, kalpTestAt dolu, kuponu USED", Boolean((await prisma.order.findUniqueOrThrow({ where: { id: paid.id } })).kalpTestAt) && (await prisma.kalpCoupon.findUniqueOrThrow({ where: { id: usedCoupon.id } })).status === "USED");
-    check("Sifirlama denetim kaydi", (await prisma.auditLog.count({ where: { action: "KALP_TOPLA_TEST_SIFIRLANDI", actorEmail: ACTOR } })) === 1);
+    check("Sifirlama denetim kaydi", (await prisma.auditLog.count({ where: { action: "KALP_TOPLA_TEST_SIFIRLANDI", actorEmail: TEST_ACTOR } })) === 1);
 
     await bar.giveHeart(C[0], P[0]);
     const fresh = await currentRound(P[0]);
@@ -264,47 +259,7 @@ async function main() {
     check("HIDDEN->OFF->LIVE: test turu silindi", viaOff.ok && (await prisma.kalpRound.count({ where: { isTest: true } })) === 0);
     check("HIDDEN->OFF->LIVE: gercek tur ve kalp korundu", (await points(P[0])) === 1 && (await prisma.kalpHeart.count({ where: { customerId: C[0], status: "ACTIVE" } })) === 1);
   } finally {
-    // Yalniz bu scriptin olusturdugu satirlar.
-    const roundIds = (await prisma.kalpRound.findMany({ where: { productId: { in: P } }, select: { id: true } })).map((r) => r.id);
-    await prisma.auditLog.deleteMany({
-      where: {
-        OR: [
-          { action: "KALP_TOPLA_TUR_KAPANDI", targetId: { in: roundIds } },
-          { action: "KALP_TOPLA_TUR_KAPANDI", createdAt: { gte: startedAt }, detail: { contains: " · test" } },
-          { actorEmail: ACTOR },
-          { targetId: { in: orderIds } }
-        ]
-      }
-    });
-    await prisma.paymentLog.deleteMany({ where: { orderId: { in: orderIds } } });
-    await prisma.orderItem.deleteMany({ where: { orderId: { in: orderIds } } });
-    await prisma.order.deleteMany({ where: { id: { in: orderIds } } });
-    await prisma.kalpHeart.deleteMany({ where: { customerId: { in: customerIds } } });
-    await prisma.kalpCoupon.deleteMany({ where: { customerId: { in: customerIds } } });
-    await prisma.kalpBar.deleteMany({ where: { productId: { in: P } } });
-    await prisma.kalpRound.deleteMany({ where: { productId: { in: P } } });
-    await prisma.emailVerificationToken.deleteMany({ where: { customerId: { in: customerIds } } });
-    await prisma.customer.deleteMany({ where: { id: { in: customerIds } } });
-    if (originalSettings) {
-      const { updatedAt: _ignored, ...rest } = originalSettings;
-      void _ignored;
-      await prisma.kalpToplaSettings.update({ where: { id: "singleton" }, data: rest });
-    } else {
-      await prisma.kalpToplaSettings.deleteMany({ where: { id: "singleton" } });
-    }
-
-    const left = await Promise.all([
-      prisma.customer.count({ where: { id: { in: customerIds } } }),
-      prisma.order.count({ where: { id: { in: orderIds } } }),
-      prisma.kalpHeart.count(),
-      prisma.kalpRound.count(),
-      prisma.kalpCoupon.count(),
-      prisma.kalpBar.count(),
-      prisma.auditLog.count({ where: { actorEmail: ACTOR } })
-    ]);
-    const settingsNow = await prisma.kalpToplaSettings.findUnique({ where: { id: "singleton" } });
-    console.log(`Temizlik: kalan uye/siparis/kalp/tur/kupon/bar/denetim = ${left.join("/")}`);
-    console.log(`Ayarlar geri yuklendi: ${originalSettings ? settingsNow?.mode === originalSettings.mode : settingsNow === null}`);
+    await cleanupTestData(prisma, backup);
   }
   console.log(`\nSonuc: ${passed} OK, ${failed} HATA`);
   if (failed > 0) process.exitCode = 1;

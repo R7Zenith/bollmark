@@ -10,11 +10,13 @@ export function KalpDialog({
   open,
   onClose,
   title,
+  wide = false,
   children
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
+  wide?: boolean;
   children: React.ReactNode;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -44,7 +46,7 @@ export function KalpDialog({
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative w-full max-w-[420px] rounded-t-2xl bg-cream px-6 pb-7 pt-6 shadow-soft outline-none animate-consent-in sm:rounded-2xl"
+        className={`relative w-full ${wide ? "max-w-[760px]" : "max-w-[420px]"} rounded-t-2xl bg-cream px-6 pb-7 pt-6 shadow-soft outline-none animate-consent-in sm:rounded-2xl`}
       >
         <button
           type="button"

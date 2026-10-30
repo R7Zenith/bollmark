@@ -286,6 +286,8 @@ export type BarView = {
   inviteBonus: number;
   couponHours: number;
   recentlyClosed: boolean;
+  closedRounds: number;
+  lastClosedThreshold: number;
   loggedIn: boolean;
   emailVerified: boolean;
   emailConsent: boolean;
@@ -315,7 +317,7 @@ export async function getBarView(customerId: string | null, productId: string): 
   const lastClosed = await prisma.kalpRound.findFirst({
     where: { productId, status: "CLOSED" },
     orderBy: { roundNo: "desc" },
-    select: { id: true, closedAt: true }
+    select: { id: true, closedAt: true, roundNo: true, threshold: true }
   });
   const windowStart = Date.now() - settings.couponHours * 60 * 60 * 1000;
 
@@ -327,6 +329,8 @@ export async function getBarView(customerId: string | null, productId: string): 
     inviteBonus: settings.inviteBonus,
     couponHours: settings.couponHours,
     recentlyClosed: Boolean(lastClosed?.closedAt && lastClosed.closedAt.getTime() > windowStart),
+    closedRounds: lastClosed?.roundNo ?? 0,
+    lastClosedThreshold: lastClosed?.threshold ?? 0,
     loggedIn: Boolean(customerId),
     emailVerified: false,
     emailConsent: false,

@@ -3,18 +3,22 @@
 //   npx tsx scripts/kalp-topla-ekran-faz4.ts hazirla
 //     -> 2 gecici test uyesi (@example.invalid, giris yapilabilir sifreyle),
 //        mod Gizli yayin (yalniz bu uyeler test hesabi), test esigi 3, B'nin 1 kalbi.
-//        DB'de Kalp Topla verisi varsa hicbir sey yazmadan durur.
+//        DB'de Kalp Topla verisi varsa hicbir sey yazmadan durur. Ayarlari once
+//        scripts/.kalp-topla-yedek-<tarih>.json dosyasina yazar; hazirlik hata ya da
+//        Ctrl+C ile yarida kalirsa kendi yazdiklarini geri alir.
 //   npx tsx scripts/kalp-topla-ekran-faz4.ts temizle
 //     -> yalniz hazirla'nin olusturdugu satirlar (ve bu uyelerin giris cihaz
-//        kayitlari, onay kayitlari, sepetleri) silinir, ayarlar geri yuklenir.
-// Durum (sifre, uye kimlikleri, eski ayarlar) sistemin gecici klasorunde tutulur.
+//        kayitlari, onay kayitlari, sepetleri) silinir, ayarlar yedekten geri
+//        yuklenir, sifre dosyasi silinir.
+// Durum (sifre, uye kimlikleri) sistemin gecici klasorunde tutulur.
 // E-posta gondermez (RESEND_API_KEY bu surecte kaldirilir).
 import "dotenv/config";
 import Module from "node:module";
 import os from "node:os";
 import path from "node:path";
-import { readFileSync, writeFileSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
 import bcrypt from "bcryptjs";
+import { cleanupTestData, prepareRun, recoverFromLatestBackup, watchInterrupt } from "./kalp-topla-test-guvenlik";
 
 delete process.env.RESEND_API_KEY;
 // "server-only" Next'in icinde gelir; script disinda bos modul yuklenir.
@@ -32,70 +36,46 @@ async function main() {
   const mode = process.argv[2];
 
   if (mode === "hazirla") {
-    const existing = (await prisma.kalpHeart.count()) + (await prisma.kalpRound.count()) + (await prisma.kalpCoupon.count());
-    if (existing > 0) throw new Error("DB'de Kalp Topla verisi var, hazirlik yapilmadi.");
-    const original = await prisma.kalpToplaSettings.findUnique({ where: { id: "singleton" } });
-    const product = await prisma.product.findFirst({
-      where: { status: "PUBLISHED", kalpToplaExcluded: false, images: { some: {} }, variants: { some: { stock: { gt: 0 } } } },
-      orderBy: { createdAt: "desc" },
-      select: { id: true, slug: true }
-    });
-    if (!product) throw new Error("Uygun urun yok.");
-    const run = Date.now().toString(36);
-    const password = `Kt4-${run}-ekran`;
-    const passwordHash = await bcrypt.hash(password, 10);
-    const a = await prisma.customer.create({
-      data: { email: `kt4-ekran-a-${run}@example.invalid`, name: "Ekran Test", passwordHash, emailVerifiedAt: new Date() }
-    });
-    const b = await prisma.customer.create({
-      data: { email: `kt4-ekran-b-${run}@example.invalid`, name: "Ekran Test B", passwordHash, emailVerifiedAt: new Date() }
-    });
-    writeFileSync(
-      STATE,
-      JSON.stringify({ original, customers: [a.id, b.id], productId: product.id, slug: product.slug, email: a.email, password })
-    );
-    await prisma.kalpToplaSettings.upsert({
-      where: { id: "singleton" },
-      create: { id: "singleton", mode: "HIDDEN", testerCustomerIds: [a.id, b.id], testThreshold: 3 },
-      update: { mode: "HIDDEN", testerCustomerIds: [a.id, b.id], testThreshold: 3 }
-    });
-    const { giveHeart } = await import("../src/lib/kalp-topla/bar");
-    await giveHeart(b.id, product.id);
-    console.log(`Hazir. Urun: /urunler/${product.slug} · giris: ${a.email} (sifre ${STATE} icinde)`);
+    const assertRunning = watchInterrupt();
+    const backup = await prepareRun(prisma, "ekran");
+    try {
+      const product = await prisma.product.findFirst({
+        where: { status: "PUBLISHED", kalpToplaExcluded: false, optionImages: { some: {} }, variants: { some: { stock: { gt: 0 } } } },
+        orderBy: { createdAt: "desc" },
+        select: { id: true, slug: true }
+      });
+      if (!product) throw new Error("Uygun urun yok.");
+      const run = Date.now().toString(36);
+      const password = `Kt4-${run}-ekran`;
+      const passwordHash = await bcrypt.hash(password, 10);
+      const a = await prisma.customer.create({
+        data: { email: `kt4-ekran-a-${run}@example.invalid`, name: "Ekran Test", passwordHash, emailVerifiedAt: new Date() }
+      });
+      const b = await prisma.customer.create({
+        data: { email: `kt4-ekran-b-${run}@example.invalid`, name: "Ekran Test B", passwordHash, emailVerifiedAt: new Date() }
+      });
+      writeFileSync(STATE, JSON.stringify({ customers: [a.id, b.id], productId: product.id, slug: product.slug, email: a.email, password }));
+      assertRunning();
+      await prisma.kalpToplaSettings.upsert({
+        where: { id: "singleton" },
+        create: { id: "singleton", mode: "HIDDEN", testerCustomerIds: [a.id, b.id], testThreshold: 3 },
+        update: { mode: "HIDDEN", testerCustomerIds: [a.id, b.id], testThreshold: 3 }
+      });
+      const { giveHeart } = await import("../src/lib/kalp-topla/bar");
+      await giveHeart(b.id, product.id);
+      assertRunning();
+      console.log(`Hazir. Urun: /urunler/${product.slug} · giris: ${a.email} (sifre ${STATE} icinde)`);
+    } catch (error) {
+      await cleanupTestData(prisma, backup);
+      rmSync(STATE, { force: true });
+      throw error;
+    }
     return;
   }
 
   if (mode === "temizle") {
-    const state = JSON.parse(readFileSync(STATE, "utf8"));
-    const ids: string[] = state.customers;
-    const roundIds = (await prisma.kalpRound.findMany({ where: { productId: state.productId }, select: { id: true } })).map((r) => r.id);
-    await prisma.auditLog.deleteMany({ where: { action: "KALP_TOPLA_TUR_KAPANDI", targetId: { in: roundIds } } });
-    await prisma.kalpHeart.deleteMany({ where: { customerId: { in: ids } } });
-    await prisma.kalpCoupon.deleteMany({ where: { customerId: { in: ids } } });
-    await prisma.kalpBar.deleteMany({ where: { productId: state.productId } });
-    await prisma.kalpRound.deleteMany({ where: { productId: state.productId } });
-    await prisma.marketingConsentLog.deleteMany({ where: { customerId: { in: ids } } });
-    await prisma.customerDevice.deleteMany({ where: { customerId: { in: ids } } });
-    await prisma.emailVerificationToken.deleteMany({ where: { customerId: { in: ids } } });
-    await prisma.customerCart.deleteMany({ where: { customerId: { in: ids } } });
-    await prisma.customer.deleteMany({ where: { id: { in: ids } } });
-    if (state.original) {
-      const { updatedAt: _ignored, ...rest } = state.original;
-      void _ignored;
-      await prisma.kalpToplaSettings.update({ where: { id: "singleton" }, data: rest });
-    } else {
-      await prisma.kalpToplaSettings.deleteMany({ where: { id: "singleton" } });
-    }
-    const left = [
-      await prisma.customer.count({ where: { id: { in: ids } } }),
-      await prisma.kalpHeart.count(),
-      await prisma.kalpRound.count(),
-      await prisma.kalpCoupon.count(),
-      await prisma.kalpBar.count(),
-      await prisma.customerDevice.count({ where: { customerId: { in: ids } } })
-    ];
-    console.log(`Temizlik: kalan uye/kalp/tur/kupon/bar/cihaz = ${left.join("/")}`);
-    console.log(`Ayar: ${JSON.stringify(await prisma.kalpToplaSettings.findUnique({ where: { id: "singleton" }, select: { mode: true, testerCustomerIds: true } }))}`);
+    await recoverFromLatestBackup(prisma);
+    rmSync(STATE, { force: true });
     return;
   }
   throw new Error("Kullanim: hazirla | temizle");

@@ -2,12 +2,13 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Heart } from "lucide-react";
+import { Heart, Ticket } from "lucide-react";
 import type { BarView } from "@/lib/kalp-topla/bar";
 import { barMessage } from "@/lib/kalp-topla/messages";
 import { CONSENT_TEXTS } from "@/lib/kalp-topla/consent-texts";
 import { useKalpDurum } from "./use-kalp-durum";
 import { KalpDialog } from "./kalp-dialog";
+import { COUPON_SHAPE, KalpNasilCalisir } from "./kalp-nasil-calisir";
 
 // Urun sayfasi Kalp Topla bari (KALP_TOPLA_PLANI.md 6.1). Gorunurluk
 // istemcide oturuma gore cozulur; INVISIBLE ve FROZEN'da hic render edilmez.
@@ -129,20 +130,44 @@ export function KalpBar({ productId }: { productId: string }) {
   const near = threshold - points <= 2 && points > 0;
 
   return (
-    <section aria-label="Kalp Topla" className="mt-5 rounded-xl border border-line p-4 md:p-5">
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="text-[15px] tracking-[-0.3px] text-ink">
-          <span className="font-medium">Kalp Topla</span>
-          <span className="text-ink/50"> · {threshold} kalp, yarı fiyat</span>
-        </p>
-        <button
-          type="button"
-          onClick={() => setDialog("how")}
-          className="shrink-0 text-xs text-ink/60 underline underline-offset-4 hover:text-ink"
-        >
-          Nasıl çalışır?
-        </button>
+    <section aria-label="Kalp Topla" className="mt-5 rounded-xl border border-sale/25 bg-[#FFF1F4] p-4 md:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="flex items-center gap-1.5 text-xs font-medium text-sale">
+            <Heart size={13} className="fill-sale" aria-hidden="true" />
+            Kalp Topla
+          </p>
+          <p className="mt-1 text-[19px] font-semibold leading-tight tracking-[-0.4px] text-ink md:text-[21px]">
+            {threshold} kalp dolsun, {view.discountPercent === 50 ? "yarı fiyatına al" : `%${view.discountPercent} indirimle al`}
+          </p>
+          <button
+            type="button"
+            onClick={() => setDialog("how")}
+            className="mt-1.5 text-xs text-ink/60 underline underline-offset-4 hover:text-ink"
+          >
+            Nasıl çalışır?
+          </button>
+        </div>
+        <svg viewBox="30 36 100 48" aria-hidden="true" className="w-[84px] shrink-0 -rotate-6 md:w-[96px]">
+          <path d={COUPON_SHAPE} className="fill-[#FFC83D]" />
+          <text x={80} y={71} textAnchor="middle" className="fill-ink text-[29px] font-bold">
+            %{view.discountPercent}
+          </text>
+        </svg>
       </div>
+
+      {view.closedRounds > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1">
+          {view.lastClosedThreshold <= MAX_CELLS && (
+            <span className="flex gap-0.5" aria-hidden="true">
+              {Array.from({ length: view.lastClosedThreshold }, (_, i) => (
+                <Heart key={i} size={16} className="fill-sale/30 text-sale/30" />
+              ))}
+            </span>
+          )}
+          <span className="text-xs text-ink/50">{view.closedRounds} kez doldu</span>
+        </div>
+      )}
 
       {threshold <= MAX_CELLS ? (
         <div
@@ -156,11 +181,10 @@ export function KalpBar({ productId }: { productId: string }) {
           {Array.from({ length: threshold }, (_, i) => (
             <Heart
               key={i}
-              size={20}
               strokeWidth={1.6}
               aria-hidden="true"
               onAnimationEnd={() => setPopIndex(null)}
-              className={`${i < points ? "fill-sale text-sale" : "text-ink/20"} ${i === popIndex ? "animate-kalp-pop" : ""}`}
+              className={`h-6 w-6 md:h-7 md:w-7 ${i < points ? "fill-sale text-sale" : "text-ink/25"} ${i === popIndex ? "animate-kalp-pop" : ""}`}
             />
           ))}
         </div>
@@ -177,7 +201,17 @@ export function KalpBar({ productId }: { productId: string }) {
         </div>
       )}
 
-      <p className={`mt-2.5 text-sm ${near ? "font-medium text-sale" : "text-ink/80"}`}>{message}</p>
+      {view.wonCouponExpiresAt && points === 0 ? (
+        <p className="mt-3 flex items-center gap-2 rounded-lg bg-[#FFC83D] px-3 py-2.5 text-sm font-semibold text-ink">
+          <Ticket size={18} className="shrink-0" aria-hidden="true" />
+          <span className="min-w-0 flex-1">{message}</span>
+          <Link href="/hesap/kalplerim" className="shrink-0 text-xs font-medium underline underline-offset-4">
+            Kuponu gör
+          </Link>
+        </p>
+      ) : (
+        <p className={`mt-2.5 text-sm ${near ? "font-medium text-sale" : "text-ink/80"}`}>{message}</p>
+      )}
 
       <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
         {view.myHeart ? (
@@ -228,20 +262,8 @@ export function KalpBar({ productId }: { productId: string }) {
       {error && <p className="mt-3 text-xs text-sale">{error}</p>}
       {notice && <p className="mt-3 text-xs text-ink/70">{notice}</p>}
 
-      <KalpDialog open={dialog === "how"} onClose={() => setDialog(null)} title="Kalp Topla nasıl çalışır?">
-        <ol className="space-y-3 text-sm text-ink/80">
-          <li>
-            <span className="font-medium text-ink">1. Kalp ver.</span> Üye ol, beğendiğin ürünün kilidine katıl.
-          </li>
-          <li>
-            <span className="font-medium text-ink">2. Arkadaşını çağır.</span> Senin linkinle gelen arkadaşın barına +
-            {view.inviteBonus} kalp ekler.
-          </li>
-          <li>
-            <span className="font-medium text-ink">3. %{view.discountPercent}&apos;ni kap.</span> Bar dolunca kuponun
-            hesabına gelir, {view.couponHours} saat geçerli.
-          </li>
-        </ol>
+      <KalpDialog wide open={dialog === "how"} onClose={() => setDialog(null)} title="Kalp Topla nasıl çalışır?">
+        <KalpNasilCalisir inviteBonus={view.inviteBonus} discountPercent={view.discountPercent} couponHours={view.couponHours} />
       </KalpDialog>
 
       <KalpDialog
