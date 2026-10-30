@@ -259,7 +259,11 @@ export function buildWebSiparisXml(order: VegaOrderInput): string {
     // ayirt edici degerlerle denendi. Ticimax'ta dogru alanlar bunlar, yaziliyor.
     SiparisKodu: xmlEscape(order.orderNumber),
     SiparisNo: xmlEscape(order.orderNumber),
-    SiparisNotu: xmlEscape(order.note ?? ""),
+    // Vega "Siparis No" sutununu bu alandan dolduruyor (2026-10-30, BLM261030-5986).
+    // Musteri notu Vega'ya gitmez, yalniz sitede kalir; yerel test isareti korunur.
+    SiparisNotu: xmlEscape(
+      order.note?.startsWith("LOCAL TEST") ? `${order.orderNumber} | LOCAL TEST` : order.orderNumber
+    ),
     SiparisTarihi: formatVegaDate(order.createdAt),
     SiparisToplamTutari: money(order.totalCents),
     StokDustu: "true",

@@ -291,7 +291,7 @@ Tutarlar Ticimax'ta `double` TL (KDV dahil); sitede kuruş (`Int`). Dönüşüm
 | `UyeAdi` / `UyeSoyadi` | `customerName` son boşluktan bölünür | |
 | `UyeID` | 0 | Misafir/üye ayrımı Vega için gereksiz görünüyor |
 | `Mail` | `customerEmail` | |
-| `SiparisNotu` | `note` | |
+| `SiparisNotu` | `orderNumber` | Vega "Sipariş No" sütunu; müşteri notu gitmez (bkz. Faz 2-3 sonucu madde 16) |
 | `Durum` / `SiparisDurumu` | `status` → PAID: 2 "Onaylandi", PREPARING: 4 "Paketleniyor", SHIPPED: 6, DELIVERED: 7 | Kod sırası doğrulanacak |
 | `EntegrasyonAktarildi` | `vegaTransferredAt != null` | |
 | `StokDustu` | `true` | Site stoğu zaten düştü. Vega'nın bu alana bakıp bakmadığı bilinmiyor (açık soru) |
@@ -594,7 +594,8 @@ hata/ileti ekranında sipariş hatası yok.
 > 13. **Gerçek Ticimax WSDL'i** (bir Ticimax mağazasının herkese açık `SiparisServis.svc?singleWsdl`'i) okundu: `WebSiparis` 106 alan; PDF eski. `SiparisNo`, `SiparisKodu`, `ReferansNo` var; bazı ID adları farklı (`FaturaAdresID`, `KargoFirmaID`, `IlID`, `IlceID`, satırda `SiparisID`) - düzeltildi.
 > 14. Vega `FaturaAdresi.FirmaAdi`'yı "Firma" sütunu ve Arctos sevkiyat listesi alıcı adı olarak kullanıyor → müşteri adı soyadı yazılıyor (`b3fe065`).
 > 15. Vega "No" sütununu `SiparisKaynagi`'ndan aynen, "Site Adresi"ni (faturadaki İnternet Sitesi) `SiparisKaynagi + ".com"` olarak dolduruyor; `Referer`'ı okumuyor → `SiparisKaynagi = "bollmark"` (Site Adresi bollmark.com).
-> 16. **"Sipariş No" sütunu veriyle doldurulamadı:** `SiparisNo`, `SiparisKodu`, `ReferansNo`, `OzelAlan1-3`, `BNPLNo`, `MagazaTeslimKodu`, `UyeMusteriKodu`, `OdemeSiparisID` alanlarına ayırt edici değerler (101-110) yazılan denemede hiçbiri görünmedi; `UyeMusteriKodu` Müşteri Kodu'nu da değiştirmedi (TM-<UyeID>). Vega'nın kendi alanı ya da bu sürümde Ticimax için bağlı değil. Kullanıcıya göre Ticimax döneminde sitedeki numara görünüyordu; Vega desteğine sorulabilir.
+> 16. **"Sipariş No" sütunu veriyle doldurulamadı:** `SiparisNo`, `SiparisKodu`, `ReferansNo`, `OzelAlan1-3`, `BNPLNo`, `MagazaTeslimKodu`, `UyeMusteriKodu`, `OdemeSiparisID` alanlarına ayırt edici değerler (101-110) yazılan denemede hiçbiri görünmedi; `UyeMusteriKodu` Müşteri Kodu'nu da değiştirmedi (TM-<UyeID>). Vega'nın kendi alanı ya da bu sürümde Ticimax için bağlı değil. Kullanıcıya göre Ticimax döneminde sitedeki numara görünüyordu.
+>     **Güncelleme (2026-10-30): çözüldü.** Yerel sandbox siparişi BLM261030-5986'da (Vega Id 27) `Order.note` değeri `LOCAL TEST`, Vega'da "Sipariş No" sütununda göründü; bu değer XML'de yalnız `SiparisNotu` alanından gidiyor. Kaynak `SiparisNotu`. Kullanıcı kararı: alana sipariş numarası yazılır, müşteri notu Vega'ya gitmez ve yalnız sitede (admin sipariş detayı) kalır. `LOCAL TEST` ile başlayan notlarda değer `BLM… | LOCAL TEST` olur. Yalnız yeni siparişlerde doğrulanacak; Vega'nın daha önce aldığı siparişleri güncelleyip güncellemediği bilinmiyor. Sütun uzunluğu sınırı ölçülmedi, numara 14 karakter.
 > 17. Vega bazı siparişlerde `SetSiparisDurum(Onaylandi)` göndermedi (Id 19-22, "Onay Bekliyor" kaldı); o durumda stok koruması 24 saat üst sınırla biter.
 > 18. **Arctos fatura serisi (kullanıcı ayarladı, 2026-10-26):** Toplu Sipariş İşlemleri > Faturalaştır, faturayı KOTON şubesi + ETICARET belge nevisiyle oluşturuyor; numara ön eki şubenin **ETicaretSeri** sütunundan geliyor (Şube Tanımları ekranı). Boşken `2026000000000005` gibi ön eksiz numara çıktı; kullanıcı KOTON'a `BLM` yazdı → internet satışı e-Arşiv faturaları `BLM2026…`. İlk gerçek faturada entegratörün BLM serisini kabul ettiği ve numaranın 1'den başladığı kontrol edilmeli. Faturadaki Belge ÖK-1 = `bollmark.com` (SiparisKaynagi). Her site siparişi Arctos'ta ayrı cari açıyor (`TM-<vegaId>`).
 

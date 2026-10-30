@@ -114,3 +114,16 @@ test("tutari 0 olan siparis: satir 0, iptal durumu", () => {
   const urun = /<a:WebSiparisUrun>(.*?)<\/a:WebSiparisUrun>/.exec(xml)![1];
   assert.match(urun, /<a:Tutar>0\.00<\/a:Tutar>/);
 });
+
+test("Siparis No sutunu: SiparisNotu siparis numarasi, musteri notu gitmez", () => {
+  assert.match(buildWebSiparisXml(order()), /<a:SiparisNotu>BLM261026-1234<\/a:SiparisNotu>/);
+  const xml = buildWebSiparisXml(order({ note: "Kapıya bırakın <lütfen>" }));
+  assert.match(xml, /<a:SiparisNotu>BLM261026-1234<\/a:SiparisNotu>/);
+  assert.doesNotMatch(xml, /Kapıya/);
+});
+
+test("Siparis No sutunu: yerel test isareti numarayla birlikte gider", () => {
+  const xml = buildWebSiparisXml(order({ note: "LOCAL TEST | Kapıya bırakın" }));
+  assert.match(xml, /<a:SiparisNotu>BLM261026-1234 \| LOCAL TEST<\/a:SiparisNotu>/);
+  assert.doesNotMatch(xml, /Kapıya/);
+});
