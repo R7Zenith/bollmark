@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/require-customer";
 import { CONSENT_TEXTS } from "@/lib/kalp-topla/consent-texts";
+import { PushTercihi } from "@/components/kalp-topla/push-tercihi";
 import { savePreferences } from "./actions";
 
 export default async function HesapTercihlerPage({ searchParams }: { searchParams: Promise<{ kaydedildi?: string }> }) {
@@ -40,6 +41,7 @@ export default async function HesapTercihlerPage({ searchParams }: { searchParam
           />
           {CONSENT_TEXTS.EMAIL.text}
         </label>
+        <PushTercihi />
         <label className="flex items-start gap-3 text-sm text-ink/80">
           <input
             type="checkbox"

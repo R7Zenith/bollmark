@@ -5,6 +5,7 @@
     { "path": "/api/cron/sepet-hatirlatma", "schedule": "0 8 * * *" },
     { "path": "/api/cron/odeme-mutabakat", "schedule": "30 8 * * *" },
     { "path": "/api/cron/instagram", "schedule": "0 7 * * *" },
+    { "path": "/api/cron/kalp-topla", "schedule": "0 * * * *" },
     { "path": "/api/cron/kalp-topla-temizlik", "schedule": "30 3 * * *" }
   ],
   "rewrites": [

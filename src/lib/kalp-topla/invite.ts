@@ -5,6 +5,7 @@ import { campaignStateFrom, getKalpSettings } from "./settings";
 import { lockBar, lockCustomer, placeWaitingCredits } from "./bar";
 import { waitingExpiry } from "./bonus";
 import { parseInviteValue, reviewReasons } from "./invite-rules";
+import { notifyInviteJoined } from "./notifications";
 
 // Davet (KALP_TOPLA_PLANI.md 5.5, T2, T8, Y2, Y11, Y13). Cihaz ve IP kurallari
 // uyeligi, kalbi ya da kuponu engellemez; yalniz +2 bonusunun durumunu belirler.
@@ -164,6 +165,7 @@ export async function processInviteOnVerification(inviteeId: string) {
   if (reasons.length > 0) return;
   await createRootCredit(invite, settings.inviteBonus);
   await placeWaitingCredits(inviter.id, settings);
+  await notifyInviteJoined(invite, settings.inviteBonus);
 }
 
 type AdminActor = { actorEmail: string; actorRole: string };
@@ -180,6 +182,7 @@ export async function approveInvite(inviteId: string, actor: AdminActor): Promis
   const settings = await getKalpSettings();
   await createRootCredit(invite, settings.inviteBonus);
   await placeWaitingCredits(invite.inviterId, settings);
+  await notifyInviteJoined(invite, settings.inviteBonus);
   await logAudit({ ...actor, action: "KALP_TOPLA_DAVET_ONAYLANDI", targetType: "KalpInvite", targetId: inviteId, detail: `+${settings.inviteBonus} bonus` });
   return true;
 }

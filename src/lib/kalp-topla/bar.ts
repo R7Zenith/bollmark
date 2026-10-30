@@ -5,6 +5,8 @@ import { campaignStateFrom, getKalpSettings, type KalpCampaignState } from "./se
 import { generateCouponCode } from "./coupons";
 import { sendVerificationEmail } from "./email-verification";
 import { applyCreditsToBar, chooseTargetHeart, readWaitingCredits } from "./bonus";
+import { emailOptedOut } from "./consent";
+import { bonusExpiredRow, couponWonRow, dispatchOutbox, queueBarNear, queueNotifications } from "./notifications";
 
 // Kalp verme, geri cekme, PENDING -> ACTIVE ve tur kapanisi (KALP_TOPLA_PLANI.md
 // 5.1-5.3). Bar sayimi atomiktir: her islem tek transaction'da, sabit kilit
@@ -88,7 +90,10 @@ async function lockOrCreateBar(tx: Tx, productId: string, settings: Settings) {
 async function closeRoundIfFull(tx: Tx, productId: string, settings: Settings): Promise<ClosedRound | null> {
   const bar = await tx.kalpBar.findUniqueOrThrow({ where: { productId } });
   const round = await tx.kalpRound.findUniqueOrThrow({ where: { id: bar.currentRoundId } });
-  if (bar.points < round.threshold) return null;
+  if (bar.points < round.threshold) {
+    await queueBarNear(tx, { productId, roundId: round.id, points: bar.points, threshold: round.threshold, isTest: round.isTest });
+    return null;
+  }
 
   const closedAt = new Date();
   const closed = await tx.kalpRound.updateMany({
@@ -102,16 +107,28 @@ async function closeRoundIfFull(tx: Tx, productId: string, settings: Settings): 
 
   const expiresAt = new Date(closedAt.getTime() + settings.couponHours * 60 * 60 * 1000);
   if (winners.length > 0) {
-    await tx.kalpCoupon.createMany({
-      data: winners.map((w) => ({
-        code: generateCouponCode(),
-        customerId: w.customerId,
-        roundId: round.id,
-        discountPercent: settings.discountPercent,
-        expiresAt,
-        isTest: round.isTest
-      }))
-    });
+    const coupons = winners.map((w) => ({
+      code: generateCouponCode(),
+      customerId: w.customerId,
+      roundId: round.id,
+      discountPercent: settings.discountPercent,
+      expiresAt,
+      isTest: round.isTest
+    }));
+    await tx.kalpCoupon.createMany({ data: coupons });
+    const product = await tx.product.findUnique({ where: { id: productId }, select: { name: true } });
+    await queueNotifications(
+      tx,
+      coupons.map((c) =>
+        couponWonRow({
+          ...c,
+          couponHours: settings.couponHours,
+          threshold: round.threshold,
+          productId,
+          productName: product?.name ?? "Ürünün"
+        })
+      )
+    );
   }
 
   // Turla birlikte biter (plan 5.2 madde 4). Artan kisim bara hic girmedigi
@@ -215,7 +232,10 @@ export async function activatePendingHearts(customerId: string, known?: Settings
     if (result.closed) closedRounds.push(result.closed);
   }
   await auditClosedRounds(closedRounds);
-  if (activated > 0) await placeWaitingCredits(customerId, settings);
+  if (activated > 0) {
+    await placeWaitingCredits(customerId, settings);
+    dispatchOutbox();
+  }
   return activated;
 }
 
@@ -285,9 +305,12 @@ export async function placeWaitingCredits(customerId: string, known?: Settings):
   const settings = known ?? (await getKalpSettings());
   // FROZEN iken yerlestirme yapilmaz; kampanya acilinca sonraki tetikleyici yerlestirir (Y5).
   if ((await campaignStateFrom(settings, customerId)) !== "ACTIVE") return;
+  let placed = false;
   for (let step = 0; step < MAX_PLACEMENT_STEPS; step += 1) {
-    if (!(await placeWaitingCreditsOnce(customerId, settings))) return;
+    if (!(await placeWaitingCreditsOnce(customerId, settings))) break;
+    placed = true;
   }
+  if (placed) dispatchOutbox();
 }
 
 async function hasWaitingCredits(customerId: string) {
@@ -297,11 +320,19 @@ async function hasWaitingCredits(customerId: string) {
 // Gunluk temizlik: 30 gunu dolan bekleyen bonuslar (plan 5.6.1, Y5). Kampanya
 // kapaliyken de calisir.
 export async function expireWaitingCredits(now = new Date()): Promise<number> {
-  const expired = await prisma.kalpBonusCredit.updateMany({
+  const credits = await prisma.kalpBonusCredit.findMany({
     where: { status: "WAITING", expiresAt: { lte: now } },
-    data: { status: "EXPIRED" }
+    select: { id: true, customerId: true, points: true, isTest: true }
   });
-  return expired.count;
+  if (credits.length === 0) return 0;
+  return prisma.$transaction(async (tx) => {
+    const expired = await tx.kalpBonusCredit.updateMany({
+      where: { id: { in: credits.map((c) => c.id) }, status: "WAITING" },
+      data: { status: "EXPIRED" }
+    });
+    await queueNotifications(tx, credits.map(bonusExpiredRow));
+    return expired.count;
+  });
 }
 
 // Bar ve Kalplerim acilisinda: bekleyen kalp ve bonuslari sayar (kampanya acikken).
@@ -358,7 +389,10 @@ export async function giveHeart(customerId: string, productId: string): Promise<
   );
 
   if (result.closed) await auditClosedRounds([result.closed]);
-  if (result.created && result.status === "ACTIVE") await placeWaitingCredits(customerId, settings);
+  if (result.created && result.status === "ACTIVE") {
+    await placeWaitingCredits(customerId, settings);
+    dispatchOutbox();
+  }
   if (result.created && result.status === "PENDING") {
     const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: { id: true, email: true, name: true } });
     if (customer) await sendVerificationEmail(customer, "KALP");
@@ -407,7 +441,7 @@ export type BarView = {
   lastClosedThreshold: number;
   loggedIn: boolean;
   emailVerified: boolean;
-  emailConsent: boolean;
+  heartEmailNotice: boolean;
   myHeart: "ACTIVE" | "PENDING" | null;
   wonCouponExpiresAt: string | null;
   quota: number;
@@ -448,7 +482,7 @@ export async function getBarView(customerId: string | null, productId: string): 
     lastClosedThreshold: lastClosed?.threshold ?? 0,
     loggedIn: Boolean(customerId),
     emailVerified: false,
-    emailConsent: false,
+    heartEmailNotice: true,
     myHeart: null,
     wonCouponExpiresAt: null,
     quota: settings.heartQuota,
@@ -468,7 +502,7 @@ export async function getBarView(customerId: string | null, productId: string): 
       : null
   ]);
   view.emailVerified = Boolean(customer?.emailVerifiedAt);
-  view.emailConsent = Boolean(customer?.marketingEmailAt);
+  view.heartEmailNotice = !(await emailOptedOut(customerId));
   view.myHeart = (myHeart?.status as BarView["myHeart"]) ?? null;
   view.used = used;
   view.wonCouponExpiresAt = coupon?.expiresAt.toISOString() ?? null;

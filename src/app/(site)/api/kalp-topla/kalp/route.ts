@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { customerAuthOptions } from "@/lib/customer-auth";
+import { requestIp } from "@/lib/meta/capi";
 import { KalpError, giveHeart, withdrawHeart, type KalpErrorCode } from "@/lib/kalp-topla/bar";
+import { grantEmailOnHeart } from "@/lib/kalp-topla/consent";
 
 // Kalp ver (POST) / geri cek (DELETE), govde { productId } (plan 5.1, 5.3).
 const STATUS: Record<KalpErrorCode, number> = {
@@ -32,7 +34,12 @@ async function handle(req: NextRequest, run: (customerId: string, productId: str
 }
 
 export function POST(req: NextRequest) {
-  return handle(req, giveHeart);
+  return handle(req, async (customerId, productId) => {
+    const result = await giveHeart(customerId, productId);
+    // Gonderim yanittan sonra calisir, onay o an okunur: ilk bildirimden once yazilmis olur.
+    if (result.created) await grantEmailOnHeart(customerId, requestIp(req.headers));
+    return result;
+  });
 }
 
 export function DELETE(req: NextRequest) {

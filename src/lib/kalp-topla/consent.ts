@@ -1,22 +1,23 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { getSiteUrl } from "@/lib/site-url";
-import { CONSENT_TEXTS, type ConsentChannel, type ConsentSource } from "./consent-texts";
+import { CONSENT_TEXTS, HEART_EMAIL_NOTICE, type ConsentChannel, type ConsentSource } from "./consent-texts";
 
 // Pazarlama onayi ver / geri cek (KALP_TOPLA_PLANI.md T3, Y3). Her gercek
 // degisiklik Customer alanina ve MarketingConsentLog'a (ham IP + metin surumu)
 // birlikte yazilir; durum degismiyorsa hicbir sey yazilmaz.
-const FIELD: Record<ConsentChannel, "marketingEmailAt" | "marketingWhatsappAt"> = {
+const FIELD: Record<Exclude<ConsentChannel, "PUSH">, "marketingEmailAt" | "marketingWhatsappAt"> = {
   EMAIL: "marketingEmailAt",
   WHATSAPP: "marketingWhatsappAt"
 };
 
 export async function setMarketingConsent(params: {
   customerId: string;
-  channel: ConsentChannel;
+  channel: Exclude<ConsentChannel, "PUSH">;
   granted: boolean;
   source: ConsentSource;
   ip: string | null;
+  textVersion?: string;
 }): Promise<boolean> {
   const field = FIELD[params.channel];
   const customer = await prisma.customer.findUnique({
@@ -37,12 +38,42 @@ export async function setMarketingConsent(params: {
         granted: params.granted,
         source: params.source,
         ip: params.ip,
-        textVersion: CONSENT_TEXTS[params.channel].version,
+        textVersion: params.textVersion ?? CONSENT_TEXTS[params.channel].version,
         createdAt: now
       }
     })
   ]);
   return true;
+}
+
+// Bir kez bile cikan uye (link ya da tercihler) kalp verince yeniden acilmaz.
+export async function emailOptedOut(customerId: string): Promise<boolean> {
+  const row = await prisma.marketingConsentLog.findFirst({ where: { customerId, channel: "EMAIL", granted: false }, select: { id: true } });
+  return row !== null;
+}
+
+// Kullanici karari (2026-10-31): kalp verene e-posta sorulmadan acilir.
+export async function grantEmailOnHeart(customerId: string, ip: string | null): Promise<void> {
+  if (await emailOptedOut(customerId)) return;
+  await setMarketingConsent({ customerId, channel: "EMAIL", granted: true, source: "KALP_VERME", ip, textVersion: HEART_EMAIL_NOTICE.version });
+}
+
+// Push onayi Customer alaninda degil, abonelik satirinin varliginda durur (T3).
+// Yalniz gercek degisiklikte (ilk abonelik / son aboneligin silinmesi) log yazilir.
+export async function logPushConsent(params: { customerId: string; granted: boolean; source: ConsentSource; ip: string | null }) {
+  const customer = await prisma.customer.findUnique({ where: { id: params.customerId }, select: { email: true } });
+  if (!customer) return;
+  await prisma.marketingConsentLog.create({
+    data: {
+      customerId: params.customerId,
+      email: customer.email,
+      channel: "PUSH",
+      granted: params.granted,
+      source: params.source,
+      ip: params.ip,
+      textVersion: CONSENT_TEXTS.PUSH.version
+    }
+  });
 }
 
 // Abonelikten cikma linki (plan 6.10, 7.3): girissiz, suresiz, HMAC imzali.

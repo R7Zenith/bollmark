@@ -14,12 +14,15 @@ const navItems = [
   { href: "/hesap/tercihler", label: "İletişim Tercihleri" }
 ];
 // Kalp Topla (plan 6.4): yalniz kampanya bu uyeye gorunurken (INVISIBLE degil).
-const kalpItem = { href: "/hesap/kalplerim", label: "Kalplerim" };
+const kalpItems = [
+  { href: "/hesap/kalplerim", label: "Kalplerim" },
+  { href: "/hesap/bildirimler", label: "Bildirimler" }
+];
 
 export function HesapNav() {
   const pathname = usePathname();
   const kalpState = useKalpDurum();
-  const items = kalpState ? [...navItems.slice(0, 5), kalpItem, ...navItems.slice(5)] : navItems;
+  const items = kalpState ? [...navItems.slice(0, 5), ...kalpItems, ...navItems.slice(5)] : navItems;
 
   return (
     <div>

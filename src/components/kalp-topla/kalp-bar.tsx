@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Heart, Ticket } from "lucide-react";
 import type { BarView } from "@/lib/kalp-topla/bar";
 import { barMessage } from "@/lib/kalp-topla/messages";
-import { CONSENT_TEXTS } from "@/lib/kalp-topla/consent-texts";
+import { HEART_EMAIL_NOTICE } from "@/lib/kalp-topla/consent-texts";
 import { useKalpDurum } from "./use-kalp-durum";
 import { KalpDialog } from "./kalp-dialog";
 import { COUPON_SHAPE, KalpNasilCalisir } from "./kalp-nasil-calisir";
@@ -23,7 +23,7 @@ export function KalpBar({ productId }: { productId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [popIndex, setPopIndex] = useState<number | null>(null);
-  const [dialog, setDialog] = useState<"how" | "guest" | "first" | null>(null);
+  const [dialog, setDialog] = useState<"how" | "guest" | null>(null);
   const autoHeartTried = useRef(false);
 
   const load = useCallback(async () => {
@@ -66,7 +66,6 @@ export function KalpBar({ productId }: { productId: string }) {
       }
       const next = await load();
       if (data.status === "ACTIVE" && next && next.points > before) setPopIndex(next.points - 1);
-      if (data.isFirstHeart && next && !next.emailConsent) setDialog("first");
     } catch {
       setError("Bağlantı sorunu, tekrar dene.");
     } finally {
@@ -249,6 +248,8 @@ export function KalpBar({ productId }: { productId: string }) {
         )}
       </div>
 
+      {!view.myHeart && view.heartEmailNotice && <p className="mt-3 text-xs text-ink/50">{HEART_EMAIL_NOTICE.text}</p>}
+
       {view.myHeart === "PENDING" && (
         <p className="mt-3 text-xs text-ink/70">
           E-postanı doğrula, kalbin sayılsın.{" "}
@@ -297,7 +298,6 @@ export function KalpBar({ productId }: { productId: string }) {
         </div>
       </KalpDialog>
 
-      <FirstHeartDialog open={dialog === "first"} onClose={() => setDialog(null)} onSaved={() => load()} />
     </section>
   );
 }
@@ -305,46 +305,4 @@ export function KalpBar({ productId }: { productId: string }) {
 function guestHref(tab: "kayit" | "giris", productId: string) {
   const callbackUrl = typeof window === "undefined" ? "/" : window.location.pathname;
   return `/hesap/giris?sekme=${tab}&callbackUrl=${encodeURIComponent(callbackUrl)}&kalp=${encodeURIComponent(productId)}`;
-}
-
-// Ilk kalp penceresi (plan 6.1, T3). Push bolumu Faz 8'de eklenir.
-function FirstHeartDialog({ open, onClose, onSaved }: { open: boolean; onClose: () => void; onSaved: () => void }) {
-  const [checked, setChecked] = useState(false);
-  const [saving, setSaving] = useState(false);
-
-  const save = async () => {
-    if (checked) {
-      setSaving(true);
-      await fetch("/api/kalp-topla/onay", { method: "POST" }).catch(() => undefined);
-      setSaving(false);
-      onSaved();
-    }
-    onClose();
-  };
-
-  return (
-    <KalpDialog open={open} onClose={onClose} title="Bar dolunca sana haber verelim mi?">
-      <label className="flex items-start gap-3 text-sm text-ink/80">
-        <input type="checkbox" checked={checked} onChange={(e) => setChecked(e.target.checked)} className="mt-0.5 h-4 w-4 shrink-0" />
-        {CONSENT_TEXTS.EMAIL.text}
-      </label>
-      <div className="mt-6 flex gap-2">
-        <button
-          type="button"
-          onClick={save}
-          disabled={saving}
-          className="flex-1 rounded-full bg-ink px-6 py-3.5 text-[11px] uppercase tracking-[1px] text-white hover:bg-ink/90 disabled:opacity-50"
-        >
-          Kaydet
-        </button>
-        <button
-          type="button"
-          onClick={onClose}
-          className="flex-1 rounded-full border border-ink px-6 py-3.5 text-[11px] uppercase tracking-[1px] text-ink hover:bg-ink/5"
-        >
-          Kapat
-        </button>
-      </div>
-    </KalpDialog>
-  );
 }
