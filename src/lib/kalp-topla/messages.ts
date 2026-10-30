@@ -19,6 +19,6 @@ export function barMessage(input: BarMessageInput): string {
   if (input.recentlyClosed && points === 0) return "Bu tur doldu, yeni tur başladı";
   if (points <= 0) return `İlk kalbi sen ver, %${input.discountPercent}'nin kilidini birlikte açalım`;
   const left = Math.max(threshold - points, 0);
-  if (left <= 2) return `Son ${left} kalp! Arkadaşını çağır, barına +${input.inviteBonus} eklesin`;
+  if (left <= 2) return `Son ${left} kalp! İstersen arkadaşını çağır, +${input.inviteBonus} eklesin`;
   return `${points}/${threshold} kalp · ${left} kalp kaldı`;
 }

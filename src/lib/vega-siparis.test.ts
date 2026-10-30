@@ -34,6 +34,31 @@ function order(overrides: Partial<VegaOrderInput> = {}): VegaOrderInput {
   };
 }
 
+test("Kalp Topla bolunmus satirlar ayri urun olarak gider, toplam tutar", () => {
+  const base = order().items[0];
+  const xml = buildWebSiparisXml(
+    order({
+      totalCents: 200000,
+      shippingCents: 0,
+      items: [
+        { ...base, quantity: 1, totalCents: 50000, paidCents: 50000 },
+        { ...base, quantity: 1, totalCents: 150000, paidCents: 150000 }
+      ]
+    })
+  );
+  const rows = [...xml.matchAll(/<a:WebSiparisUrun>(.*?)<\/a:WebSiparisUrun>/g)].map((m) => m[1]);
+  assert.equal(rows.length, 2);
+  const brut = rows.map((row) => {
+    const tutar = Number(/<a:Tutar>(.*?)<\/a:Tutar>/.exec(row)![1]);
+    const kdv = Number(/<a:KdvTutari>(.*?)<\/a:KdvTutari>/.exec(row)![1]);
+    return Math.round((tutar + kdv) * 100);
+  });
+  assert.deepEqual(brut, [50000, 150000]);
+  assert.match(rows[0], /<a:ID>7001<\/a:ID>/);
+  assert.match(rows[1], /<a:ID>7002<\/a:ID>/);
+  assert.match(xml, /<a:ToplamTutar>2000\.00<\/a:ToplamTutar>/);
+});
+
 test("parseVegaDate: Z ekine ragmen Istanbul saati olarak okunur", () => {
   assert.equal(parseVegaDate("2026-10-25T23:40:55Z")?.toISOString(), "2026-10-25T20:40:55.000Z");
   assert.equal(parseVegaDate(null), null);

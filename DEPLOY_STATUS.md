@@ -1,6 +1,24 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-10-30, Kalp Topla Faz 5)
+## KALDIĞIM YER (2026-10-30, Kalp Topla Faz 6)
+
+- Dal `kalp-topla-wip`, `main`'e birleştirilmedi. **Faz 6 (fiyat, sepet, sipariş) kodu yerel commit'te, push yok, faz henüz tamamlanmadı.**
+  Şema değişmedi. Planda Faz 6 "Tamamlandı" işaretli DEĞİL.
+- **Yapılan:** `priceCart` ve `/api/sepet/fiyat`, otomatik/elle kupon, kuponlu adedin satıra bölünmesi, kupon RESERVED/USED/serbest
+  bırakma, puan tavanı (T7), iyzico sepetinde kuponlu satıra indirim dağıtılmaması. Faz 5 elle testi: otomatik +2, "İncelemede", Onayla geçti;
+  İptal elle denenmedi. Bar mesajı "İstersen arkadaşını çağır" oldu; bilgisayarda "Arkadaşını çağır" doğrudan site penceresini açıyor.
+- **Sandbox testi:** `BLM261030-5986` (vegaId 27): 3.190 TL ürün kuponla 1.595 TL ödendi, Ödemeyi İptal ile iade edildi, kupon USED kaldı
+  (geri yükleme Faz 7). Sepet testi kullanıcıda geçti.
+- **Bekleyen testler:** ödemeyi yarıda bırakma (DB'de bu siparişten yok), stok geri geliş kontrolü, 2 adet + puan, 1280/375 ekran görüntüleri.
+  Canlıdaki eski kod test siparişini iptal ederse kuponu bırakmaz: test boyunca canlı admin sipariş listesini açma.
+- **Vega:** Test siparişinde `vegaFetchedAt` boş kaldı, iade Vega'ya otomatik gitmez; Vega'da elle iptal edilmeli. Kullanıcıya göre
+  `SiparisNotu` Vega'da "Sipariş No" sütununda görünüyor; çözüm ayrı oturumda.
+- **Yerel `.env`:** `SITE_URL=http://localhost:3000`, `PAYMENT_LOCAL_TEST=1` ve `IYZICO_SANDBOX_*` var (anahtarlar DB'deki sandbox kaydından kopyalandı,
+  DB'ye yazılmadı). Bu ayar yalnız yerelde çalışır, Vercel'e eklenmez, sipariş notuna `LOCAL TEST` yazar. Admin'deki "Sandbox bağlantısını test et"e basılmaz.
+- `/api/kuponlar/dogrula` artık kullanılmıyor, planda kaldırılacak.
+- Sıradaki: bekleyen Faz 6 testleri, sonra Faz 7.
+
+## Önceki not (2026-10-30, Kalp Topla Faz 5)
 
 - Dal `kalp-topla-wip`, `main`'e birleştirilmedi. **Faz 5 (Davet) ✅ tamamlandı, commit ve dal push'u yapıldı.**
   Davet penceresine animasyon eklendi.

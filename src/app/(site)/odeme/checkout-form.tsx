@@ -9,7 +9,7 @@ import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { CouponField, type CouponResult } from "@/components/coupon-field";
 import { LoyaltyField, type LoyaltyResult } from "@/components/loyalty-field";
-import { useBundleDiscount } from "@/lib/use-bundle-discount";
+import { KalpSatirKontrolu, KalpSepetKutusu, kalpLineCents } from "@/components/kalp-topla/kalp-sepet";
 import { calculateShippingCents } from "@/lib/shipping";
 import { CartNotices } from "@/components/cart-notices";
 import { trackAddPaymentInfo, trackAddShippingInfo, trackInitiateCheckout } from "@/lib/meta/track";
@@ -46,11 +46,12 @@ export default function CheckoutForm({
   /** Mesafeli Satis Sozlesmesi (LegalPage) - kayit yoksa null */
   contract: { title: string; content: string } | null;
 }) {
-  const { lines, totalCents, couponCode, refreshPrices, hasBlockingIssues } = useCart();
+  const { lines, totalCents, couponCode, kalpSelection, refreshPrices, hasBlockingIssues } = useCart();
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [coupon, setCoupon] = useState<CouponResult>(null);
+  const [priceRefreshKey, setPriceRefreshKey] = useState(0);
   const couponLineDiscounts = new Map((coupon?.lineDiscounts ?? []).map((d) => [d.variantId, d.discountCents]));
   const [loyalty, setLoyalty] = useState<LoyaltyResult>(null);
   const [addressChoice, setAddressChoice] = useState<string>(savedAddresses[0]?.id ?? "new");
@@ -88,12 +89,14 @@ export default function CheckoutForm({
     return () => mq.removeEventListener("change", sync);
   }, []);
 
-  // Sunucudaki (orders/route.ts) ile ayni sirali hesaplama: once bundle,
-  // sonra kupon, sonra puan - boylece onizleme nihai tutarla tutarli kalir.
-  const bundleDiscountCents = useBundleDiscount(lines);
+  // Sunucudaki priceCart ile ayni sirali hesaplama: once kalp, sonra bundle,
+  // kupon ve puan - boylece onizleme nihai tutarla tutarli kalir.
+  const bundleDiscountCents = coupon?.bundleDiscountCents ?? 0;
+  const kalpDiscountCents = coupon?.kalpDiscountCents ?? 0;
+  const kalp = coupon?.kalp;
   const discountCents = coupon?.discountCents ?? 0;
   const loyaltyDiscountCents = loyalty?.discountCents ?? 0;
-  const totalDiscountCents = bundleDiscountCents + discountCents + loyaltyDiscountCents;
+  const totalDiscountCents = kalpDiscountCents + bundleDiscountCents + discountCents + loyaltyDiscountCents;
   const shippingCents = calculateShippingCents(
     totalCents - totalDiscountCents,
     coupon?.freeShipping ?? false,
@@ -152,6 +155,8 @@ export default function CheckoutForm({
       note: String(form.get("note") || ""),
       couponCode: couponCode || undefined,
       pointsToRedeem: loyalty?.pointsRedeemed || undefined,
+      kalpSelection,
+      expectedKalpDiscountCents: coupon ? kalpDiscountCents : undefined,
       termsAccepted,
       lines: lines.map((l) => ({
         productId: l.productId,
@@ -183,6 +188,7 @@ export default function CheckoutForm({
         const data = await res.json();
         if (res.status === 409 && data.code === "PRICE_CHANGED") {
           await refreshPrices();
+          setPriceRefreshKey((key) => key + 1);
           setError("Fiyatlar güncellendi, lütfen tekrar kontrol edin.");
           return;
         }
@@ -273,12 +279,14 @@ export default function CheckoutForm({
 
   const summaryPanel = (
     <div className="space-y-4 px-4 pb-4 lg:px-0 lg:pb-0 lg:pt-8">
+      <KalpSepetKutusu kalp={kalp} />
+
       <div className="space-y-4">
         {lines.map((l) => {
           const lineCouponDiscountCents = l.compareAtCents ? 0 : (couponLineDiscounts.get(l.variantId) ?? 0);
           const lineTotalCents = l.priceCents * l.quantity;
-          const lineNetTotalCents = lineTotalCents - lineCouponDiscountCents;
-          const hasLineDiscount = Boolean(l.compareAtCents) || lineCouponDiscountCents > 0;
+          const lineNetTotalCents = kalpLineCents(l, kalp) - lineCouponDiscountCents;
+          const hasLineDiscount = Boolean(l.compareAtCents) || lineNetTotalCents < lineTotalCents;
 
           return (
             <div key={l.variantId} className="flex items-center gap-4">
@@ -295,6 +303,7 @@ export default function CheckoutForm({
                 <p className="text-xs text-ink/60">
                   {l.color} · {l.size}
                 </p>
+                <KalpSatirKontrolu line={l} kalp={kalp} />
               </div>
               <div className="text-right">
                 <p className={`text-sm font-semibold ${hasLineDiscount ? "text-sale" : ""}`}>
@@ -312,8 +321,12 @@ export default function CheckoutForm({
       </div>
 
       <div className="space-y-4 border-t border-line/60 pt-4">
-        <CouponField variant="segmented" onDiscountChange={setCoupon} />
-        <LoyaltyField subtotalCents={totalCents - bundleDiscountCents - discountCents} onRedeemChange={setLoyalty} />
+        <CouponField variant="segmented" onDiscountChange={setCoupon} refreshKey={priceRefreshKey} />
+        <LoyaltyField
+          subtotalCents={coupon?.pointsCapCents ?? totalCents}
+          onRedeemChange={setLoyalty}
+          kalpNote={(kalp?.lines.length ?? 0) > 0}
+        />
       </div>
 
       <div className="space-y-2 border-t border-line/60 pt-4 text-sm">
@@ -321,6 +334,12 @@ export default function CheckoutForm({
           <span>Ara Toplam</span>
           <span>{formatPrice(totalCents)}</span>
         </div>
+        {kalpDiscountCents > 0 && (
+          <div className="flex justify-between text-clay">
+            <span>Kalp Topla indirimi</span>
+            <span>-{formatPrice(kalpDiscountCents)}</span>
+          </div>
+        )}
         {bundleDiscountCents > 0 && (
           <div className="flex justify-between text-clay">
             <span>Bundle İndirimi</span>

@@ -43,7 +43,7 @@ export function DavetPaylasim({ path }: { path: string }) {
   );
 }
 
-// Urun sayfasi "Arkadasini cagir" (plan 6.1): once Web Share, yoksa pencere.
+// Urun sayfasi "Arkadasini cagir" (plan 6.1): dokunmatik cihazda Web Share, masaustunde pencere.
 export function ArkadasiniCagir({
   productId,
   loggedIn,
@@ -67,7 +67,7 @@ export function ArkadasiniCagir({
     if (!data) return setError("Davet linki alınamadı, tekrar dene.");
     setPath(data.path);
     const url = `${window.location.origin}${data.path}`;
-    if (typeof navigator.share === "function") {
+    if (typeof navigator.share === "function" && window.matchMedia("(pointer: coarse)").matches) {
       try {
         await navigator.share({ text: inviteShareText(url) });
         return;

@@ -3,13 +3,13 @@ import { z } from "zod";
 import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { generateOrderNumber } from "@/lib/format";
-import { effectivePrice, effectiveCompareAt } from "@/lib/variant";
-import { resolveBestDiscount, CouponInvalidError } from "@/lib/coupons";
-import { resolveBundleDiscount } from "@/lib/bundles";
-import { resolveLoyaltyRedemption, LoyaltyInvalidError } from "@/lib/loyalty";
-import { calculateShippingCents } from "@/lib/shipping";
+import { CouponInvalidError } from "@/lib/coupons";
+import { LoyaltyInvalidError } from "@/lib/loyalty";
+import { KalpCouponInvalidError, loadPriceLines, priceCart } from "@/lib/pricing/price-cart";
+import { splitOrderItems } from "@/lib/kalp-topla/pricing";
 import { customerAuthOptions } from "@/lib/customer-auth";
 import { getPaymentSettings, getReadiness } from "@/lib/payment/settings";
+import { localPaymentTest } from "@/lib/payment/iyzico/mode";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { buildOrderMetaContext } from "@/lib/meta/capi";
 
@@ -35,6 +35,10 @@ const orderSchema = z.object({
   note: z.string().optional(),
   couponCode: z.string().optional(),
   pointsToRedeem: z.number().int().nonnegative().optional(),
+  kalpSelection: z.object({ manual: z.array(z.string()), removed: z.array(z.string()) }).optional(),
+  // Ekrandaki Kalp Topla indirimi: kupon arada dolduysa ya da atama degistiyse
+  // farkli tutar tahsil edilmesin diye uyusmazlikta siparis durur.
+  expectedKalpDiscountCents: z.number().int().nonnegative().optional(),
   // Client tarafindaki "required" disable yetmez - mesafeli satis sozlesmesi
   // onayi sunucuda da zorunlu tutulur (fiyat/indirim ile ayni "istemciden
   // gelen degere guvenme" prensibi).
@@ -48,9 +52,20 @@ const orderSchema = z.object({
 // Sanal POS hazır değilse sipariş HİÇ oluşturulmaz (ödemesiz sahte sipariş olmasın).
 const ORDER_NUMBER_RETRIES = 5;
 
+// Uye kilidi ve kupon ayirma varsayilan 5 sn'yi asabilir (bar.ts ile ayni deger).
+const ORDER_TX_OPTIONS = { maxWait: 10_000, timeout: 20_000 };
+
+class KalpPriceChangedError extends Error {}
+
 function isUniqueViolation(error: unknown): boolean {
   return typeof error === "object" && error !== null && (error as { code?: unknown }).code === "P2002";
 }
+
+const priceChangedResponse = () =>
+  NextResponse.json(
+    { code: "PRICE_CHANGED", error: "Sepetinizdeki bazı ürünlerin fiyatı güncellendi. Lütfen fiyatları kontrol edip tekrar deneyin." },
+    { status: 409 }
+  );
 
 export async function POST(req: NextRequest) {
   const paymentSettings = await getPaymentSettings();
@@ -78,49 +93,14 @@ export async function POST(req: NextRequest) {
   // burada veritabanindan yeniden okunur. Bu hem musterinin gordugu fiyatla
   // sipariş tutarinin her zaman tutarli olmasini saglar, hem de istemci
   // tarafinda degistirilmis bir fiyatla siparis verilmesini engeller.
-  const productIds = [...new Set(data.lines.map((l) => l.productId))];
-  const products = await prisma.product.findMany({
-    where: { id: { in: productIds } },
-    include: { variants: true }
-  });
-  const productById = new Map(products.map((p) => [p.id, p]));
-
-  const resolvedLines: {
-    productId: string;
-    variantId: string;
-    quantity: number;
-    priceCents: number;
-    compareAtCents: number | null;
-    categoryId: string | null;
-    brandId: string | null;
-    gender: string | null;
-  }[] = [];
-  for (const line of data.lines) {
-    const product = productById.get(line.productId);
-    const variant = product?.variants.find((v) => v.id === line.variantId);
-    if (!product || !variant) {
-      return NextResponse.json({ error: "Sepetteki bir ürün veya varyant artık mevcut değil." }, { status: 400 });
-    }
-    const priceCents = effectivePrice(product, variant);
-    if (line.expectedPriceCents !== undefined && line.expectedPriceCents !== priceCents) {
-      return NextResponse.json(
-        { code: "PRICE_CHANGED", error: "Sepetinizdeki bazı ürünlerin fiyatı güncellendi. Lütfen fiyatları kontrol edip tekrar deneyin." },
-        { status: 409 }
-      );
-    }
-    resolvedLines.push({
-      productId: line.productId,
-      variantId: line.variantId,
-      quantity: line.quantity,
-      priceCents,
-      compareAtCents: effectiveCompareAt(product, variant),
-      categoryId: product.categoryId,
-      brandId: product.brandId,
-      gender: product.gender
-    });
+  const resolvedLines = await loadPriceLines(prisma, data.lines);
+  if (!resolvedLines) {
+    return NextResponse.json({ error: "Sepetteki bir ürün veya varyant artık mevcut değil." }, { status: 400 });
   }
-
-  const subtotalCents = resolvedLines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
+  const priceChanged = data.lines.some(
+    (line, index) => line.expectedPriceCents !== undefined && line.expectedPriceCents !== resolvedLines[index].priceCents
+  );
+  if (priceChanged) return priceChangedResponse();
 
   const storeSettings = await prisma.storeSettings.findUnique({ where: { id: "singleton" } });
   const defaultShippingCents = storeSettings?.defaultShippingCents ?? 0;
@@ -156,56 +136,43 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ orderNumber: order.orderNumber }, { status: 201 });
   } catch (error) {
-    if (error instanceof CouponInvalidError || error instanceof LoyaltyInvalidError) {
+    if (error instanceof CouponInvalidError || error instanceof LoyaltyInvalidError || error instanceof KalpCouponInvalidError) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }
+    if (error instanceof KalpPriceChangedError) return priceChangedResponse();
     throw error;
   }
 
   function createOrder() {
     return prisma.$transaction(async (tx) => {
-      // Uc indirim kalemi de HER ZAMAN sunucuda, sirayla hesaplanir - bundle
-      // once (urun secimine bagli, otomatik), sonra kupon (kod), sonra puan
-      // (bakiye) - boylece uc kalem birlikte kullanildiginda toplam her
-      // zaman deterministik ve negatif olmaz.
-      const { discountCents: bundleDiscountCents } = await resolveBundleDiscount(tx, resolvedLines);
-
-      // Indirim de fiyat gibi hicbir zaman istemciden gelen deger uzerinden
-      // hesaplanmaz - istemci sadece kupon KODUNU (varsa) gonderir, tutar
-      // burada (resolveBestDiscount icinde) sunucuda yeniden hesaplanir. Kod
-      // girilmemis olsa bile sepete uyan aktif bir otomatik kampanya varsa
-      // yine burada uygulanir. usedCount artisi ayni transaction icinde
+      // Indirimlerin tamami HER ZAMAN sunucuda, tek fonksiyonda hesaplanir
+      // (lib/pricing/price-cart.ts) - istemci yalniz kupon KODUNU, kalp secimini
+      // ve puan SAYISINI gonderir. usedCount artisi ayni transaction icinde
       // yapilir ki yaris durumunda (iki musterinin ayni kampanyanin son
       // kullanim hakkini es zamanli tuketmesi) limit asilmasin.
-      const result = await resolveBestDiscount(tx, data.couponCode ?? null, resolvedLines);
+      const price = await priceCart(tx, {
+        customerId,
+        lines: resolvedLines!,
+        couponCode: data.couponCode ?? null,
+        kalpSelection: data.kalpSelection,
+        pointsToRedeem: data.pointsToRedeem,
+        defaultShippingCents,
+        mode: "ORDER"
+      });
+      if (data.expectedKalpDiscountCents !== undefined && data.expectedKalpDiscountCents !== price.kalpDiscountCents) {
+        throw new KalpPriceChangedError();
+      }
+      const result = price.best;
       if (data.couponCode && result.codeMessage && result.couponId == null) {
         throw new CouponInvalidError(result.codeMessage);
       }
+      const { subtotalCents, bundleDiscountCents, kalpDiscountCents, pointsRedeemed, loyaltyDiscountCents, shippingCents, totalCents } = price;
       const discountCents = result.discountCents;
-      const freeShipping = result.freeShipping;
       const couponId = result.couponId;
       if (couponId) {
         const coupon = await tx.coupon.update({ where: { id: couponId }, data: { usedCount: { increment: 1 } } });
         campaignExhausted = coupon.code === null && coupon.usageLimit != null && coupon.usedCount >= coupon.usageLimit;
       }
-
-      // Sadakat puani da kupon ile ayni desen - istemci sadece kullanmak
-      // istedigi puan SAYISINI gonderir, indirim tutari (ve bakiyeyi asip
-      // asmadigi) burada sunucuda yeniden hesaplanir/dogrulanir. Kupon ile
-      // ayni anda kullanilabilir, ayri bir indirim kalemi olarak subtotal
-      // uzerinden dusulur.
-      const { pointsRedeemed, discountCents: loyaltyDiscountCents } = await resolveLoyaltyRedemption(
-        tx,
-        customerId,
-        data.pointsToRedeem ?? 0,
-        Math.max(0, subtotalCents - bundleDiscountCents - discountCents)
-      );
-
-      // Agresif bir bundle + kisitli kupon kombinasyonu teorik olarak
-      // sepet ara toplamini asabilir - toplam indirim asla subtotal'i gecemez.
-      const totalDiscountCents = Math.min(subtotalCents, bundleDiscountCents + discountCents + loyaltyDiscountCents);
-      const shippingCents = calculateShippingCents(subtotalCents - totalDiscountCents, freeShipping, defaultShippingCents);
-      const totalCents = subtotalCents - totalDiscountCents + shippingCents;
 
       const createdOrder = await tx.order.create({
         data: {
@@ -218,11 +185,13 @@ export async function POST(req: NextRequest) {
           city: data.city,
           district: data.district,
           postalCode: data.postalCode,
-          note: data.note,
+          // Yerel sandbox siparisi Vega'da bulunabilsin (SiparisNotu olarak gider).
+          note: localPaymentTest() ? ["LOCAL TEST", data.note].filter(Boolean).join(" | ") : data.note,
           subtotalCents,
           discountCents,
           couponId,
           bundleDiscountCents,
+          kalpDiscountCents,
           pointsRedeemed,
           loyaltyDiscountCents,
           shippingCents,
@@ -231,15 +200,7 @@ export async function POST(req: NextRequest) {
           metaCapiContext,
           paymentStatus: "UNPAID",
           paymentExpiresAt: new Date(Date.now() + paymentSettings.orderExpiryMinutes * 60 * 1000),
-          items: {
-            create: resolvedLines.map((l) => ({
-              productId: l.productId,
-              variantId: l.variantId,
-              quantity: l.quantity,
-              unitPriceCents: l.priceCents,
-              totalCents: l.priceCents * l.quantity
-            }))
-          },
+          items: { create: splitOrderItems(resolvedLines!, price.assignments) },
           shipment: { create: {} }
         }
       });
@@ -252,6 +213,6 @@ export async function POST(req: NextRequest) {
       }
 
       return createdOrder;
-    });
+    }, ORDER_TX_OPTIONS);
   }
 }

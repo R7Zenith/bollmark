@@ -7,6 +7,7 @@ import { notifyCustomerStatusChange } from "@/lib/order-notifications";
 import { awardLoyaltyPoints } from "@/lib/loyalty";
 import { logAudit } from "@/lib/audit-log";
 import { checkManualStatusChange } from "@/lib/payment/order-guard";
+import { releaseOrderCoupons } from "@/lib/kalp-topla/order-coupons";
 
 const allowedStatuses = new Set<string>(orderStatuses);
 
@@ -32,6 +33,7 @@ export async function POST(request: NextRequest) {
       ids.map((id) => prisma.order.update({ where: { id }, data: { status } }))
     );
     for (const order of orders) {
+      if (status === "CANCELLED") await releaseOrderCoupons(prisma, order.id);
       notifyCustomerStatusChange(order, status).catch((error) =>
         console.error("Sipariş durum bildirimi maili başarısız:", error)
       );
@@ -71,6 +73,8 @@ export async function POST(request: NextRequest) {
         data: { deletedAt: new Date(), deletedByEmail: actorEmail }
       });
       for (const order of targets) {
+        // Silinen siparis sure dolumuna girmez: ayrilmis kupon burada doner.
+        await releaseOrderCoupons(prisma, order.id);
         logAudit({ actorEmail, actorRole, action: "ORDER_DELETED", targetType: "Order", targetId: order.id, detail: "Sipariş silindi" });
       }
     } else {

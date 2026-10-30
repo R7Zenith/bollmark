@@ -6,6 +6,7 @@ import { formatDate, formatPrice, formatTime } from "@/lib/format";
 import { applyShipmentUpdate } from "@/lib/shipment";
 import { notifyCustomerStatusChange } from "@/lib/order-notifications";
 import { awardLoyaltyPoints } from "@/lib/loyalty";
+import { releaseOrderCoupons } from "@/lib/kalp-topla/order-coupons";
 import { logAudit } from "@/lib/audit-log";
 import { checkManualStatusChange } from "@/lib/payment/order-guard";
 import {
@@ -43,6 +44,7 @@ async function setOrderStatus(id: string, status: OrderStatus) {
     const before = await prisma.order.findUnique({ where: { id }, select: { status: true } });
     previousStatus = before?.status;
     const order = await prisma.order.update({ where: { id }, data: { status } });
+    if (status === "CANCELLED") await releaseOrderCoupons(prisma, id);
     notifyCustomerStatusChange(order, status).catch((error) =>
       console.error("Sipariş durum bildirimi maili başarısız:", error)
     );
@@ -229,6 +231,7 @@ export default async function OrderDetailPage({
                     <div className="min-w-0 flex-1">
                       <div>
                         {item.product.name} × {item.quantity}
+                        {item.kalpCouponId && <span className="ml-2 text-xs text-admin-text-muted">Kalp Topla kuponlu</span>}
                       </div>
                       {detay.length > 0 && <div className="mt-0.5 text-xs text-admin-text-muted">{detay.join(" · ")}</div>}
                     </div>
@@ -241,6 +244,11 @@ export default async function OrderDetailPage({
                   <span>Ara Toplam</span>
                   <span>{formatPrice(order.subtotalCents)}</span>
                 </div>
+                {order.kalpDiscountCents > 0 && (
+                  <p className="text-xs text-admin-text-muted">
+                    Ara toplama {formatPrice(order.kalpDiscountCents)} Kalp Topla indirimi dahildir.
+                  </p>
+                )}
                 {order.discountCents > 0 && (
                   <div className="flex justify-between text-admin-text-muted">
                     <span>İndirim{order.coupon ? ` (${order.coupon.code ?? order.coupon.name ?? "Otomatik"})` : ""}</span>

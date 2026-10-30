@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { resolveModeFrom } from "./mode";
+import { localPaymentTestFrom, resolveModeFrom } from "./mode";
 import { describeAdminError, describePaymentError } from "./errors";
 
 test("LIVE yalnızca production ortamında LIVE olur", () => {
@@ -19,6 +19,32 @@ test("SANDBOX ve bilinmeyen/boş değerler her ortamda SANDBOX", () => {
   assert.equal(resolveModeFrom(undefined, "production"), "SANDBOX");
   assert.equal(resolveModeFrom("live", "production"), "SANDBOX");
   assert.equal(resolveModeFrom("", "production"), "SANDBOX");
+});
+
+const localEnv = {
+  PAYMENT_LOCAL_TEST: "1",
+  NODE_ENV: "development",
+  IYZICO_SANDBOX_API_KEY: "k",
+  IYZICO_SANDBOX_SECRET_KEY: "s",
+  IYZICO_SANDBOX_BASE_URL: "https://sandbox-api.iyzipay.com/"
+};
+
+test("yerel ödeme testi: yalnız yerel ortamda ve tam ayarla etkin, anahtar .env'den", () => {
+  assert.deepEqual(localPaymentTestFrom(localEnv), { apiKey: "k", secretKey: "s", baseUrl: "https://sandbox-api.iyzipay.com" });
+  assert.equal(localPaymentTestFrom({ ...localEnv, PAYMENT_LOCAL_TEST: undefined }), null);
+  assert.equal(localPaymentTestFrom({ ...localEnv, PAYMENT_LOCAL_TEST: "true" }), null);
+});
+
+test("yerel ödeme testi: Vercel'de ve production derlemede değişken eklense bile etkisiz", () => {
+  assert.equal(localPaymentTestFrom({ ...localEnv, VERCEL: "1" }), null);
+  assert.equal(localPaymentTestFrom({ ...localEnv, VERCEL: "" }), null);
+  assert.equal(localPaymentTestFrom({ ...localEnv, NODE_ENV: "production" }), null);
+});
+
+test("yerel ödeme testi: anahtar eksikse ya da adres sandbox değilse kapalı", () => {
+  assert.equal(localPaymentTestFrom({ ...localEnv, IYZICO_SANDBOX_SECRET_KEY: "" }), null);
+  assert.equal(localPaymentTestFrom({ ...localEnv, IYZICO_SANDBOX_BASE_URL: "https://api.iyzipay.com" }), null);
+  assert.equal(localPaymentTestFrom({ ...localEnv, IYZICO_SANDBOX_BASE_URL: undefined }), null);
 });
 
 test("bilinen iyzico hata kodları Türkçe mesaja çevrilir", () => {

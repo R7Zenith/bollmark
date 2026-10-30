@@ -17,6 +17,7 @@ import {
 import { notifyAdminNewOrder, notifyAdminPaymentAttention, notifyCustomerOrderReceived } from "@/lib/order-notifications";
 import { revalidateOrderProducts } from "@/lib/revalidate-catalog";
 import { sendPurchaseToMeta } from "@/lib/meta/capi";
+import { markOrderCouponsUsed } from "@/lib/kalp-topla/order-coupons";
 
 // Odeme sonucunun TEK dogruluk kaynagi: yonlendirmedeki/webhook'taki hicbir alana
 // guvenilmez, sonuc her zaman token ile iyzico'dan sorgulanir (bkz. plan 5.B).
@@ -177,6 +178,7 @@ async function applyPaid(attemptId: string, details: PaidDetails): Promise<PaidO
       notes.push(...(await decrementStock(tx, order.items)));
     }
 
+    await markOrderCouponsUsed(tx, order.id);
     await tx.order.update({
       where: { id: order.id },
       data: {
@@ -357,6 +359,7 @@ export async function finalizeFreeOrder(orderId: string): Promise<void> {
     });
     if (claimed.count !== 1) return false;
     const items = await tx.orderItem.findMany({ where: { orderId } });
+    await markOrderCouponsUsed(tx, orderId);
     const problems = await decrementStock(tx, items);
     if (problems.length > 0) {
       await tx.order.update({ where: { id: orderId }, data: { needsAttention: true, attentionNote: problems.join("; ") } });

@@ -1,6 +1,6 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { IYZICO_BASE_URLS, type PaymentMode } from "./mode";
+import { iyzicoBaseUrl, type PaymentMode } from "./mode";
 import { buildAuthHeaders } from "./signature";
 
 // Ince, tip guvenli iyzico istemcisi (resmi npm paketi yerine, bkz. plan 3/3):
@@ -52,7 +52,7 @@ export async function iyzicoPost<T extends object = Record<string, unknown>>(
 
   let response: Response;
   try {
-    response = await fetch(`${IYZICO_BASE_URLS[mode]}${uriPath}`, {
+    response = await fetch(`${iyzicoBaseUrl(mode)}${uriPath}`, {
       method: "POST",
       headers,
       body,

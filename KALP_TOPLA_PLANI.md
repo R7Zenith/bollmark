@@ -61,7 +61,7 @@ Bu dosya yalnız plandır, kod yazılmadı. Uygulama ayrı bir görevde, fazlar 
 ### Bar durum mesajları (ürün sayfası)
 - 0 kalp: "İlk kalbi sen ver, %50'nin kilidini birlikte açalım"
 - 1–7 kalp: "6/10 kalp · 4 kalp kaldı" (sayılar dinamik)
-- 8–9 kalp: "Son 1 kalp! Arkadaşını çağır, barına +2 eklesin" (sayılar dinamik)
+- 8–9 kalp: "Son 1 kalp! İstersen arkadaşını çağır, +2 eklesin" (sayılar dinamik)
 - Bar doldu, kullanıcı katılımcıysa: "Kilit açıldı! Kuponun hesabında, 48 saat"
 - Bar doldu, kullanıcı katılımcı değilse: "Bu tur doldu, yeni tur başladı"
 - Barın yanında "Nasıl çalışır?" linki olur, tıklanınca 3 adımlı kısa pencere açılır.

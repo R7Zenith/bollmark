@@ -11,6 +11,8 @@ export type BasketLine = {
   category: string;
   /** OrderItem.totalCents (indirim oncesi satir toplami) */
   lineTotalCents: number;
+  /** Kalp Topla kuponlu satir: kupon, bundle ve puan indirimi bu satira dagitilmaz (T7). */
+  noDiscount?: boolean;
 };
 
 export type BasketItem = { id: string; name: string; category1: string; priceCents: number };
@@ -62,7 +64,7 @@ export function buildBasketItems(params: {
   }
 
   const shares = allocateDiscount(
-    lines.map((line) => line.lineTotalCents),
+    lines.map((line) => (line.noDiscount ? 0 : line.lineTotalCents)),
     discountCents
   );
   const prices = lines.map((line, index) => line.lineTotalCents - shares[index]);

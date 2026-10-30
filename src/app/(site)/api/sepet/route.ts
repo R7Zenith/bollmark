@@ -4,12 +4,14 @@ import { getServerSession } from "next-auth";
 import { customerAuthOptions } from "@/lib/customer-auth";
 import { prisma } from "@/lib/prisma";
 import { cartLinesSchema, resolveCartLines } from "@/lib/cart-lines";
+import { parseKalpSelection } from "@/lib/kalp-topla/pricing";
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
 const putSchema = z.object({
   lines: cartLinesSchema,
-  couponCode: z.string().max(64).nullable()
+  couponCode: z.string().max(64).nullable(),
+  kalpSelection: z.object({ manual: z.array(z.string()).max(50), removed: z.array(z.string()).max(50) }).optional()
 });
 
 // Oturumdaki musterinin kayitli sepeti - satirlar guncel fiyat/stok ile
@@ -31,7 +33,10 @@ export async function GET() {
   const parsed = cartLinesSchema.safeParse(stored);
   const lines = parsed.success ? (await resolveCartLines(parsed.data)).filter((l) => l.name !== "") : [];
 
-  return NextResponse.json({ lines, couponCode: cart?.couponCode ?? null }, { headers: NO_STORE });
+  return NextResponse.json(
+    { lines, couponCode: cart?.couponCode ?? null, kalpSelection: parseKalpSelection(cart?.kalpSelectionJson) },
+    { headers: NO_STORE }
+  );
 }
 
 // Sepetin tamamini yazar (son yazan kazanir). Fiyat/isim/gorsel kabul edilmez.
@@ -50,10 +55,11 @@ export async function PUT(req: NextRequest) {
   const customerId = session.user.id;
   const linesJson = JSON.stringify(parsed.data.lines);
   const couponCode = parsed.data.couponCode;
+  const kalpSelectionJson = parsed.data.kalpSelection ? JSON.stringify(parsed.data.kalpSelection) : undefined;
   await prisma.customerCart.upsert({
     where: { customerId },
-    create: { customerId, linesJson, couponCode },
-    update: { linesJson, couponCode }
+    create: { customerId, linesJson, couponCode, kalpSelectionJson },
+    update: { linesJson, couponCode, kalpSelectionJson }
   });
 
   return NextResponse.json({ ok: true }, { headers: NO_STORE });

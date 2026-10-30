@@ -10,6 +10,7 @@ import {
   type ResolvedCartLine
 } from "@/lib/cart-shared";
 import { trackAddToCart, trackRemoveFromCart } from "@/lib/meta/track";
+import type { KalpSelection } from "@/lib/kalp-topla/pricing";
 
 export type CartLine = {
   productId: string;
@@ -51,6 +52,10 @@ type CartContextValue = {
   totalCount: number;
   couponCode: string | null;
   setCouponCode: (code: string | null) => void;
+  /** Kalp Topla satir secimi (yalniz girisli uye, CustomerCart'ta saklanir). */
+  kalpSelection: KalpSelection;
+  applyKalpCoupon: (variantId: string) => void;
+  removeKalpCoupon: (variantId: string) => void;
   isDrawerOpen: boolean;
   openDrawer: () => void;
   closeDrawer: () => void;
@@ -69,6 +74,7 @@ const STORAGE_KEY = "bollmark-cart";
 const SYNC_DEBOUNCE_MS = 500;
 // Odak/yol/cekmece tetikleyicileri art arda ates ederse gereksiz istek atma.
 const AUTO_REFRESH_MIN_INTERVAL_MS = 2000;
+const NO_KALP_SELECTION: KalpSelection = { manual: [], removed: [] };
 
 function readLocalCart(): { lines: CartLine[]; couponCode: string | null } {
   try {
@@ -107,8 +113,12 @@ function toInputs(lines: { productId: string; variantId: string; quantity: numbe
   }));
 }
 
-function syncKeyOf(lines: { productId: string; variantId: string; quantity: number }[], couponCode: string | null) {
-  return JSON.stringify([toInputs(lines).map((l) => [l.productId, l.variantId, l.quantity]), couponCode]);
+function syncKeyOf(
+  lines: { productId: string; variantId: string; quantity: number }[],
+  couponCode: string | null,
+  kalpSelection: KalpSelection
+) {
+  return JSON.stringify([toInputs(lines).map((l) => [l.productId, l.variantId, l.quantity]), couponCode, kalpSelection]);
 }
 
 function toCartLine(f: ResolvedCartLine): CartLine {
@@ -130,12 +140,12 @@ function toCartLine(f: ResolvedCartLine): CartLine {
   };
 }
 
-async function putServerCart(lines: CartLine[], couponCode: string | null): Promise<boolean> {
+async function putServerCart(lines: CartLine[], couponCode: string | null, kalpSelection: KalpSelection): Promise<boolean> {
   try {
     const res = await fetch("/api/sepet", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lines: toInputs(lines), couponCode })
+      body: JSON.stringify({ lines: toInputs(lines), couponCode, kalpSelection })
     });
     return res.ok;
   } catch {
@@ -223,6 +233,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [lines, setLines] = useState<CartLine[]>([]);
   const [couponCode, setCouponCodeState] = useState<string | null>(null);
+  const [kalpSelection, setKalpSelection] = useState<KalpSelection>(NO_KALP_SELECTION);
   const [hydrated, setHydrated] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [priceNotices, setPriceNotices] = useState<PriceNotice[]>([]);
@@ -233,14 +244,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const linesRef = useRef(lines);
   const couponRef = useRef(couponCode);
+  const kalpSelectionRef = useRef(kalpSelection);
   const statusRef = useRef(status);
   const serverReadyRef = useRef(serverReady);
   useEffect(() => {
     linesRef.current = lines;
     couponRef.current = couponCode;
+    kalpSelectionRef.current = kalpSelection;
     statusRef.current = status;
     serverReadyRef.current = serverReady;
-  }, [lines, couponCode, status, serverReady]);
+  }, [lines, couponCode, kalpSelection, status, serverReady]);
 
   // Kullanici kaynakli her degisiklikte artar - DB'den gelen gecikmis bir
   // yanit, arada yapilan yerel degisikligin ustunu ezmesin diye.
@@ -323,7 +336,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Giris: DB'deki sepet + bu cihazdaki (misafir) sepet birlestirilir.
   const initialSync = useCallback(async () => {
-    let server: { lines: ResolvedCartLine[]; couponCode: string | null };
+    let server: { lines: ResolvedCartLine[]; couponCode: string | null; kalpSelection: KalpSelection };
     try {
       const res = await fetch("/api/sepet", { cache: "no-store" });
       if (!res.ok) throw new Error("sepet okunamadi");
@@ -336,6 +349,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     let finalLines: CartLine[];
     let finalCoupon: string | null;
+    let finalSelection = server.kalpSelection;
     let issues: Record<string, CartLineIssue> = {};
     let notices: PriceNotice[] = [];
 
@@ -343,6 +357,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       clearedBeforeSyncRef.current = false;
       finalLines = [];
       finalCoupon = null;
+      finalSelection = NO_KALP_SELECTION;
     } else {
       const local = { lines: linesRef.current, couponCode: couponRef.current };
       const byVariant = new Map<string, CartLine>();
@@ -373,7 +388,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     // Birlesen sonuc DB'ye yazilir; ancak basarili olursa yerel kopya silinir.
     const hadLocal = linesRef.current.length > 0 || couponRef.current !== null;
     if (hadLocal || finalLines.length !== server.lines.length) {
-      const ok = await putServerCart(finalLines, finalCoupon);
+      const ok = await putServerCart(finalLines, finalCoupon, finalSelection);
       if (!ok) {
         syncStartedRef.current = false;
         return;
@@ -381,10 +396,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     clearLocalCart();
 
-    lastSyncedKeyRef.current = syncKeyOf(finalLines, finalCoupon);
+    lastSyncedKeyRef.current = syncKeyOf(finalLines, finalCoupon, finalSelection);
     dirtyRef.current = false;
     setLines(finalLines);
     setCouponCodeState(finalCoupon);
+    setKalpSelection(finalSelection);
     setLineIssues(issues);
     setPriceNotices(notices);
     setServerReady(true);
@@ -396,10 +412,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       const res = await fetch("/api/sepet", { cache: "no-store" });
       if (!res.ok) return;
-      const data: { lines: ResolvedCartLine[]; couponCode: string | null } = await res.json();
+      const data: { lines: ResolvedCartLine[]; couponCode: string | null; kalpSelection: KalpSelection } = await res.json();
       if (version !== versionRef.current || dirtyRef.current) return;
 
-      lastSyncedKeyRef.current = syncKeyOf(data.lines, data.couponCode);
+      lastSyncedKeyRef.current = syncKeyOf(data.lines, data.couponCode, data.kalpSelection);
       // Eski yerel satir verisi korunur ki fiyat degisimi bildirimi uretilebilsin.
       const localByVariant = new Map(linesRef.current.map((l) => [l.variantId, l]));
       const base = data.lines.map((f) => {
@@ -410,6 +426,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (JSON.stringify(applied.lines) !== JSON.stringify(linesRef.current)) setLines(applied.lines);
       if (data.couponCode !== couponRef.current) setCouponCodeState(data.couponCode);
+      if (JSON.stringify(data.kalpSelection) !== JSON.stringify(kalpSelectionRef.current)) setKalpSelection(data.kalpSelection);
       setLineIssues((prev) => (JSON.stringify(prev) === JSON.stringify(applied.issues) ? prev : applied.issues));
       if (applied.notices.length > 0) {
         setPriceNotices((prev) => [
@@ -435,6 +452,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setServerReady(false);
         setLines([]);
         setCouponCodeState(null);
+        setKalpSelection(NO_KALP_SELECTION);
         setLineIssues({});
         setPriceNotices([]);
       }
@@ -448,21 +466,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   // Girisliyken degisiklikleri kisa gecikmeyle DB'ye yaz.
   const pushCart = useCallback(async (): Promise<boolean> => {
-    const key = syncKeyOf(linesRef.current, couponRef.current);
+    const key = syncKeyOf(linesRef.current, couponRef.current, kalpSelectionRef.current);
     if (key === lastSyncedKeyRef.current) {
       dirtyRef.current = false;
       return true;
     }
-    const ok = await putServerCart(linesRef.current, couponRef.current);
+    const ok = await putServerCart(linesRef.current, couponRef.current, kalpSelectionRef.current);
     if (!ok) return false;
     lastSyncedKeyRef.current = key;
-    dirtyRef.current = syncKeyOf(linesRef.current, couponRef.current) !== key;
+    dirtyRef.current = syncKeyOf(linesRef.current, couponRef.current, kalpSelectionRef.current) !== key;
     return true;
   }, []);
 
   // Anahtar yalniz id + adet + kupon icerir: fiyat/isim tazelemesi anahtari
   // degistirmez, dolayisiyla PUT tetiklemez.
-  const syncKey = useMemo(() => syncKeyOf(lines, couponCode), [lines, couponCode]);
+  const syncKey = useMemo(() => syncKeyOf(lines, couponCode, kalpSelection), [lines, couponCode, kalpSelection]);
   useEffect(() => {
     if (status !== "authenticated" || !serverReady) return;
     if (syncKey === lastSyncedKeyRef.current) return;
@@ -568,6 +586,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setCouponCodeState(code);
   };
 
+  const applyKalpCoupon = (variantId: string) => {
+    versionRef.current++;
+    setKalpSelection((prev) => ({
+      manual: [...prev.manual.filter((id) => id !== variantId), variantId],
+      removed: prev.removed.filter((id) => id !== variantId)
+    }));
+  };
+
+  const removeKalpCoupon = (variantId: string) => {
+    versionRef.current++;
+    setKalpSelection((prev) => ({
+      manual: prev.manual.filter((id) => id !== variantId),
+      removed: [...prev.removed.filter((id) => id !== variantId), variantId]
+    }));
+  };
+
   const clear = () => {
     versionRef.current++;
     if (statusRef.current !== "unauthenticated" && !serverReadyRef.current) {
@@ -575,6 +609,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
     setLines([]);
     setCouponCodeState(null);
+    setKalpSelection(NO_KALP_SELECTION);
     setLineIssues({});
     setPriceNotices([]);
   };
@@ -607,6 +642,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
         totalCount,
         couponCode,
         setCouponCode,
+        kalpSelection,
+        applyKalpCoupon,
+        removeKalpCoupon,
         isDrawerOpen,
         openDrawer,
         closeDrawer,
