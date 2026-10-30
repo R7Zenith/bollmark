@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { consentGroupsToPurge } from "@/lib/kalp-topla/consent";
+import { expireWaitingCredits } from "@/lib/kalp-topla/bar";
 
 // Kalp Topla gunluk temizlik (KALP_TOPLA_PLANI.md 5.9, Y3). Vercel Cron,
 // "Authorization: Bearer $CRON_SECRET" ile (bkz. vercel.json).
@@ -8,6 +9,7 @@ import { consentGroupsToPurge } from "@/lib/kalp-topla/consent";
 // - MarketingConsentLog: onay su an geri cekilmis ve geri cekme 3 yildan
 //   eskiyse o musteri+kanalin o tarihe kadarki IP'leri null'lanir.
 // - Kullanilmis ya da suresi dolmus dogrulama tokenlari 7 gun sonra silinir.
+// - Suresi dolan bekleyen davet bonuslari EXPIRED olur (5.6.1, kampanya kapaliyken de).
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function GET(req: NextRequest) {
@@ -42,5 +44,11 @@ export async function GET(req: NextRequest) {
     where: { OR: [{ usedAt: { lt: weekAgo } }, { expiresAt: { lt: weekAgo } }] }
   });
 
-  return NextResponse.json({ ok: true, deletedDevices: devices.count, purgedIps, deletedTokens: tokens.count });
+  return NextResponse.json({
+    ok: true,
+    deletedDevices: devices.count,
+    purgedIps,
+    deletedTokens: tokens.count,
+    expiredBonuses: await expireWaitingCredits(now)
+  });
 }

@@ -61,3 +61,4 @@ bollmark.zip
 
 # Kalp Topla test scriptlerinin ayar yedekleri
 /scripts/.kalp-topla-yedek-*.json
+/scripts/.kalp-topla-faz5-yedek-*.json

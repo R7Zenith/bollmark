@@ -6,7 +6,10 @@ import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/require-customer";
 import { firstImageUrl } from "@/lib/catalog";
 import { campaignStateFrom, getKalpSettings } from "@/lib/kalp-topla/settings";
-import { activatePendingHearts } from "@/lib/kalp-topla/bar";
+import { settlePending } from "@/lib/kalp-topla/bar";
+import { ensureReferralCode } from "@/lib/kalp-topla/invite";
+import { inviteHistoryLabel, maskName } from "@/lib/kalp-topla/invite-rules";
+import { DavetHedefSecici, DavetPaylasim } from "@/components/kalp-topla/davet-paylas";
 import { WithdrawHeartButton } from "./withdraw-button";
 
 export const metadata = { title: "Kalplerim", robots: { index: false } };
@@ -15,6 +18,39 @@ function remaining(expiresAt: Date, now: number): string {
   const minutes = Math.max(Math.floor((expiresAt.getTime() - now) / 60000), 0);
   const hours = Math.floor(minutes / 60);
   return hours > 0 ? `${hours} saat ${minutes % 60} dk kaldı` : `${minutes} dk kaldı`;
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+// Bekleyen bonuslar ve davet gecmisi (plan 6.4, Y5).
+async function loadInvites(customerId: string) {
+  const [invites, waiting] = await Promise.all([
+    prisma.kalpInvite.findMany({ where: { inviterId: customerId }, orderBy: { createdAt: "desc" }, take: 30 }),
+    prisma.kalpBonusCredit.findMany({
+      where: { customerId, status: "WAITING", expiresAt: { gt: new Date() } },
+      orderBy: { expiresAt: "asc" },
+      select: { id: true, points: true, expiresAt: true }
+    })
+  ]);
+  const [credits, invitees] = await Promise.all([
+    prisma.kalpBonusCredit.findMany({
+      where: { inviteId: { in: invites.map((i) => i.id) } },
+      select: { inviteId: true, status: true, points: true }
+    }),
+    prisma.customer.findMany({ where: { id: { in: invites.map((i) => i.inviteeId) } }, select: { id: true, name: true } })
+  ]);
+  const nameById = new Map(invitees.map((c) => [c.id, c.name]));
+  return {
+    waiting: waiting.map((c) => ({
+      ...c,
+      days: Math.max(Math.ceil(((c.expiresAt?.getTime() ?? 0) - Date.now()) / DAY_MS), 0)
+    })),
+    history: invites.map((i) => ({
+      id: i.id,
+      name: maskName(nameById.get(i.inviteeId) ?? ""),
+      label: inviteHistoryLabel(i.status, credits.filter((c) => c.inviteId === i.id))
+    }))
+  };
 }
 
 // Test-iptal kuponlar gorunmez (Y15). Kalan sure sayfa uretildigi andaki saate gore.
@@ -28,24 +64,26 @@ async function loadCoupons(customerId: string) {
 }
 
 // Hesabim > Kalplerim (KALP_TOPLA_PLANI.md 6.4): kalan hak, aktif ve bekleyen
-// kalpler (bar + geri cek), kuponlar (kullanici karari, Faz 4). Davet ve
-// bekleyen bonus bolumleri Faz 5'te.
+// kalpler (bar + geri cek), bekleyen bonuslar, kuponlar (kullanici karari, Faz 4),
+// davet linki ve gecmisi.
 export default async function HesapKalplerimPage() {
   const session = await requireCustomer();
   const customerId = session.user!.id!;
   const settings = await getKalpSettings();
   const state = await campaignStateFrom(settings, customerId);
   if (state === "INVISIBLE") notFound();
-  if (state === "ACTIVE") await activatePendingHearts(customerId, settings);
+  if (state === "ACTIVE") await settlePending(customerId, settings);
 
-  const [customer, hearts, coupons] = await Promise.all([
-    prisma.customer.findUnique({ where: { id: customerId }, select: { emailVerifiedAt: true } }),
+  const [customer, hearts, coupons, invites, referralCode] = await Promise.all([
+    prisma.customer.findUnique({ where: { id: customerId }, select: { emailVerifiedAt: true, inviteTargetProductId: true } }),
     prisma.kalpHeart.findMany({
       where: { customerId, status: { in: ["PENDING", "ACTIVE"] } },
       orderBy: { createdAt: "asc" },
       select: { id: true, productId: true, status: true }
     }),
-    loadCoupons(customerId)
+    loadCoupons(customerId),
+    loadInvites(customerId),
+    ensureReferralCode(customerId)
   ]);
   const productIds = hearts.map((h) => h.productId);
   const [products, bars] = await Promise.all([
@@ -135,6 +173,19 @@ export default async function HesapKalplerimPage() {
         )}
       </section>
 
+      {invites.waiting.length > 0 && (
+        <section>
+          <h3 className="text-[15px] font-medium">Bekleyen bonusların</h3>
+          <ul className="mt-3 space-y-1.5 text-sm text-ink/80">
+            {invites.waiting.map((credit) => (
+              <li key={credit.id}>
+                +{credit.points} kalp · {credit.days} gün içinde ilk kalbinin barına eklenecek
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section>
         <h3 className="text-[15px] font-medium">Kuponların</h3>
         {coupons.list.length === 0 ? (
@@ -164,6 +215,33 @@ export default async function HesapKalplerimPage() {
                 </li>
               );
             })}
+          </ul>
+        )}
+      </section>
+
+      <section>
+        <h3 className="text-[15px] font-medium">Arkadaşını çağır</h3>
+        <p className="mt-2 text-sm text-ink/70">
+          Senin linkinle üye olan arkadaşın e-postasını doğrulayınca barına +{settings.inviteBonus} kalp ekler.
+        </p>
+        <div className="mt-4 max-w-[480px] space-y-4">
+          {hearts.length > 0 && (
+            <DavetHedefSecici
+              inviteBonus={settings.inviteBonus}
+              value={customer?.inviteTargetProductId ?? null}
+              options={hearts.map((h) => ({ productId: h.productId, name: productById.get(h.productId)?.name ?? "Ürün" }))}
+            />
+          )}
+          <DavetPaylasim path={`/davet/${referralCode}`} />
+        </div>
+        {invites.history.length > 0 && (
+          <ul className="mt-6 divide-y divide-line border-y border-line">
+            {invites.history.map((invite) => (
+              <li key={invite.id} className="flex items-center justify-between gap-4 py-3 text-sm">
+                <span>{invite.name}</span>
+                <span className="text-xs text-ink/60">{invite.label}</span>
+              </li>
+            ))}
           </ul>
         )}
       </section>

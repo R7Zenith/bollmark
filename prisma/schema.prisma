@@ -889,6 +889,9 @@ model KalpInvite {
 // Bonus puanlarının nerede durduğunu tutar. Bir davet tek kredi ile başlar.
 // Bonus bir barı eşiğin üstüne taşırsa kredi bölünür: eşiğe kadar olan kısım
 // ROUND_CLOSED, artan kısım yeni bir WAITING kredisi olur, 30 gün baştan (Y11).
+// Benzersiz indeksler (kredi iki kez olusamaz/bolunemez) elle uygulandi:
+// prisma/manual-sql/2026-10-30-kalp-bonus-credit-indeksleri.sql. Ikisi de asagida
+// tanimli (kismi olan: KalpBonusCredit_root_unique), semayla DB ayni kalir.
 model KalpBonusCredit {
   id         String    @id @default(cuid())
   inviteId   String
@@ -899,7 +902,7 @@ model KalpBonusCredit {
   status     String    @default("WAITING")
   heartId    String?              // APPLIED iken bağlı kalp
   roundId    String?
-  splitFromId String?             // Y11: artan kısımdan doğduysa ana kredi
+  splitFromId String?  @unique(map: "KalpBonusCredit_splitFromId_key") // Y11: artan kısımdan doğduysa ana kredi (bir kredi en çok bir kez bölünür)
   expiresAt  DateTime?            // WAITING iken bitiş (30 gün, kampanya kapalıyken de işler; bölünmede baştan)
   isTest     Boolean   @default(false)
   createdAt  DateTime  @default(now())
@@ -907,6 +910,7 @@ model KalpBonusCredit {
   @@index([customerId, status])
   @@index([heartId, status])
   @@index([status, expiresAt])
+  @@unique([inviteId], map: "KalpBonusCredit_root_unique", where: raw("(\"splitFromId\" IS NULL)")) // davet başına tek kök kredi
 }
 
 model KalpCoupon {

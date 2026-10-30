@@ -9,6 +9,7 @@ import { CONSENT_TEXTS } from "@/lib/kalp-topla/consent-texts";
 import { useKalpDurum } from "./use-kalp-durum";
 import { KalpDialog } from "./kalp-dialog";
 import { COUPON_SHAPE, KalpNasilCalisir } from "./kalp-nasil-calisir";
+import { ArkadasiniCagir } from "./davet-paylas";
 
 // Urun sayfasi Kalp Topla bari (KALP_TOPLA_PLANI.md 6.1). Gorunurluk
 // istemcide oturuma gore cozulur; INVISIBLE ve FROZEN'da hic render edilmez.
@@ -235,6 +236,12 @@ export function KalpBar({ productId }: { productId: string }) {
             Kalp ver
           </button>
         )}
+        <ArkadasiniCagir
+          productId={productId}
+          loggedIn={view.loggedIn}
+          inviteBonus={view.inviteBonus}
+          onGuest={() => setDialog("guest")}
+        />
         {view.loggedIn && (
           <span className="text-xs text-ink/50">
             Kalan kalp hakkın: {Math.max(view.quota - view.used, 0)}/{view.quota}

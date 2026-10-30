@@ -172,6 +172,38 @@ function Step({
   );
 }
 
+// "Arkadasini cagir" penceresi: tek, hizli sahne (2,6 sn dongu, globals.css .ka-*).
+export function KalpDavetAnimasyon({ bonus }: { bonus: number }) {
+  return (
+    <div className="overflow-hidden rounded-xl bg-[#FFC83D]">
+      <svg viewBox="0 0 200 108" aria-hidden="true" className="block h-auto w-full">
+        <g className="ka-rays">
+          {Array.from({ length: 12 }, (_, i) => (
+            <path key={i} d="M100 54l-11-130h22Z" className="fill-[#FFE27A]" transform={`rotate(${i * 30} 100 54)`} />
+          ))}
+        </g>
+        <g transform="translate(0 6)">
+          <Person x={32} className="fill-ink" />
+          <Person x={168} className="fill-[#E8315B]" />
+          <path d="M50 32h100" className="fill-none stroke-ink/40" strokeWidth={1.5} strokeDasharray="3 4" />
+          <g className="ka-friend">
+            <circle cx={180} cy={20} r={8} className="fill-[#14B8A6]" />
+            <path d="m176.5 20 2.5 2.5 4.5-5" className="fill-none stroke-cream" strokeWidth={2} strokeLinecap="round" />
+          </g>
+        </g>
+        <path d="M0-8 16 0 0 8l3-8Z" className="ka-plane fill-sale" />
+        <Burst cx={168} cy={38} count={16} radius={44} className="ka-burst" />
+        <text x={100} y={44} textAnchor="middle" className="ka-plus fill-sale text-[34px] font-bold">
+          +{bonus}
+        </text>
+        <g transform="translate(20 0)">
+          <Hearts y={80} filled={3} animated={{ 3: "ka-heart", 4: "ka-heart-late" }} />
+        </g>
+      </svg>
+    </div>
+  );
+}
+
 export function KalpNasilCalisir({
   inviteBonus,
   discountPercent,

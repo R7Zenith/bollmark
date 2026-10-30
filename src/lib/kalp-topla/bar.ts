@@ -4,6 +4,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { campaignStateFrom, getKalpSettings, type KalpCampaignState } from "./settings";
 import { generateCouponCode } from "./coupons";
 import { sendVerificationEmail } from "./email-verification";
+import { applyCreditsToBar, chooseTargetHeart, readWaitingCredits } from "./bonus";
 
 // Kalp verme, geri cekme, PENDING -> ACTIVE ve tur kapanisi (KALP_TOPLA_PLANI.md
 // 5.1-5.3). Bar sayimi atomiktir: her islem tek transaction'da, sabit kilit
@@ -55,11 +56,11 @@ function newRoundParams(settings: Settings) {
     : { threshold: settings.threshold, isTest: false };
 }
 
-async function lockCustomer(tx: Tx, customerId: string) {
+export async function lockCustomer(tx: Tx, customerId: string) {
   await tx.$queryRaw`SELECT id FROM "Customer" WHERE id = ${customerId} FOR UPDATE`;
 }
 
-async function lockBar(tx: Tx, productId: string) {
+export async function lockBar(tx: Tx, productId: string) {
   const rows = await tx.$queryRaw<{ currentRoundId: string; points: number }[]>`
     SELECT "currentRoundId", points FROM "KalpBar" WHERE "productId" = ${productId} FOR UPDATE`;
   return rows[0] ?? null;
@@ -113,6 +114,10 @@ async function closeRoundIfFull(tx: Tx, productId: string, settings: Settings): 
     });
   }
 
+  // Turla birlikte biter (plan 5.2 madde 4). Artan kisim bara hic girmedigi
+  // icin (applyCreditsToBar) burada bolunecek puan kalmaz.
+  await tx.kalpBonusCredit.updateMany({ where: { roundId: round.id, status: "APPLIED" }, data: { status: "ROUND_CLOSED" } });
+
   const next = await tx.kalpRound.create({
     data: { productId, roundNo: round.roundNo + 1, ...newRoundParams(settings) }
   });
@@ -123,6 +128,19 @@ async function closeRoundIfFull(tx: Tx, productId: string, settings: Settings): 
   });
 
   return { roundId: round.id, productId, roundNo: round.roundNo, threshold: round.threshold, isTest: round.isTest, coupons: winners.length };
+}
+
+// Bar kilidi altinda: yeni ACTIVE olan kalbin barina uyenin tum bekleyen
+// bonuslari eklenir (Y5). Bara sigmayan kisim bekler, commit sonrasi
+// placeWaitingCredits ayri islemde yerlestirir (kullanici karari, Faz 5).
+async function addWaitingToHeartBar(tx: Tx, customerId: string, productId: string, heartId: string) {
+  const bar = await tx.kalpBar.findUniqueOrThrow({ where: { productId } });
+  const round = await tx.kalpRound.findUniqueOrThrow({ where: { id: bar.currentRoundId } });
+  const room = round.threshold - bar.points;
+  if (room <= 0) return;
+  const credits = await readWaitingCredits(tx, customerId);
+  if (credits.length === 0) return;
+  await applyCreditsToBar(tx, { productId, heartId, roundId: round.id, room }, credits);
 }
 
 async function auditClosedRounds(rounds: ClosedRound[]) {
@@ -189,6 +207,7 @@ export async function activatePendingHearts(customerId: string, known?: Settings
         });
         if (claimed.count !== 1) return { activated: false, closed: null };
         await tx.kalpBar.update({ where: { productId: heart.productId }, data: { points: { increment: 1 } } });
+        await addWaitingToHeartBar(tx, customerId, heart.productId, heart.id);
         return { activated: true, closed: await closeRoundIfFull(tx, heart.productId, settings) };
       }, TX_OPTIONS)
     );
@@ -196,7 +215,99 @@ export async function activatePendingHearts(customerId: string, known?: Settings
     if (result.closed) closedRounds.push(result.closed);
   }
   await auditClosedRounds(closedRounds);
+  if (activated > 0) await placeWaitingCredits(customerId, settings);
   return activated;
+}
+
+// Bekleyen bonuslari tek islemde tek bara yerlestirir (plan 5.6.1). Kilit sirasi
+// Customer -> tek KalpBar: bir islem hicbir zaman iki bar kilitlemez, bu yuzden
+// baska bir bara kalan kisim ayri islemde yerlesir. Yarim kalirsa kredi WAITING
+// kalir ve sonraki tetikleyici devam eder. Yapilacak is kalmadiysa false.
+export async function placeWaitingCreditsOnce(customerId: string, settings: Settings): Promise<boolean> {
+  const result = await prisma.$transaction(async (tx) => {
+    await lockCustomer(tx, customerId);
+    const credits = await readWaitingCredits(tx, customerId);
+    if (credits.length === 0) return { placed: false, closed: null };
+    const hearts = await tx.kalpHeart.findMany({
+      where: { customerId, status: "ACTIVE" },
+      select: { id: true, productId: true, createdAt: true }
+    });
+    if (hearts.length === 0) return { placed: false, closed: null };
+
+    const [bars, invites] = await Promise.all([
+      tx.kalpBar.findMany({ where: { productId: { in: hearts.map((h) => h.productId) } } }),
+      tx.kalpInvite.findMany({ where: { id: { in: credits.map((c) => c.inviteId) } }, select: { id: true, productId: true } })
+    ]);
+    const rounds = await tx.kalpRound.findMany({
+      where: { id: { in: bars.map((b) => b.currentRoundId) } },
+      select: { id: true, threshold: true }
+    });
+    const thresholds = new Map(rounds.map((r) => [r.id, r.threshold]));
+    const barByProduct = new Map(bars.map((b) => [b.productId, b]));
+    const preferredOf = new Map(invites.map((i) => [i.id, i.productId]));
+    const target = chooseTargetHeart(
+      hearts.map((h) => {
+        const bar = barByProduct.get(h.productId);
+        const left = bar ? (thresholds.get(bar.currentRoundId) ?? 0) - bar.points : 0;
+        return { heartId: h.id, productId: h.productId, left, createdAt: h.createdAt };
+      }),
+      preferredOf.get(credits[0].inviteId) ?? null
+    );
+    if (!target) return { placed: false, closed: null };
+
+    const bar = await lockBar(tx, target.productId);
+    // Kilit beklenirken tur kapanmis olabilir: kalp artik ACTIVE degilse bastan.
+    const stillActive = await tx.kalpHeart.count({ where: { id: target.heartId, status: "ACTIVE" } });
+    if (!bar || stillActive !== 1) return { placed: true, closed: null };
+
+    const round = await tx.kalpRound.findUniqueOrThrow({ where: { id: bar.currentRoundId } });
+    // Baska bir aktif kalbe yonlenmis krediler kendi sirasini bekler (T4 madde 1).
+    const activeProducts = new Set(hearts.map((h) => h.productId));
+    const batch = credits.filter((c) => {
+      const preferred = preferredOf.get(c.inviteId);
+      return !preferred || preferred === target.productId || !activeProducts.has(preferred);
+    });
+    await applyCreditsToBar(
+      tx,
+      { productId: target.productId, heartId: target.heartId, roundId: round.id, room: round.threshold - bar.points },
+      batch
+    );
+    return { placed: true, closed: await closeRoundIfFull(tx, target.productId, settings) };
+  }, TX_OPTIONS);
+  if (result.closed) await auditClosedRounds([result.closed]);
+  return result.placed;
+}
+
+// Bir uyenin kredi sayisi kadar bar dolasilir; sinir yalniz sonsuz donguye karsi.
+const MAX_PLACEMENT_STEPS = 20;
+
+export async function placeWaitingCredits(customerId: string, known?: Settings): Promise<void> {
+  const settings = known ?? (await getKalpSettings());
+  // FROZEN iken yerlestirme yapilmaz; kampanya acilinca sonraki tetikleyici yerlestirir (Y5).
+  if ((await campaignStateFrom(settings, customerId)) !== "ACTIVE") return;
+  for (let step = 0; step < MAX_PLACEMENT_STEPS; step += 1) {
+    if (!(await placeWaitingCreditsOnce(customerId, settings))) return;
+  }
+}
+
+async function hasWaitingCredits(customerId: string) {
+  return (await prisma.kalpBonusCredit.count({ where: { customerId, status: "WAITING", expiresAt: { gt: new Date() } } })) > 0;
+}
+
+// Gunluk temizlik: 30 gunu dolan bekleyen bonuslar (plan 5.6.1, Y5). Kampanya
+// kapaliyken de calisir.
+export async function expireWaitingCredits(now = new Date()): Promise<number> {
+  const expired = await prisma.kalpBonusCredit.updateMany({
+    where: { status: "WAITING", expiresAt: { lte: now } },
+    data: { status: "EXPIRED" }
+  });
+  return expired.count;
+}
+
+// Bar ve Kalplerim acilisinda: bekleyen kalp ve bonuslari sayar (kampanya acikken).
+export async function settlePending(customerId: string, settings: Settings): Promise<void> {
+  if (await hasPendingHearts(customerId)) await activatePendingHearts(customerId, settings);
+  if (await hasWaitingCredits(customerId)) await placeWaitingCredits(customerId, settings);
 }
 
 async function hasPendingHearts(customerId: string) {
@@ -234,10 +345,11 @@ export async function giveHeart(customerId: string, productId: string): Promise<
 
       const bar = await lockOrCreateBar(tx, productId, settings);
       const status = customer.emailVerifiedAt ? "ACTIVE" : "PENDING";
-      await tx.kalpHeart.create({ data: { customerId, productId, roundId: bar.currentRoundId, status } });
+      const heart = await tx.kalpHeart.create({ data: { customerId, productId, roundId: bar.currentRoundId, status } });
       let closed: ClosedRound | null = null;
       if (status === "ACTIVE") {
         await tx.kalpBar.update({ where: { productId }, data: { points: { increment: 1 } } });
+        await addWaitingToHeartBar(tx, customerId, productId, heart.id);
         closed = await closeRoundIfFull(tx, productId, settings);
       }
       const total = await tx.kalpHeart.count({ where: { customerId } });
@@ -246,6 +358,7 @@ export async function giveHeart(customerId: string, productId: string): Promise<
   );
 
   if (result.closed) await auditClosedRounds([result.closed]);
+  if (result.created && result.status === "ACTIVE") await placeWaitingCredits(customerId, settings);
   if (result.created && result.status === "PENDING") {
     const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: { id: true, email: true, name: true } });
     if (customer) await sendVerificationEmail(customer, "KALP");
@@ -273,7 +386,11 @@ export async function withdrawHeart(customerId: string, productId: string): Prom
     }
     await tx.kalpHeart.update({ where: { id: heart.id }, data: { status: "WITHDRAWN", endedAt: new Date() } });
     if (heart.status === "ACTIVE") {
-      await tx.kalpBar.update({ where: { productId }, data: { points: { decrement: 1 } } });
+      // Plan 5.3: kalbe bagli bonuslar da duser, beklemeye donmez.
+      const credits = await tx.kalpBonusCredit.findMany({ where: { heartId: heart.id, status: "APPLIED" }, select: { points: true } });
+      await tx.kalpBonusCredit.updateMany({ where: { heartId: heart.id, status: "APPLIED" }, data: { status: "VOID_WITHDRAWN" } });
+      const bonus = credits.reduce((total, c) => total + c.points, 0);
+      await tx.kalpBar.update({ where: { productId }, data: { points: { decrement: 1 + bonus } } });
     }
   }, TX_OPTIONS);
 }
@@ -308,9 +425,7 @@ export async function getBarView(customerId: string | null, productId: string): 
   });
   if (!product) return null;
 
-  if (customerId && state === "ACTIVE" && (await hasPendingHearts(customerId))) {
-    await activatePendingHearts(customerId, settings);
-  }
+  if (customerId && state === "ACTIVE") await settlePending(customerId, settings);
 
   const bar = await prisma.kalpBar.findUnique({ where: { productId } });
   const round = bar ? await prisma.kalpRound.findUnique({ where: { id: bar.currentRoundId } }) : null;

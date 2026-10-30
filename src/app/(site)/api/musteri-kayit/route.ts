@@ -8,6 +8,8 @@ import { DISPOSABLE_EMAIL_MESSAGE, isBlockedEmail } from "@/lib/kalp-topla/email
 import { setMarketingConsent } from "@/lib/kalp-topla/consent";
 import { DEVICE_COOKIE, DEVICE_COOKIE_OPTIONS, recordDevice, resolveDeviceId } from "@/lib/kalp-topla/devices";
 import { sendVerificationEmail } from "@/lib/kalp-topla/email-verification";
+import { createInviteOnSignup } from "@/lib/kalp-topla/invite";
+import { INVITE_COOKIE } from "@/lib/kalp-topla/invite-rules";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -17,6 +19,8 @@ const schema = z.object({
   // Kalp Topla (T3): ayri, isaretsiz onay kutulari
   marketingEmail: z.boolean().optional(),
   marketingWhatsapp: z.boolean().optional(),
+  // Kalp Topla (T8): davet cerezi gelmezse formun gizli alani
+  davet: z.string().max(64).optional(),
   // Tarayicidaki Pixel olayiyla ayni event_id (Meta tekillestirir, bkz. lib/meta/track.ts).
   metaEventId: z.string().uuid().optional()
 });
@@ -52,6 +56,10 @@ export async function POST(req: NextRequest) {
   }
   const { deviceId, isNew: isNewDevice } = resolveDeviceId(req.cookies.get(DEVICE_COOKIE)?.value);
   await recordDevice({ customerId: customer.id, deviceId, ip, event: "SIGNUP" });
+  // Davet sorunu kaydi engellemez.
+  await createInviteOnSignup(customer.id, req.cookies.get(INVITE_COOKIE)?.value ?? parsed.data.davet).catch((e) =>
+    console.error("Davet kaydı yazılamadı (yoksayıldı):", e)
+  );
   // Faz 3 karari: her yeni kayitta dogrulama e-postasi (sendMail best-effort).
   await sendVerificationEmail(customer);
 
@@ -76,5 +84,6 @@ export async function POST(req: NextRequest) {
 
   const response = NextResponse.json({ ok: true }, { status: 201 });
   if (isNewDevice) response.cookies.set(DEVICE_COOKIE, deviceId, DEVICE_COOKIE_OPTIONS);
+  response.cookies.delete(INVITE_COOKIE);
   return response;
 }

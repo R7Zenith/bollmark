@@ -5,10 +5,19 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { trackCompleteRegistration } from "@/lib/meta/track";
 import { CONSENT_TEXTS } from "@/lib/kalp-topla/consent-texts";
+import { INVITE_COOKIE } from "@/lib/kalp-topla/invite-rules";
 
 // Kalp Topla misafir akisi (plan 6.1): ?sekme=kayit&callbackUrl=/urunler/..&kalp=urunId.
 // Giris/kayit sonrasi ayni urune ?kalp= ile donulur, kalp orada otomatik verilir.
 // Yalniz site ici yollar kabul edilir (acik yonlendirme olmasin).
+// T8: davet kodu cerezin yaninda istek govdesinde de tasinir; sunucu yeniden dogrular.
+function inviteFieldValue(): string | undefined {
+  return document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${INVITE_COOKIE}=`))
+    ?.slice(INVITE_COOKIE.length + 1);
+}
+
 function afterAuthPath(searchParams: URLSearchParams): string {
   const callbackUrl = searchParams.get("callbackUrl") ?? "";
   if (!callbackUrl.startsWith("/") || callbackUrl.startsWith("//") || callbackUrl.startsWith("/\\")) return "/hesap";
@@ -65,6 +74,7 @@ function HesapGiris() {
       password: String(form.get("password") || ""),
       marketingEmail: form.get("marketingEmail") === "on",
       marketingWhatsapp: form.get("marketingWhatsapp") === "on",
+      davet: inviteFieldValue(),
       metaEventId: crypto.randomUUID()
     };
 
