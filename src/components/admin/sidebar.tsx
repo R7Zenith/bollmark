@@ -40,6 +40,7 @@ type NavItem = {
 type NavGroup = {
   id: string;
   label: string;
+  icon?: typeof LayoutDashboard;
   items: NavItem[];
 };
 
@@ -64,11 +65,18 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/admin/kampanyalar", label: "Kampanyalar", icon: Percent },
       { href: "/admin/bundle-kampanyalari", label: "Bundle Kampanyaları", icon: Percent },
-      { href: "/admin/kalp-topla", label: "Kalp Topla", icon: Heart, exact: true },
-      { href: "/admin/kalp-topla/rapor", label: "Kalp Topla Raporu", icon: BarChart3 },
-      { href: "/admin/kalp-topla/davetler", label: "Kalp Topla Davetleri", icon: UserPlus },
-      { href: "/admin/kalp-topla/onaylar", label: "Kalp Topla Onayları", icon: FileText },
       { href: "/admin/terk-edilmis-sepetler", label: "Terk Edilmiş Sepetler", icon: ShoppingCart }
+    ]
+  },
+  {
+    id: "kalp-topla",
+    label: "Kalp Topla",
+    icon: Heart,
+    items: [
+      { href: "/admin/kalp-topla", label: "Ayarlar", icon: Settings, exact: true },
+      { href: "/admin/kalp-topla/rapor", label: "Rapor", icon: BarChart3 },
+      { href: "/admin/kalp-topla/davetler", label: "Davetler", icon: UserPlus },
+      { href: "/admin/kalp-topla/onaylar", label: "Onaylar", icon: FileText }
     ]
   },
   {
@@ -253,6 +261,7 @@ export function Sidebar({
           {visibleGroups.map((group) => {
             const isOpen = openGroups.has(group.id);
             const groupHasActive = group.items.some((item) => isItemActive(item, pathname));
+            const GroupIcon = group.icon;
             return (
               <div key={group.id}>
                 <button
@@ -263,7 +272,10 @@ export function Sidebar({
                     groupHasActive ? "text-admin-accent" : "text-admin-text-muted hover:text-admin-text"
                   }`}
                 >
-                  {group.label}
+                  <span className="flex items-center gap-2">
+                    {GroupIcon && <GroupIcon size={14} className="fill-sale text-sale" aria-hidden="true" />}
+                    {group.label}
+                  </span>
                   <ChevronDown
                     size={14}
                     className={`transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}

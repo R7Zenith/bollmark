@@ -15,6 +15,7 @@
   - Şerit varken md ve üstünde ürün sayfası üst boşluğu 32 px artar (`data-kalp-serit`, CSS `:has`), ürün bilgisi kesilmez. Katalog kırıntısına dokunulmadı: kutu 3 px değiyor, yazı görünüyor.
   - "Arkadaşını çağır" artık önce `KalpDialog` içinde davet kutusunu açar: 3 adım, link, WhatsApp, Linki kopyala, destekleniyorsa Diğer. 3. adım metni bu üründe aktif kalp olup olmamasına göre değişir (`inviteBonusStep`). Kalplerim'deki paylaşım alanı değişmedi. Paylaşım için Meta/GA4 olayı yok.
   - `KalpDialog` ekran yüksekliğiyle sınırlandı, taşarsa içeride kayar.
+  - Admin sol menüde Kalp Topla, Pazarlama'dan ayrılıp kalp ikonlu kendi grubuna taşındı (Ayarlar, Rapor, Davetler, Onaylar). Adresler değişmedi.
   - Yerel test sahte üye yanıtıyla yapıldı; gerçek üye hesabı ve gerçek telefon denenmedi, `navigator.share` yokken Diğer'in gizlenmesi tarayıcıda doğrulanamadı.
   - Kullanıcı isteğiyle `denemekalp1`, `kalpdeneme`, `ozileventkalp1` test hesapları canlıdan silindi. Yerel yedek `Claude outputs/kalp-topla-yayin/test-hesaplari-yedek.json`, commit edilmeyecek. Test listesinde 1 hesap kaldı.
 - **Bilinen küçük sorunlar (düzeltilmedi):**
