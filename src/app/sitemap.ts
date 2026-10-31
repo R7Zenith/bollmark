@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { prisma } from "@/lib/prisma";
 import { getSiteUrl } from "@/lib/site-url";
 import { catalogHref, parentGenders } from "@/lib/catalog-url";
+import { getKalpSettings } from "@/lib/kalp-topla/settings";
 
 // Yeni urun/kategori eklendiginde yeni bir deploy beklemeden sitemap'in
 // makul surede guncellenmesi icin - build-time'da tek seferlik uretilip
@@ -12,7 +13,7 @@ export const revalidate = 3600;
 const SITEMAP_IMAGES_PER_PRODUCT = 5;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [products, categories, legalPages] = await Promise.all([
+  const [products, categories, legalPages, kalpSettings] = await Promise.all([
     prisma.product.findMany({
       where: { status: "PUBLISHED" },
       select: {
@@ -25,7 +26,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       }
     }),
     prisma.category.findMany({ where: { isActive: true }, select: { slug: true } }),
-    prisma.legalPage.findMany({ select: { slug: true, updatedAt: true } })
+    prisma.legalPage.findMany({ select: { slug: true, updatedAt: true } }),
+    getKalpSettings()
   ]);
 
   // Katalog sayfalari yalniz yayinda urunu olan kapsamlar icin: cinsiyet,
@@ -50,6 +52,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${BASE_URL}/iletisim`, changeFrequency: "yearly", priority: 0.4 },
     { url: `${BASE_URL}/cerez-politikasi`, changeFrequency: "yearly", priority: 0.3 },
     { url: `${BASE_URL}/on-bilgilendirme-formu`, changeFrequency: "yearly", priority: 0.3 },
+    // Gizli yayinda ve kapaliyken kampanya sayfasi sitemap'e girmez (plan 5.0).
+    ...(kalpSettings.mode === "LIVE" ? [{ url: `${BASE_URL}/kalp-topla`, changeFrequency: "weekly" as const, priority: 0.6 }] : []),
     ...[...catalogPaths]
       .filter((path) => !path.startsWith("/kategori/") || activeCategoryPaths.has(path))
       .map((path) => ({

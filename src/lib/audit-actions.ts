@@ -21,7 +21,21 @@ export const auditActions = [
   "PAYMENT_CANCEL_CREATED",
   "PAYMENT_MANUAL_RECONCILE",
   "PAYMENT_ATTENTION_CLEARED",
-  "PAYMENT_REFUND_RESOLVED"
+  "PAYMENT_REFUND_RESOLVED",
+  "KALP_TOPLA_AYAR_DEGISTI",
+  "KALP_TOPLA_MOD_DEGISTI",
+  "KALP_TOPLA_ALAN_ADI_ENGELLENDI",
+  "KALP_TOPLA_ALAN_ADI_KALDIRILDI",
+  "KALP_TOPLA_TUR_KAPANDI",
+  "KALP_TOPLA_TEST_SIFIRLANDI",
+  "KALP_TOPLA_DAVET_ONAYLANDI",
+  "KALP_TOPLA_DAVET_IPTAL",
+  "KALP_TOPLA_DEGISIM_FARK_KAPANDI",
+  "KALP_TOPLA_KUPON_GERI_YUKLENDI",
+  "KALP_TOPLA_KUPON_GERI_YUKLENMEDI",
+  "KALP_TOPLA_KUPON_IPTAL",
+  "KALP_TOPLA_KUPON_UZATILDI",
+  "KALP_TOPLA_ONAY_CSV_INDIRILDI"
 ] as const;
 
 export const auditActionLabel: Record<string, string> = {
@@ -44,5 +58,19 @@ export const auditActionLabel: Record<string, string> = {
   PAYMENT_CANCEL_CREATED: "Ödeme İptal Edildi",
   PAYMENT_MANUAL_RECONCILE: "Ödeme Durumu Elle Sorgulandı",
   PAYMENT_ATTENTION_CLEARED: "Ödeme Uyarısı Kapatıldı",
-  PAYMENT_REFUND_RESOLVED: "Belirsiz İade Kaydı Sonuçlandırıldı"
+  PAYMENT_REFUND_RESOLVED: "Belirsiz İade Kaydı Sonuçlandırıldı",
+  KALP_TOPLA_AYAR_DEGISTI: "Kalp Topla Ayarı Değişti",
+  KALP_TOPLA_MOD_DEGISTI: "Kalp Topla Modu Değişti",
+  KALP_TOPLA_ALAN_ADI_ENGELLENDI: "E-posta Alan Adı Engellendi",
+  KALP_TOPLA_ALAN_ADI_KALDIRILDI: "Engelli Alan Adı Kaldırıldı",
+  KALP_TOPLA_TUR_KAPANDI: "Kalp Topla Turu Kapandı",
+  KALP_TOPLA_TEST_SIFIRLANDI: "Kalp Topla Test Verisi Sıfırlandı",
+  KALP_TOPLA_DAVET_ONAYLANDI: "Kalp Topla Daveti Onaylandı",
+  KALP_TOPLA_DAVET_IPTAL: "Kalp Topla Daveti İptal Edildi",
+  KALP_TOPLA_DEGISIM_FARK_KAPANDI: "Değişim Farkı Kapatıldı",
+  KALP_TOPLA_KUPON_GERI_YUKLENDI: "Kalp Topla Kuponu Geri Yüklendi",
+  KALP_TOPLA_KUPON_GERI_YUKLENMEDI: "Kalp Topla Kuponu Geri Yüklenmedi",
+  KALP_TOPLA_KUPON_IPTAL: "Kalp Topla Kuponu İptal Edildi",
+  KALP_TOPLA_KUPON_UZATILDI: "Kalp Topla Kuponu Uzatıldı",
+  KALP_TOPLA_ONAY_CSV_INDIRILDI: "Onay Kayıtları CSV İndirildi"
 };

@@ -9,6 +9,10 @@ const nextConfig = {
   // Ayni bilesendeki path.join(process.cwd(), "public", ...) tum public/
   // klasorunu ana sayfa function'ina (~8 MB) sokuyor; bu gorseller Vercel'de
   // CDN'den servis edildigi icin lambda'da gereksiz. public/instagram haric.
+  // Kalp Topla T9: Favorilerim -> Kaydedilenler (eski adres 301 ile yonlenir).
+  async redirects() {
+    return [{ source: "/hesap/favorilerim", destination: "/hesap/kaydedilenler", statusCode: 301 }];
+  },
   outputFileTracingExcludes: {
     "/": [
       "./public/menu/**",

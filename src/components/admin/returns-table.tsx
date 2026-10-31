@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Pencil } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { Badge } from "@/components/admin/badge";
+import { formatPrice } from "@/lib/format";
 import { returnStatuses, returnStatusLabel, returnStatusTone, returnTypeLabel } from "@/lib/status";
 
 export interface ReturnRow {
@@ -18,6 +19,63 @@ export interface ReturnRow {
   status: string;
   adminNote: string | null;
   createdAtLabel: string;
+  kalp: {
+    labels: string[];
+    canPickExchange: boolean;
+    exchangeSku: string | null;
+    diffCents: number | null;
+    diffSettled: boolean;
+  } | null;
+}
+
+function KalpReturnInfo({
+  row,
+  exchangeAction,
+  settleAction
+}: {
+  row: ReturnRow;
+  exchangeAction: (formData: FormData) => void;
+  settleAction: (formData: FormData) => void;
+}) {
+  const kalp = row.kalp;
+  if (!kalp) return null;
+  const diff = kalp.diffCents;
+  return (
+    <div className="mt-1 space-y-1 text-xs text-admin-text-muted">
+      {kalp.labels.map((label) => (
+        <p key={label}>{label}</p>
+      ))}
+      {kalp.canPickExchange && (
+        <form action={exchangeAction} className="flex gap-1">
+          <input type="hidden" name="returnId" value={row.id} />
+          <input
+            name="sku"
+            required
+            defaultValue={kalp.exchangeSku ?? ""}
+            placeholder="Değişim stok kodu"
+            className="w-36 rounded-md border border-admin-border px-2 py-1 text-xs"
+          />
+          <button type="submit" className="rounded-md border border-admin-border px-2 py-1 text-xs text-admin-text hover:bg-admin-bg">
+            Hesapla
+          </button>
+        </form>
+      )}
+      {diff !== null && (
+        <p className="font-medium text-admin-text">
+          {diff === 0 ? "Fark yok" : `${diff > 0 ? "Müşteriden alınacak" : "Müşteriye ödenecek"}: ${formatPrice(Math.abs(diff))}`}
+        </p>
+      )}
+      {diff !== null && diff !== 0 && !kalp.diffSettled && (
+        <form action={settleAction}>
+          <input type="hidden" name="returnId" value={row.id} />
+          <button type="submit" className="rounded-md border border-admin-border px-2 py-1 text-xs text-admin-text hover:bg-admin-bg">
+            {diff > 0 ? "Fark tahsil edildi" : "Fark iade edildi"}
+          </button>
+        </form>
+      )}
+      {diff !== null && diff !== 0 && kalp.diffSettled && <p>Fark kapatıldı</p>}
+    </div>
+  );
 }
 
 const inputClass =
@@ -25,10 +83,14 @@ const inputClass =
 
 export function ReturnsTable({
   returns,
-  updateAction
+  updateAction,
+  exchangeAction,
+  settleAction
 }: {
   returns: ReturnRow[];
   updateAction: (formData: FormData) => void;
+  exchangeAction: (formData: FormData) => void;
+  settleAction: (formData: FormData) => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -57,6 +119,7 @@ export function ReturnsTable({
         <div>
           <p className="text-admin-text">{returnTypeLabel[row.type as keyof typeof returnTypeLabel] ?? row.type}</p>
           <p className="text-xs text-admin-text-muted">{row.reason}</p>
+          <KalpReturnInfo row={row} exchangeAction={exchangeAction} settleAction={settleAction} />
         </div>
       )
     },

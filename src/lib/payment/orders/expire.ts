@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit-log";
 import { logPayment } from "@/lib/payment/log";
 import { reconcileToken } from "@/lib/payment/orders/reconcile";
+import { releaseOrderCoupons } from "@/lib/kalp-topla/order-coupons";
 
 // Sure dolumu ve mutabakat (bkz. plan 5.E). Terk edilen odemeler sonsuza kadar beklemesin,
 // kupon hakki/sadakat puani bagli kalmasin diye. Tetikleyiciler: gunluk cron, baslatma
@@ -15,7 +16,7 @@ const STALE_ATTEMPT_MS = 2 * 60 * 1000;
 const ERROR_GRACE_MS = 6 * 60 * 60 * 1000;
 const RECONCILE_CONCURRENCY = 5;
 
-async function expireAttemptsIfDead(orderId: string): Promise<{ allowCancel: boolean; reasons: string[] }> {
+export async function expireAttemptsIfDead(orderId: string): Promise<{ allowCancel: boolean; reasons: string[] }> {
   const attempts = await prisma.paymentAttempt.findMany({ where: { orderId, status: "INITIATED" } });
   let allowCancel = true;
   const reasons: string[] = [];
@@ -44,6 +45,7 @@ export async function cancelExpiredOrder(orderId: string): Promise<boolean> {
     if (claimed.count !== 1) return null;
     const order = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
 
+    await releaseOrderCoupons(tx, orderId);
     if (order.couponId) {
       await tx.coupon.updateMany({ where: { id: order.couponId, usedCount: { gt: 0 } }, data: { usedCount: { decrement: 1 } } });
     }

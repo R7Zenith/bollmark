@@ -12,6 +12,7 @@ import { catalogHref, parseCatalogPath } from "@/lib/catalog-url";
 import { MEGA_MENU_CARDS, type MegaMenuCard } from "@/lib/mega-menu-cards";
 import { CartDrawer } from "@/components/cart-drawer";
 import { SearchOverlay, type SearchChip } from "@/components/search-overlay";
+import { BildirimZili } from "@/components/kalp-topla/bildirim-zili";
 import type { MegaMenuData, MenuCategory } from "@/lib/site-nav";
 
 // logo.png / logo-white.png dosyalarinin gercek en-boy orani (1400x273px).
@@ -807,6 +808,8 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
             >
               <SearchIcon />
             </button>
+            {/* Mobilde sag sutun dolu: zil aramanin yaninda (logo ortada kalsin). */}
+            <BildirimZili desktop={false} />
             {/* Arama acikken hover mega menuyu acmasin (panel arkada kalirdi). */}
             <DesktopNav menuData={menuData} openMenu={openMenu} setOpenMenu={searchOpen ? () => {} : setOpenMenu} />
           </div>
@@ -836,6 +839,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
                 <AnimatedSearchIcon open={searchOpen} />
               </span>
             </button>
+            <BildirimZili desktop />
             <Link
               href={session?.user ? "/hesap" : "/hesap/giris"}
               aria-label="Hesabım"

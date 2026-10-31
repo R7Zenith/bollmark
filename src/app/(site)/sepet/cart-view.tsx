@@ -8,7 +8,7 @@ import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
 import { DISPATCH_TEXT, SHIPPING_THRESHOLD_CENTS, shippingFeeSummary } from "@/lib/shipping";
 import { CouponField, type CouponResult } from "@/components/coupon-field";
-import { useBundleDiscount } from "@/lib/use-bundle-discount";
+import { KalpSatirKontrolu, KalpSepetKutusu, kalpLineCents } from "@/components/kalp-topla/kalp-sepet";
 import { CartNotices } from "@/components/cart-notices";
 import { trackViewCart } from "@/lib/meta/track";
 
@@ -16,7 +16,9 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
   const { lines, removeLine, updateQuantity, totalCents, totalCount, hasBlockingIssues } = useCart();
   const [coupon, setCoupon] = useState<CouponResult>(null);
   const discountCents = coupon?.discountCents ?? 0;
-  const bundleDiscountCents = useBundleDiscount(lines);
+  const bundleDiscountCents = coupon?.bundleDiscountCents ?? 0;
+  const kalpDiscountCents = coupon?.kalpDiscountCents ?? 0;
+  const kalp = coupon?.kalp;
   const couponLineDiscounts = new Map((coupon?.lineDiscounts ?? []).map((d) => [d.variantId, d.discountCents]));
 
   // GA4 view_cart: sayfa basina bir kez, sepet (localStorage) yuklenince.
@@ -70,6 +72,10 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
         <CartNotices />
       </div>
 
+      <div className="mt-6 empty:hidden">
+        <KalpSepetKutusu kalp={kalp} />
+      </div>
+
       <div className="mt-8 lg:flex lg:items-start lg:gap-16">
         <div className="lg:min-w-0 lg:flex-1">
           <div className="hidden grid-cols-[2fr_1fr_1fr_1fr] gap-4 border-b border-line pb-2.5 text-[10px] uppercase tracking-[1px] text-ink lg:grid">
@@ -85,8 +91,8 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
               // sunucu tarafinda ikisi zaten asla ayni anda pozitif olmuyor.
               const lineCouponDiscountCents = line.compareAtCents ? 0 : (couponLineDiscounts.get(line.variantId) ?? 0);
               const lineTotalCents = line.priceCents * line.quantity;
-              const lineNetTotalCents = lineTotalCents - lineCouponDiscountCents;
-              const hasLineDiscount = Boolean(line.compareAtCents) || lineCouponDiscountCents > 0;
+              const lineNetTotalCents = kalpLineCents(line, kalp) - lineCouponDiscountCents;
+              const hasLineDiscount = Boolean(line.compareAtCents) || lineNetTotalCents < lineTotalCents;
 
               const quantityControl = (
                 <div className="flex items-center gap-2">
@@ -159,6 +165,7 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
                           )}
                         </div>
                       </div>
+                      <KalpSatirKontrolu line={line} kalp={kalp} />
                       <div className="mt-3">{quantityControl}</div>
                     </div>
                   </div>
@@ -180,6 +187,7 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
                         <p className="mt-1 text-xs text-ink/75">
                           {line.color} · {line.size}
                         </p>
+                        <KalpSatirKontrolu line={line} kalp={kalp} />
                       </div>
                     </div>
                     <p className={`text-sm ${hasLineDiscount ? "text-sale" : ""}`}>{formatPrice(line.priceCents)}</p>
@@ -227,6 +235,12 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
               <span>Ara Toplam</span>
               <span>{formatPrice(totalCents)}</span>
             </div>
+            {kalpDiscountCents > 0 && (
+              <div className="flex items-center justify-between text-sm text-clay">
+                <span>Kalp Topla indirimi</span>
+                <span>-{formatPrice(kalpDiscountCents)}</span>
+              </div>
+            )}
             {bundleDiscountCents > 0 && (
               <div className="flex items-center justify-between text-sm text-clay">
                 <span>Bundle İndirimi</span>
@@ -244,7 +258,7 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
             </p>
             <div className="flex items-center justify-between border-t border-line pt-4">
               <span className="text-lg">Toplam</span>
-              <span className="text-lg font-medium">{formatPrice(totalCents - bundleDiscountCents - discountCents)}</span>
+              <span className="text-lg font-medium">{formatPrice(totalCents - kalpDiscountCents - bundleDiscountCents - discountCents)}</span>
             </div>
           </div>
 

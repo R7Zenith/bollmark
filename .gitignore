@@ -58,3 +58,7 @@ bollmark.zip
 
 # Playwright MCP debug ciktilari (screenshot, console log, page snapshot)
 /.playwright-mcp/
+
+# Kalp Topla test scriptlerinin ayar yedekleri
+/scripts/.kalp-topla-yedek-*.json
+/scripts/.kalp-topla-faz5-yedek-*.json

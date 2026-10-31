@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/prisma";
 import { getSiteUrl } from "@/lib/site-url";
 import { decryptSecret, isEncryptionKeyConfigured } from "@/lib/payment/crypto";
-import { resolveModeFrom, type PaymentMode } from "@/lib/payment/iyzico/mode";
+import { localPaymentTest, resolveModeFrom, type PaymentMode } from "@/lib/payment/iyzico/mode";
 import type { IyzicoCredentials } from "@/lib/payment/iyzico/client";
 
 export type PaymentSettingsRow = NonNullable<Awaited<ReturnType<typeof prisma.paymentSettings.findUnique>>>;
@@ -30,6 +30,8 @@ export function hasKeys(settings: PaymentSettingsRow, mode: PaymentMode): boolea
 // olursa (yanlis PAYMENT_ENCRYPTION_KEY, bozuk veri) null doner - cagiran taraf
 // "POS hazir degil" der, hata metnine anahtar/sifreli veri sizmaz.
 export function getCredentials(settings: PaymentSettingsRow, mode: PaymentMode): IyzicoCredentials | null {
+  const localTest = mode === "SANDBOX" ? localPaymentTest() : null;
+  if (localTest) return { apiKey: localTest.apiKey, secretKey: localTest.secretKey };
   const apiKeyEnc = mode === "LIVE" ? settings.liveApiKeyEnc : settings.sandboxApiKeyEnc;
   const secretKeyEnc = mode === "LIVE" ? settings.liveSecretKeyEnc : settings.sandboxSecretKeyEnc;
   if (!apiKeyEnc || !secretKeyEnc) return null;
@@ -48,6 +50,10 @@ export function getReadiness(settings: PaymentSettingsRow): {
   ready: boolean;
 } {
   const mode = effectiveMode(settings);
+  // Yerel test: kayitli baglanti testi LIVE, adres http; bu kontroller yerelde gecemez.
+  if (mode === "SANDBOX" && localPaymentTest()) {
+    return { mode, checks: [{ id: "local-test", label: "Yerel sandbox testi (.env)", ok: true }], ready: settings.isEnabled };
+  }
   const modeLabel = mode === "LIVE" ? "Canlı" : "Sandbox";
   const checks: ReadinessCheck[] = [
     { id: "keys", label: `${modeLabel} API Key ve Secret Key tanımlı`, ok: hasKeys(settings, mode) },

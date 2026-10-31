@@ -10,7 +10,7 @@ export function FavorilerimGrid({ products }: { products: ProductCardData[] }) {
   const visible = products.filter((p) => ids.has(p.productId));
 
   if (visible.length === 0) {
-    return <p className="mt-10 text-sm text-ink/60">Favori ürününüz kalmadı.</p>;
+    return <p className="mt-10 text-sm text-ink/60">Kaydedilen ürününüz kalmadı.</p>;
   }
 
   return (

@@ -26,6 +26,7 @@
     "aws4fetch": "^1.0.20",
     "bcryptjs": "^2.4.3",
     "cheerio": "^1.2.0",
+    "disposable-email-domains-js": "1.26.0",
     "embla-carousel-react": "^8.6.0",
     "lucide-react": "^1.35.0",
     "next": "16.4.2",
@@ -36,6 +37,7 @@
     "resend": "^6.25.0",
     "sanitize-html": "^2.17.7",
     "sharp": "^0.35.4",
+    "web-push": "3.6.7",
     "xlsx": "^0.18.5",
     "yet-another-react-lightbox": "^3.32.2",
     "zod": "^3.23.8"
@@ -47,6 +49,7 @@
     "@types/react": "^19.2.6",
     "@types/react-dom": "^19.2.3",
     "@types/sanitize-html": "^2.16.1",
+    "@types/web-push": "^3.6.4",
     "autoprefixer": "^10.4.19",
     "dotenv": "^17.4.2",
     "eslint": "^9.0.0",

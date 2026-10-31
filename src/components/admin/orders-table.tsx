@@ -23,6 +23,7 @@ export interface OrderRow {
   status: string;
   paymentStatus: string;
   needsAttention: boolean;
+  attentionNote: string | null;
   shipmentStatus: string | null;
   totalCents: number;
   createdAt: string;
@@ -90,11 +91,18 @@ export function OrdersTable({
       sortable: true,
       hideable: false,
       render: (row) => (
-        <div className="flex items-center gap-2">
-          <Link href={`/admin/siparisler/${row.id}`} className="font-mono font-medium text-admin-text hover:underline">
-            {row.orderNumber}
-          </Link>
-          {row.viewedAt === null && <Badge tone="green">YENİ SİPARİŞ</Badge>}
+        <div>
+          <div className="flex items-center gap-2">
+            <Link href={`/admin/siparisler/${row.id}`} className="font-mono font-medium text-admin-text hover:underline">
+              {row.orderNumber}
+            </Link>
+            {row.viewedAt === null && <Badge tone="green">YENİ SİPARİŞ</Badge>}
+          </div>
+          {row.needsAttention && (
+            <p className="mt-1 max-w-xs text-xs font-medium text-red-700">
+              Dikkat gerekiyor: {row.attentionNote ?? "Ödemede kontrol edilmesi gereken bir durum var."}
+            </p>
+          )}
         </div>
       )
     },

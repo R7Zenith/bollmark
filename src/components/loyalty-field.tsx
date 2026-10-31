@@ -12,10 +12,12 @@ export type LoyaltyResult = { pointsRedeemed: number; discountCents: number } | 
 // sunucuda (resolveLoyaltyRedemption ile) tekrar yapilir.
 export function LoyaltyField({
   subtotalCents,
-  onRedeemChange
+  onRedeemChange,
+  kalpNote = false
 }: {
   subtotalCents: number;
   onRedeemChange: (result: LoyaltyResult) => void;
+  kalpNote?: boolean;
 }) {
   const { data: session, status } = useSession();
   const [balance, setBalance] = useState<number | null>(null);
@@ -29,10 +31,16 @@ export function LoyaltyField({
       .catch(() => setBalance(0));
   }, [status]);
 
-  if (status !== "authenticated" || !balance) return null;
-
   const maxAffordablePoints = Math.floor(subtotalCents / LOYALTY_REDEEM_RATE_CENTS);
-  const maxPoints = Math.min(balance, maxAffordablePoints);
+  const maxPoints = Math.min(balance ?? 0, maxAffordablePoints);
+
+  // Sepet degisip tavan dustuyse (or. kalp kuponu eklendi) girilen puan da duser.
+  useEffect(() => {
+    if (Number(input) > maxPoints) applyPoints(String(maxPoints));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [maxPoints]);
+
+  if (status !== "authenticated" || !balance) return null;
 
   function applyPoints(value: string) {
     setInput(value);
@@ -50,6 +58,7 @@ export function LoyaltyField({
       <p className="text-xs text-ink/60">
         {balance} puanınız var ({session?.user?.name}). 1 puan = {formatPrice(LOYALTY_REDEEM_RATE_CENTS)} indirim.
       </p>
+      {kalpNote && <p className="text-xs text-ink/60">Puan, Kalp Topla kuponlu ürüne uygulanmaz.</p>}
       <div className="flex gap-2">
         <input
           type="number"

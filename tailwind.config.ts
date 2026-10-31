@@ -70,6 +70,12 @@ const config: Config = {
       // Arama panelindeki sonuclarin sirayla belirmesi (bkz. search-overlay.tsx,
       // gecikme her sonuca inline animationDelay ile veriliyor).
       keyframes: {
+        // Kalp Topla: yeni dolan kalp kutucugu (kalp-bar.tsx).
+        "kalp-pop": {
+          "0%": { transform: "scale(0.6)" },
+          "60%": { transform: "scale(1.25)" },
+          "100%": { transform: "scale(1)" }
+        },
         "search-in": {
           from: { opacity: "0", transform: "translateY(4px)" },
           to: { opacity: "1", transform: "translateY(0)" }
@@ -85,6 +91,7 @@ const config: Config = {
         }
       },
       animation: {
+        "kalp-pop": "kalp-pop 420ms cubic-bezier(0.22, 1, 0.36, 1) both",
         "search-in": "search-in 260ms ease-out both",
         "catalog-in": "catalog-in 400ms ease-out both",
         "consent-in": "consent-in 500ms cubic-bezier(0.22, 1, 0.36, 1) both"

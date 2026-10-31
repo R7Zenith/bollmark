@@ -35,6 +35,7 @@ Bu dosya yalnız plandır, kod yazılmadı. Uygulama ayrı bir görevde, fazlar 
 - Kampanya adı: "Kalp Topla". Slogan: "10 kalp, yarı fiyat".
 - Tek cümlelik anlatım: "Beğendiğin ürüne kalp ver, 10 kalp dolunca kalp verenler yarı fiyatına alsın."
 - Müşteriye 3 adımlı anlatım: 1) Kalp ver: üye ol, beğendiğin ürünün kilidine katıl. 2) Arkadaşını çağır: senin linkinle gelen arkadaşın barına +2 kalp ekler. 3) %50'ni kap: bar dolunca kuponun hesabına gelir, 48 saat geçerli.
+  - **→ Kullanıcı kararı (2026-10-30, Faz 4):** davet zorunluymuş gibi anlaşılmasın diye "Nasıl çalışır?" penceresinde 2. adım: "Bar birlikte dolar. Başka üyeler de kalp verdikçe bar dolar. Hızlandırmak istersen arkadaşını çağır, +2 kalp eklesin." Pencere üç animasyonlu görselle gösterilir.
 - Kampanyanın amacı siteye ziyaretçi çekmek ve üye sayısını artırmak.
 
 ### Kapsam ve bar
@@ -60,7 +61,7 @@ Bu dosya yalnız plandır, kod yazılmadı. Uygulama ayrı bir görevde, fazlar 
 ### Bar durum mesajları (ürün sayfası)
 - 0 kalp: "İlk kalbi sen ver, %50'nin kilidini birlikte açalım"
 - 1–7 kalp: "6/10 kalp · 4 kalp kaldı" (sayılar dinamik)
-- 8–9 kalp: "Son 1 kalp! Arkadaşını çağır, barına +2 eklesin" (sayılar dinamik)
+- 8–9 kalp: "Son 1 kalp! İstersen arkadaşını çağır, +2 eklesin" (sayılar dinamik)
 - Bar doldu, kullanıcı katılımcıysa: "Kilit açıldı! Kuponun hesabında, 48 saat"
 - Bar doldu, kullanıcı katılımcı değilse: "Bu tur doldu, yeni tur başladı"
 - Barın yanında "Nasıl çalışır?" linki olur, tıklanınca 3 adımlı kısa pencere açılır.
@@ -180,7 +181,7 @@ Bu dosya yalnız plandır, kod yazılmadı. Uygulama ayrı bir görevde, fazlar 
 
 ## 4. Veri modeli
 
-Tüm değişiklikler eklemeli. Önce **test Neon branch'inde** `prisma db push` ile denenir, canlıya yayın fazında uygulanır (T13). Kısmi unique indeksler `scripts/kalp-topla-indeksler.sql` ile eklenir.
+Tüm değişiklikler eklemeli ve kullanıcı onayıyla `prisma db push` ile canlı DB'ye uygulanır (T13 güncel). Kısmi unique indeks Prisma şemasında `partialIndexes` önizleme özelliğiyle tanımlanır, ayrı SQL dosyası yoktur (kullanıcı kararı 2026-10-30: ayrı SQL olsaydı sonraki her `db push` onu silmek isterdi).
 
 ### 4.1 Mevcut tablolara eklenecek alanlar
 
@@ -201,8 +202,9 @@ model Customer {
 }
 
 model OrderItem {
-  kalpCouponId          String?  @unique  // bu satıra uygulanan Kalp Topla kuponu
+  kalpCouponId          String?           // bu satıra uygulanan Kalp Topla kuponu (tekil değil: geri dönen kupon yeniden kullanılır, indeksli)
   kalpOriginalUnitCents Int?              // kuponsuz olsaydı ödenecek birim fiyat
+  kalpRestoredAt        DateTime?         // kupon bu satırdan bir kez geri yüklendi
 }
 
 model Order {
@@ -301,7 +303,7 @@ model KalpHeart {
   @@index([roundId, status])
   @@index([productId, createdAt])
 }
-// SQL: CREATE UNIQUE INDEX ... ON "KalpHeart"("customerId","productId") WHERE status IN ('PENDING','ACTIVE');
+// Şemada: @@unique([customerId, productId], where: raw("status = ANY (ARRAY['PENDING'::text, 'ACTIVE'::text])")) (partialIndexes; Postgres'in sakladığı biçim)
 
 model KalpInvite {
   id              String    @id @default(cuid())
@@ -352,7 +354,7 @@ model KalpCoupon {
   roundId         String
   discountPercent Int
   expiresAt       DateTime
-  status          String    @default("AVAILABLE") // AVAILABLE | RESERVED | USED | TEST_CANCELLED (Y15)
+  status          String    @default("AVAILABLE") // AVAILABLE | RESERVED | USED | TEST_CANCELLED (Y15) | CANCELLED (admin iptali, Faz 10)
   usedAt          DateTime?
   restoredAt      DateTime?
   expiringEmailAt DateTime?              // "son 6 saat" e-postası/olayı üretildi (kupon başına 1, Y1)
@@ -508,6 +510,7 @@ Hız sınırı: üye başına dakikada en çok 20 kalp işlemi.
    - Turu kapatan işlem bir bonus kredisinin eklenmesiyse ve `points > threshold` olduysa, aşan puan (`points − threshold`, en çok o kredinin puanı kadar) kredinin kendisinden ayrılır.
    - Ayrılan kısım yeni bir `WAITING` kredi olur: `splitFromId` = ana kredi, `expiresAt = şimdi + 30 gün` (baştan başlar), aynı davete ve sahibine bağlı.
    - Bu kredi aynı transaction'da Y5 kuralıyla yerleştirilmeye çalışılır: sahibinin diğer aktif barlarından dolmaya en yakın olanı, yoksa bekler ve verdiği bir sonraki kalbe eklenir.
+     - **→ Kullanıcı kararı (2026-10-30, Faz 5):** artan kısım önce bekleyen kredi olarak yazılır, başka bara **ayrı işlemde** yerleşir (bir işlem iki bar kilitlemez). Yarıda kalırsa bekler, kalp verme ya da bar/Kalplerim açılışında yerleşir. Tekrar yerleşme DB'de engelli (T13 notu).
    - Birden fazla bekleyen kredi birlikte eklenip eşik aşıldıysa aşan puan, eklenme sırasında **son eklenen** kredilerden geriye doğru ayrılır.
    - Kalp (+1) ile kapanan turda artan olmaz.
 5. Yeni tur: `roundNo + 1`, `points = 0`. `threshold` = güncel ayar; mod HIDDEN ise `testThreshold` ve `isTest=true`.
@@ -530,6 +533,7 @@ Hız sınırı: üye başına dakikada en çok 20 kalp işlemi.
   - `customerId` = üye **veya** `customerEmail` üyenin e-postasıyla büyük/küçük harf duyarsız eşit (misafir siparişleri dahil).
 
   Diğer mevcut üyeler ilk kalpte doğrulama e-postası alır.
+  - **Kullanıcı kararı (2026-10-30, Faz 3):** her yeni kayıtta, kampanya modundan bağımsız, kampanyadan bahsetmeyen genel bir doğrulama e-postası gider. Script şimdi yalnız kuru çalıştırılır, gerçek çalıştırma yayın fazında (9.1 madde 2).
 - **Geçici e-posta (Y4):** `api/musteri-kayit` tüm kayıtlarda alan adını kontrol eder:
   - (1) `disposable-email-domains-js` paketi,
   - (2) `BlockedEmailDomain` tablosu. Alt alan adları da üst alan adıyla eşleşir.
@@ -628,6 +632,7 @@ Kupon geçerliliği her okumada `expiresAt > now` ile kontrol edilir. "Süresi d
   - farklı kampanyalı ürün → kupon taşınır, yeni fiyat `min(esas × %50, mevcutEnIyi)`;
   - farklı "Kalp Topla dışı" ürün → kupon TAMAMLANDI'da kalan süresiyle geri yüklenir, fark = yeni ürünün güncel fiyatı − ödenen kuponlu fiyat.
 - **Fark (Y6):** otomatik tahsilat/iade yok. Ekranda açıkça "Müşteriden alınacak: X TL" ya da "Müşteriye ödenecek: X TL" yazar. Tahsilat/iade bugünkü gibi elle yapılır. Admin **"Fark tahsil edildi"** / **"Fark iade edildi"** butonuyla işaretler: `exchangeDiffSettledAt/By`, denetim kaydı `KALP_TOPLA_DEGISIM_FARK_KAPANDI`. Fark kapanmadan talep TAMAMLANDI yapılırsa uyarı çıkar (engellemez).
+- **Kullanıcı kararı (2026-10-31):** kargodan önce ödemesi iptal edilen ya da tam iade edilen kuponlu satırda iade talebi aranmaz; kupon iyzico başarısından sonra döner. Süresi dolmuşsa dönmez, denetim kaydı ve sipariş notu olur. Kalan süre: iade anında süre bitmemişse `expiresAt − usedAt`, bitmişse kargolanmış iadede `refundExtraHours`.
 - Admin iade ekranında kuponlu satır "Kalp Topla kuponlu · ödenen X TL (normal Y TL)" etiketiyle görünür.
 
 ### 5.9 Veri saklama ve temizlik (Y3)
@@ -661,6 +666,7 @@ Günlük temizlik cron'u (`/api/cron/kalp-topla-temizlik`, günde 1):
 - `components/kalp-topla/kalp-bar.tsx`, `GET /api/kalp-topla/bar?productId=` (`no-store`). Durum INVISIBLE ise hiç render edilmez, FROZEN ise gizli.
 - Yerleşim: fiyatın altında. Bar + mesaj (turun eşiğiyle) + "❤ Kalp ver / Kalbimi geri çek" + "Arkadaşını çağır" + "Nasıl çalışır?".
 - **Misafir:** "Üye ol, bu ürünün indirimini birlikte açalım" penceresi açılır → `/hesap/giris?sekme=kayit&callbackUrl=/urunler/{slug}&kalp={productId}`. Dönüşte kalp otomatik verilir. `PENDING` ise "E-postanı doğrula, kalbin sayılsın" + tekrar gönder.
+- **Kullanıcı kararı (2026-10-31, aşağıdaki pencerede e-posta kutusunun yerine geçer):** kalp verene e-posta sorulmaz, onay otomatik açılır. Kalp ver butonunun altında tek satır not görünür. Kayıt `MarketingConsentLog` kaynak `KALP_VERME`, metin sürümü `EMAIL-KALP-2026-10-31`. Bir kez çıkmış üye yeniden açılmaz. Aşağıdaki ilk kalp penceresi tümüyle kaldırıldı (push sorusu dahil); push yalnız Hesabım > İletişim Tercihleri'nden açılır. `Customer.pushPromptDismissedAt` kullanılmıyor.
 - **İlk kalp penceresi (T3, T15):** ilk kalpten sonra tek pencere açılır.
   - Başlık: "Bar dolunca sana haber verelim mi?"
   - ☐ "Kalp Topla ve kampanya bildirimlerini e-postayla almak istiyorum." (işaretsiz; onay zaten varsa gizli)
@@ -696,7 +702,7 @@ Günlük temizlik cron'u (`/api/cron/kalp-topla-temizlik`, günde 1):
 ### 6.5 Hesap ayarları: İletişim tercihleri (`hesap/(panel)/tercihler`)
 - Telefon (opsiyonel).
 - ☐ e-posta onayı (`HESAP_AYARLARI`).
-- Tarayıcı bildirimleri aç/kapat: **yalnız push destekleniyorsa** görünür. Desteklenmiyorsa bu satır hiç gösterilmez.
+- Tarayıcı bildirimleri aç/kapat: **yalnız push destekleniyorsa** görünür. Desteklenmiyorsa bu satır hiç gösterilmez. (Kullanıcı kararı 2026-10-30: bu satır push altyapısıyla birlikte Faz 8'de eklenir.)
 - ☐ WhatsApp onayı ("yakında" notu).
 - Her değişiklik `MarketingConsentLog`'a yazılır (IP + metin sürümü).
 
@@ -750,11 +756,14 @@ Günlük temizlik cron'u (`/api/cron/kalp-topla-temizlik`, günde 1):
   - Filtreler: incelemede / kredilendi / bekleyen / iptal / **aynı IP işaretli**.
   - Sütunlar: davet eden, davetli, inceleme nedenleri (aynı cihaz, davet edenle aynı cihaz), **"aynı IP" rozeti** (yalnız bilgi), aynı cihaz/IP özetinden hesap sayısı, kredi durumu (uygulanan / bekleyen / artan kısımdan doğan).
   - Tek tıkla **Onayla** / **İptal** (iptal için açıklama opsiyonel). "Aynı IP" işaretli ama incelemede olmayan bir daveti admin isterse yine iptal edebilir.
-- **Onaylar (T3):** liste + CSV (`GET /api/admin/kalp-topla/onaylar.csv`, tarih aralığı, UTF-8 BOM). Sütunlar: müşteri id, e-posta, kanal, verildi/geri çekildi, tarih-saat (İstanbul), kaynak, IP (silinmişse "silindi (3 yıl)"), metin sürümü. İndirme denetim kaydına yazılır.
+- **Onaylar (T3):** liste + CSV (`GET /api/admin/kalp-topla/onaylar.csv`, tarih aralığı, UTF-8 BOM). Sütunlar: müşteri id, e-posta, kanal, verildi/geri çekildi, tarih-saat (İstanbul), kaynak, IP (silinmişse "silindi (3 yıl)"), metin sürümü. İndirme denetim kaydına yazılır (`KALP_TOPLA_ONAY_CSV_INDIRILDI`).
 - **Ürün formu:** "Kalp Topla dışı" checkbox'ı.
 - **İade ekranı:** kuponlu satır etiketi, değişim ürünü seçimi, hesaplanan fiyat, **"Müşteriden alınacak / Müşteriye ödenecek: X TL"**, "Fark tahsil edildi" / "Fark iade edildi" butonları (Y6).
 - **Menü:** "Kalp Topla" (Ayarlar / Rapor / Davetler / Onaylar), yalnız ADMIN.
 - **Müşteri detayı:** doğrulama, kalpler, kuponlar, bonus kredileri, onaylar, cihaz eşleşmeleri; kupon iptal/süre uzatma (denetim kaydıyla).
+  - **Kupon iptali (Faz 10):** yalnız `AVAILABLE` kupon iptal edilir, durum `CANCELLED` olur; `RESERVED` ve `USED` kupona dokunulmaz. Uygulama öncesi "geri alınamaz" onay penceresi çıkar. Raporda "verilen"de sayılır, "kullanılan" ve "süresi dolan"da sayılmaz. Kalplerim'de "İptal edildi" yazar. Denetim kaydı `KALP_TOPLA_KUPON_IPTAL`.
+  - **Süre uzatma (Faz 10):** yalnız `AVAILABLE` kupon (süresi dolmuş olan dahil). Yeni bitiş hem şu andan hem mevcut bitişten sonra olmalı. `expiringEmailAt` sıfırlanır, "son 6 saat" hatırlatması yeni süre için yine gider. Denetim kaydı `KALP_TOPLA_KUPON_UZATILDI`.
+  - **Bildirim anahtarı (Faz 10):** `COUPON_EXPIRING` `eventKey`'i `coupon-expiring:{couponId}:{expiresAt ms}` oldu. Anahtar tekil olduğu ve satırlar `skipDuplicates` ile yazıldığı için eski biçimde süresi değişen kuponun ikinci hatırlatması sessizce düşüyordu. "Kupon başına 1" kuralı artık "kuponun her bitiş zamanı için 1" demektir.
 
 ---
 
@@ -837,7 +846,7 @@ Ortak tasarım:
   > Sepetinde en çok kazandıran ürüne otomatik uygulanır.
   > **[Alışverişe başla]**
 
-**Doğrulama e-postası** (işlemsel, onaydan bağımsız): Konu `Bollmark: e-postanı doğrula, kalbin sayılsın ❤️`, buton `[E-postamı doğrula]`, 24 saat.
+**Doğrulama e-postası** (işlemsel, onaydan bağımsız): Konu `Bollmark: e-postanı doğrula, kalbin sayılsın ❤️`, buton `[E-postamı doğrula]`, 24 saat. Kayıtta giden doğrulama e-postası (Faz 3 kararı) kampanyadan bahsetmez: konu `Bollmark: e-posta adresini doğrula`.
 
 ### 7.5 Web push (T15)
 - Yalnız tarayıcıda doğrudan destekleyen cihazlarda sunulur (Android ve masaüstü tarayıcılar). Desteği özellik tespiti belirler (`serviceWorker`, `PushManager`, `Notification`).
@@ -913,27 +922,28 @@ Not: mevcut metindeki "IP adresiniz saklanmaz" ifadesi şöyle değiştirilecek:
 
 ## 9. Uygulama fazları ve sırası
 
-Her faz localhost'ta, **test Neon branch'ine** bağlı olarak test edilir. Canlı DB'de test yapılmaz (T13). Her faz sonunda tsc, `npm test`, değişen dosyalarda lint, 1280/375 ekran görüntüleri ve kullanıcı onayı. Şema önce test branch'inde denenir, canlıya yalnız yayın fazında uygulanır.
+Her faz localhost'ta, **canlı veritabanına** bağlı olarak test edilir (T13 güncel: test branch'i yok). Her faz sonunda tsc, `npm test`, değişen dosyalarda lint, 1280/375 ekran görüntüleri ve kullanıcı onayı. Şema değişiklikleri yalnız eklemelidir ve her biri kullanıcı onayıyla uygulanır (T13 kural 1–2). Kampanya test verisi `isTest` ile işaretlenir ve Açık'a geçişte temizlenir (T13 kural 3).
 
 | Faz | Kapsam | Test / tamamlanma koşulu |
 |---|---|---|
-| **0. Test ortamı** | Neon test branch'i (adımlar uygulamada kullanıcıya ayrıca anlatılacak), yerel `.env` bağlantısı. | Branch'te `db push`. Localhost'un canlı DB'ye yazmadığı doğrulanır. |
-| **1. Kaydedilenler (T9)** | Favori → yer imi + "Kaydet / Kaydedilenler", sayfa taşıma + 301. Ayrı yayınlanabilir. | Kaydet/çıkar, misafir senkronu, eski URL, Meta/GA4 olayları. |
-| **2. Temel** | Şema (tümü), ayarlar (mod + test hesapları + test eşiği + kötüye kullanım eşikleri + engelli alan adları), ürün checkbox'ı, denetim eylemleri, `campaignStateFor` + `durum` ucu. Mod `OFF`. | Ayarlar, mod geçişleri, işlem geçmişi. |
-| **3. Üyelik ve onay** | E-posta doğrulama, T12/Y7 script'i (test branch'inde kuru + gerçek), geçici e-posta engeli (paket + admin listesi), `bm_cihaz` + `CustomerDevice`, kayıt formu, İletişim tercihleri (push satırı özellik tespitli), `MarketingConsentLog` (ham IP), abonelikten çıkma, onay CSV'si, temizlik cron'u. | Doğrulama akışı. Geçici alan adıyla kayıt reddi. Onay log satırları. Girişsiz çıkış. CSV. Temizlik cron'u tarih kaydırılmış test verisinde IP'leri siler. |
-| **4. Bar ve kalp** | `bar.ts`, kalp uçları, ürün sayfası bileşeni, misafir akışı, ilk kalp penceresi (e-posta kutusu; push bölümü Faz 8'de bağlanır), katalog rozeti, Kalplerim (kalpler, hak), FROZEN/INVISIBLE davranışı, gizli mod görünürlüğü, test turları (test eşiği) ve Açık'a geçişte test sıfırlaması (Y12). | Eşik 3 ile tur kapanışı. Eşzamanlılık script'i. HIDDEN'da test dışı hesap hiçbir öğe görmez, test turları test eşiğiyle açılır. FROZEN'da geri çekme çalışır. 10.9 sıfırlama senaryosu. |
-| **5. Davet** | Davet kodu, `/davet/...`, çerez + gizli alan, cihaz kuralları (inceleme) ve aynı IP işareti (Y2/Y13), bonus kredileri ve yerleştirme (T4/Y5), artan kısmın bölünüp beklemeye dönmesi (Y11), 30 gün dolumu, admin Davetler ekranı (tek tık onay/iptal, Y11 iptal kuralı). | 10.2 senaryoları. |
-| **6. Fiyat, sepet ve sipariş** | `priceCart` + `api/sepet/fiyat`, `pricing.ts` + testler, sepet/ödeme arayüzü, puan tavanı, `api/orders` bölme ve rezervasyon, USED/serbest bırakma. | Sandbox ödeme. iyzico sepet toplamı = sipariş toplamı. Vega'ya gidecek sipariş yanıtının (`vega-siparis.ts`) bölünmüş satırlarla doğru üretildiği birim testle doğrulanır. Canlı Vega kontrolü yayın fazında yapılır (Y10). |
-| **7. İade ve değişim** | TAMAMLANDI + ücret iadesiyle geri yükleme, değişim ürünü/fiyat/fark, "fark tahsil/iade edildi" işaretleme. | 10.7 senaryoları. |
-| **8. Bildirimler** | Outbox, zil, 4 e-posta şablonu, günlük sınır (Y1), "son 6 saat" sınır dışı, push (özellik tespiti, sw.js, VAPID, ilk kalp penceresinin push bölümü), saatlik cron. | 10.10 senaryoları. Push Chrome masaüstü ve Android'de. iPhone Safari'de push bölümünün hiç çıkmadığı kontrol edilir. |
-| **9. Vitrin** | `/kalp-topla`, duyuru şeridi, ilk ziyaret penceresi, kampanya koşulları, Gizlilik ve Çerez metinleri (8.1, 8.2). | Ekran görüntüleri, çerez bandıyla çakışma. |
-| **10. Rapor** | Rapor, talep, bonus sayıları, müşteri detayı. | Test verisiyle elle sayım. |
+| **0. Yerel ortam güvenliği (T13 güncel)** ✅ Tamamlandı (2026-10-30) | Test branch'i yok, localhost canlı DB'yi kullanır (`.env` veritabanı ayarına dokunulmaz). 1) Yerelde gönderilen TÜM e-postalar yalnız ozilevent@gmail.com'a gider, konuya "[TEST → asıl alıcı: ...]" eklenir; yalnız yerel ortam değişkeniyle (`MAIL_DEV_REDIRECT`) çalışır, Vercel'de tanımsız. 2) Localhost'ta web push yalnız kullanıcının kendi hesaplarına gönderilir (push kodu Faz 8'de bu kuralla yazılır). 3) Localhost'ta iyzico sandbox kontrolü. 4) Localhost'tan Vega'ya istek gitmediğinin kontrolü. **Karar (2026-10-30):** Localhost test siparişleri Vega'ya düşebilir, kabul edildi; gerekirse Vega'dan elle silinir. Vega tarafında önlem ya da kod değişikliği yapılmaz. 5) Vercel, canlı deploy, Neon, iyzico/Vega/e-posta/DNS/Meta panellerine dokunulmaz. | E-posta yönlendirmesi, iyzico ve Vega kontrollerinin sonucu kullanıcıya raporlanır. Canlı siteye dokunulmadığı doğrulanır. |
+| **1. Kaydedilenler (T9)** ✅ Tamamlandı (2026-10-30) | Favori → yer imi + "Kaydet / Kaydedilenler", sayfa taşıma + 301. Ayrı yayınlanabilir. | Kaydet/çıkar, misafir senkronu, eski URL, Meta/GA4 olayları. |
+| **2. Temel** ✅ Tamamlandı (2026-10-30) | Şema (tümü), ayarlar (mod + test hesapları + test eşiği + kötüye kullanım eşikleri + engelli alan adları), ürün checkbox'ı, denetim eylemleri, `campaignStateFor` + `durum` ucu. Mod `OFF`. | Ayarlar, mod geçişleri, işlem geçmişi. |
+| **3. Üyelik ve onay** ✅ Tamamlandı (2026-10-30) | E-posta doğrulama (her yeni kayıtta e-posta), T12/Y7 script'i (şimdi kuru, gerçek yayın fazında), geçici e-posta engeli (paket + admin listesi), `bm_cihaz` + `CustomerDevice`, kayıt formu, İletişim tercihleri (push satırı Faz 8'de), `MarketingConsentLog` (ham IP), abonelikten çıkma, onay CSV'si, temizlik cron'u. | Doğrulama akışı. Geçici alan adıyla kayıt reddi. Onay log satırları. Girişsiz çıkış. CSV. Temizlik cron'u tarih kaydırılmış test verisinde IP'leri siler. |
+| **4. Bar ve kalp** ✅ Tamamlandı (2026-10-30) | `bar.ts`, kalp uçları, ürün sayfası bileşeni, misafir akışı, ilk kalp penceresi (e-posta kutusu; push bölümü Faz 8'de bağlanır), katalog rozeti, Kalplerim (kalpler, hak), FROZEN/INVISIBLE davranışı, gizli mod görünürlüğü, test turları (test eşiği) ve Açık'a geçişte test sıfırlaması (Y12). | Eşik 3 ile tur kapanışı. Eşzamanlılık script'i. HIDDEN'da test dışı hesap hiçbir öğe görmez, test turları test eşiğiyle açılır. FROZEN'da geri çekme çalışır. 10.9 sıfırlama senaryosu. |
+| **5. Davet** ✅ Tamamlandı (2026-10-30) | Davet kodu, `/davet/...`, çerez + gizli alan, cihaz kuralları (inceleme) ve aynı IP işareti (Y2/Y13), bonus kredileri ve yerleştirme (T4/Y5), artan kısmın bölünüp beklemeye dönmesi (Y11), 30 gün dolumu, admin Davetler ekranı (tek tık onay/iptal, Y11 iptal kuralı). | 10.2 senaryoları. |
+| **6. Fiyat, sepet ve sipariş** ✅ Tamamlandı (2026-10-30; kullanıcı kararıyla ödemeyi yarıda bırakma, 2 adet + puan ve 1280/375 ekran görüntüleri yapılmadan kapatıldı, yayın öncesi bakılacak) | `priceCart` + `api/sepet/fiyat`, `pricing.ts` + testler, sepet/ödeme arayüzü, puan tavanı, `api/orders` bölme ve rezervasyon, USED/serbest bırakma. | Sandbox ödeme. iyzico sepet toplamı = sipariş toplamı. Vega'ya gidecek sipariş yanıtının (`vega-siparis.ts`) bölünmüş satırlarla doğru üretildiği birim testle doğrulanır. Canlı Vega kontrolü yayın fazında yapılır (Y10). Localhost sandbox test siparişlerinin (ortak DB üzerinden) Vega'ya düşmesi kabul edildi, bu faz için açık nokta değildir; gerekirse Vega'dan elle silinir (Faz 0 kararı). |
+| **7. İade ve değişim** ✅ Tamamlandı (2026-10-31) | TAMAMLANDI + ücret iadesiyle geri yükleme, değişim ürünü/fiyat/fark, "fark tahsil/iade edildi" işaretleme. | 10.7 senaryoları. |
+| **8. Bildirimler** ✅ Tamamlandı (2026-10-31; kullanıcı kararıyla ilk kalp penceresi kalktı, gerçek push testi yapılmadı, yayın öncesi bakılacak) | Outbox, zil, 4 e-posta şablonu, günlük sınır (Y1), "son 6 saat" sınır dışı, push (özellik tespiti, sw.js, VAPID, ilk kalp penceresinin push bölümü, İletişim tercihlerindeki push satırı), saatlik cron. Localhost'ta push yalnız kullanıcının kendi hesaplarına gönderilir (Faz 0 kural 2). | 10.10 senaryoları. Push Chrome masaüstü ve Android'de. iPhone Safari'de push bölümünün hiç çıkmadığı kontrol edilir. |
+| **9. Vitrin** ✅ Tamamlandı (2026-10-31; kullanıcı kararıyla FROZEN'da `/kalp-topla` açık kalır, üstte duraklatma notu çıkar; şerit X ile 7 gün kapanır; Gizlilik metni kalp verince açılan e-postayı anlatır; "IP adresiniz saklanmaz" değişikliği metinde karşılığı olmadığı için atlandı; Çerez Politikası kodda kalır, `main`'e birleşince yayına çıkar) | `/kalp-topla`, duyuru şeridi, ilk ziyaret penceresi, kampanya koşulları, Gizlilik ve Çerez metinleri (8.1, 8.2). | Ekran görüntüleri, çerez bandıyla çakışma. |
+| **10. Rapor** ✅ Tamamlandı (2026-10-31; kullanıcı kararıyla raporda ayrı "Test verisi" görünümü var, ciro yalnız kuponlu satırlar ve kısmi iadeler düşmez, geçerli davet yalnız `CREDITED`; Kalplerim'deki "İptal edildi" etiketi tarayıcıda görülmedi, yayın öncesi bakılacak) | Rapor, talep, bonus sayıları, müşteri detayı. | Test verisiyle elle sayım. |
 | **11. Yayın** | Aşağıdaki kontrol listesi. | Listenin tamamı. |
 
 ### 9.1 Yayın fazı kontrol listesi (Y10)
-1. Canlı DB'ye şema (`db push`) ve SQL indeksleri. Vercel'e env'ler: VAPID, abonelik HMAC anahtarı, `DEVICE_IP_SALT`.
+1. Canlı DB'ye şema (`db push`, kısmi indeks dahil). Vercel'e env'ler: VAPID, abonelik HMAC anahtarı, `DEVICE_IP_SALT`.
 2. T12/Y7 script'i canlıda önce kuru çalıştırılır, sayılar kullanıcıya gösterilir, onayla gerçek çalıştırılır.
 3. Gizlilik, Çerez ve Kampanya koşulları metinleri DB'ye hedefli yazılır (kullanıcı onayıyla).
+   - Kampanya koşulları metni (scripts/kalp-topla-yasal-metinler.ts) mod Açık'a alınmadan önce DB'ye yazılmalı, yoksa /sayfa/kalp-topla-kosullari 404 verir.
 4. Admin'de mod **Gizli yayın**. Test hesapları olarak kullanıcının kendi hesabı ve en az bir ek hesap eklenir (test eşiği varsayılan 2). İki test hesabı aynı ürüne kalp verir, test turu dolar, kuponlar oluşur (Y12).
 5. Kullanıcı kendi hesabıyla **gerçek bir kuponlu sipariş** verir (iyzico canlı).
 6. Kontrol:
@@ -1048,7 +1058,7 @@ Her faz localhost'ta, **test Neon branch'ine** bağlı olarak test edilir. Canl�
 ### 10.10 Bildirim ve onay
 - Onaylı üye aynı gün önce "son 2 kalp", sonra "arkadaşın katıldı" → ilki e-posta + site içi + push, ikincisi yalnız site içi + push. Ertesi gün e-posta gitmez.
 - Gün sınırı İstanbul saatiyle: 23:50'de bir olay, 00:10'da bir olay → iki ayrı günün e-postası.
-- Aynı gün "son 2 kalp" e-postası gittikten sonra kupon "son 6 saat"e girer → "son 6 saat" e-postası **gider** (sınır dışı). Aynı kupon için ikinci kez gitmez.
+- Aynı gün "son 2 kalp" e-postası gittikten sonra kupon "son 6 saat"e girer → "son 6 saat" e-postası **gider** (sınır dışı). Aynı kupon için ikinci kez gitmez; admin süreyi uzatırsa yeni bitiş için bir kez daha gider (Faz 10).
 - Aynı gün 3 bar doldu → 3 "kupon kazandın" e-postası.
 - Onaysız üye → e-posta yok.
 - Çıkış linki girişsiz çalışır, log satırı yazılır. GET önizlemesi onayı geri çekmez. `List-Unsubscribe-Post` çalışır.
@@ -1132,8 +1142,15 @@ Karar: Site içi ve push ile anında. E-posta yalnız onaylı üyelere, günlük
 **T12. Mevcut üyeler.**
 Karar: En az bir ödenmiş siparişi olan mevcut üyeler doğrulanmış kabul edilir. Diğerlerine ilk kalpte doğrulama e-postası gider, kalpleri doğrulamaya kadar "bekliyor" kalır. (→ 5.4; tanım Y7)
 
-**T13. Test veritabanı.**
-Karar: Ayrı Neon branch, localhost ona bağlı, canlıda test yok, migration'lar önce test branch'inde. Branch açma adımları uygulamada kullanıcıya ayrıca anlatılacak. (→ 4, 9, 10)
+**T13. Veritabanı (güncel karar, 2026-10-30).**
+Karar: Ayrı test branch'i kullanılmaz; geliştirme canlı veritabanında yapılır. Site herkese açık olduğu için şu kurallar bütün fazlarda bağlayıcıdır:
+1. Şema değişiklikleri yalnızca EKLEME şeklinde olur: yeni tablo, yeni alan (nullable ya da varsayılan değerli), yeni index. Mevcut tablo/alan silinmez, adı değiştirilmez, tipi değiştirilmez; mevcut veri silinmez ve değiştirilmez. Böylece henüz yeni kodu almamış canlı site bu değişikliklerden etkilenmez. T9'daki Favoriler → Kaydedilenler değişikliği yalnızca arayüz metinleri ve ikonla sınırlıdır, veritabanında favori tablosuna/alanlarına dokunulmaz.
+2. Her şema değişikliğinden veya veri yazan scriptten önce kullanıcıya sade Türkçeyle ne ekleneceği, mevcut veriye ve canlı siteye etkisi olup olmadığı ve çalıştırılacak tam komut yazılır; açık onay beklenir. `prisma db push` sırasında veri kaybı uyarısı çıkarsa ASLA `--accept-data-loss` kullanılmaz, durulur ve kullanıcıya bildirilir.
+3. Kampanya test verisi canlı veritabanında oluşacağı için tüm kampanya kayıtları gizli yayın modunda "test" olarak işaretlenir ve Y12/Y15'teki Açık'a geçiş sıfırlamasıyla temizlenir. Test sırasında oluşan test siparişleri de "test" olarak işaretlenip raporlardan hariç tutulur.
+
+Elle uygulanan indeksler (Faz 5, 2026-10-30): `KalpBonusCredit_splitFromId_key` ve kısmi `KalpBonusCredit_root_unique` (`WHERE "splitFromId" IS NULL`), `prisma/manual-sql/2026-10-30-kalp-bonus-credit-indeksleri.sql` ile `prisma db execute` üzerinden uygulandı. İkisi de `schema.prisma`'da tanımlıdır (kısmi olan `partialIndexes` ile), şema ve DB aynıdır.
+
+(Önceki karar "ayrı Neon test branch'i" idi; Neon plan sınırı nedeniyle kaldırıldı. Planın diğer bölümlerindeki "test branch'i" ifadeleri bu güncel karara göre okunur.) (→ 4, 9, 10)
 
 **T14. Kampanya kapatılınca.**
 Karar: Kazanılmış kuponlar süreleri bitene kadar geçerli. Açık barlar dondurulur (yeni kalp ve bonus alınmaz, sayılar korunur), yeniden açılınca kaldığı yerden devam eder. (→ 5.0, 5.9; geri çekme Y8)

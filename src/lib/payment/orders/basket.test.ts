@@ -16,6 +16,16 @@ function mulberry32(seed: number) {
   };
 }
 
+test("Kalp Topla kuponlu satıra indirim dağıtılmaz, sepet toplamı siparişe eşit", () => {
+  const items = buildBasketItems({
+    lines: [{ ...line("kupon", 50000), noDiscount: true }, line("normal", 100000)],
+    shippingCents: 35000,
+    totalCents: 165000
+  });
+  assert.deepEqual(items.map((i) => i.priceCents), [50000, 80000, 35000]);
+  assert.equal(items[2].id, SHIPPING_ITEM_ID);
+});
+
 test("allocateDiscount toplamı tam kuruşa dağıtır ve her pay satırı aşmaz", () => {
   const shares = allocateDiscount([1000, 2000, 3000], 100);
   assert.equal(sum(shares), 100);

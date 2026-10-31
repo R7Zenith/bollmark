@@ -3,11 +3,21 @@
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart";
 
+export type KalpPreview = {
+  couponCount: number;
+  lines: { variantId: string; unitCents: number; originalUnitCents: number }[];
+  applicable: string[];
+};
+
 export type CouponResult = {
   discountCents: number;
   freeShipping: boolean;
   appliedName: string | null;
   lineDiscounts: { variantId: string; discountCents: number }[];
+  bundleDiscountCents: number;
+  kalpDiscountCents: number;
+  pointsCapCents: number;
+  kalp: KalpPreview;
 } | null;
 
 // Sepet ve odeme sayfalarinin ikisinde de kullanilan "indirim kodu" alani -
@@ -19,13 +29,16 @@ export type CouponResult = {
 // dogrula her zaman (kod bos olsa dahi) cagrilir.
 export function CouponField({
   onDiscountChange,
-  variant = "default"
+  variant = "default",
+  refreshKey = 0
 }: {
   onDiscountChange: (result: CouponResult) => void;
   /** "segmented": odeme sayfasinin birlesik input+buton gorunumu icin - sepet sayfasindaki varsayilan stili etkilemez. */
   variant?: "default" | "segmented";
+  /** Degisince onizleme yeniden sorgulanir (siparis PRICE_CHANGED dondurdugunde). */
+  refreshKey?: number;
 }) {
-  const { lines, couponCode, setCouponCode } = useCart();
+  const { lines, couponCode, setCouponCode, kalpSelection } = useCart();
   const [input, setInput] = useState(couponCode ?? "");
   const [status, setStatus] = useState<"idle" | "loading" | "applied" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -35,29 +48,40 @@ export function CouponField({
     setStatus("loading");
     setMessage(null);
     try {
-      const res = await fetch("/api/kuponlar/dogrula", {
+      const res = await fetch("/api/sepet/fiyat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           code,
-          lines: lines.map((l) => ({ productId: l.productId, variantId: l.variantId, quantity: l.quantity }))
+          lines: lines.map((l) => ({ productId: l.productId, variantId: l.variantId, quantity: l.quantity })),
+          kalpSelection
         })
       });
       const data = await res.json();
-      if (!data.valid) {
+      if (!data.ok) {
         setStatus(isExplicitApply ? "error" : "idle");
         setMessage(isExplicitApply ? data.message ?? "Kupon geçersiz." : null);
         onDiscountChange(null);
         return;
       }
-      setStatus(code.trim() ? "applied" : "idle");
-      setMessage(data.message ?? null);
-      if (isExplicitApply) setCouponCode(code.trim().toUpperCase());
+      // Gecersiz kodda kod yok sayilir; otomatik kampanya ve kalp kuponlari yine gorunur.
+      if (data.codeValid) {
+        setStatus(code.trim() ? "applied" : "idle");
+        setMessage(data.message ?? null);
+        if (isExplicitApply) setCouponCode(code.trim().toUpperCase());
+      } else {
+        setStatus(isExplicitApply ? "error" : "idle");
+        setMessage(isExplicitApply ? data.message ?? "Kupon geçersiz." : null);
+      }
       onDiscountChange({
         discountCents: data.discountCents,
         freeShipping: data.freeShipping,
         appliedName: data.appliedName ?? null,
-        lineDiscounts: data.lineDiscounts ?? []
+        lineDiscounts: data.lineDiscounts ?? [],
+        bundleDiscountCents: data.bundleDiscountCents,
+        kalpDiscountCents: data.kalpDiscountCents,
+        pointsCapCents: data.pointsCapCents,
+        kalp: data.kalp
       });
     } catch {
       if (isExplicitApply) {
@@ -76,7 +100,7 @@ export function CouponField({
       checkDiscount(couponCode ?? "", false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lines]);
+  }, [lines, kalpSelection, refreshKey]);
 
   const handleRemove = () => {
     setCouponCode(null);

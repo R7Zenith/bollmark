@@ -20,10 +20,12 @@ import {
   RotateCcw,
   History,
   FileText,
+  UserPlus,
   Mail,
   CreditCard,
   CalendarRange,
-  ChevronDown
+  ChevronDown,
+  Heart
 } from "lucide-react";
 import { isPathAllowedForRole } from "@/lib/roles";
 import { Logo } from "@/components/admin/logo";
@@ -62,6 +64,10 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/admin/kampanyalar", label: "Kampanyalar", icon: Percent },
       { href: "/admin/bundle-kampanyalari", label: "Bundle Kampanyaları", icon: Percent },
+      { href: "/admin/kalp-topla", label: "Kalp Topla", icon: Heart, exact: true },
+      { href: "/admin/kalp-topla/rapor", label: "Kalp Topla Raporu", icon: BarChart3 },
+      { href: "/admin/kalp-topla/davetler", label: "Kalp Topla Davetleri", icon: UserPlus },
+      { href: "/admin/kalp-topla/onaylar", label: "Kalp Topla Onayları", icon: FileText },
       { href: "/admin/terk-edilmis-sepetler", label: "Terk Edilmiş Sepetler", icon: ShoppingCart }
     ]
   },

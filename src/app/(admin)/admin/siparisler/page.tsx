@@ -119,6 +119,7 @@ export default async function AdminOrdersPage({
     status: o.status,
     paymentStatus: o.paymentStatus,
     needsAttention: o.needsAttention,
+    attentionNote: o.attentionNote,
     shipmentStatus: o.shipment?.status ?? null,
     totalCents: o.totalCents,
     createdAt: o.createdAt.toISOString(),

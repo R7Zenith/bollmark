@@ -1,13 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { trackCompleteRegistration } from "@/lib/meta/track";
+import { CONSENT_TEXTS } from "@/lib/kalp-topla/consent-texts";
+import { INVITE_COOKIE } from "@/lib/kalp-topla/invite-rules";
+
+// Kalp Topla misafir akisi (plan 6.1): ?sekme=kayit&callbackUrl=/urunler/..&kalp=urunId.
+// Giris/kayit sonrasi ayni urune ?kalp= ile donulur, kalp orada otomatik verilir.
+// Yalniz site ici yollar kabul edilir (acik yonlendirme olmasin).
+// T8: davet kodu cerezin yaninda istek govdesinde de tasinir; sunucu yeniden dogrular.
+function inviteFieldValue(): string | undefined {
+  return document.cookie
+    .split("; ")
+    .find((row) => row.startsWith(`${INVITE_COOKIE}=`))
+    ?.slice(INVITE_COOKIE.length + 1);
+}
+
+function afterAuthPath(searchParams: URLSearchParams): string {
+  const callbackUrl = searchParams.get("callbackUrl") ?? "";
+  if (!callbackUrl.startsWith("/") || callbackUrl.startsWith("//") || callbackUrl.startsWith("/\\")) return "/hesap";
+  const kalp = searchParams.get("kalp");
+  if (!kalp) return callbackUrl;
+  return `${callbackUrl}${callbackUrl.includes("?") ? "&" : "?"}kalp=${encodeURIComponent(kalp)}`;
+}
 
 export default function HesapGirisPage() {
+  return (
+    <Suspense>
+      <HesapGiris />
+    </Suspense>
+  );
+}
+
+function HesapGiris() {
   const router = useRouter();
-  const [tab, setTab] = useState<"giris" | "kayit">("giris");
+  const searchParams = useSearchParams();
+  const [tab, setTab] = useState<"giris" | "kayit">(searchParams.get("sekme") === "kayit" ? "kayit" : "giris");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +58,7 @@ export default function HesapGirisPage() {
       setError("E-posta veya şifre hatalı.");
       return;
     }
-    router.push("/hesap");
+    router.push(afterAuthPath(searchParams));
     router.refresh();
   };
 
@@ -42,6 +72,9 @@ export default function HesapGirisPage() {
       email: String(form.get("email") || ""),
       phone: String(form.get("phone") || "") || undefined,
       password: String(form.get("password") || ""),
+      marketingEmail: form.get("marketingEmail") === "on",
+      marketingWhatsapp: form.get("marketingWhatsapp") === "on",
+      davet: inviteFieldValue(),
       metaEventId: crypto.randomUUID()
     };
 
@@ -68,7 +101,7 @@ export default function HesapGirisPage() {
         setTab("giris");
         return;
       }
-      router.push("/hesap");
+      router.push(afterAuthPath(searchParams));
       router.refresh();
     } catch {
       setError("Bir sorun oluştu, lütfen tekrar deneyin.");
@@ -156,6 +189,21 @@ export default function HesapGirisPage() {
                 <label htmlFor="kayit-password" className={labelClass}>Şifre (en az 8 karakter)</label>
                 <input id="kayit-password" name="password" type="password" autoComplete="new-password" required minLength={8} className={inputClass} />
               </div>
+              <label className="flex items-start gap-3 text-xs text-ink/80">
+                <input type="checkbox" name="marketingEmail" className="mt-0.5 h-4 w-4 shrink-0" />
+                {CONSENT_TEXTS.EMAIL.text}
+              </label>
+              <label className="flex items-start gap-3 text-xs text-ink/80">
+                <input type="checkbox" name="marketingWhatsapp" className="mt-0.5 h-4 w-4 shrink-0" />
+                {CONSENT_TEXTS.WHATSAPP.text}
+              </label>
+              <p className="text-[11px] text-ink/60">
+                Kişisel verilerinin işlenmesi hakkında bilgi için{" "}
+                <a href="/sayfa/gizlilik-politikasi" target="_blank" className="underline hover:text-ink">
+                  Aydınlatma Metni
+                </a>
+                &apos;ni oku.
+              </p>
               {error && <p className="text-sm text-red-600">{error}</p>}
               <button type="submit" disabled={loading} className={primaryButtonClass}>
                 {loading ? "İşleniyor..." : "Hesap Oluştur"}

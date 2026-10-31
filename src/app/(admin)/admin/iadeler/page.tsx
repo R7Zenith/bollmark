@@ -11,7 +11,8 @@ import { EmptyState } from "@/components/admin/empty-state";
 import { IadelerFilters } from "@/components/admin/iadeler-filters";
 import { ReturnsTable, type ReturnRow } from "@/components/admin/returns-table";
 import { ReturnFeedback } from "@/components/admin/return-feedback";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatPrice } from "@/lib/format";
+import { handleReturnCompleted, saveExchange, settleExchangeDiff } from "@/lib/kalp-topla/returns";
 
 interface ReturnItemSnapshot {
   orderItemId: string;
@@ -39,6 +40,7 @@ async function updateReturnAction(formData: FormData) {
     ? (statusRaw as ReturnStatus)
     : "TALEP_EDILDI";
   const adminNote = String(formData.get("adminNote") || "").trim() || null;
+  let warning: string | null = null;
 
   try {
     const before = await prisma.returnRequest.findUnique({ where: { id: returnId }, select: { status: true } });
@@ -59,10 +61,34 @@ async function updateReturnAction(formData: FormData) {
       targetId: updated.id,
       detail: `${before?.status ?? "?"} -> ${status}`
     });
+    if (status === "TAMAMLANDI" && before?.status !== "TAMAMLANDI") {
+      warning = await handleReturnCompleted(returnId, {
+        email: session?.user?.email ?? "bilinmiyor",
+        role: session?.user?.role ?? "ADMIN"
+      });
+    }
   } catch {
     redirect("/admin/iadeler?hata=guncellenemedi");
   }
-  redirect("/admin/iadeler?basarili=guncellendi");
+  redirect(`/admin/iadeler?basarili=${warning ?? "guncellendi"}`);
+}
+
+async function pickExchangeAction(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const error = await saveExchange(String(formData.get("returnId") || ""), String(formData.get("sku") || "").trim());
+  redirect(error ? `/admin/iadeler?hata=${error}` : "/admin/iadeler?basarili=degisim-hesaplandi");
+}
+
+async function settleDiffAction(formData: FormData) {
+  "use server";
+  await requireAdmin();
+  const session = await getServerSession(authOptions);
+  const settled = await settleExchangeDiff(String(formData.get("returnId") || ""), {
+    email: session?.user?.email ?? "bilinmiyor",
+    role: session?.user?.role ?? "ADMIN"
+  });
+  redirect(settled ? "/admin/iadeler?basarili=fark-kapandi" : "/admin/iadeler?hata=guncellenemedi");
 }
 
 interface SearchParams {
@@ -101,8 +127,19 @@ export default async function AdminReturnsPage({
     orderBy: { createdAt: "desc" }
   });
 
+  const exchangeVariantIds = returnRequests.flatMap((rr) => (rr.exchangeVariantId ? [rr.exchangeVariantId] : []));
+  const exchangeVariants = await prisma.productVariant.findMany({
+    where: { id: { in: exchangeVariantIds } },
+    select: { id: true, sku: true }
+  });
+  const exchangeSkuById = new Map(exchangeVariants.map((v) => [v.id, v.sku]));
+
   const rows: ReturnRow[] = returnRequests.map((rr) => {
     const itemsById = new Map(rr.order.items.map((item) => [item.id, item]));
+    const couponLines = parseItemsJson(rr.itemsJson).flatMap((line) => {
+      const item = itemsById.get(line.orderItemId);
+      return item?.kalpCouponId ? [item] : [];
+    });
     const itemsSummary = parseItemsJson(rr.itemsJson)
       .map((line) => {
         const item = itemsById.get(line.orderItemId);
@@ -121,7 +158,20 @@ export default async function AdminReturnsPage({
       itemsSummary: itemsSummary || "-",
       status: rr.status,
       adminNote: rr.adminNote,
-      createdAtLabel: formatDate(rr.createdAt)
+      createdAtLabel: formatDate(rr.createdAt),
+      kalp:
+        couponLines.length > 0
+          ? {
+              labels: couponLines.map(
+                (item) =>
+                  `Kalp Topla kuponlu · ödenen ${formatPrice(item.paidCents ?? item.unitPriceCents)} (normal ${formatPrice(item.kalpOriginalUnitCents ?? item.unitPriceCents)})`
+              ),
+              canPickExchange: rr.type === "DEGISIM" && !rr.kalpHandledAt,
+              exchangeSku: rr.exchangeVariantId ? (exchangeSkuById.get(rr.exchangeVariantId) ?? null) : null,
+              diffCents: rr.exchangeDiffCents,
+              diffSettled: rr.exchangeDiffSettledAt !== null
+            }
+          : null
     };
   });
 
@@ -136,7 +186,7 @@ export default async function AdminReturnsPage({
       </div>
 
       <div className="mt-4">
-        <ReturnsTable returns={rows} updateAction={updateReturnAction} />
+        <ReturnsTable returns={rows} updateAction={updateReturnAction} exchangeAction={pickExchangeAction} settleAction={settleDiffAction} />
       </div>
     </div>
   );

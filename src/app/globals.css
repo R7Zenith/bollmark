@@ -280,3 +280,233 @@ body {
   0%, 100% { opacity: 0.15; transform: scale(0.6); }
   50% { opacity: 1; transform: scale(1); }
 }
+
+/* /kalp-topla hero bari: kalpler sirayla dolar, kupon en sonda basilir, 9 sn'de
+   bir bastan. --i siradaki yeri verir.
+   prefers-reduced-motion kontrolu bilerek yok - projedeki animasyon kurali. */
+.kh-heart, .kh-coupon {
+  animation-duration: 9s;
+  animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+  animation-delay: calc(var(--i) * 260ms);
+}
+.kh-heart { animation-name: khHeart; }
+.kh-coupon { animation-name: khCoupon; }
+@keyframes khHeart {
+  0% { opacity: 0; transform: scale(0.5); }
+  5%, 80% { opacity: 1; transform: scale(1); }
+  88%, 100% { opacity: 0; transform: scale(1); }
+}
+@keyframes khCoupon {
+  0% { opacity: 0; transform: rotate(-22deg) scale(1.6); }
+  6%, 58% { opacity: 1; transform: rotate(-6deg) scale(1); }
+  64%, 100% { opacity: 0; transform: rotate(-6deg) scale(1); }
+}
+
+/* Kalp Topla "Nasil calisir?" gorselleri (kalp-nasil-calisir.tsx). Uc sahne tek
+   6 sn'lik donguyu paylasir: 1. sahne %0-30, 2. sahne %33-63, 3. sahne %66-96.
+   prefers-reduced-motion kontrolu bilerek yok - projedeki animasyon kurali. */
+.kt-heart-tap, .kt-ripple, .kt-burst-a, .kt-burst-b, .kt-burst-c, .kt-plane, .kt-friend-in, .kt-plus,
+.kt-heart-bonus, .kt-heart-bonus-late, .kt-heart-jump, .kt-lock, .kt-shackle, .kt-flash, .kt-rays,
+.kt-coupon, .kt-step-1, .kt-step-2, .kt-step-3 {
+  animation-duration: 6s;
+  animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.kt-heart-tap { animation-name: ktHeartTap; }
+.kt-ripple { animation-name: ktRipple; }
+.kt-burst-a { animation-name: ktBurstA; }
+.kt-burst-b { animation-name: ktBurstB; }
+.kt-burst-c { animation-name: ktBurstC; }
+.kt-plane { animation-name: ktPlane; animation-timing-function: ease-in; }
+.kt-friend-in { animation-name: ktFriendIn; }
+.kt-plus { animation-name: ktPlus; }
+.kt-heart-bonus { animation-name: ktHeartBonus; }
+.kt-heart-bonus-late { animation-name: ktHeartBonusLate; }
+.kt-heart-jump { animation-name: ktHeartJump; }
+.kt-lock { animation-name: ktLock; animation-timing-function: linear; }
+.kt-shackle { animation-name: ktShackle; transform-origin: 100% 100%; }
+.kt-flash { animation-name: ktFlash; }
+.kt-rays { animation-name: ktRays; animation-timing-function: linear; }
+.kt-coupon { animation-name: ktCoupon; }
+.kt-step-1 { animation-name: ktStep1; }
+.kt-step-2 { animation-name: ktStep2; }
+.kt-step-3 { animation-name: ktStep3; }
+
+@keyframes ktHeartTap {
+  0%, 9% { opacity: 0; transform: scale(0.2); }
+  13% { opacity: 1; transform: scale(1.9); }
+  18%, 96% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+@keyframes ktRipple {
+  0%, 9% { opacity: 0; transform: scale(0.2); }
+  12% { opacity: 1; transform: scale(0.6); }
+  24%, 100% { opacity: 0; transform: scale(2.2); }
+}
+@keyframes ktBurstA {
+  0%, 10% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+  12% { opacity: 1; transform: translate(0, 0) scale(1.2); }
+  26% { opacity: 1; transform: translate(var(--dx), var(--dy)) scale(1) rotate(200deg); }
+  31%, 100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 10px)) scale(0.3) rotate(320deg); }
+}
+@keyframes ktBurstB {
+  0%, 46% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+  48% { opacity: 1; transform: translate(0, 0) scale(1.2); }
+  60% { opacity: 1; transform: translate(var(--dx), var(--dy)) scale(1) rotate(200deg); }
+  65%, 100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 10px)) scale(0.3) rotate(320deg); }
+}
+@keyframes ktBurstC {
+  0%, 75% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+  77% { opacity: 1; transform: translate(0, 0) scale(1.4); }
+  91% { opacity: 1; transform: translate(var(--dx), var(--dy)) scale(1.1) rotate(240deg); }
+  97%, 100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 14px)) scale(0.3) rotate(360deg); }
+}
+@keyframes ktPlane {
+  0%, 35% { opacity: 0; transform: translate(46px, 32px) scale(0.6); }
+  37% { opacity: 1; transform: translate(46px, 32px) scale(1); }
+  46% { opacity: 1; transform: translate(112px, 32px) scale(1.5); }
+  47%, 100% { opacity: 0; transform: translate(114px, 32px) scale(1.5); }
+}
+@keyframes ktFriendIn {
+  0%, 46% { opacity: 0; transform: scale(0.2); }
+  50% { opacity: 1; transform: scale(1.7); }
+  54%, 96% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+@keyframes ktPlus {
+  0%, 48% { opacity: 0; transform: translateY(-14px) scale(0.4); }
+  52% { opacity: 1; transform: translateY(0) scale(1.5); }
+  56%, 60% { opacity: 1; transform: translateY(0) scale(1); }
+  64%, 100% { opacity: 0; transform: translateY(4px) scale(0.8); }
+}
+@keyframes ktHeartBonus {
+  0%, 53% { opacity: 0; transform: scale(0.2); }
+  56% { opacity: 1; transform: scale(1.9); }
+  60%, 96% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+@keyframes ktHeartBonusLate {
+  0%, 56% { opacity: 0; transform: scale(0.2); }
+  59% { opacity: 1; transform: scale(1.9); }
+  63%, 96% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+@keyframes ktHeartJump {
+  0%, 66% { transform: translateY(0) scale(1); }
+  69% { transform: translateY(-3px) scale(1.5); }
+  72%, 100% { transform: translateY(0) scale(1); }
+}
+@keyframes ktLock {
+  0%, 66% { opacity: 1; transform: rotate(0) scale(1); }
+  68% { transform: rotate(-12deg) scale(1.08); }
+  70% { transform: rotate(12deg) scale(1.12); }
+  72% { transform: rotate(-12deg) scale(1.16); }
+  74% { opacity: 1; transform: rotate(10deg) scale(1.2); }
+  76%, 100% { opacity: 0; transform: rotate(0) scale(1.6); }
+}
+@keyframes ktShackle {
+  0%, 71% { transform: translateY(0) rotate(0); }
+  74%, 100% { transform: translateY(-4px) rotate(30deg); }
+}
+@keyframes ktFlash {
+  0%, 74% { opacity: 0; transform: scale(0.2); }
+  76% { opacity: 1; transform: scale(1); }
+  84%, 100% { opacity: 0; transform: scale(2.4); }
+}
+@keyframes ktRays {
+  0%, 75% { opacity: 0; transform: rotate(0); }
+  79%, 92% { opacity: 0.55; }
+  97%, 100% { opacity: 0; transform: rotate(50deg); }
+}
+@keyframes ktCoupon {
+  0%, 75% { opacity: 0; transform: scale(0.2) rotate(-14deg); }
+  79% { opacity: 1; transform: scale(1.22) rotate(5deg); }
+  83% { opacity: 1; transform: scale(0.96) rotate(-2deg); }
+  86%, 96% { opacity: 1; transform: scale(1) rotate(0); }
+  100% { opacity: 0; transform: scale(1); }
+}
+@keyframes ktStep1 {
+  0%, 9% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+  13% { transform: scale(1.05); box-shadow: 0 0 0 3px #E8315B; }
+  30% { transform: scale(1); box-shadow: 0 0 0 3px #E8315B; }
+  33%, 100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes ktStep2 {
+  0%, 33% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+  36%, 47% { transform: scale(1); box-shadow: 0 0 0 3px #F59E0B; }
+  50% { transform: scale(1.05); box-shadow: 0 0 0 3px #F59E0B; }
+  63% { transform: scale(1); box-shadow: 0 0 0 3px #F59E0B; }
+  66%, 100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
+@keyframes ktStep3 {
+  0%, 66% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+  69%, 74% { transform: scale(1); box-shadow: 0 0 0 3px #FFC83D; }
+  79% { transform: scale(1.07); box-shadow: 0 0 0 3px #FFC83D; }
+  96% { transform: scale(1); box-shadow: 0 0 0 3px #FFC83D; }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 transparent; }
+}
+
+/* Kalp Topla "Arkadasini cagir" penceresi (KalpDavetAnimasyon). Tek sahne, 2,6 sn:
+   davet ucar (%6-28), arkadas katilir ve konfeti (%30), +2 (%33), kalpler dolar (%44-52).
+   prefers-reduced-motion kontrolu bilerek yok - projedeki animasyon kurali. */
+.ka-rays, .ka-plane, .ka-friend, .ka-burst, .ka-plus, .ka-heart, .ka-heart-late {
+  animation-duration: 2.6s;
+  animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.ka-rays { animation-name: kaRays; animation-timing-function: linear; }
+.ka-plane { animation-name: kaPlane; animation-timing-function: ease-in; }
+.ka-friend { animation-name: kaFriend; }
+.ka-burst { animation-name: kaBurst; }
+.ka-plus { animation-name: kaPlus; }
+.ka-heart { animation-name: kaHeart; }
+.ka-heart-late { animation-name: kaHeartLate; }
+
+/* 12 isin: 30 derece donunce ayni gorunur, dongu dikissiz. */
+@keyframes kaRays {
+  to { transform: rotate(30deg); }
+}
+@keyframes kaPlane {
+  0%, 5% { opacity: 0; transform: translate(46px, 38px) scale(0.6); }
+  7% { opacity: 1; transform: translate(46px, 38px) scale(1); }
+  28% { opacity: 1; transform: translate(150px, 38px) scale(1.6); }
+  30%, 100% { opacity: 0; transform: translate(154px, 38px) scale(1.6); }
+}
+@keyframes kaFriend {
+  0%, 28% { opacity: 0; transform: scale(0.2); }
+  33% { opacity: 1; transform: scale(1.8); }
+  38%, 94% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+@keyframes kaBurst {
+  0%, 28% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+  30% { opacity: 1; transform: translate(0, 0) scale(1.3); }
+  52% { opacity: 1; transform: translate(var(--dx), var(--dy)) scale(1) rotate(220deg); }
+  62%, 100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 12px)) scale(0.3) rotate(340deg); }
+}
+@keyframes kaPlus {
+  0%, 31% { opacity: 0; transform: translateY(-16px) scale(0.3); }
+  37% { opacity: 1; transform: translateY(0) scale(1.5); }
+  43%, 92% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(4px) scale(0.8); }
+}
+@keyframes kaHeart {
+  0%, 42% { opacity: 0; transform: scale(0.2); }
+  47% { opacity: 1; transform: scale(2); }
+  53%, 94% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}
+@keyframes kaHeartLate {
+  0%, 48% { opacity: 0; transform: scale(0.2); }
+  53% { opacity: 1; transform: scale(2); }
+  59%, 94% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1); }
+}

@@ -16,6 +16,7 @@ import {
   type RefundLine
 } from "@/lib/payment/orders/refund-math";
 import { revalidateOrderProducts } from "@/lib/revalidate-catalog";
+import { logRestoreResults, restoreOrderCoupons, type RestoreResult } from "@/lib/kalp-topla/order-coupons";
 
 // Iade / iptal (bkz. plan 5.F). Akis: (1) siparis satiri kilitli transaction'da PENDING iade rezerve
 // edilir (kalan tutar bekleyen iadeler dusulerek hesaplanir, cift tik/eszamanli istek fazla iade
@@ -110,7 +111,7 @@ export function buildRefundLines(order: OrderForLines): RefundLine[] {
 }
 
 // Siparis satirini kilitler: ayni siparis icin eszamanli iade/iptal istekleri sirayla islenir.
-async function lockOrder(tx: Tx, orderId: string) {
+export async function lockOrder(tx: Tx, orderId: string) {
   await tx.$queryRaw`SELECT id FROM "Order" WHERE id = ${orderId} FOR UPDATE`;
 }
 
@@ -185,6 +186,8 @@ async function markUncertain(orderId: string, refundId: string, what: string) {
 // Basarili iade/iptali kesinlestirir (tek transaction): kayit, kalem sayaclari, siparis durumu, stok.
 async function finalizeSuccess(refundId: string, hostReference: string | null): Promise<{ orderId: string; amountCents: number; fullyRefunded: boolean } | null> {
   let restocked = false;
+  let couponResults: RestoreResult[] = [];
+  let actorEmail = "";
   const done = await prisma.$transaction(async (tx) => {
     const refund = await tx.paymentRefund.findUnique({ where: { id: refundId } });
     if (!refund) return null;
@@ -220,8 +223,11 @@ async function finalizeSuccess(refundId: string, hostReference: string | null): 
       await tx.productVariant.update({ where: { id: restock.variantId }, data: { stock: { increment: restock.quantity } } });
     }
     restocked = restockVariants.length > 0;
+    actorEmail = refund.createdByEmail;
+    // Siparis durumu REFUNDED olmadan once: kargo kontrolu durumu okur.
+    couponResults = await restoreOrderCoupons(tx, order.id);
 
-    const fresh = await tx.order.findUniqueOrThrow({ where: { id: order.id }, include: { items: true, paymentRefunds: true } });
+    const fresh =await tx.order.findUniqueOrThrow({ where: { id: order.id }, include: { items: true, paymentRefunds: true } });
     const state = nextRefundState(buildRefundLines(fresh));
     await tx.order.update({
       where: { id: order.id },
@@ -236,6 +242,7 @@ async function finalizeSuccess(refundId: string, hostReference: string | null): 
   // Stok geri eklendi (transaction bitti): urun sayfalari tazelenir. Kendi
   // icinde try/catch'li, iade akisini bozmaz.
   if (done && restocked) await revalidateOrderProducts(done.orderId);
+  logRestoreResults({ email: actorEmail, role: "ADMIN" }, couponResults);
   return done;
 }
 

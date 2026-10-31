@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import useEmblaCarousel from "embla-carousel-react";
-import { Heart, Minus, Plus, Truck, RotateCcw, ShieldCheck, Check, ZoomIn, Clock, ChevronRight } from "lucide-react";
+import { Bookmark, Minus, Plus, Truck, RotateCcw, ShieldCheck, Check, ZoomIn, Clock, ChevronRight } from "lucide-react";
 import Lightbox from "yet-another-react-lightbox";
 import Zoom from "yet-another-react-lightbox/plugins/zoom";
 import "yet-another-react-lightbox/styles.css";
@@ -21,6 +21,7 @@ import { usesGreyBackdrop } from "@/lib/image-backdrop";
 import { InfoDrawer } from "@/components/info-drawer";
 import { SizeGuideModal } from "@/components/size-guide-modal";
 import { AskAboutProduct } from "@/components/contact-links";
+import { KalpBar } from "@/components/kalp-topla/kalp-bar";
 
 // Bu esikten dusuk stok "Son N adet" uyarisi gosterir - e-posta gerektirmeyen
 // salt UI bir isaret. Ileride StoreSettings'e tasinabilir (Faz A'ya dahil degil).
@@ -503,9 +504,9 @@ export function ProductViewer({
             type="button"
             onClick={() => toggleWishlist(productId, itemGroupId, wishlistItem)}
             className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-cream/90 shadow"
-            title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
+            title={isWishlisted ? "Kaydedildi" : "Kaydet"}
           >
-            <Heart size={17} fill={isWishlisted ? "currentColor" : "none"} />
+            <Bookmark size={17} fill={isWishlisted ? "currentColor" : "none"} />
           </button>
         </div>
       </div>
@@ -587,14 +588,14 @@ export function ProductViewer({
             type="button"
             onClick={() => toggleWishlist(productId, itemGroupId, wishlistItem)}
             className="mt-1 hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-line hover:border-ink md:flex"
-            title={isWishlisted ? "Favorilerden çıkar" : "Favorilere ekle"}
+            title={isWishlisted ? "Kaydedildi" : "Kaydet"}
           >
-            <Heart size={18} fill={isWishlisted ? "currentColor" : "none"} />
+            <Bookmark size={18} fill={isWishlisted ? "currentColor" : "none"} />
           </button>
         </div>
         {!isAuthenticated && (
           <p className="mt-1 text-center text-xs text-ink/50 md:text-left">
-            Favorileriniz bu cihazda saklanıyor, kalıcı olması için giriş yapın.
+            Kaydettikleriniz bu cihazda saklanıyor, kalıcı olması için giriş yapın.
           </p>
         )}
         {/* Mobilde rozetler masaustundeki gibi basligin UZERINDE degil, urun
@@ -643,6 +644,7 @@ export function ProductViewer({
           </div>
           <span className="text-[10px] uppercase tracking-wide text-ink/40">KDV dahildir.</span>
         </div>
+        <KalpBar productId={productId} />
         {bundleInfo && bundleInfo.otherProductNames.length > 0 && (
           <div className="mt-3 border border-clay/40 bg-clay/5 px-4 py-3 text-sm text-ink/80">
             <p>
