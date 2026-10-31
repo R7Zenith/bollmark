@@ -937,7 +937,7 @@ Her faz localhost'ta, **canlı veritabanına** bağlı olarak test edilir (T13 g
 | **8. Bildirimler** ✅ Tamamlandı (2026-10-31; kullanıcı kararıyla ilk kalp penceresi kalktı, gerçek push testi yapılmadı, yayın öncesi bakılacak) | Outbox, zil, 4 e-posta şablonu, günlük sınır (Y1), "son 6 saat" sınır dışı, push (özellik tespiti, sw.js, VAPID, ilk kalp penceresinin push bölümü, İletişim tercihlerindeki push satırı), saatlik cron. Localhost'ta push yalnız kullanıcının kendi hesaplarına gönderilir (Faz 0 kural 2). | 10.10 senaryoları. Push Chrome masaüstü ve Android'de. iPhone Safari'de push bölümünün hiç çıkmadığı kontrol edilir. |
 | **9. Vitrin** ✅ Tamamlandı (2026-10-31; kullanıcı kararıyla FROZEN'da `/kalp-topla` açık kalır, üstte duraklatma notu çıkar; şerit X ile 7 gün kapanır; Gizlilik metni kalp verince açılan e-postayı anlatır; "IP adresiniz saklanmaz" değişikliği metinde karşılığı olmadığı için atlandı; Çerez Politikası kodda kalır, `main`'e birleşince yayına çıkar) | `/kalp-topla`, duyuru şeridi, ilk ziyaret penceresi, kampanya koşulları, Gizlilik ve Çerez metinleri (8.1, 8.2). | Ekran görüntüleri, çerez bandıyla çakışma. |
 | **10. Rapor** ✅ Tamamlandı (2026-10-31; kullanıcı kararıyla raporda ayrı "Test verisi" görünümü var, ciro yalnız kuponlu satırlar ve kısmi iadeler düşmez, geçerli davet yalnız `CREDITED`; Kalplerim'deki "İptal edildi" etiketi tarayıcıda görülmedi, yayın öncesi bakılacak) | Rapor, talep, bonus sayıları, müşteri detayı. | Test verisiyle elle sayım. |
-| **11. Yayın** | Aşağıdaki kontrol listesi. | Listenin tamamı. |
+| **11. Yayın** ✅ Tamamlandı (2026-10-31; kullanıcı kararıyla 9.1'in 5, 6 ve 7. maddeleri atlandı, T12/Y7 script'i 0 üye çıktığı için yazma modunda çalıştırılmadı) | Aşağıdaki kontrol listesi. | Listenin tamamı. |
 
 ### 9.1 Yayın fazı kontrol listesi (Y10)
 1. Canlı DB'ye şema (`db push`, kısmi indeks dahil). Vercel'e env'ler: VAPID, abonelik HMAC anahtarı, `DEVICE_IP_SALT`.
@@ -945,12 +945,12 @@ Her faz localhost'ta, **canlı veritabanına** bağlı olarak test edilir (T13 g
 3. Gizlilik, Çerez ve Kampanya koşulları metinleri DB'ye hedefli yazılır (kullanıcı onayıyla).
    - Kampanya koşulları metni (scripts/kalp-topla-yasal-metinler.ts) mod Açık'a alınmadan önce DB'ye yazılmalı, yoksa /sayfa/kalp-topla-kosullari 404 verir.
 4. Admin'de mod **Gizli yayın**. Test hesapları olarak kullanıcının kendi hesabı ve en az bir ek hesap eklenir (test eşiği varsayılan 2). İki test hesabı aynı ürüne kalp verir, test turu dolar, kuponlar oluşur (Y12).
-5. Kullanıcı kendi hesabıyla **gerçek bir kuponlu sipariş** verir (iyzico canlı).
-6. Kontrol:
+5. Kullanıcı kendi hesabıyla **gerçek bir kuponlu sipariş** verir (iyzico canlı). **Kullanıcı kararıyla atlandı.**
+6. Kontrol (**kullanıcı kararıyla atlandı**):
    - siparişin admin'de iki ayrı satırla (kuponlu + normal) göründüğü,
    - Vega'ya ayrı satırlarla ve doğru tutarlarla düştüğü,
    - fatura tarafında (Arctos/BLM serisi) satır tutarlarının ve KDV'nin doğru olduğu.
-7. Gerekirse sipariş iptal/iade edilir. Kuponun geri yüklenmesi de bu sırada doğrulanır.
+7. Gerekirse sipariş iptal/iade edilir. Kuponun geri yüklenmesi de bu sırada doğrulanır. **Kullanıcı kararıyla atlandı.**
 8. Mod **Açık**'a alınır. Onay penceresinde test verisi sayıları ve varsa ödenmemiş test siparişleri kontrol edilip onaylanır (Y12/Y15). Kontrol:
    - test turlarının, kalplerin, davetlerin ve bekleyen test bonuslarının silindiği,
    - kullanılmamış test kuponlarının `TEST_CANCELLED` olduğu ve sepette uygulanmadığı,

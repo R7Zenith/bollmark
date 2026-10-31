@@ -1,12 +1,25 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-10-31, Kalp Topla Faz 11, yayın sürüyor)
+## KALDIĞIM YER (2026-10-31, Kalp Topla Faz 11, yayın tamamlandı)
 
-- `kalp-topla-wip`, `main`'e birleştirildi; `vercel.json`'daki bu dalın deploy kapatma satırı kaldırıldı. Canlı DB şemayla aynı (`migrate diff` boş, kısmi indeksler var), `db push` gerekmedi. Mod Gizli yayın.
-- **Vercel Production'a eklendi:** `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `UNSUBSCRIBE_SECRET`, `DEVICE_IP_SALT` (yalnız Production, yerel `.env`'den ayrı değerler). Canlıda push aboneliği 0, silinecek kayıt yok.
+- **Kalp Topla 2026-10-31'de yayında, mod Açık** (geçiş 13:33 UTC, kullanıcı yaptı). Eşik 10, %50, kupon 48 saat. Deploy `bollmark-eckpjr7jd`, `main` `c7e202c`.
+- `kalp-topla-wip`, `main`'e birleştirildi; `vercel.json`'daki bu dalın deploy kapatma satırı kaldırıldı. Canlı DB şemayla aynı (`migrate diff` boş, kısmi indeksler var), `db push` gerekmedi.
+- **Vercel Production'a eklendi:** `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `UNSUBSCRIBE_SECRET`, `DEVICE_IP_SALT` (yalnız Production, yerel `.env`'den ayrı değerler). Secret değerler geri okunamadığı için ilk gerçek push ve çıkış e-postasında sınanacak. Canlıda push aboneliği 0.
+- **T12/Y7:** 0 üye, gerek kalmadı. 25 siparişin hepsi silinmiş, uygun ödenmiş sipariş yok; `--uygula` çalıştırılmadı. 6 üyeden 2'si doğrulanmamış, ilk kalpte doğrulama e-postası alır.
+- **Yasal metinler:** Gizlilik güncellendi (6776 → 9172 karakter), Kampanya Koşulları oluşturuldu. Yazma öncesi yedek `Claude outputs/kalp-topla-yayin/yasal-metinler-yedek-oncesi.json`. Üç sayfa canlıda 200. Sitemap 1 saatlik önbellekte, Koşullar'ın girdiği görülmedi.
+- **Açık'a geçiş doğrulandı:** tur, kalp, davet, bonus, bar 0. 4 test kuponu `TEST_CANCELLED`, 1 `USED` kaldı. `BLM261030-5986` `kalpTestAt` ile işaretlendi. Ödenmemiş test siparişi yoktu. Yeni bar eşiği kod ve ayardan doğrulandı, gerçek tur satırı ilk kalpte oluşacak.
+- **Misafir kontrolü:** 1280/375 şerit, pencere, bar ve `/kalp-topla` açık, yatay taşma yok. Görüntüler `Claude outputs/kalp-topla-yayin/`. Çerez yalnız o test tarayıcısında reddedildi.
 - **Doğrulama:** tsc temiz, 183/183 birim testi, build temiz. `docs/gunluk/2026-10.md` çakışması iki taraf da korunarak çözüldü.
-- 9.1'in 5, 6 ve 7. maddeleri kullanıcı kararıyla atlanıyor.
-- Sıradaki: T12/Y7 script'i, yasal metinler, Açık moda geçiş (mod değişikliğini kullanıcı yapar), ziyaretçi kontrolü, kapanış.
+- **Atlanan:** 9.1'in 5, 6 ve 7. maddeleri kullanıcı kararıyla yapılmadı.
+- **Bilinen küçük sorunlar (düzeltilmedi):**
+  - 1280 ürün sayfasında şerit (`top` 72-104) üstteki "Çanta · KOTON" satırının (96-114) üstünü kesiyor.
+  - Ürün sayfasında ve başlığında "KOTON" görünüyor (bkz. `KOTON_IBARELERI_KALDIRMA_PLANI.md`).
+  - 375'te çerez bandındaki "Tümünü Kabul Et" iki satıra iniyor.
+- **Kalan elle yapılacaklar:**
+  - İlk gerçek kuponlu siparişte admin'de iki satır, Vega'da ayrı satırlar ve fatura tutarları/KDV kontrol edilecek.
+  - Chrome ve Android'de gerçek push denenecek, iPhone'da tercih satırının çıkmadığına bakılacak.
+  - Saatlik cron'un ilk gerçek bildirimleri ve e-posta görünümü izlenecek.
+  - `/sitemap.xml`'de Koşullar sayfası kontrol edilecek.
 
 ## Önceki not (2026-10-31, Kalp Topla Faz 10)
 
