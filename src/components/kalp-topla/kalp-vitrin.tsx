@@ -63,7 +63,7 @@ function KalpSerit({ text }: { text: { short: string; long: string } }) {
   const [closed, setClosed] = useState(stripDismissed);
   if (closed) return null;
   return (
-    <div className="absolute inset-x-0 top-[72px] z-30 flex h-8 items-center justify-center border-b border-sale/15 bg-[#FFF1F4] text-ink">
+    <div data-kalp-serit className="absolute inset-x-0 top-[72px] z-30 flex h-8 items-center justify-center border-b border-sale/15 bg-[#FFF1F4] text-ink">
       <Link href="/kalp-topla" className="flex h-full items-center gap-1.5 whitespace-nowrap pl-2 pr-9 text-[12px] leading-none md:px-10 md:text-[13px]">
         <Heart size={13} className="shrink-0 fill-sale text-sale" aria-hidden="true" />
         <span className="md:hidden">{text.short}</span>

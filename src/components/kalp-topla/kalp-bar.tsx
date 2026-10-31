@@ -239,6 +239,7 @@ export function KalpBar({ productId }: { productId: string }) {
           productId={productId}
           loggedIn={view.loggedIn}
           inviteBonus={view.inviteBonus}
+          activeHeartHere={view.myHeart === "ACTIVE"}
           onGuest={() => setDialog("guest")}
         />
         {view.loggedIn && (

@@ -11,8 +11,13 @@
 - **Misafir kontrolü:** 1280/375 şerit, pencere, bar ve `/kalp-topla` açık, yatay taşma yok. Görüntüler `Claude outputs/kalp-topla-yayin/`. Çerez yalnız o test tarayıcısında reddedildi.
 - **Doğrulama:** tsc temiz, 183/183 birim testi, build temiz. `docs/gunluk/2026-10.md` çakışması iki taraf da korunarak çözüldü.
 - **Atlanan:** 9.1'in 5, 6 ve 7. maddeleri kullanıcı kararıyla yapılmadı.
+- **Yayın sonrası düzeltmeler:**
+  - Şerit varken md ve üstünde ürün sayfası üst boşluğu 32 px artar (`data-kalp-serit`, CSS `:has`), ürün bilgisi kesilmez. Katalog kırıntısına dokunulmadı: kutu 3 px değiyor, yazı görünüyor.
+  - "Arkadaşını çağır" artık önce `KalpDialog` içinde davet kutusunu açar: 3 adım, link, WhatsApp, Linki kopyala, destekleniyorsa Diğer. 3. adım metni bu üründe aktif kalp olup olmamasına göre değişir (`inviteBonusStep`). Kalplerim'deki paylaşım alanı değişmedi. Paylaşım için Meta/GA4 olayı yok.
+  - `KalpDialog` ekran yüksekliğiyle sınırlandı, taşarsa içeride kayar.
+  - Yerel test sahte üye yanıtıyla yapıldı; gerçek üye hesabı ve gerçek telefon denenmedi, `navigator.share` yokken Diğer'in gizlenmesi tarayıcıda doğrulanamadı.
+  - Kullanıcı isteğiyle `denemekalp1`, `kalpdeneme`, `ozileventkalp1` test hesapları canlıdan silindi. Yerel yedek `Claude outputs/kalp-topla-yayin/test-hesaplari-yedek.json`, commit edilmeyecek. Test listesinde 1 hesap kaldı.
 - **Bilinen küçük sorunlar (düzeltilmedi):**
-  - 1280 ürün sayfasında şerit (`top` 72-104) üstteki "Çanta · KOTON" satırının (96-114) üstünü kesiyor.
   - Ürün sayfasında ve başlığında "KOTON" görünüyor (bkz. `KOTON_IBARELERI_KALDIRMA_PLANI.md`).
   - 375'te çerez bandındaki "Tümünü Kabul Et" iki satıra iniyor.
 - **Kalan elle yapılacaklar:**

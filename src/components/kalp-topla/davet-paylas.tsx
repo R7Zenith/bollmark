@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useSyncExternalStore } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { Share2 } from "lucide-react";
-import { inviteShareText, whatsappShareUrl } from "@/lib/kalp-topla/invite-rules";
+import { inviteBonusStep, inviteShareText, whatsappShareUrl } from "@/lib/kalp-topla/invite-rules";
 import { KalpDialog } from "./kalp-dialog";
 import { KalpDavetAnimasyon } from "./kalp-nasil-calisir";
 
 const noSubscribe = () => () => undefined;
+const COPIED_MS = 2500;
 const buttonClass =
   "rounded-full border border-ink px-5 py-2.5 text-[11px] uppercase tracking-[1px] text-ink transition hover:bg-ink/5";
+const channelClass =
+  "rounded-full border border-ink px-4 py-3.5 text-center text-[11px] uppercase tracking-[1px] text-ink transition hover:bg-ink/5";
 
 // Kopyala + WhatsApp (plan 6.4). WhatsApp yalniz resmi wa.me paylasim linkidir.
 export function DavetPaylasim({ path }: { path: string }) {
@@ -43,21 +46,82 @@ export function DavetPaylasim({ path }: { path: string }) {
   );
 }
 
-// Urun sayfasi "Arkadasini cagir" (plan 6.1): dokunmatik cihazda Web Share, masaustunde pencere.
+// Urun sayfasi davet kutusunun kanallari: WhatsApp, kopyala, varsa telefonun paylasim menusu.
+function DavetKanallari({ path }: { path: string }) {
+  const origin = useSyncExternalStore(noSubscribe, () => window.location.origin, () => "");
+  const canShare = useSyncExternalStore(noSubscribe, () => typeof navigator.share === "function", () => false);
+  const [copied, setCopied] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const url = `${origin}${path}`;
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), COPIED_MS);
+    } catch {
+      // Pano izni yoksa link secili kalir, elle kopyalanabilir.
+      inputRef.current?.select();
+    }
+  };
+
+  // Kullanici menuyu kapatirsa (AbortError) kutu acik kalir, yapilacak bir sey yok.
+  const share = () => navigator.share({ text: inviteShareText(url) }).catch(() => undefined);
+
+  return (
+    <div className="mt-4">
+      <input
+        ref={inputRef}
+        readOnly
+        value={url}
+        aria-label="Davet linkin"
+        onFocus={(e) => e.currentTarget.select()}
+        className="w-full truncate rounded-lg border border-line bg-transparent px-4 py-3 text-xs text-ink"
+      />
+      <a
+        href={whatsappShareUrl(url)}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-3 block rounded-full bg-ink px-6 py-3.5 text-center text-[11px] uppercase tracking-[1px] text-white hover:bg-ink/90"
+      >
+        WhatsApp&apos;ta gönder
+      </a>
+      <div className="mt-2 flex gap-2">
+        <button type="button" onClick={copy} aria-live="polite" className={`flex-1 ${channelClass}`}>
+          {copied ? "Kopyalandı ✓" : "Linki kopyala"}
+        </button>
+        {canShare && (
+          <button type="button" onClick={share} className={`flex-1 ${channelClass}`}>
+            Diğer
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Urun sayfasi "Arkadasini cagir" (plan 6.1): once ne olacagini anlatan kutu acilir.
 export function ArkadasiniCagir({
   productId,
   loggedIn,
   inviteBonus,
+  activeHeartHere,
   onGuest
 }: {
   productId: string;
   loggedIn: boolean;
   inviteBonus: number;
+  activeHeartHere: boolean;
   onGuest: () => void;
 }) {
   const [path, setPath] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const steps = [
+    "Davet linkini arkadaşına gönder.",
+    "Arkadaşın linkle üye olur ve e-postasını doğrular.",
+    inviteBonusStep(inviteBonus, activeHeartHere)
+  ];
 
   const invite = async () => {
     if (!loggedIn) return onGuest();
@@ -66,15 +130,6 @@ export function ArkadasiniCagir({
     const data = res?.ok ? ((await res.json()) as { path: string }) : null;
     if (!data) return setError("Davet linki alınamadı, tekrar dene.");
     setPath(data.path);
-    const url = `${window.location.origin}${data.path}`;
-    if (typeof navigator.share === "function" && window.matchMedia("(pointer: coarse)").matches) {
-      try {
-        await navigator.share({ text: inviteShareText(url) });
-        return;
-      } catch (e) {
-        if (e instanceof DOMException && e.name === "AbortError") return;
-      }
-    }
     setOpen(true);
   };
 
@@ -85,12 +140,17 @@ export function ArkadasiniCagir({
         Arkadaşını çağır
       </button>
       {error && <p className="w-full text-xs text-sale">{error}</p>}
-      <KalpDialog open={open} onClose={() => setOpen(false)} title="Arkadaşını çağır">
+      <KalpDialog open={open} onClose={() => setOpen(false)} title="Arkadaşını çağır, kalpler hızlansın">
         <KalpDavetAnimasyon bonus={inviteBonus} />
-        <p className="mb-4 mt-4 text-sm text-ink/70">
-          Senin linkinle üye olan arkadaşın e-postasını doğrulayınca barına +{inviteBonus} kalp ekler.
-        </p>
-        {path && <DavetPaylasim path={path} />}
+        <ol className="mt-4 space-y-2 text-sm text-ink/70">
+          {steps.map((step, i) => (
+            <li key={step} className="flex gap-2.5">
+              <span className="font-medium text-ink">{i + 1}.</span>
+              <span>{step}</span>
+            </li>
+          ))}
+        </ol>
+        {path && <DavetKanallari path={path} />}
       </KalpDialog>
     </>
   );

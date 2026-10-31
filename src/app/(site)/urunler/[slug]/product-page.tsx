@@ -109,7 +109,9 @@ export async function renderProductPage(rawSlug: string, renk?: string) {
     // yer aciyor, eski py-16'nin ustteki 64px'i bunun UZERINE ekleniyordu
     // (bkz. URUN_DETAY_HEADER_BOSLUGU_VE_ROZET_PLANI.md) - ust bosluk
     // md:pt-6'ya dusuruldu, alt bosluk (md:pb-16) degismedi.
-    <div className="w-full px-4 py-4 md:px-6 md:pt-6 md:pb-16 xl:px-9">
+    // Kalp Topla seridi icerigi itmez (kalp-vitrin.tsx); serit varken ust
+    // bosluga 32px eklenir ki urun bilgisi seridin altinda kalmasin.
+    <div className="w-full px-4 py-4 md:px-6 md:pt-6 md:pb-16 xl:px-9 md:[body:has([data-kalp-serit])_&]:pt-14">
       <JsonLd data={productJsonLd} />
       <JsonLd data={breadcrumbJsonLd([...breadcrumb, { label: product.name, href: `/urunler/${product.slug}` }])} />
       <ProductViewer

@@ -1,5 +1,6 @@
 // Davetin saf kurallari (KALP_TOPLA_PLANI.md 5.5, T8, Y2). Istemci de kullanir:
 // prisma ya da sunucu modulu import edilmez.
+import { BONUS_WAITING_DAYS } from "./bonus";
 
 export const INVITE_COOKIE = "bm_davet";
 const INVITE_COOKIE_DAYS = 7;
@@ -69,6 +70,12 @@ export function inviteHistoryLabel(
 
 export function inviteShareText(url: string): string {
   return `Bollmark'ta üye ol, beğendiğimiz ürünlerin indirimini birlikte açalım: ${url}`;
+}
+
+// Davet kutusu 3. adim (plan 5.6.1): bonus bu urune yalniz burada aktif kalp varsa gider.
+export function inviteBonusStep(bonus: number, activeHeartHere: boolean): string {
+  if (activeHeartHere) return `Bu ürünün barına +${bonus} kalp eklenir.`;
+  return `+${bonus} kalp, dolmaya en yakın barına eklenir. Aktif kalbin yoksa ${BONUS_WAITING_DAYS} gün içinde vereceğin ilk kalbin barına eklenir.`;
 }
 
 // Yalniz resmi paylasim linki: kullanicinin kendi WhatsApp'ini acar.

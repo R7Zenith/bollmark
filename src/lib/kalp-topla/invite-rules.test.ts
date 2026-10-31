@@ -3,12 +3,21 @@ import assert from "node:assert/strict";
 import {
   formatInviteValue,
   INVITE_COOKIE_OPTIONS,
+  inviteBonusStep,
   inviteHistoryLabel,
   maskName,
   parseInviteValue,
   reviewReasons,
   whatsappShareUrl
 } from "./invite-rules";
+
+test("davet kutusu: bonus bu ürüne yalnız burada aktif kalp varsa gider", () => {
+  assert.equal(inviteBonusStep(2, true), "Bu ürünün barına +2 kalp eklenir.");
+  const other = inviteBonusStep(2, false);
+  assert.ok(other.includes("dolmaya en yakın"));
+  assert.ok(other.includes("30 gün"));
+  assert.ok(!other.includes("Bu ürünün"));
+});
 
 test("bm_davet: 7 gün, SameSite=Lax, form okuyabilir", () => {
   assert.equal(INVITE_COOKIE_OPTIONS.maxAge, 7 * 24 * 60 * 60);
