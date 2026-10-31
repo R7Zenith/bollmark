@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { barMessage } from "./messages";
+import { barMessage, campaignPitch, campaignSlogan, campaignStripText } from "./messages";
 
 const base = { threshold: 10, discountPercent: 50, inviteBonus: 2, couponHours: 48, wonCoupon: false, recentlyClosed: false };
 
@@ -10,6 +10,21 @@ test("bar mesajlari plan metinleriyle", () => {
   assert.equal(barMessage({ ...base, points: 7 }), "7/10 kalp · 3 kalp kaldı");
   assert.equal(barMessage({ ...base, points: 8 }), "Son 2 kalp! İstersen arkadaşını çağır, +2 eklesin");
   assert.equal(barMessage({ ...base, points: 9 }), "Son 1 kalp! İstersen arkadaşını çağır, +2 eklesin");
+});
+
+test("vitrin metinleri ayarlara uyar", () => {
+  assert.equal(campaignSlogan(10, 50), "10 kalp, yarı fiyat");
+  assert.equal(campaignSlogan(8, 40), "8 kalp, %40 indirim");
+  assert.equal(campaignPitch(10, 50), "Beğendiğin ürüne kalp ver, 10 kalp dolunca kalp verenler yarı fiyatına alsın.");
+  assert.equal(campaignPitch(8, 40), "Beğendiğin ürüne kalp ver, 8 kalp dolunca kalp verenler %40 indirimle alsın.");
+});
+
+test("serit metni kisa ve uzun", () => {
+  assert.deepEqual(campaignStripText(10, 50), {
+    short: "Kalp ver, 10 kalp dolunca yarı fiyatına al",
+    long: "Beğendiğin ürüne kalp ver, 10 kalp dolunca yarı fiyatına al."
+  });
+  assert.equal(campaignStripText(8, 40).short, "Kalp ver, 8 kalp dolunca %40 indirimle al");
 });
 
 test("tur dolunca katilimci ve katilimci olmayan", () => {

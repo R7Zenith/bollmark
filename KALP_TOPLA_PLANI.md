@@ -932,7 +932,7 @@ Her faz localhost'ta, **canlı veritabanına** bağlı olarak test edilir (T13 g
 | **6. Fiyat, sepet ve sipariş** ✅ Tamamlandı (2026-10-30; kullanıcı kararıyla ödemeyi yarıda bırakma, 2 adet + puan ve 1280/375 ekran görüntüleri yapılmadan kapatıldı, yayın öncesi bakılacak) | `priceCart` + `api/sepet/fiyat`, `pricing.ts` + testler, sepet/ödeme arayüzü, puan tavanı, `api/orders` bölme ve rezervasyon, USED/serbest bırakma. | Sandbox ödeme. iyzico sepet toplamı = sipariş toplamı. Vega'ya gidecek sipariş yanıtının (`vega-siparis.ts`) bölünmüş satırlarla doğru üretildiği birim testle doğrulanır. Canlı Vega kontrolü yayın fazında yapılır (Y10). Localhost sandbox test siparişlerinin (ortak DB üzerinden) Vega'ya düşmesi kabul edildi, bu faz için açık nokta değildir; gerekirse Vega'dan elle silinir (Faz 0 kararı). |
 | **7. İade ve değişim** ✅ Tamamlandı (2026-10-31) | TAMAMLANDI + ücret iadesiyle geri yükleme, değişim ürünü/fiyat/fark, "fark tahsil/iade edildi" işaretleme. | 10.7 senaryoları. |
 | **8. Bildirimler** ✅ Tamamlandı (2026-10-31; kullanıcı kararıyla ilk kalp penceresi kalktı, gerçek push testi yapılmadı, yayın öncesi bakılacak) | Outbox, zil, 4 e-posta şablonu, günlük sınır (Y1), "son 6 saat" sınır dışı, push (özellik tespiti, sw.js, VAPID, ilk kalp penceresinin push bölümü, İletişim tercihlerindeki push satırı), saatlik cron. Localhost'ta push yalnız kullanıcının kendi hesaplarına gönderilir (Faz 0 kural 2). | 10.10 senaryoları. Push Chrome masaüstü ve Android'de. iPhone Safari'de push bölümünün hiç çıkmadığı kontrol edilir. |
-| **9. Vitrin** | `/kalp-topla`, duyuru şeridi, ilk ziyaret penceresi, kampanya koşulları, Gizlilik ve Çerez metinleri (8.1, 8.2). | Ekran görüntüleri, çerez bandıyla çakışma. |
+| **9. Vitrin** ✅ Tamamlandı (2026-10-31; kullanıcı kararıyla FROZEN'da `/kalp-topla` açık kalır, üstte duraklatma notu çıkar; şerit X ile 7 gün kapanır; Gizlilik metni kalp verince açılan e-postayı anlatır; "IP adresiniz saklanmaz" değişikliği metinde karşılığı olmadığı için atlandı; Çerez Politikası kodda kalır, `main`'e birleşince yayına çıkar) | `/kalp-topla`, duyuru şeridi, ilk ziyaret penceresi, kampanya koşulları, Gizlilik ve Çerez metinleri (8.1, 8.2). | Ekran görüntüleri, çerez bandıyla çakışma. |
 | **10. Rapor** | Rapor, talep, bonus sayıları, müşteri detayı. | Test verisiyle elle sayım. |
 | **11. Yayın** | Aşağıdaki kontrol listesi. | Listenin tamamı. |
 
@@ -940,6 +940,7 @@ Her faz localhost'ta, **canlı veritabanına** bağlı olarak test edilir (T13 g
 1. Canlı DB'ye şema (`db push`, kısmi indeks dahil). Vercel'e env'ler: VAPID, abonelik HMAC anahtarı, `DEVICE_IP_SALT`.
 2. T12/Y7 script'i canlıda önce kuru çalıştırılır, sayılar kullanıcıya gösterilir, onayla gerçek çalıştırılır.
 3. Gizlilik, Çerez ve Kampanya koşulları metinleri DB'ye hedefli yazılır (kullanıcı onayıyla).
+   - Kampanya koşulları metni (scripts/kalp-topla-yasal-metinler.ts) mod Açık'a alınmadan önce DB'ye yazılmalı, yoksa /sayfa/kalp-topla-kosullari 404 verir.
 4. Admin'de mod **Gizli yayın**. Test hesapları olarak kullanıcının kendi hesabı ve en az bir ek hesap eklenir (test eşiği varsayılan 2). İki test hesabı aynı ürüne kalp verir, test turu dolar, kuponlar oluşur (Y12).
 5. Kullanıcı kendi hesabıyla **gerçek bir kuponlu sipariş** verir (iyzico canlı).
 6. Kontrol:

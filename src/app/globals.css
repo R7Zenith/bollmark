@@ -281,6 +281,29 @@ body {
   50% { opacity: 1; transform: scale(1); }
 }
 
+/* /kalp-topla hero bari: kalpler sirayla dolar, kupon en sonda basilir, 9 sn'de
+   bir bastan. --i siradaki yeri verir.
+   prefers-reduced-motion kontrolu bilerek yok - projedeki animasyon kurali. */
+.kh-heart, .kh-coupon {
+  animation-duration: 9s;
+  animation-iteration-count: infinite;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+  animation-fill-mode: both;
+  animation-delay: calc(var(--i) * 260ms);
+}
+.kh-heart { animation-name: khHeart; }
+.kh-coupon { animation-name: khCoupon; }
+@keyframes khHeart {
+  0% { opacity: 0; transform: scale(0.5); }
+  5%, 80% { opacity: 1; transform: scale(1); }
+  88%, 100% { opacity: 0; transform: scale(1); }
+}
+@keyframes khCoupon {
+  0% { opacity: 0; transform: rotate(-22deg) scale(1.6); }
+  6%, 58% { opacity: 1; transform: rotate(-6deg) scale(1); }
+  64%, 100% { opacity: 0; transform: rotate(-6deg) scale(1); }
+}
+
 /* Kalp Topla "Nasil calisir?" gorselleri (kalp-nasil-calisir.tsx). Uc sahne tek
    6 sn'lik donguyu paylasir: 1. sahne %0-30, 2. sahne %33-63, 3. sahne %66-96.
    prefers-reduced-motion kontrolu bilerek yok - projedeki animasyon kurali. */

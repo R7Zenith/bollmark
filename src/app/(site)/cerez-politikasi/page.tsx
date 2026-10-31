@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   alternates: { canonical: "/cerez-politikasi" }
 };
 
-const SON_GUNCELLEME = "25 Ekim 2026";
+const SON_GUNCELLEME = "31 Ekim 2026";
 
 type CookieRow = { name: string; provider: string; purpose: string; duration: string; category: string };
 
@@ -63,6 +63,22 @@ const COOKIES: CookieRow[] = [
     category: "Zorunlu"
   },
   {
+    name: "bm_davet",
+    provider: "Birinci taraf (bollmark.com)",
+    purpose:
+      "Bir davet bağlantısıyla geldiğinizde, üye olursanız davet eden arkadaşınızı tanımak için yalnızca davet kodunu ve ilgili ürünü tutar.",
+    duration: "7 gün",
+    category: "İşlevsel"
+  },
+  {
+    name: "bm_cihaz",
+    provider: "Birinci taraf (bollmark.com)",
+    purpose:
+      "Davet bonusunun sahte hesaplarla kötüye kullanılmasını önlemek için rastgele bir cihaz kimliği tutar. Kimliğinizi ya da tarayıcı özelliklerinizi içermez.",
+    duration: "1 yıl",
+    category: "İşlevsel"
+  },
+  {
     name: "_ga",
     provider: "Google (üçüncü taraf, Google Analytics)",
     purpose: "Ziyaretçileri birbirinden ayırt ederek sitenin ve ürünlerin nasıl kullanıldığını istatistiksel olarak ölçmemizi sağlar.",
@@ -103,7 +119,9 @@ const COOKIES: CookieRow[] = [
 const STORAGE: { name: string; purpose: string }[] = [
   { name: "bollmark-cart", purpose: "Sepetinizdeki ürünleri ve uyguladığınız kupon kodunu hatırlar." },
   { name: "bollmark-wishlist", purpose: "Giriş yapmadan kaydettiğiniz ürünleri hatırlar." },
-  { name: "bollmark:recent-searches", purpose: "Son aramalarınızı arama panelinde göstermek için saklar." }
+  { name: "bollmark:recent-searches", purpose: "Son aramalarınızı arama panelinde göstermek için saklar." },
+  { name: "bm_kalp_tanitim", purpose: "Kalp Topla tanıtım penceresinin size bir kez gösterilmesi için." },
+  { name: "bm_kalp_serit", purpose: "Kapattığınız Kalp Topla duyuru şeridinin 7 gün gösterilmemesi için." }
 ];
 
 const h2Class = "mt-12 font-display text-xl text-ink";
@@ -148,6 +166,10 @@ E-posta: bilgi@bollmark.com`}
         alışveriş, çerez tercihinizin hatırlanması) çalışması için gereklidir. KVKK&apos;nın 5/2 maddesi kapsamında bir
         sözleşmenin kurulması ve ifası ile veri sorumlusunun meşru menfaati hukuki sebeplerine dayanılarak kullanılır ve
         kapatılamaz.
+      </p>
+      <p className={pClass}>
+        <span className="font-medium text-ink">İşlevsel çerezler:</span> Kalp Topla kampanyasının çalışması içindir: davet
+        eden arkadaşınızın tanınması ve davet bonusunun kötüye kullanılmasının önlenmesi. Reklam ya da ölçüm için kullanılmaz.
       </p>
       <p className={pClass}>
         <span className="font-medium text-ink">Analitik çerezler:</span> Sitenin nasıl kullanıldığını ölçerek hizmetimizi
@@ -216,7 +238,7 @@ E-posta: bilgi@bollmark.com`}
       <p className={pClass}>
         Aşağıdaki bilgiler çerez yerine tarayıcınızın yerel depolama (localStorage) alanında tutulur, sunucularımıza
         gönderilmez ve siz tarayıcı verilerinizi silene kadar cihazınızda kalır. Sitenin işleyişi için gerekli olduklarından
-        zorunlu kategorisindedir.
+        zorunlu kategorisindedir; Kalp Topla anahtarları (bm_kalp_tanitim, bm_kalp_serit) işlevsel kategorisindedir.
       </p>
       <div className="mt-4 overflow-x-auto">
         <table className="w-full min-w-[480px] border-collapse">

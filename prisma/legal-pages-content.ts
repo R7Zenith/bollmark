@@ -11,6 +11,75 @@ const YAYIN_TARIHI = "18 Eylül 2026";
 
 export type LegalPageSeed = { slug: string; title: string; content: string };
 
+// Kalp Topla (KALP_TOPLA_PLANI.md 8.1). Canli DB'ye yalniz yayin fazinda,
+// scripts/kalp-topla-yasal-metinler.ts ile yazilir (plan 9.1/3). Metin bugunku
+// davranisi anlatir: e-posta onayi kalp verince otomatik acilir (Faz 8 karari).
+export const KALP_TOPLA_GIZLILIK_BOLUMU = `11. Kalp Topla Kampanyası Kapsamında İşlenen Veriler
+
+Kalp Topla kampanyasına katıldığınızda şu verileri işleriz:
+
+- Kampanya verileri: Kalp verdiğiniz ürünler, kalp verme ve geri çekme zamanları, kazandığınız ve kullandığınız kuponlar, davet kodunuz, davet ettiğiniz ve sizi davet eden üyeler. Amaç: kampanyayı yürütmek, kuponlarınızı hesabınıza tanımlamak ve hangi ürünlere ne kadar talep olduğunu analiz etmek. Hukuki sebep: sözleşmenin kurulması ve ifası, meşru menfaat (talep analizi). Bu veriler üyeliğiniz süresince saklanır.
+
+- E-posta doğrulama: E-posta adresinizin size ait olduğunu doğrulamak için tek kullanımlık bir doğrulama bağlantısı göndeririz.
+
+- Kötüye kullanımın önlenmesi: Davet bonusunun sahte hesaplarla kullanılmasını önlemek için, üye olurken ve giriş yaparken tarayıcınıza yerleştirdiğimiz rastgele cihaz kimliğini ve IP adresinizin geri döndürülemez özetini (ham IP adresi değil) kaydederiz. Amaç: aynı cihazdan ya da kısa sürede aynı ağdan açılan çok sayıda hesabı tespit etmek. Hukuki sebep: meşru menfaat. Bu veriler 90 gün sonra otomatik silinir.
+
+- Kampanya e-postaları: Bir ürüne kalp verdiğinizde bar ve kupon haberlerini içeren kampanya e-postaları açılır. Kayıt formunda ya da hesap ayarlarında da bu e-postaları açabilirsiniz. Her e-postadaki bağlantıdan ya da Hesabım > İletişim Tercihleri'nden istediğiniz an kapatabilirsiniz; kapattıktan sonra kalp vermeniz e-postaları yeniden açmaz. Açma ve kapatma işlemlerinde tarih ve saat, işlemin yapıldığı yer (kayıt formu, hesap ayarları, kalp verme ya da e-postadaki bağlantı), metnin sürümü ve o andaki IP adresiniz kaydedilir. Amaç: bu işlemleri ispatlayabilmek. Hukuki sebep: hukuki yükümlülük ve bir hakkın tesisi/korunması. Bu kayıtlar izin geçerli olduğu sürece ve kapattığınız tarihten itibaren 3 yıl saklanır, ardından IP adresi otomatik silinir.
+
+- Tarayıcı bildirimleri: İzin verirseniz tarayıcınızın bildirim aboneliği bilgileri (bildirim adresi ve şifreleme anahtarları) saklanır. İzni tarayıcı ayarlarından ya da Hesabım > İletişim Tercihleri'nden istediğiniz an kaldırabilirsiniz.
+
+- Telefon ve WhatsApp onayı: Telefon numaranızı ve WhatsApp kampanya onayınızı paylaşırsanız ileride WhatsApp bildirimleri için saklarız. Bu kanaldan şu an ileti gönderilmemektedir.
+
+- Davet edenle paylaşılan bilgi: Davet ettiğiniz arkadaşınızın üyeliği, size yalnızca kısaltılmış adıyla (ör. "A*** K.") gösterilir.`;
+
+const KALP_TOPLA_KOSULLARI = `Kalp Topla, Bollmark üyelerine açık bir kampanyadır. Beğendiğin ürüne kalp verirsin, bar dolunca o turda kalbi olan herkes kupon kazanır. Bu sayfadaki sayılar kampanyanın varsayılan değerleridir; güncel değerler kampanya sayfasında gösterilir.
+
+Katılım
+
+Kalp vermek için üye olman gerekir. Kalbinin bara sayılması için e-postanı doğrulaman yeterlidir; doğrulayana kadar kalbin bekler ve bir kalp hakkı kullanır. Daha önce ödenmiş siparişi olan üyeler doğrulanmış sayılır. Geçici e-posta adresleriyle üyelik kabul edilmez.
+
+Kalp hakkı ve geri çekme
+
+Aynı anda en fazla 3 ürüne kalp verebilirsin. Bar dolunca ya da kalbini geri çekince hakkın boşalır. Bar dolmadan kalbini istediğin an geri çekebilirsin; o ürüne eklenmiş davet bonusların da o turdan düşer.
+
+Turlar
+
+Bir ürünün barı 10 kalba ulaşınca tur kapanır, o turda kalbi olan her üye bir kupon kazanır ve aynı üründe yeni tur başlar. Sonraki turlara yeniden katılabilirsin. Eşik değişirse yeni değer yalnız yeni başlayan turlara uygulanır.
+
+Davet
+
+Her üyenin davet bağlantısı vardır. Bağlantınla gelen arkadaşın yeni üye olup e-postasını doğrulayınca barına +2 kalp eklenir. Bonus önce bağlantının ait olduğu üründeki aktif kalbine, o yoksa dolmaya en yakın aktif barına eklenir. Aktif kalbin yoksa 30 gün geçerli bekleyen bonus olur ve verdiğin ilk kalbin barına eklenir. Bar dolduğunda eşiği aşan bonus yanmaz, 30 günlük süresi baştan başlayarak beklemeye döner. Mevcut üyeler için bonus oluşmaz.
+
+Şüpheli davetler
+
+Aynı cihazdan açılan hesaplarda bonus incelemeye alınır. Bollmark inceleme sonucunda bonusu onaylayabilir ya da iptal edebilir.
+
+Kupon
+
+Kupon %50 indirim sağlar, barın dolduğu andan itibaren 48 saat geçerlidir, hesabına tanımlanır ve başkasına devredilemez. Kullanmak için giriş yapman gerekir. Kupon, kampanya dışı işaretli ürünler hariç istediğin bir ürünün tek adedine uygulanır; kalp verdiğin ürünle sınırlı değildir. Birden fazla kuponun varsa her biri farklı bir ürün satırına uygulanır.
+
+İndirim ürünün indirimsiz fiyatı üzerinden hesaplanır. Ürünün mevcut indirimli fiyatı kuponlu fiyattan düşükse düşük olan fiyat geçerlidir. Kupon başka kampanyalarla birleşmez ve kuponlu ürüne sadakat puanı kullanılamaz.
+
+İade ve değişim
+
+Kuponlu ürünün iadesi tamamlanıp ücreti iade edildiğinde kupon kalan süresiyle hesabına döner. Kuponun süresi o sırada dolmuşsa 24 saatlik yeni süre verilir. Kargodan önce iptal edilen siparişte kupon, süresi dolmamışsa kalan süresiyle döner.
+
+Aynı ürünün başka beden ya da rengiyle değişimde fiyat aynı kalır. Farklı ürünle değişimde kupon yeni ürüne taşınır ve fark ayrıca tahsil ya da iade edilir. Yeni ürün kampanya dışıysa kupon hesabına döner ve değişim normal fiyattan yapılır.
+
+Bildirimler
+
+Bir ürüne kalp verdiğinde bar ve kupon haberlerini içeren kampanya e-postaları açılır. Her e-postadaki bağlantıdan ya da Hesabım > İletişim Tercihleri'nden istediğin an kapatabilirsin. Ayrıntılar Gizlilik Politikası'ndadır.
+
+Kampanyanın duraklatılması
+
+Bollmark kampanyayı duraklatabilir ya da sonlandırabilir. Duraklatma sırasında yeni kalp ve bonus alınmaz, barlar olduğu gibi korunur ve kalbini geri çekebilirsin. Kazanılmış kuponlar süreleri boyunca geçerli kalır. Kampanya yeniden açılınca barlar kaldığı yerden devam eder.
+
+Kötüye kullanım
+
+Kuralları dolanmaya yönelik işlemlerde Bollmark ilgili bonus ve kuponları iptal edebilir.
+
+Son güncelleme: 31 Ekim 2026`;
+
 export const legalPagesContent: LegalPageSeed[] = [
   {
     slug: "hakkimizda",
@@ -84,11 +153,13 @@ Bu haklarınızı kullanmak için taleplerinizi bilgi@bollmark.com adresine veya
 
 Sitemizde, sitenin çalışması için zorunlu çerezler kullanılmaktadır. Analitik ve pazarlama çerezleri ise yalnızca açık rızanız alınarak (KVKK m.5/1) etkinleştirilir. Sitemizde analitik kategorisinde Google Analytics, pazarlama kategorisinde Meta Pixel kullanılmaktadır. Analitik rızanızı geri almanız halinde Google'a, pazarlama rızanızı geri almanız halinde Meta'ya yeni veri aktarılmaz; daha önce aktarılmış veriler ilgili sağlayıcının kendi gizlilik politikasına tabidir. Kullanılan çerezler, saklama süreleri ve tercihlerinizi nasıl yönetebileceğiniz hakkında ayrıntılı bilgiye bollmark.com/cerez-politikasi adresindeki Çerez Politikası'ndan ulaşabilirsiniz. Çerez tercihlerinizi dilediğiniz zaman sayfanın altındaki "Çerez Tercihleri" bağlantısından değiştirebilir, ayrıca tarayıcı ayarlarınızdan çerezleri silebilirsiniz.
 
-11. Değişiklikler
+${KALP_TOPLA_GIZLILIK_BOLUMU}
+
+12. Değişiklikler
 
 Bu Gizlilik Politikası, yasal düzenlemelerdeki değişiklikler veya işleme faaliyetlerimizdeki güncellemeler doğrultusunda revize edilebilir. Güncel metin her zaman bu sayfada yayınlanır.
 
-Son güncelleme: 26 Ekim 2026`
+Son güncelleme: 31 Ekim 2026`
   },
   {
     slug: "mesafeli-satis-sozlesmesi",
@@ -179,5 +250,10 @@ Son güncelleme: ${YAYIN_TARIHI}`
 Sorularınız için bilgi@bollmark.com adresinden bize ulaşabilirsiniz.
 
 Son güncelleme: ${YAYIN_TARIHI}`
+  },
+  {
+    slug: "kalp-topla-kosullari",
+    title: "Kalp Topla Kampanya Koşulları",
+    content: KALP_TOPLA_KOSULLARI
   }
 ];

@@ -8,6 +8,7 @@ import { CustomerSessionProvider } from "@/components/customer-session-provider"
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { ConsentManager } from "@/components/consent/consent-manager";
+import { KalpVitrin } from "@/components/kalp-topla/kalp-vitrin";
 import { FloatingContactButton } from "@/components/contact-links";
 import { MetaPixel } from "@/components/meta-pixel";
 import { metaTrackingEnabled } from "@/lib/meta/capi";
@@ -82,6 +83,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               <SiteFooter />
               <FloatingContactButton />
               <ConsentManager />
+              <KalpVitrin />
               {/* useSearchParams kullaniyor - SiteHeader ile ayni gerekceyle Suspense. */}
               {metaTrackingEnabled() && (
                 <Suspense fallback={null}>

@@ -1,6 +1,24 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-10-31, Kalp Topla Faz 8)
+## KALDIĞIM YER (2026-10-31, Kalp Topla Faz 9)
+
+- Dal `kalp-topla-wip`, `main`'e birleştirilmedi. **Faz 9 (vitrin) kullanıcı onayıyla kapatıldı, yerel commit, push EDİLMEDİ.** Şema değişmedi. Bu commit diğer bilgisayarda kullanıcı push edene kadar görünmez.
+- **Yapılan:** `/kalp-topla` (`src/app/(site)/kalp-topla/page.tsx`), şerit ve ilk ziyaret penceresi (`src/components/kalp-topla/kalp-vitrin.tsx`), liste verisi (`src/lib/kalp-topla/vitrin.ts`, 60 sn önbellek), OG görseli `public/og-kalp-topla.jpg`, Kampanya Koşulları ve Gizlilik bölümü (`prisma/legal-pages-content.ts`), Çerez Politikası eklemeleri, sitemap (`/kalp-topla` yalnız Açık modda). `durum` ucu artık eşik ve oran da döner.
+- **Kullanıcı kararları:** FROZEN'da `/kalp-topla` açık, üstte "Kampanya şu an duraklatıldı" notu, listeler, şerit ve pencere gizli. 404 yalnız INVISIBLE'da (kampanya hiç açılmamışken Kapalı mod ve Gizli yayında test dışı ziyaretçi). Şerit X ile 7 gün kapanır (`bm_kalp_serit`), metin masaüstünde "Beğendiğin ürüne kalp ver, 10 kalp dolunca yarı fiyatına al. Nasıl mı?", mobilde "Kalp ver, 10 kalp dolunca yarı fiyatına al". Gizlilik'te yeni bölüm 11, "Değişiklikler" 12 oldu; planın "IP adresiniz saklanmaz" değişikliği metinde karşılığı olmadığı için atlandı. Çerez Politikası kodda, `main`'e birleşince yayına çıkar; "İşlevsel" kategorisi eklendi, `CONSENT_VERSION` değişmedi.
+- **Bizim kararımız:** Şerit ve pencere `/kalp-topla`, ödeme ve hesap sayfalarında çıkmaz. Localstorage kapalıysa pencere hiç açılmaz, şerit normal görünür.
+- **DB'ye yazılmadı:** Gizlilik ve Kampanya Koşulları canlıda eski. `/sayfa/kalp-topla-kosullari` bu yüzden 404, beklenen durum. Script `scripts/kalp-topla-yasal-metinler.ts` varsayılan kuru, gerçek yazma `--confirm`; hiç çalıştırılmadı (kuru modda bile). Koruma mantığı git'teki eski metinle DB'siz doğrulandı. Yazılınca Koşullar sitemap'e girer, Gizli yayında da görünür.
+- **Doğrulama:** 173/173 birim testi, tip kontrolü ve build temiz; lint değişen dosyalarda temiz. Çerez bandı çakışması 1280/375 geçti: bant açıkken pencere yok, tercih sonrası açılıyor, 375'te pencere 264/667 px. 375'te yatay taşma yok. Mod testi: Gizli yayında test hesabı açık, test dışı üye ve misafir 404; Kapalı'da test hesabı FROZEN, test dışı üye ve misafir 404. Görüntüler `Claude outputs/kalp-topla-faz9/`.
+- **Denenmedi:** herkese açılmış kampanyada misafir için FROZEN (canlıda yalnız test turu var), Açık mod, şeridin 7 gün sonra dönmesi, localstorage kapalıyken şerit. Son şerit metni tarayıcıda görülmedi (genişlik ölçüldü, 297 px, kullanıcı localhost'ta baktı); ekran görüntülerinde eski metin var.
+- **Temizlik:** kt9 geçici üyeleri silindi, mod Gizli yayın, 3 test hesabı, 5 tur, 15 kalp, 3 kupon, 3 bar. Geçici veri script'i `scripts/kalp-topla-ekran-faz9.ts`.
+- **Yayın öncesi avukata sorulacaklar:**
+  - Kalp verince e-posta izninin otomatik açılması 6563'e uygun mu; uygun değilse akış açık onaya çevrilecek ve Gizlilik metni de buna göre güncellenecek.
+  - `bm_davet` ve `bm_cihaz` çerezlerinin işlevsel/zorunlu sayılması onaysız kullanım için yeterli mi.
+- **Yerel `.env` (dükkan bilgisayarı):** `DEVICE_IP_SALT`, `UNSUBSCRIBE_SECRET`, `PAYMENT_ENCRYPTION_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `PAYMENT_LOCAL_TEST`, `IYZICO_SANDBOX_API_KEY`, `IYZICO_SANDBOX_SECRET_KEY`, `IYZICO_SANDBOX_BASE_URL` burada yok; kullanıcı evden getirecek, üretilmeyecek. Yokken sandbox ödeme, push ve e-posta çıkış linki bu bilgisayarda çalışmaz. `MAIL_DEV_REDIRECT` ve `SITE_URL=http://localhost:3000` var.
+- **Bilinen:** Giriş yapmış üyede header'daki `/hesap` linkinde hydration uyarısı var, Faz 9'dan gelmiyor. `.next/dev/types` eski kalırsa tsc ve build silinmiş route'a takılır: pull sonrası bu klasör silinir. Şerit her ziyaretçide `durum` isteği yapar (plan 5.0), trafik artınca Neon'da izlenmeli. `yasal-satici-iletisim-guncelle.ts` kaynak metin değiştiği için artık yazmaz.
+- **Diğer bilgisayarda ilk iş:** Commit push edildiyse `git pull origin kalp-topla-wip`, `npm install`, `npx prisma generate`, `.next/dev/types` sil.
+- Sıradaki: Faz 10 (rapor).
+
+## Önceki not (2026-10-31, Kalp Topla Faz 8)
 
 - Dal `kalp-topla-wip`, `main`'e birleştirilmedi, push edilmedi. **Faz 8 (bildirimler) kullanıcı onayıyla kapatıldı, yerel commit.** Şema değişmedi.
 - **Yapılan:** outbox (`src/lib/kalp-topla/notifications.ts`), 4 e-posta şablonu, günlük sınır (Y1), "son 6 saat", tek tık çıkış başlıkları, push (`public/sw.js`, `web-push`), zil + Hesabım > Bildirimler, saatlik cron `/api/cron/kalp-topla`. `sendMail` artık başarı döndürüyor, `text` ve `headers` alıyor.
