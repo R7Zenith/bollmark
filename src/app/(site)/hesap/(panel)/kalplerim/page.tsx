@@ -199,9 +199,11 @@ export default async function HesapKalplerimPage() {
                   ? "Kullanıldı"
                   : coupon.status === "RESERVED"
                     ? "Ödeme bekleyen siparişte"
-                    : valid
-                      ? remaining(coupon.expiresAt, coupons.now)
-                      : "Süresi doldu";
+                    : coupon.status === "CANCELLED"
+                      ? "İptal edildi"
+                      : valid
+                        ? remaining(coupon.expiresAt, coupons.now)
+                        : "Süresi doldu";
               return (
                 <li key={coupon.id} className="flex items-center justify-between gap-4 py-4">
                   <div className="flex items-center gap-3">

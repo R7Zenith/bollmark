@@ -925,7 +925,7 @@ model KalpCoupon {
   roundId         String
   discountPercent Int
   expiresAt       DateTime
-  status          String    @default("AVAILABLE") // AVAILABLE | RESERVED | USED | TEST_CANCELLED (Y15)
+  status          String    @default("AVAILABLE") // AVAILABLE | RESERVED | USED | TEST_CANCELLED (Y15) | CANCELLED (admin iptali, Faz 10)
   usedAt          DateTime?
   restoredAt      DateTime?
   expiringEmailAt DateTime?              // "son 6 saat" e-postası/olayı üretildi (kupon başına 1, Y1)

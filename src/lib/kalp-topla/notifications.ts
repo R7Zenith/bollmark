@@ -143,7 +143,7 @@ export async function queueExpiringCoupons(now = new Date(), customerId?: string
         {
           customerId: coupon.customerId,
           type: "COUPON_EXPIRING",
-          eventKey: `coupon-expiring:${coupon.id}`,
+          eventKey: `coupon-expiring:${coupon.id}:${coupon.expiresAt.getTime()}`, // suresi uzatilan kupon yeniden hatirlatilir
           title: "⏰ Kuponunun son 6 saati!",
           body: `%${coupon.discountPercent} kuponun için son kullanım: ${formatUntil(coupon.expiresAt)}`,
           link: "/hesap/kalplerim",

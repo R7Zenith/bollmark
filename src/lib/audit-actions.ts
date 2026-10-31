@@ -33,6 +33,8 @@ export const auditActions = [
   "KALP_TOPLA_DEGISIM_FARK_KAPANDI",
   "KALP_TOPLA_KUPON_GERI_YUKLENDI",
   "KALP_TOPLA_KUPON_GERI_YUKLENMEDI",
+  "KALP_TOPLA_KUPON_IPTAL",
+  "KALP_TOPLA_KUPON_UZATILDI",
   "KALP_TOPLA_ONAY_CSV_INDIRILDI"
 ] as const;
 
@@ -68,5 +70,7 @@ export const auditActionLabel: Record<string, string> = {
   KALP_TOPLA_DEGISIM_FARK_KAPANDI: "Değişim Farkı Kapatıldı",
   KALP_TOPLA_KUPON_GERI_YUKLENDI: "Kalp Topla Kuponu Geri Yüklendi",
   KALP_TOPLA_KUPON_GERI_YUKLENMEDI: "Kalp Topla Kuponu Geri Yüklenmedi",
+  KALP_TOPLA_KUPON_IPTAL: "Kalp Topla Kuponu İptal Edildi",
+  KALP_TOPLA_KUPON_UZATILDI: "Kalp Topla Kuponu Uzatıldı",
   KALP_TOPLA_ONAY_CSV_INDIRILDI: "Onay Kayıtları CSV İndirildi"
 };

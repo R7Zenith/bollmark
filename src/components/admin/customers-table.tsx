@@ -54,7 +54,15 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
       key: "actions",
       header: "",
       align: "right",
-      render: (row) => (row.hasAccount && row.id ? <CustomerPointsAdjust customerId={row.id} /> : null)
+      render: (row) =>
+        row.hasAccount && row.id ? (
+          <div className="flex items-center justify-end gap-3">
+            <Link href={`/admin/musteriler/${row.id}`} className="text-sm text-admin-accent hover:underline">
+              Detay
+            </Link>
+            <CustomerPointsAdjust customerId={row.id} />
+          </div>
+        ) : null
     }
   ];
 

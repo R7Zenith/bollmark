@@ -354,7 +354,7 @@ model KalpCoupon {
   roundId         String
   discountPercent Int
   expiresAt       DateTime
-  status          String    @default("AVAILABLE") // AVAILABLE | RESERVED | USED | TEST_CANCELLED (Y15)
+  status          String    @default("AVAILABLE") // AVAILABLE | RESERVED | USED | TEST_CANCELLED (Y15) | CANCELLED (admin iptali, Faz 10)
   usedAt          DateTime?
   restoredAt      DateTime?
   expiringEmailAt DateTime?              // "son 6 saat" e-postası/olayı üretildi (kupon başına 1, Y1)
@@ -761,6 +761,9 @@ Günlük temizlik cron'u (`/api/cron/kalp-topla-temizlik`, günde 1):
 - **İade ekranı:** kuponlu satır etiketi, değişim ürünü seçimi, hesaplanan fiyat, **"Müşteriden alınacak / Müşteriye ödenecek: X TL"**, "Fark tahsil edildi" / "Fark iade edildi" butonları (Y6).
 - **Menü:** "Kalp Topla" (Ayarlar / Rapor / Davetler / Onaylar), yalnız ADMIN.
 - **Müşteri detayı:** doğrulama, kalpler, kuponlar, bonus kredileri, onaylar, cihaz eşleşmeleri; kupon iptal/süre uzatma (denetim kaydıyla).
+  - **Kupon iptali (Faz 10):** yalnız `AVAILABLE` kupon iptal edilir, durum `CANCELLED` olur; `RESERVED` ve `USED` kupona dokunulmaz. Uygulama öncesi "geri alınamaz" onay penceresi çıkar. Raporda "verilen"de sayılır, "kullanılan" ve "süresi dolan"da sayılmaz. Kalplerim'de "İptal edildi" yazar. Denetim kaydı `KALP_TOPLA_KUPON_IPTAL`.
+  - **Süre uzatma (Faz 10):** yalnız `AVAILABLE` kupon (süresi dolmuş olan dahil). Yeni bitiş hem şu andan hem mevcut bitişten sonra olmalı. `expiringEmailAt` sıfırlanır, "son 6 saat" hatırlatması yeni süre için yine gider. Denetim kaydı `KALP_TOPLA_KUPON_UZATILDI`.
+  - **Bildirim anahtarı (Faz 10):** `COUPON_EXPIRING` `eventKey`'i `coupon-expiring:{couponId}:{expiresAt ms}` oldu. Anahtar tekil olduğu ve satırlar `skipDuplicates` ile yazıldığı için eski biçimde süresi değişen kuponun ikinci hatırlatması sessizce düşüyordu. "Kupon başına 1" kuralı artık "kuponun her bitiş zamanı için 1" demektir.
 
 ---
 
@@ -933,7 +936,7 @@ Her faz localhost'ta, **canlı veritabanına** bağlı olarak test edilir (T13 g
 | **7. İade ve değişim** ✅ Tamamlandı (2026-10-31) | TAMAMLANDI + ücret iadesiyle geri yükleme, değişim ürünü/fiyat/fark, "fark tahsil/iade edildi" işaretleme. | 10.7 senaryoları. |
 | **8. Bildirimler** ✅ Tamamlandı (2026-10-31; kullanıcı kararıyla ilk kalp penceresi kalktı, gerçek push testi yapılmadı, yayın öncesi bakılacak) | Outbox, zil, 4 e-posta şablonu, günlük sınır (Y1), "son 6 saat" sınır dışı, push (özellik tespiti, sw.js, VAPID, ilk kalp penceresinin push bölümü, İletişim tercihlerindeki push satırı), saatlik cron. Localhost'ta push yalnız kullanıcının kendi hesaplarına gönderilir (Faz 0 kural 2). | 10.10 senaryoları. Push Chrome masaüstü ve Android'de. iPhone Safari'de push bölümünün hiç çıkmadığı kontrol edilir. |
 | **9. Vitrin** ✅ Tamamlandı (2026-10-31; kullanıcı kararıyla FROZEN'da `/kalp-topla` açık kalır, üstte duraklatma notu çıkar; şerit X ile 7 gün kapanır; Gizlilik metni kalp verince açılan e-postayı anlatır; "IP adresiniz saklanmaz" değişikliği metinde karşılığı olmadığı için atlandı; Çerez Politikası kodda kalır, `main`'e birleşince yayına çıkar) | `/kalp-topla`, duyuru şeridi, ilk ziyaret penceresi, kampanya koşulları, Gizlilik ve Çerez metinleri (8.1, 8.2). | Ekran görüntüleri, çerez bandıyla çakışma. |
-| **10. Rapor** | Rapor, talep, bonus sayıları, müşteri detayı. | Test verisiyle elle sayım. |
+| **10. Rapor** ✅ Tamamlandı (2026-10-31; kullanıcı kararıyla raporda ayrı "Test verisi" görünümü var, ciro yalnız kuponlu satırlar ve kısmi iadeler düşmez, geçerli davet yalnız `CREDITED`; Kalplerim'deki "İptal edildi" etiketi tarayıcıda görülmedi, yayın öncesi bakılacak) | Rapor, talep, bonus sayıları, müşteri detayı. | Test verisiyle elle sayım. |
 | **11. Yayın** | Aşağıdaki kontrol listesi. | Listenin tamamı. |
 
 ### 9.1 Yayın fazı kontrol listesi (Y10)
@@ -1055,7 +1058,7 @@ Her faz localhost'ta, **canlı veritabanına** bağlı olarak test edilir (T13 g
 ### 10.10 Bildirim ve onay
 - Onaylı üye aynı gün önce "son 2 kalp", sonra "arkadaşın katıldı" → ilki e-posta + site içi + push, ikincisi yalnız site içi + push. Ertesi gün e-posta gitmez.
 - Gün sınırı İstanbul saatiyle: 23:50'de bir olay, 00:10'da bir olay → iki ayrı günün e-postası.
-- Aynı gün "son 2 kalp" e-postası gittikten sonra kupon "son 6 saat"e girer → "son 6 saat" e-postası **gider** (sınır dışı). Aynı kupon için ikinci kez gitmez.
+- Aynı gün "son 2 kalp" e-postası gittikten sonra kupon "son 6 saat"e girer → "son 6 saat" e-postası **gider** (sınır dışı). Aynı kupon için ikinci kez gitmez; admin süreyi uzatırsa yeni bitiş için bir kez daha gider (Faz 10).
 - Aynı gün 3 bar doldu → 3 "kupon kazandın" e-postası.
 - Onaysız üye → e-posta yok.
 - Çıkış linki girişsiz çalışır, log satırı yazılır. GET önizlemesi onayı geri çekmez. `List-Unsubscribe-Post` çalışır.
