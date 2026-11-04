@@ -7,6 +7,7 @@ import { hasMarketingConsent, requestIp, sendMetaEvent } from "@/lib/meta/capi";
 import { DISPOSABLE_EMAIL_MESSAGE, isBlockedEmail } from "@/lib/kalp-topla/email-domain-check";
 import { setMarketingConsent } from "@/lib/kalp-topla/consent";
 import { DEVICE_COOKIE, DEVICE_COOKIE_OPTIONS, recordDevice, resolveDeviceId } from "@/lib/kalp-topla/devices";
+import { getClientIpInfo } from "@/lib/client-ip";
 import { sendVerificationEmail } from "@/lib/kalp-topla/email-verification";
 import { createInviteOnSignup } from "@/lib/kalp-topla/invite";
 import { INVITE_COOKIE } from "@/lib/kalp-topla/invite-rules";
@@ -61,7 +62,7 @@ export async function POST(req: NextRequest) {
     await setMarketingConsent({ customerId: customer.id, channel: "WHATSAPP", granted: true, source: "KAYIT_FORMU", ip });
   }
   const { deviceId, isNew: isNewDevice } = resolveDeviceId(req.cookies.get(DEVICE_COOKIE)?.value);
-  await recordDevice({ customerId: customer.id, deviceId, ip, event: "SIGNUP" });
+  await recordDevice({ customerId: customer.id, deviceId, ip, ipInfo: await getClientIpInfo(req.headers), event: "SIGNUP" });
   // Davet sorunu kaydi engellemez.
   await createInviteOnSignup(customer.id, req.cookies.get(INVITE_COOKIE)?.value ?? parsed.data.davet).catch((e) =>
     console.error("Davet kaydı yazılamadı (yoksayıldı):", e)

@@ -5,7 +5,8 @@ import { expireWaitingCredits } from "@/lib/kalp-topla/bar";
 
 // Kalp Topla gunluk temizlik (KALP_TOPLA_PLANI.md 5.9, Y3). Vercel Cron,
 // "Authorization: Bearer $CRON_SECRET" ile (bkz. vercel.json).
-// - CustomerDevice: 90 gunden eski satirlar silinir.
+// - CustomerDevice: 90 gunden eski satirlar silinir (ham ip/konum alanlari da).
+// - Order: 2 yildan eski siparislerin clientIp/ipCity/ipRegion/ipCountry'si null'lanir.
 // - MarketingConsentLog: onay su an geri cekilmis ve geri cekme 3 yildan
 //   eskiyse o musteri+kanalin o tarihe kadarki IP'leri null'lanir.
 // - Kullanilmis ya da suresi dolmus dogrulama tokenlari 7 gun sonra silinir.
@@ -22,6 +23,13 @@ export async function GET(req: NextRequest) {
 
   const devices = await prisma.customerDevice.deleteMany({
     where: { createdAt: { lt: new Date(now.getTime() - 90 * DAY_MS) } }
+  });
+
+  const twoYearsAgo = new Date(now);
+  twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2);
+  const orderIps = await prisma.order.updateMany({
+    where: { createdAt: { lt: twoYearsAgo }, OR: [{ clientIp: { not: null } }, { ipCity: { not: null } }, { ipRegion: { not: null } }, { ipCountry: { not: null } }] },
+    data: { clientIp: null, ipCity: null, ipRegion: null, ipCountry: null }
   });
 
   // Her musteri+kanal icin en son kayit.
@@ -47,6 +55,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     ok: true,
     deletedDevices: devices.count,
+    purgedOrderIps: orderIps.count,
     purgedIps,
     deletedTokens: tokens.count,
     expiredBonuses: await expireWaitingCredits(now)

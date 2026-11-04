@@ -7,6 +7,20 @@ import { Badge } from "@/components/admin/badge";
 import { Card } from "@/components/admin/card";
 import { KalpCouponActions } from "@/components/admin/kalp-coupon-actions";
 import { istanbulInputValue } from "@/lib/kalp-topla/admin-rules";
+import { formatTrMobile } from "@/lib/phone";
+import { CustomerHeader, InfoItem } from "@/components/admin/customer-detail/customer-header";
+import { CustomerSummaryCards } from "@/components/admin/customer-detail/summary-cards";
+import { OrderAddressesList } from "@/components/admin/customer-detail/order-addresses";
+import { OrderHistoryCard } from "@/components/admin/customer-detail/order-history-card";
+import { IpLocationCard } from "@/components/admin/customer-detail/ip-location-card";
+import {
+  deviceIpEvents,
+  ipTrackingStart,
+  loadCustomerOrders,
+  orderAddresses,
+  orderIpEvents,
+  summarizeOrders
+} from "@/components/admin/customer-detail/data";
 import { cancelCouponAction, extendCouponAction } from "./actions";
 
 const LIST_LIMIT = 100;
@@ -49,8 +63,10 @@ function Empty({ children }: { children: React.ReactNode }) {
   return <p className="text-sm text-admin-text-muted">{children}</p>;
 }
 
-// Musteri detayi (KALP_TOPLA_PLANI.md 6.11). Test kayitlari gizlenmez, rozetle gorunur;
-// hariç tutma kurali yalniz raporlar icindir. Yalniz ADMIN.
+// Hesapli musteri detayi: kimlik, ozet, adresler, siparisler, IP/konum; altta
+// Kalp Topla bolumleri (KALP_TOPLA_PLANI.md 6.11). Test kayitlari gizlenmez,
+// rozetle gorunur; hariç tutma kurali yalniz raporlar icindir. Yalniz ADMIN
+// (PERSONEL /admin/musteriler'e proxy'de giremez, bkz. lib/roles.ts).
 export default async function AdminCustomerDetailPage({
   params,
   searchParams
@@ -64,9 +80,28 @@ export default async function AdminCustomerDetailPage({
 
   const customer = await prisma.customer.findUnique({
     where: { id },
-    select: { id: true, name: true, email: true, createdAt: true, emailVerifiedAt: true, marketingEmailAt: true }
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      phone: true,
+      loyaltyPoints: true,
+      createdAt: true,
+      emailVerifiedAt: true,
+      marketingEmailAt: true,
+      addresses: { orderBy: { createdAt: "asc" } }
+    }
   });
   if (!customer) notFound();
+
+  // Hesap acmadan once misafir olarak verdigi siparisler de sayilir.
+  const [orders, deviceEvents] = await Promise.all([
+    loadCustomerOrders({ OR: [{ customerId: id }, { customerEmail: customer.email }] }),
+    deviceIpEvents(id)
+  ]);
+  const ipEvents = [...orderIpEvents(orders), ...deviceEvents].sort((a, b) => b.at.getTime() - a.at.getTime());
+  const trackingStart = ipEvents.length === 0 ? await ipTrackingStart() : null;
+  const ordersHref = `/admin/siparisler?q=${encodeURIComponent(customer.email)}`;
 
   const [hearts, coupons, credits, consents, devices] = await Promise.all([
     prisma.kalpHeart.findMany({ where: { customerId: id }, orderBy: { createdAt: "desc" }, take: LIST_LIMIT }),
@@ -103,17 +138,75 @@ export default async function AdminCustomerDetailPage({
 
   return (
     <div className="space-y-8">
-      <div>
-        <Link href="/admin/musteriler" className="text-sm text-admin-text-muted hover:underline">
-          ← Müşteriler
-        </Link>
-        <h1 className="mt-2 text-2xl font-semibold text-admin-text">{customer.name}</h1>
-        <p className="text-sm text-admin-text-muted">{customer.email}</p>
-      </div>
+      <CustomerHeader
+        name={customer.name}
+        badge={<Badge tone="blue">Hesaplı</Badge>}
+        action={
+          <Link
+            href={`/admin/musteriler/${customer.id}/duzenle`}
+            className="inline-flex shrink-0 items-center justify-center rounded-md bg-admin-accent px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-700"
+          >
+            Düzenle
+          </Link>
+        }
+      />
 
       {sonuc && RESULT_LABEL[sonuc] && (
         <p className="rounded-md border border-admin-border bg-admin-surface px-4 py-3 text-sm text-admin-text">{RESULT_LABEL[sonuc]}</p>
       )}
+
+      <Card
+        title="Müşteri bilgileri"
+        action={
+          <Link href={ordersHref} className="text-sm text-admin-accent hover:underline">
+            Siparişlerini gör
+          </Link>
+        }
+      >
+        <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2 lg:grid-cols-3">
+          <InfoItem label="E-posta">{customer.email}</InfoItem>
+          <InfoItem label="Telefon">
+            {customer.phone ? formatTrMobile(customer.phone) : <span className="text-admin-text-muted">Kayıtlı değil</span>}
+          </InfoItem>
+          <InfoItem label="E-posta doğrulama">
+            {customer.emailVerifiedAt ? <Badge tone="green">Doğrulandı</Badge> : <Badge tone="yellow">Doğrulanmadı</Badge>}
+          </InfoItem>
+          <InfoItem label="Kayıt tarihi">{formatDateTime(customer.createdAt)}</InfoItem>
+          <InfoItem label="Sadakat puanı">{customer.loyaltyPoints}</InfoItem>
+        </dl>
+      </Card>
+
+      <CustomerSummaryCards summary={summarizeOrders(orders)} />
+
+      <Card title="Adresler">
+        {customer.addresses.length === 0 ? (
+          <Empty>Kayıtlı adres yok.</Empty>
+        ) : (
+          <ul className="divide-y divide-admin-border text-sm">
+            {customer.addresses.map((a) => (
+              <li key={a.id} className="py-3">
+                <p className="flex flex-wrap items-center gap-2 font-medium text-admin-text">
+                  {a.label} {a.isDefault && <Badge tone="green">Varsayılan</Badge>}
+                </p>
+                <p className="text-admin-text">
+                  {a.name} · {formatTrMobile(a.phone)}
+                </p>
+                <p className="break-words text-admin-text-muted">
+                  {a.address}, {a.district} / {a.city} {a.postalCode}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+        <h3 className="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-admin-text-muted">Siparişlerde kullanılan adresler</h3>
+        <OrderAddressesList addresses={orderAddresses(orders, customer.addresses)} emptyText="Kayıtlı adreslerden farklı sipariş adresi yok." />
+      </Card>
+
+      <OrderHistoryCard orders={orders} allOrdersHref={ordersHref} />
+
+      <IpLocationCard events={ipEvents} withDevices trackingStart={trackingStart} />
+
+      <h2 className="border-t border-admin-border pt-8 text-lg font-semibold text-admin-text">Kalp Topla</h2>
 
       <Card title="Doğrulama">
         <dl className="grid gap-4 text-sm sm:grid-cols-3">

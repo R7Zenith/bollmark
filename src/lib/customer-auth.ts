@@ -5,6 +5,7 @@ import { cookies, headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { requestIp } from "@/lib/meta/capi";
 import { DEVICE_COOKIE, DEVICE_COOKIE_OPTIONS, recordDevice, resolveDeviceId } from "@/lib/kalp-topla/devices";
+import { getClientIpInfo } from "@/lib/client-ip";
 
 // Admin girisinden (auth.ts) tamamen ayri bir NextAuth ornegi - musteri
 // oturum cerezi farkli isimde tutulur (musteri-oturum-token), aksi halde
@@ -49,7 +50,14 @@ export const customerAuthOptions: NextAuthOptions = {
         const cookieStore = await cookies();
         const { deviceId, isNew } = resolveDeviceId(cookieStore.get(DEVICE_COOKIE)?.value);
         if (isNew) cookieStore.set(DEVICE_COOKIE, deviceId, DEVICE_COOKIE_OPTIONS);
-        await recordDevice({ customerId: customer.id, deviceId, ip: requestIp(await headers()), event: "LOGIN" });
+        const requestHeaders = await headers();
+        await recordDevice({
+          customerId: customer.id,
+          deviceId,
+          ip: requestIp(requestHeaders),
+          ipInfo: await getClientIpInfo(requestHeaders),
+          event: "LOGIN"
+        });
 
         return { id: customer.id, name: customer.name, email: customer.email };
       }

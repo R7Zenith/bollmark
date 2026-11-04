@@ -1,9 +1,11 @@
 import { createHash, randomUUID } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import type { ClientIpInfo } from "@/lib/client-ip";
 
 // Kotuye kullanim kontrolu icin cihaz ve IP gorulmeleri (KALP_TOPLA_PLANI.md
 // 5.4, Y2, Y3). bm_cihaz: birinci taraf, islevsel, rastgele kimlik, 1 yil.
-// Ham IP burada TUTULMAZ; yalniz DEVICE_IP_SALT ile tuzlanmis SHA-256 ozeti.
+// Eslesme kontrolleri yalniz DEVICE_IP_SALT ile tuzlanmis SHA-256 ozetini
+// kullanir; ham IP ve konum yalniz admin musteri detayinda gosterilir.
 export const DEVICE_COOKIE = "bm_cihaz";
 
 export const DEVICE_COOKIE_OPTIONS = {
@@ -33,11 +35,22 @@ export async function recordDevice(params: {
   customerId: string;
   deviceId: string;
   ip: string | null;
+  ipInfo: ClientIpInfo;
   event: "SIGNUP" | "LOGIN";
 }) {
+  const { ipInfo } = params;
   await prisma.customerDevice
     .create({
-      data: { customerId: params.customerId, deviceId: params.deviceId, ipHash: hashIp(params.ip), event: params.event }
+      data: {
+        customerId: params.customerId,
+        deviceId: params.deviceId,
+        ipHash: hashIp(params.ip),
+        ip: ipInfo.ip,
+        ipCity: ipInfo.city,
+        ipRegion: ipInfo.region,
+        ipCountry: ipInfo.country,
+        event: params.event
+      }
     })
     .catch((e) => console.error("Cihaz kaydı yazılamadı (yoksayıldı):", e));
 }

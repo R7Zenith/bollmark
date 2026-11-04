@@ -35,7 +35,11 @@ export const auditActions = [
   "KALP_TOPLA_KUPON_GERI_YUKLENMEDI",
   "KALP_TOPLA_KUPON_IPTAL",
   "KALP_TOPLA_KUPON_UZATILDI",
-  "KALP_TOPLA_ONAY_CSV_INDIRILDI"
+  "KALP_TOPLA_ONAY_CSV_INDIRILDI",
+  "CUSTOMER_UPDATED",
+  "CUSTOMER_ADDRESS_CREATED",
+  "CUSTOMER_ADDRESS_UPDATED",
+  "CUSTOMER_ADDRESS_DELETED"
 ] as const;
 
 export const auditActionLabel: Record<string, string> = {
@@ -72,5 +76,9 @@ export const auditActionLabel: Record<string, string> = {
   KALP_TOPLA_KUPON_GERI_YUKLENMEDI: "Kalp Topla Kuponu Geri Yüklenmedi",
   KALP_TOPLA_KUPON_IPTAL: "Kalp Topla Kuponu İptal Edildi",
   KALP_TOPLA_KUPON_UZATILDI: "Kalp Topla Kuponu Uzatıldı",
-  KALP_TOPLA_ONAY_CSV_INDIRILDI: "Onay Kayıtları CSV İndirildi"
+  KALP_TOPLA_ONAY_CSV_INDIRILDI: "Onay Kayıtları CSV İndirildi",
+  CUSTOMER_UPDATED: "Müşteri Bilgileri Güncellendi",
+  CUSTOMER_ADDRESS_CREATED: "Müşteri Adresi Eklendi",
+  CUSTOMER_ADDRESS_UPDATED: "Müşteri Adresi Güncellendi",
+  CUSTOMER_ADDRESS_DELETED: "Müşteri Adresi Silindi"
 };

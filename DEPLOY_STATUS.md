@@ -1,6 +1,18 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-11-04, üye e-posta doğrulama + zorunlu telefon)
+## KALDIĞIM YER (2026-11-04, admin müşteri detay sayfası + IP/konum kaydı)
+
+- **Plan:** `MUSTERI_DETAY_SAYFASI_PLANI.md`.
+- **Yapılan:**
+  - Müşteri listesinde isim artık detaya gider: hesaplıda `/admin/musteriler/[id]`, misafirde `/admin/musteriler/misafir?email=` (salt okunur; e-postayla hesap varsa hesaplıya yönlenir). "Detay" linki kalktı, puan düzeltme yerinde. Sipariş listesine "Siparişlerini gör" ile gidilir.
+  - Detay: kimlik kartı, özet (sipariş sayısı/toplam/ortalama/son; `deletedAt: null`, `customerId` veya `customerEmail`), kayıtlı + siparişlerde kullanılan adresler, sipariş geçmişi (50 satır), IP ve konum kartı. Kalp Topla kartları değişmeden en altta. Ortak kartlar `src/components/admin/customer-detail/`.
+  - Düzenleme `/admin/musteriler/[id]/duzenle`: ad, telefon (`normalizeTrMobile`), e-posta (başka hesapta varsa hata), adres ekle/düzenle/sil/varsayılan. Hepsi `requireAdmin` + audit (`CUSTOMER_UPDATED`, `CUSTOMER_ADDRESS_CREATED/UPDATED/DELETED`, eski → yeni). **Kullanıcı kararı:** e-posta değişince `emailVerifiedAt` sıfırlanır, kullanılmamış doğrulama tokenları silinir. Geçmiş siparişlere ve `passwordHash`'e dokunulmaz.
+  - IP kaydı (ileriye dönük): `src/lib/client-ip.ts` (`@vercel/functions`). `Order.clientIp/ipCity/ipRegion/ipCountry` sipariş anında, `CustomerDevice.ip/ipCity/ipRegion/ipCountry` kayıt/girişte (`ipHash` aynen). Cihaz satırları zaten 90 günde siliniyor; `kalp-topla-temizlik` cron'u artık 2 yıldan eski siparişlerin IP alanlarını null'luyor.
+- **DB (canlı, kullanıcı onaylı, 2026-11-04):** 8 nullable sütun `prisma/migrations/20261104000000_musteri_ip_konum/migration.sql` ile `prisma db execute` üzerinden eklendi, `migrate diff` boş. (`migrate dev` kullanılmaz: db push düzeni, yerel = canlı DB.)
+- **Doğrulama:** tsc temiz, değişen dosyalarda lint temiz (`.open-next` çıktısındaki eski hatalar hariç), 189/189 birim testi, build temiz. Tarayıcı testini kullanıcı localhost'ta yaptı; canlı DB'ye geçici test verisi yazılmadı.
+- **Bilinen:** PERSONEL `/admin/musteriler`'e zaten giremiyor, sayfa tamamen ADMIN'e özel. Müşteri listesi siparişleri yalnız e-postayla grupluyor; e-postası değiştirilen müşterinin eski e-postalı siparişleri listede ayrı misafir satırı olur. İl/ilçe serbest metin (projede seçim listesi yok).
+
+## Önceki not (2026-11-04, üye e-posta doğrulama + zorunlu telefon)
 
 - **Tetikleyen:** reklamlar 2026-11-03 gecesi başladı; sabah gelen 3 üyenin (üçü de Hotmail) hiçbiri doğrulamadı. Plan: `docs/planlar/UYE_DOGRULAMA_VE_TELEFON_ZORUNLU_PLANI.md`.
 - **Teşhis:** Vercel Production'da `MAIL_FROM` tanımlı (değer gizli). Yerel `RESEND_API_KEY` yalnız gönderim yetkili, alan adı/gönderim listesi API'den okunamadı. DNS'te `resend._domainkey`, `send.` SPF/MX ve DMARC (`p=none`) var. 3 üyenin hepsi için doğrulama token'ı oluşmuş (gönderim denenmiş); muhtemel neden Hotmail Gereksiz klasörü, kanıtlanamadı. **Elle:** Resend panelinde bu 3 gönderimin durumu ve Vercel'deki `MAIL_FROM` değerinin `@bollmark.com` olduğu kontrol edilecek.

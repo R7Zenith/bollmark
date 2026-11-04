@@ -24,7 +24,10 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
       header: "Müşteri",
       render: (row) => (
         <div>
-          <Link href={`/admin/siparisler?q=${encodeURIComponent(row.email)}`} className="font-medium text-admin-text hover:underline">
+          <Link
+            href={row.id ? `/admin/musteriler/${row.id}` : `/admin/musteriler/misafir?email=${encodeURIComponent(row.email)}`}
+            className="font-medium text-admin-text hover:underline"
+          >
             {row.name}
           </Link>
           {row.hasAccount && (
@@ -56,10 +59,7 @@ export function CustomersTable({ customers }: { customers: CustomerRow[] }) {
       align: "right",
       render: (row) =>
         row.hasAccount && row.id ? (
-          <div className="flex items-center justify-end gap-3">
-            <Link href={`/admin/musteriler/${row.id}`} className="text-sm text-admin-accent hover:underline">
-              Detay
-            </Link>
+          <div className="flex items-center justify-end">
             <CustomerPointsAdjust customerId={row.id} />
           </div>
         ) : null

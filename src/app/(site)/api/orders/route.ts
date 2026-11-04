@@ -12,6 +12,7 @@ import { getPaymentSettings, getReadiness } from "@/lib/payment/settings";
 import { localPaymentTest } from "@/lib/payment/iyzico/mode";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { buildOrderMetaContext } from "@/lib/meta/capi";
+import { getClientIpInfo } from "@/lib/client-ip";
 
 const lineSchema = z.object({
   productId: z.string(),
@@ -107,6 +108,8 @@ export async function POST(req: NextRequest) {
   // Odeme onayi baska bir istekte (webhook/cron) gelebilir: Purchase icin
   // siparis anindaki pazarlama rizasi ve tarayici baglami siparisle saklanir.
   const metaCapiContext = buildOrderMetaContext(req.cookies, req.headers);
+  // Admin musteri detayi icin (lib/client-ip.ts); Meta'ya gitmez.
+  const ipInfo = await getClientIpInfo(req.headers);
   // Bu siparisle bir otomatik kampanyanin kullanim limiti doldu mu (createOrder icinde set edilir).
   let campaignExhausted = false;
 
@@ -198,6 +201,10 @@ export async function POST(req: NextRequest) {
           totalCents,
           termsAcceptedAt: new Date(),
           metaCapiContext,
+          clientIp: ipInfo.ip,
+          ipCity: ipInfo.city,
+          ipRegion: ipInfo.region,
+          ipCountry: ipInfo.country,
           paymentStatus: "UNPAID",
           paymentExpiresAt: new Date(Date.now() + paymentSettings.orderExpiryMinutes * 60 * 1000),
           items: { create: splitOrderItems(resolvedLines!, price.assignments) },
