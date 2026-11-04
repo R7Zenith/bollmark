@@ -6,6 +6,8 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { trackCompleteRegistration } from "@/lib/meta/track";
 import { CONSENT_TEXTS } from "@/lib/kalp-topla/consent-texts";
 import { INVITE_COOKIE } from "@/lib/kalp-topla/invite-rules";
+import { TR_MOBILE_ERROR, normalizeTrMobile } from "@/lib/phone";
+import { isSafeInternalPath } from "@/lib/safe-path";
 
 // Kalp Topla misafir akisi (plan 6.1): ?sekme=kayit&callbackUrl=/urunler/..&kalp=urunId.
 // Giris/kayit sonrasi ayni urune ?kalp= ile donulur, kalp orada otomatik verilir.
@@ -20,7 +22,7 @@ function inviteFieldValue(): string | undefined {
 
 function afterAuthPath(searchParams: URLSearchParams): string {
   const callbackUrl = searchParams.get("callbackUrl") ?? "";
-  if (!callbackUrl.startsWith("/") || callbackUrl.startsWith("//") || callbackUrl.startsWith("/\\")) return "/hesap";
+  if (!isSafeInternalPath(callbackUrl)) return "/hesap";
   const kalp = searchParams.get("kalp");
   if (!kalp) return callbackUrl;
   return `${callbackUrl}${callbackUrl.includes("?") ? "&" : "?"}kalp=${encodeURIComponent(kalp)}`;
@@ -67,10 +69,16 @@ function HesapGiris() {
     setLoading(true);
     setError(null);
     const form = new FormData(e.currentTarget);
+    const phone = normalizeTrMobile(String(form.get("phone") || ""));
+    if (!phone) {
+      setError(TR_MOBILE_ERROR);
+      setLoading(false);
+      return;
+    }
     const payload = {
       name: String(form.get("name") || ""),
       email: String(form.get("email") || ""),
-      phone: String(form.get("phone") || "") || undefined,
+      phone,
       password: String(form.get("password") || ""),
       marketingEmail: form.get("marketingEmail") === "on",
       marketingWhatsapp: form.get("marketingWhatsapp") === "on",
@@ -101,7 +109,7 @@ function HesapGiris() {
         setTab("giris");
         return;
       }
-      router.push(afterAuthPath(searchParams));
+      router.push(`/hesap/dogrulama-bekleniyor?devam=${encodeURIComponent(afterAuthPath(searchParams))}`);
       router.refresh();
     } catch {
       setError("Bir sorun oluştu, lütfen tekrar deneyin.");
@@ -182,8 +190,17 @@ function HesapGiris() {
                 <input id="kayit-email" name="email" type="email" autoComplete="email" required className={inputClass} />
               </div>
               <div className="space-y-2">
-                <label htmlFor="kayit-phone" className={labelClass}>Telefon (opsiyonel)</label>
-                <input id="kayit-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" className={inputClass} />
+                <label htmlFor="kayit-phone" className={labelClass}>Telefon</label>
+                <input
+                  id="kayit-phone"
+                  name="phone"
+                  type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
+                  placeholder="05xx xxx xx xx"
+                  required
+                  className={inputClass}
+                />
               </div>
               <div className="space-y-2">
                 <label htmlFor="kayit-password" className={labelClass}>Şifre (en az 8 karakter)</label>
@@ -204,7 +221,7 @@ function HesapGiris() {
                 </a>
                 &apos;ni oku.
               </p>
-              {error && <p className="text-sm text-red-600">{error}</p>}
+              {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
               <button type="submit" disabled={loading} className={primaryButtonClass}>
                 {loading ? "İşleniyor..." : "Hesap Oluştur"}
               </button>

@@ -1,6 +1,18 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-10-31, Kalp Topla Faz 11, yayın tamamlandı)
+## KALDIĞIM YER (2026-11-04, üye e-posta doğrulama + zorunlu telefon)
+
+- **Tetikleyen:** reklamlar 2026-11-03 gecesi başladı; sabah gelen 3 üyenin (üçü de Hotmail) hiçbiri doğrulamadı. Plan: `docs/planlar/UYE_DOGRULAMA_VE_TELEFON_ZORUNLU_PLANI.md`.
+- **Teşhis:** Vercel Production'da `MAIL_FROM` tanımlı (değer gizli). Yerel `RESEND_API_KEY` yalnız gönderim yetkili, alan adı/gönderim listesi API'den okunamadı. DNS'te `resend._domainkey`, `send.` SPF/MX ve DMARC (`p=none`) var. 3 üyenin hepsi için doğrulama token'ı oluşmuş (gönderim denenmiş); muhtemel neden Hotmail Gereksiz klasörü, kanıtlanamadı. **Elle:** Resend panelinde bu 3 gönderimin durumu ve Vercel'deki `MAIL_FROM` değerinin `@bollmark.com` olduğu kontrol edilecek.
+- **Yapılan:**
+  - `/hesap/dogrulama-bekleniyor`: kayıttan sonra açılır, maskeli e-posta, "tekrar gönder" (10 dk sınırı), "Alışverişe devam et" (`?devam=` yalnız site içi yol, `src/lib/safe-path.ts`). Doğrulanmış üye devam yoluna, girişsiz ziyaretçi girişe gider. Kalp Topla o üye için ACTIVE ise kampanya renklerinde, kalp/kupon animasyonlu "Kalp Topla'dan faydalanmak için e-postanı doğrula" kartı.
+  - Kayıtta "Alışverişe devam" yerine önce bu sayfa açılır; Kalp Topla `?kalp=` dönüşü korunur. Giriş sekmesi değişmedi.
+  - Hesabım layout'unda doğrulanmamış üyeye ince uyarı şeridi (mevcut sorguya `emailVerifiedAt` eklendi, yeni sorgu yok).
+  - Telefon kayıtta zorunlu, `src/lib/phone.ts` (`normalizeTrMobile` → E.164 `+905xxxxxxxxx`, `formatTrMobile`) istemci ve API'de; Meta CAPI'ye normalize değer gider. Şema değişmedi, unique yok. Hesap Özeti'nde telefonu boş üyeye "Telefon numaranı ekle" kutusu.
+- **Doğrulama:** tsc temiz, lint değişen dosyalarda temiz, 187/187 birim testi, build temiz. Playwright ile yerelde tüm senaryolar (telefonsuz red, `+905321234567` kaydı, "biraz bekle", devam, Kalp akışı, uyarının doğrulamayla kaybolması, `//evil.com` → `/hesap`, 1280/375 taşma yok). Test üyeleri (`bm-dogrulama-test-*`) ve testte oluşan boş Kalp barı/turu canlı DB'den silindi.
+- **Bilinen, değiştirilmedi:** Ödeme sayfasında telefon yalnız seçili kayıtlı adresten dolar, `Customer.phone` kullanılmaz. Tercihler sayfası telefonu normalize etmeden kaydediyor ve boşaltabiliyor.
+
+## Önceki not (2026-10-31, Kalp Topla Faz 11, yayın tamamlandı)
 
 - **Kalp Topla 2026-10-31'de yayında, mod Açık** (geçiş 13:33 UTC, kullanıcı yaptı). Eşik 10, %50, kupon 48 saat. Deploy `bollmark-eckpjr7jd`, `main` `c7e202c`.
 - `kalp-topla-wip`, `main`'e birleştirildi; `vercel.json`'daki bu dalın deploy kapatma satırı kaldırıldı. Canlı DB şemayla aynı (`migrate diff` boş, kısmi indeksler var), `db push` gerekmedi.

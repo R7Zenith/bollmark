@@ -10,6 +10,7 @@ import { DEVICE_COOKIE, DEVICE_COOKIE_OPTIONS, recordDevice, resolveDeviceId } f
 import { sendVerificationEmail } from "@/lib/kalp-topla/email-verification";
 import { createInviteOnSignup } from "@/lib/kalp-topla/invite";
 import { INVITE_COOKIE } from "@/lib/kalp-topla/invite-rules";
+import { TR_MOBILE_ERROR, normalizeTrMobile } from "@/lib/phone";
 
 const schema = z.object({
   name: z.string().min(2),
@@ -31,7 +32,12 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
-  const { name, phone } = parsed.data;
+  const { name } = parsed.data;
+  // Telefon zorunlu; bos/gecersizse anlasilir mesaj donsun diye semada optional kaldi.
+  const phone = normalizeTrMobile(parsed.data.phone ?? "");
+  if (!phone) {
+    return NextResponse.json({ error: TR_MOBILE_ERROR }, { status: 400 });
+  }
   const email = parsed.data.email.trim().toLowerCase();
 
   // Y4/Y14: gecici e-posta alan adlari kayitta reddedilir.
