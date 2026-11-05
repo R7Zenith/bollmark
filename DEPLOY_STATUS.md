@@ -1,6 +1,15 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-11-04, admin müşteri detay sayfası + IP/konum kaydı)
+## KALDIĞIM YER (2026-11-05, aksesuar Excel aktarımı öncesi kategori hazırlığı)
+
+- **Tetikleyen:** `Vega_Koton_04.11.2026.xls` (92 aksesuar ürünü); KOD3 değerleri (BELTS, HATS, SHAWLS, EARRINGS, NECKLACES, RINGS, BRACELETS, SOCKS LC, BOXERS BSC) haritada yoktu.
+- **Yapılan:**
+  - `scripts/aksesuar-kategorileri.ts` (varsayılan kuru, `--confirm` ile yazar): Aksesuar altında Kemer, Şapka & Bere, Şal & Atkı, Takı & Bijuteri, Çorap'ı garanti eder; Boxer üst seviyede. Canlı DB'de beşi de zaten Aksesuar altındaydı, Boxer üst seviyedeydi; `--confirm` çalıştı, **hiçbir şey yazılmadı**. DB'deki yazım "Takı & Bijuteri" (ü'süz).
+  - `src/lib/excel-import.ts`: CATEGORY_MAP'e 9 KOD3 satırı; ad anahtar kelimeleri Takı & Bijuteri (küpe, kolye, yüzük, bileklik, bilezik), Şal & Atkı (fular, bandana, atkı), Şapka & Bere (şapka, kasket, bere). "kemer" ve "şal" bilerek yok (Kemerli Elbise, Şal Yaka Ceket). `generateUniqueCategorySlug` export edildi.
+- **Doğrulama:** tsc temiz, değişen dosyalarda lint temiz (`.open-next` eski hataları hariç), build temiz. Önizleme mantığı script ile Excel üzerinde: 92/92 eşleşti (78 addan, 14 KOD3'ten), çakışma ve DB'de olmayan kategori yok; kadın ürünleri Kadın, 5 erkek kemeri ve 3 boxer Erkek. Mevcut 325 ürünün kategorisi yeni kelimelerden etkilenmiyor. Localhost'ta Aksesuar mega menüsü 5 kategoriyi gösteriyor. Admin önizlemesi tarayıcıda açılmadı (giriş gerekli, Playwright bağlanamadı).
+- **Bilinen:** Dosyada 4 barkod tekrar ediyor, 12 satır parse'ta atlanıyor (mevcut davranış). Kadın mega menüsü ürünlü aksesuar kategorilerini de listeliyor (şu an Çanta, Ayakkabı, Parfüm); aktarımdan sonra Kemer, Takı, Çorap da orada görünecek. Ürünler henüz aktarılmadı.
+
+## Önceki not (2026-11-04, admin müşteri detay sayfası + IP/konum kaydı)
 
 - **Plan:** `MUSTERI_DETAY_SAYFASI_PLANI.md`.
 - **Yapılan:**

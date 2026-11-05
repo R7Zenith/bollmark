@@ -117,7 +117,16 @@ const CATEGORY_MAP: Record<string, string> = {
   CEKET: "Ceket",
   HIRKA: "Hırka",
   TRENÇKOT: "Trençkot",
-  ELBİSE: "Elbise"
+  ELBİSE: "Elbise",
+  BELTS: "Kemer",
+  HATS: "Şapka & Bere",
+  SHAWLS: "Şal & Atkı",
+  EARRINGS: "Takı & Bijuteri",
+  NECKLACES: "Takı & Bijuteri",
+  RINGS: "Takı & Bijuteri",
+  BRACELETS: "Takı & Bijuteri",
+  "SOCKS LC": "Çorap",
+  "BOXERS BSC": "Boxer"
 };
 
 export function mapCategoryName(categoryRaw: string): string | null {
@@ -162,7 +171,12 @@ const PRODUCT_NAME_CATEGORY_KEYWORDS: Array<{ category: string; keywords: string
   { category: "Boxer", keywords: ["boxer"] },
   { category: "Ayakkabı", keywords: ["ayakkabı", "sneaker", "sandalet", "terlik", "çizme"] },
   { category: "Çorap", keywords: ["çorap", "patik"] },
-  { category: "Çanta", keywords: ["çanta"] }
+  { category: "Çanta", keywords: ["çanta"] },
+  // "kemer" ve "şal" bilerek yok: "Kemerli Elbise", "Şal Yaka Ceket" gibi giyim
+  // urunleri aksesuara duserdi; onlar icin KOD3 (BELTS/SHAWLS) eslemesi yeterli.
+  { category: "Takı & Bijuteri", keywords: ["küpe", "kolye", "yüzük", "bileklik", "bilezik"] },
+  { category: "Şal & Atkı", keywords: ["fular", "bandana", "atkı"] },
+  { category: "Şapka & Bere", keywords: ["şapka", "kasket", "bere"] }
 ];
 
 function escapeRegExp(text: string): string {
@@ -452,7 +466,7 @@ export async function resolveCategoryIdByName(tx: Tx, categoryName: string): Pro
   return existing?.id ?? null;
 }
 
-async function generateUniqueCategorySlug(tx: Tx, name: string): Promise<string> {
+export async function generateUniqueCategorySlug(tx: Tx, name: string): Promise<string> {
   const base = categorySlug(name) || "kategori";
   let candidate = base;
   let suffix = 2;
