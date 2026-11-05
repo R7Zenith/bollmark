@@ -162,8 +162,11 @@ export default async function HomePage() {
     return imageUrl ? { url: imageUrl, greyBackdrop: false } : take(newestProductImage(inCategoryTree(slug), true, used));
   };
   // Cinsiyet kutulari giyimi tercih eder: ayakkabi/aksesuar agacindaki urunler
-  // o kutularin kendi gorseline kalsin. Giyim urunu yoksa cinsiyetin tumu.
-  const shoeAndAccessoryIds = new Set([...inCategoryTree("ayakkabi"), ...inCategoryTree("aksesuar")].map((p) => p.id));
+  // o kutularin kendi gorseline kalsin; boxer (ic giyim) da vitrin gorseli
+  // olmasin. Giyim urunu yoksa cinsiyetin tumu.
+  const shoeAndAccessoryIds = new Set(
+    [...inCategoryTree("ayakkabi"), ...inCategoryTree("aksesuar"), ...inCategoryTree("boxer")].map((p) => p.id)
+  );
   const genderBoxImage = (label: string) => {
     const all = products.filter((p) => p.gender != null && (GENDER_GROUPS[label] ?? [label]).includes(p.gender));
     const clothing = all.filter((p) => !shoeAndAccessoryIds.has(p.id));
