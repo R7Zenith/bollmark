@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Package, ShoppingCart, Clock, Wallet, AlertTriangle } from "lucide-react";
+import { Package, ShoppingCart, Clock, Wallet, Users } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import {
   addDaysToDateKey,
+  formatDateTime,
   formatPrice,
   istanbulDateKey,
   istanbulDayEnd,
@@ -15,7 +16,6 @@ import { Badge } from "@/components/admin/badge";
 import { EmptyState } from "@/components/admin/empty-state";
 import { OrdersChart, type DailyOrdersPoint } from "@/components/admin/orders-chart";
 import { orderStatusLabel, orderStatusTone } from "@/lib/status";
-import { optionLabel, variantOptionsInclude } from "@/lib/variant-attributes";
 import { REVENUE_STATUSES } from "@/lib/orders";
 
 function trendFrom(current: number, previous: number, formatValue: (n: number) => string) {
@@ -52,7 +52,8 @@ export default async function AdminDashboard() {
     prevPeriodRevenue,
     last30DaysOrders,
     recentOrders,
-    lowStockVariants
+    customerCount,
+    recentCustomers
   ] = await Promise.all([
     prisma.product.count(),
     prisma.order.count({ where: { deletedAt: null } }),
@@ -81,17 +82,11 @@ export default async function AdminDashboard() {
       take: 5,
       select: { id: true, orderNumber: true, customerName: true, status: true, totalCents: true, viewedAt: true }
     }),
-    prisma.productVariant.findMany({
-      where: { stock: { lt: 5 } },
-      orderBy: { stock: "asc" },
-      take: 8,
-      select: {
-        id: true,
-        stock: true,
-        productId: true,
-        product: { select: { name: true } },
-        ...variantOptionsInclude
-      }
+    prisma.customer.count(),
+    prisma.customer.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: { id: true, name: true, createdAt: true }
     })
   ]);
 
@@ -174,29 +169,31 @@ export default async function AdminDashboard() {
       </div>
 
       <div className="mt-6">
-        <Card title="Stoku Azalan Ürünler">
-          {lowStockVariants.length === 0 ? (
-            <p className="text-sm text-admin-text-muted">Stok seviyeleri iyi görünüyor, düşük stoklu varyant yok.</p>
+        <Card title="Müşteriler">
+          <div className="flex items-center gap-3">
+            <Users size={20} className="text-admin-text-muted" />
+            <p className="text-2xl font-semibold text-admin-text">{customerCount}</p>
+            <p className="text-sm text-admin-text-muted">kayıtlı müşteri</p>
+          </div>
+          {recentCustomers.length === 0 ? (
+            <p className="mt-4 text-sm text-admin-text-muted">Henüz kayıtlı müşteri yok.</p>
           ) : (
-            <ul className="divide-y divide-admin-border">
-              {lowStockVariants.map((variant) => (
-                <li key={variant.id} className="py-3 first:pt-0 last:pb-0">
-                  <Link
-                    href={`/admin/urunler/${variant.productId}`}
-                    className="flex items-center justify-between gap-3 hover:opacity-80"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-admin-text">{variant.product.name}</p>
-                      <p className="text-xs text-admin-text-muted">{optionLabel(variant)}</p>
-                    </div>
-                    <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-red-600">
-                      <AlertTriangle size={14} />
-                      {variant.stock} adet
-                    </span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <>
+              <p className="mt-5 text-xs font-medium uppercase tracking-wide text-admin-text-muted">Son kayıt olanlar</p>
+              <ul className="mt-2 divide-y divide-admin-border">
+                {recentCustomers.map((customer) => (
+                  <li key={customer.id} className="py-3 last:pb-0">
+                    <Link
+                      href={`/admin/musteriler/${customer.id}`}
+                      className="flex items-center justify-between gap-3 hover:opacity-80"
+                    >
+                      <p className="truncate text-sm font-medium text-admin-text">{customer.name}</p>
+                      <span className="shrink-0 text-xs text-admin-text-muted">{formatDateTime(customer.createdAt)}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
         </Card>
       </div>
