@@ -79,7 +79,9 @@ export default function ContactPage() {
           <section className="mt-10">
             <h2 className={sectionTitleClass}>Satıcı Bilgileri</h2>
             <dl className="mt-3 space-y-1 text-sm text-ink/80">
-              {legalIdentityRows().map((row) => (
+              {/* Ticaret unvani (sahis adi) iletisim sayfasinda gosterilmez - kullanici
+                  istegi (6 Kasim 2026); On Bilgilendirme Formu'nda yer almaya devam eder. */}
+              {legalIdentityRows().filter((row) => row.label !== "Ticaret Unvanı").map((row) => (
                 <div key={row.label}>
                   <dt className="inline">{row.label}: </dt>
                   <dd className="inline">{row.value}</dd>
