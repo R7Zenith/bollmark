@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ContactForm } from "@/components/contact-form";
 import { InstagramDmLink, WhatsAppLink } from "@/components/contact-links";
-import { legalIdentityRows, openingHoursLines, phoneDisplay, STORE_INFO } from "@/lib/store-info";
+import { openingHoursLines, phoneDisplay, STORE_INFO } from "@/lib/store-info";
 
 export const metadata: Metadata = {
   title: "Bize Ulaşın",
@@ -74,27 +74,12 @@ export default function ContactPage() {
           <section className="mt-10">
             <h2 className={sectionTitleClass}>Mağaza Adresi</h2>
             <p className="mt-3 text-sm text-ink/80">{STORE_ADDRESS}</p>
-          </section>
-
-          <section className="mt-10">
-            <h2 className={sectionTitleClass}>Satıcı Bilgileri</h2>
-            <dl className="mt-3 space-y-1 text-sm text-ink/80">
-              {/* Ticaret unvani (sahis adi) iletisim sayfasinda gosterilmez - kullanici
-                  istegi (6 Kasim 2026); On Bilgilendirme Formu'nda yer almaya devam eder. */}
-              {legalIdentityRows().filter((row) => row.label !== "Ticaret Unvanı").map((row) => (
-                <div key={row.label}>
-                  <dt className="inline">{row.label}: </dt>
-                  <dd className="inline">{row.value}</dd>
-                </div>
-              ))}
-              {/* Numara yalniz WhatsApp icin (aramalar acilmaz) - duz metin, tel: linki yok. */}
-              {STORE_INFO.phone && (
-                <div>
-                  <dt className="inline">Telefon / WhatsApp: </dt>
-                  <dd className="inline">{phoneDisplay(STORE_INFO.phone)}</dd>
-                </div>
-              )}
-            </dl>
+            {/* Numara yalniz WhatsApp icin (aramalar acilmaz) - duz metin, tel: linki yok.
+                Satici kimlik bilgileri (MERSIS, vergi) burada gosterilmez; On Bilgilendirme
+                Formu'nda yer alir (kullanici karari, 6 Kasim 2026). */}
+            {STORE_INFO.phone && (
+              <p className="mt-1 text-sm text-ink/80">Telefon / WhatsApp: {phoneDisplay(STORE_INFO.phone)}</p>
+            )}
           </section>
         </div>
       </div>
