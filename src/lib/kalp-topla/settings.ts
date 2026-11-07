@@ -29,6 +29,11 @@ export async function getKalpSettings(): Promise<Omit<KalpToplaSettings, "update
   return row ?? KALP_DEFAULT_SETTINGS;
 }
 
+// Yeni acilan turun esigi: gizli yayinda test esigi (Y12), aksi halde guncel esik (T16).
+export function currentThreshold(settings: Pick<KalpToplaSettings, "mode" | "threshold" | "testThreshold">): number {
+  return settings.mode === "HIDDEN" ? settings.testThreshold : settings.threshold;
+}
+
 // Plan 5.0 tablosu:
 // - OFF + hic tur yok        -> herkese INVISIBLE
 // - OFF (onceden acilmis)    -> herkese FROZEN

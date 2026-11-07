@@ -68,17 +68,11 @@ async function decrementStock(tx: Tx, items: { variantId: string | null; quantit
 // Odeme dogrulaninca (best-effort, hata akisi bozmaz): tek birlesik onay maili + admin
 // bildirimi, terk edilmis sepeti "kurtarildi" isaretleme, denetim kaydi, Meta Purchase (CAPI).
 async function afterPaid(orderId: string, detail: string) {
-  const order = await prisma.order.findUnique({
-    where: { id: orderId },
-    include: { items: { include: { product: { select: { name: true } } } } }
-  });
+  const order = await prisma.order.findUnique({ where: { id: orderId } });
   if (!order) return;
   await Promise.allSettled([
     notifyAdminNewOrder(order),
-    notifyCustomerOrderReceived(
-      order,
-      order.items.map((item) => ({ productName: item.product.name, quantity: item.quantity, totalCents: item.totalCents }))
-    ),
+    notifyCustomerOrderReceived(order),
     prisma.abandonedCart.updateMany({
       where: { email: order.customerEmail, recoveredAt: null },
       data: { recoveredAt: new Date() }

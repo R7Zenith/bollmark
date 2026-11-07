@@ -6,7 +6,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
 import { sendMail } from "@/lib/mail";
 import { logAudit } from "@/lib/audit-log";
-import { parseCartLines, summarizeCartLines, buildAbandonedCartReminderHtml } from "@/lib/abandoned-carts";
+import { parseCartLines, summarizeCartLines, buildAbandonedCartReminderEmail } from "@/lib/abandoned-carts";
 import { resolvePeriodRange } from "@/lib/order-period";
 import { getAbandonedCartStats } from "@/lib/abandoned-cart-stats";
 import { EmptyState } from "@/components/admin/empty-state";
@@ -32,8 +32,7 @@ async function resendReminderAction(formData: FormData) {
   const lines = parseCartLines(cart.linesJson);
   await sendMail({
     to: cart.email,
-    subject: "Sepetinizde ürünler sizi bekliyor",
-    html: buildAbandonedCartReminderHtml(lines, cart.totalCents)
+    ...buildAbandonedCartReminderEmail(lines, cart.totalCents)
   });
   await prisma.abandonedCart.update({ where: { id: cartId }, data: { remindedAt: new Date() } });
 

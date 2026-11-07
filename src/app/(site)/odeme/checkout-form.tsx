@@ -130,7 +130,8 @@ export default function CheckoutForm({
           size: l.size,
           color: l.color,
           quantity: l.quantity,
-          priceCents: l.priceCents
+          priceCents: l.priceCents,
+          image: l.image
         }))
       })
     }).catch(() => {

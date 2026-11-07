@@ -7,7 +7,9 @@ const lineSchema = z.object({
   size: z.string(),
   color: z.string(),
   quantity: z.number().int().positive(),
-  priceCents: z.number().int().nonnegative()
+  priceCents: z.number().int().nonnegative(),
+  // Hatirlatma e-postasindaki urun gorseli (eski istemcilerde yok).
+  image: z.string().max(2048).optional()
 });
 
 const schema = z.object({

@@ -20,5 +20,11 @@ export async function POST() {
   });
   if (!customer) return NextResponse.json({ error: "Bulunamadı." }, { status: 404, headers });
   if (customer.emailVerifiedAt) return NextResponse.json({ result: "verified" }, { headers });
-  return NextResponse.json({ result: await sendVerificationEmail(customer, "KALP") }, { headers });
+  // E-postadaki kart icin: uyenin onay bekleyen en son kalbi.
+  const pending = await prisma.kalpHeart.findFirst({
+    where: { customerId, status: "PENDING" },
+    orderBy: { createdAt: "desc" },
+    select: { productId: true }
+  });
+  return NextResponse.json({ result: await sendVerificationEmail(customer, "KALP", pending?.productId) }, { headers });
 }

@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit-log";
 import type { Prisma } from "@/generated/prisma/client";
-import { campaignStateFrom, getKalpSettings, type KalpCampaignState } from "./settings";
+import { campaignStateFrom, currentThreshold, getKalpSettings, type KalpCampaignState } from "./settings";
 import { generateCouponCode } from "./coupons";
 import { sendVerificationEmail } from "./email-verification";
 import { applyCreditsToBar, chooseTargetHeart, readWaitingCredits } from "./bonus";
@@ -53,9 +53,7 @@ async function withRetry<T>(run: () => Promise<T>): Promise<T> {
 // Gizli yayinda acilan tur test turudur ve test esigini kullanir (Y12);
 // aksi halde guncel esik yalniz yeni turlara uygulanir (T16).
 function newRoundParams(settings: Settings) {
-  return settings.mode === "HIDDEN"
-    ? { threshold: settings.testThreshold, isTest: true }
-    : { threshold: settings.threshold, isTest: false };
+  return { threshold: currentThreshold(settings), isTest: settings.mode === "HIDDEN" };
 }
 
 export async function lockCustomer(tx: Tx, customerId: string) {
@@ -395,7 +393,7 @@ export async function giveHeart(customerId: string, productId: string): Promise<
   }
   if (result.created && result.status === "PENDING") {
     const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: { id: true, email: true, name: true } });
-    if (customer) await sendVerificationEmail(customer, "KALP");
+    if (customer) await sendVerificationEmail(customer, "KALP", productId);
   }
   return { status: result.status, created: result.created, isFirstHeart: result.isFirstHeart };
 }

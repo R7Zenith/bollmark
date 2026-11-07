@@ -180,7 +180,7 @@ async function updateProduct(id: string, formData: FormData) {
     ...(existing?.optionImages.map((i) => i.url) ?? [])
   ];
   const stockAlertSnapshot = await snapshotStockAlerts(id);
-  const restockQueue: { email: string; productName: string; productSlug: string }[] = [];
+  const restockQueue: { email: string; productName: string; productSlug: string; variantId?: string }[] = [];
 
   // Varyantlar eskiden HER kaydetmede silinip yeni id'yle yeniden
   // olusturuluyordu - bu, o varyanta ait bir siparis (OrderItem.variantId)
@@ -254,7 +254,7 @@ async function updateProduct(id: string, formData: FormData) {
           });
           if (existingVariant.stock === 0 && v.stock > 0 && existingVariant.stockAlerts.length > 0) {
             for (const alert of existingVariant.stockAlerts) {
-              restockQueue.push({ email: alert.email, productName: name, productSlug: slug });
+              restockQueue.push({ email: alert.email, productName: name, productSlug: slug, variantId: v.id });
             }
             await tx.stockAlert.updateMany({
               where: { id: { in: existingVariant.stockAlerts.map((a) => a.id) } },

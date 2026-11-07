@@ -19,7 +19,8 @@ export type VitrinProduct = {
   closedRounds: number;
 };
 
-async function loadVitrin() {
+// Onbelleksiz okuma: dogrulama e-postasi yedek urun secimi de kullanir.
+export async function loadVitrin() {
   const bars = await prisma.kalpBar.findMany({
     where: { OR: [{ points: { gt: 0 } }, { closedRounds: { gt: 0 } }] },
     orderBy: { updatedAt: "desc" },

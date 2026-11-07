@@ -1,4 +1,5 @@
-import { formatPrice } from "@/lib/format";
+import { formatExactPrice } from "@/lib/format";
+import { badge, button, emailImageUrl, emailSiteUrl, heading, paragraph, productRows, renderEmail, secondaryLink, spacer, totals, whatsappUrl, type RenderedEmail } from "@/lib/email/layout";
 
 // Terk edilmis sepet anlik goruntusu - checkout formunda e-posta girilip
 // siparis tamamlanmadan birakildiginda kaydedilir (bkz. api/sepet-kaydet).
@@ -12,6 +13,8 @@ export interface CartLineSnapshot {
   color: string;
   quantity: number;
   priceCents: number;
+  // Eski kayitlarda yok: satir gorselsiz cikar.
+  image?: string;
 }
 
 export function parseCartLines(raw: string): CartLineSnapshot[] {
@@ -25,7 +28,8 @@ export function parseCartLines(raw: string): CartLineSnapshot[] {
         size: String(v.size ?? ""),
         color: String(v.color ?? ""),
         quantity: Number(v.quantity) || 0,
-        priceCents: Number(v.priceCents) || 0
+        priceCents: Number(v.priceCents) || 0,
+        image: typeof v.image === "string" ? v.image : undefined
       }));
   } catch {
     return [];
@@ -37,7 +41,39 @@ export function summarizeCartLines(lines: CartLineSnapshot[]): string {
   return lines.map((l) => `${l.name} (${l.color}, ${l.size}) ×${l.quantity}`).join(", ");
 }
 
-export function buildAbandonedCartReminderHtml(lines: CartLineSnapshot[], totalCents: number): string {
-  const itemsHtml = lines.map((l) => `<li>${l.name} (${l.color}, ${l.size}) × ${l.quantity}</li>`).join("");
-  return `<p>Sepetinizde sizi bekleyen ürünler var:</p><ul>${itemsHtml}</ul><p>Toplam: ${formatPrice(totalCents)}</p><p><a href="https://bollmark.com/sepet">Sepetine dön</a></p>`;
+// MAIL_TASARIMLARI_PLANI.md 07. Kargo anlik goruntude yok: yalniz kayitli toplam gosterilir.
+// Abonelikten cikma mekanizmasi olmadigi icin link eklenmez.
+export function buildAbandonedCartReminderEmail(lines: CartLineSnapshot[], totalCents: number, siteUrl = emailSiteUrl()): RenderedEmail {
+  const cartUrl = `${siteUrl}/sepet`;
+  const whatsapp = whatsappUrl();
+  return renderEmail({
+    siteUrl,
+    subject: "Sepetinizde ürünler sizi bekliyor",
+    preheader: "Sepetindeki ürünler tükenmeden siparişini tamamla.",
+    footer: "transactional",
+    blocks: [
+      badge("SEPETİN SENİ BEKLİYOR", "red", "🛒"),
+      heading("Bir şey mi unuttun?"),
+      paragraph("Sepetine eklediğin ürünler hâlâ seni bekliyor. Stoklar sınırlı, bedenin tükenmeden siparişini tamamla.", { margin: "0 0 14px" }),
+      productRows(
+        lines.map((l) => ({
+          name: l.name,
+          detail: [l.color, l.size, `${l.quantity} adet`].filter(Boolean).join(" · "),
+          priceLabel: formatExactPrice(l.priceCents * l.quantity),
+          imageUrl: emailImageUrl(l.image)
+        }))
+      ),
+      totals([{ label: "Toplam", value: formatExactPrice(totalCents) }]),
+      spacer(22),
+      button("Sepetime dön", cartUrl),
+      whatsapp ? secondaryLink("Sorun mu yaşadın? WhatsApp'tan yaz", whatsapp) : ""
+    ],
+    textLines: [
+      "Bir şey mi unuttun? Sepetindeki ürünler seni bekliyor:",
+      ...lines.map((l) => `- ${l.name} (${l.color}, ${l.size}) × ${l.quantity}`),
+      `Toplam: ${formatExactPrice(totalCents)}`,
+      "",
+      `Sepetime dön: ${cartUrl}`
+    ]
+  });
 }

@@ -1,31 +1,116 @@
 import { createHash, randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail";
-import { getSiteUrl } from "@/lib/site-url";
+import { emailImageUrl, emailSiteUrl } from "@/lib/email/layout";
+import {
+  pickVerificationTemplate,
+  verificationKalpEmail,
+  verificationPlainEmail,
+  verificationSignupEmail,
+  type CampaignNumbers,
+  type HeartProduct,
+  type VerificationCommon
+} from "@/lib/email/verification-emails";
+import { campaignStateFrom, currentThreshold, getKalpSettings } from "./settings";
+import { loadVitrin } from "./vitrin";
 
 // E-posta dogrulama (KALP_TOPLA_PLANI.md 5.4): 32 bayt token, DB'de yalniz
 // SHA-256 ozeti, 24 saat gecerli, tek kullanimlik. Ayni uyeye 10 dakikada en
 // cok bir e-posta gider.
-const TOKEN_HOURS = 24;
+export const TOKEN_HOURS = 24;
 const RESEND_MINUTES = 10;
 
 export function hashVerificationToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
 }
 
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+// Uyelik e-postasindaki (15) 3 urun, kullanicinin sectigi sirayla: kadin kaban,
+// erkek deri ceket, simli kazak. Biri yayinda/stokta/kampanyada degilse yerine
+// Kalp Topla vitrinindeki siradaki uygun urun gelir.
+export const SIGNUP_EMAIL_PRODUCT_SLUGS = [
+  "cepli-d--meli-uzun-kollu-kruvaze-uzun-ka-e-kaban",
+  "uzun-kollu-fermuarlı-cepli-gömlek-yaka-klasik-suni-deri-ceket",
+  "kay-k-yaka-pullu-simli-triko-kazak"
+];
+
+type Settings = Awaited<ReturnType<typeof getKalpSettings>>;
+
+const productCardSelect = {
+  id: true,
+  slug: true,
+  name: true,
+  images: { orderBy: { position: "asc" }, take: 1, select: { url: true } },
+  optionImages: { orderBy: { position: "asc" }, take: 1, select: { url: true } }
+} as const;
+
+type CardProduct = { id: string; slug: string; name: string; images: { url: string }[]; optionImages: { url: string }[] };
+
+// Urunlerin o anki bar durumu; bari olmayan urun 0 puan ve yeni tur esigiyle. Yalniz okur.
+async function toHeartProducts(products: CardProduct[], settings: Settings, siteUrl: string): Promise<HeartProduct[]> {
+  const bars = await prisma.kalpBar.findMany({
+    where: { productId: { in: products.map((p) => p.id) } },
+    select: { productId: true, points: true, currentRoundId: true }
+  });
+  const rounds = await prisma.kalpRound.findMany({ where: { id: { in: bars.map((b) => b.currentRoundId) } }, select: { id: true, threshold: true } });
+  const thresholds = new Map(rounds.map((r) => [r.id, r.threshold]));
+  const barByProduct = new Map(bars.map((b) => [b.productId, b]));
+  return products.map((p) => {
+    const bar = barByProduct.get(p.id);
+    return {
+      name: p.name,
+      imageUrl: emailImageUrl(p.images[0]?.url ?? p.optionImages[0]?.url ?? null),
+      url: `${siteUrl}/urunler/${encodeURIComponent(p.slug)}`,
+      points: bar?.points ?? 0,
+      threshold: (bar && thresholds.get(bar.currentRoundId)) || currentThreshold(settings)
+    };
+  });
 }
 
-// Kayitta giden genel dogrulama e-postasi (Faz 3 karari: kampanyadan bahsetmez).
-// "KALP": dogrulanmamis uye kalp verince giden surum (plan 7.4).
+// 14'teki kart: kalp verilen urun. Bulunamazsa null (kart gizlenir). Yalniz okur.
+export async function loadKalpProductCard(productId: string | undefined, settings: Settings, siteUrl: string): Promise<HeartProduct | null> {
+  if (!productId) return null;
+  const product = await prisma.product.findUnique({ where: { id: productId }, select: productCardSelect });
+  if (!product) return null;
+  return (await toHeartProducts([product], settings, siteUrl))[0];
+}
+
+// 15'teki 3 urun. Yayinda, kampanyada ve stokta olanlar; eksik kalirsa vitrinden tamamlanir. Yalniz okur.
+export async function loadSignupProducts(settings: Settings, siteUrl: string): Promise<HeartProduct[]> {
+  const eligible = { status: "PUBLISHED", kalpToplaExcluded: false, variants: { some: { stock: { gt: 0 } } } };
+  const picked = await prisma.product.findMany({ where: { ...eligible, slug: { in: SIGNUP_EMAIL_PRODUCT_SLUGS } }, select: productCardSelect });
+  const chosen = SIGNUP_EMAIL_PRODUCT_SLUGS.flatMap((slug) => picked.filter((p) => p.slug === slug));
+  if (chosen.length < SIGNUP_EMAIL_PRODUCT_SLUGS.length) {
+    const vitrin = await loadVitrin();
+    const ids = [...new Set([...vitrin.near, ...vitrin.top].map((v) => v.productId))].filter((id) => !chosen.some((c) => c.id === id));
+    const extra = await prisma.product.findMany({ where: { ...eligible, id: { in: ids } }, select: productCardSelect });
+    for (const id of ids) {
+      const product = extra.find((p) => p.id === id);
+      if (product && chosen.length < SIGNUP_EMAIL_PRODUCT_SLUGS.length) chosen.push(product);
+    }
+  }
+  return toHeartProducts(chosen, settings, siteUrl);
+}
+
+export function campaignNumbers(settings: Settings): CampaignNumbers {
+  return {
+    threshold: currentThreshold(settings),
+    discountPercent: settings.discountPercent,
+    couponHours: settings.couponHours,
+    inviteBonus: settings.inviteBonus
+  };
+}
+
+// Kampanya bu uye icin acik degilse (plan 5.0 durumu ACTIVE degil) sade tasarim (06);
+// aciksa kalp verince 14, normal uyelikte 15. "KALP": dogrulanmamis uye kalp verince
+// (productId: kalp verilen urun, kartta gosterilir).
 export async function sendVerificationEmail(
   customer: {
     id: string;
     email: string;
     name: string;
   },
-  purpose: "KAYIT" | "KALP" = "KAYIT"
+  purpose: "KAYIT" | "KALP" = "KAYIT",
+  productId?: string
 ): Promise<"sent" | "throttled"> {
   const recent = await prisma.emailVerificationToken.findFirst({
     where: { customerId: customer.id, createdAt: { gt: new Date(Date.now() - RESEND_MINUTES * 60 * 1000) } },
@@ -42,18 +127,27 @@ export async function sendVerificationEmail(
     }
   });
 
-  const url = `${getSiteUrl()}/hesap/dogrula?token=${token}`;
-  await sendMail({
-    to: customer.email,
-    subject: purpose === "KALP" ? "Bollmark: e-postanı doğrula, kalbin sayılsın ❤️" : "Bollmark: e-posta adresini doğrula",
-    html:
-      `<p>Merhaba ${escapeHtml(customer.name)},</p>` +
-      (purpose === "KALP"
-        ? `<p>Verdiğin kalbin bara sayılması için e-posta adresini doğrula:</p>`
-        : `<p>Bollmark hesabını oluşturduğun için teşekkürler. E-posta adresini doğrulamak için aşağıdaki bağlantıya tıkla:</p>`) +
-      `<p><a href="${url}">E-postamı doğrula</a></p>` +
-      `<p>Bağlantı ${TOKEN_HOURS} saat geçerlidir. Bu hesabı sen oluşturmadıysan bu e-postayı dikkate alma.</p>`
-  });
+  const siteUrl = emailSiteUrl();
+  const common: VerificationCommon = {
+    siteUrl,
+    firstName: customer.name.trim().split(/\s+/)[0] ?? "",
+    verifyUrl: `${siteUrl}/hesap/dogrula?token=${token}`,
+    tokenHours: TOKEN_HOURS
+  };
+  let email = verificationPlainEmail(common);
+  try {
+    const settings = await getKalpSettings();
+    const template = pickVerificationTemplate((await campaignStateFrom(settings, customer.id)) === "ACTIVE", purpose);
+    if (template === "KALP_KAMPANYA") {
+      email = verificationKalpEmail(common, campaignNumbers(settings), await loadKalpProductCard(productId, settings, siteUrl));
+    } else if (template === "UYELIK_KAMPANYA") {
+      email = verificationSignupEmail(common, campaignNumbers(settings), await loadSignupProducts(settings, siteUrl));
+    }
+  } catch (error) {
+    // Kampanya verisi okunamazsa dogrulama yine gider (sade tasarimla).
+    console.error("Kampanya dogrulama e-postasi hazirlanamadi, sade surum gidiyor:", error);
+  }
+  await sendMail({ to: customer.email, ...email });
   return "sent";
 }
 

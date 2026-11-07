@@ -1,12 +1,15 @@
 import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail";
 import type { Prisma } from "@/generated/prisma/client";
+import { badge, button, emailSiteUrl, escapeHtml, heading, paragraph, renderEmail, type RenderedEmail } from "@/lib/email/layout";
+import { emailProductImagesSelect, emailVariantSelect, variantImageUrl, variantValues } from "@/lib/email/product-image";
 
 type Tx = Prisma.TransactionClient;
 
 type VariantSnapshot = { stock: number; pendingEmails: string[] };
 
-type RestockNotification = { email: string; productName: string; productSlug: string };
+// variantId: e-postadaki gorsel ve renk/beden icin (gonderimde okunur).
+type RestockNotification = { email: string; productName: string; productSlug: string; variantId?: string };
 
 // Urun kaydetme akisinda (urunler/[id]/page.tsx) ProductVariant kayitlari her
 // guncellemede silinip yeniden olusturuluyor (yeni id ile), bu yuzden
@@ -42,7 +45,7 @@ export async function carryOverOrQueueRestock(
 
   if (old.stock === 0 && newVariant.stock > 0) {
     for (const email of old.pendingEmails) {
-      restockQueue.push({ email, productName: product.name, productSlug: product.slug });
+      restockQueue.push({ email, productName: product.name, productSlug: product.slug, variantId: newVariant.id });
     }
     return;
   }
@@ -52,6 +55,49 @@ export async function carryOverOrQueueRestock(
   });
 }
 
+export type RestockEmailInput = { productName: string; productUrl: string; variant: string; imageUrl: string | null };
+
+// MAIL_TASARIMLARI_PLANI.md 08. Abonelikten cikma mekanizmasi olmadigi icin link eklenmez.
+export function restockEmail(input: RestockEmailInput, siteUrl = emailSiteUrl()): RenderedEmail {
+  const image = input.imageUrl
+    ? `<img src="${escapeHtml(input.imageUrl)}" alt="${escapeHtml(input.productName)}" width="340" style="display:block;width:100%;max-width:340px;height:auto;margin:0 auto 18px;border-radius:12px">`
+    : "";
+  return renderEmail({
+    siteUrl,
+    subject: `${input.productName} tekrar stokta`,
+    preheader: "Haber vermemizi istediğin ürün geri geldi.",
+    footer: "transactional",
+    blocks: [
+      badge("TEKRAR STOKTA", "red", "🔔"),
+      heading("Beklediğin ürün geri geldi!"),
+      paragraph("Haber vermemizi istediğin ürün tekrar stokta. Sınırlı sayıda, kaçırmadan al."),
+      image,
+      paragraph(`<strong>${escapeHtml(input.productName)}</strong>`, { align: "center", size: 17, color: "#111111", margin: "0 0 4px" }),
+      input.variant ? paragraph(escapeHtml(input.variant), { align: "center", size: 14 }) : "",
+      button("Hemen incele", input.productUrl)
+    ],
+    textLines: [
+      `Beklediğin ürün tekrar stokta: ${input.productName}${input.variant ? ` (${input.variant})` : ""}`,
+      `Hemen incele: ${input.productUrl}`
+    ]
+  });
+}
+
+// Varyantin renk/beden bilgisi ve gorseli. Yalniz okur; varyant yoksa urunun ilk gorseli.
+export async function loadRestockInfo(item: RestockNotification): Promise<RestockEmailInput> {
+  const siteUrl = emailSiteUrl();
+  const [variant, product] = await Promise.all([
+    item.variantId ? prisma.productVariant.findUnique({ where: { id: item.variantId }, select: emailVariantSelect }) : null,
+    prisma.product.findUnique({ where: { slug: item.productSlug }, select: emailProductImagesSelect })
+  ]);
+  return {
+    productName: item.productName,
+    productUrl: `${siteUrl}/urunler/${encodeURIComponent(item.productSlug)}`,
+    variant: variantValues(variant),
+    imageUrl: product ? variantImageUrl(product, variant) : null
+  };
+}
+
 /**
  * Kuyruklanmis "tekrar stokta" bildirimlerini gonderir. Transaction
  * tamamlandiktan SONRA, best-effort olarak cagrilmali (deleteBlobUrls ile
@@ -59,10 +105,10 @@ export async function carryOverOrQueueRestock(
  */
 export async function sendRestockNotifications(items: RestockNotification[]): Promise<void> {
   for (const item of items) {
-    await sendMail({
-      to: item.email,
-      subject: `${item.productName} tekrar stokta`,
-      html: `<p>Beklediğiniz <strong>${item.productName}</strong> tekrar stokta.</p><p><a href="https://bollmark.com/urunler/${item.productSlug}">Ürünü görüntüle</a></p>`
-    });
+    try {
+      await sendMail({ to: item.email, ...restockEmail(await loadRestockInfo(item)) });
+    } catch (error) {
+      console.error("Stok bildirimi e-postasi hazirlanamadi (yoksayildi):", error);
+    }
   }
 }

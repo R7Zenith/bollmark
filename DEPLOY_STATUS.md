@@ -1,6 +1,12 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-11-05, aksesuar Excel aktarımı öncesi kategori hazırlığı)
+## KALDIĞIM YER (2026-11-08, müşteri mailleri yeni tasarım)
+
+- **Plan:** `docs/mail-tasarimlari/MAIL_TASARIMLARI_PLANI.md` (referans tasarımlar aynı klasörde).
+- **Yapılan:** 01–08 işlem mailleri ortak şablona geçti (`src/lib/email/`). Kalp Topla açıkken doğrulama maili 14 (kalp verince) / 15 (üyelik), kapalıyken 06 sade. Kalp Topla'nın 10–13 maili ve admin mailleri değişmedi. Hangi durumda mail gittiği değişmedi. Şema değişikliği yok.
+- **Doğrulama:** tsc, lint (değişen dosyalar), 199/199 test, build temiz. 16 test maili (`scripts/mail-test-gonder.ts`, DB'ye yazmaz) kullanıcının gelen kutusunda onaylandı; commit + push 2026-11-08.
+
+## Önceki not (2026-11-05, aksesuar Excel aktarımı öncesi kategori hazırlığı)
 
 - **Tetikleyen:** `Vega_Koton_04.11.2026.xls` (92 aksesuar ürünü); KOD3 değerleri (BELTS, HATS, SHAWLS, EARRINGS, NECKLACES, RINGS, BRACELETS, SOCKS LC, BOXERS BSC) haritada yoktu.
 - **Yapılan:**

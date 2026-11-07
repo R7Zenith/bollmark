@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail";
-import { parseCartLines, buildAbandonedCartReminderHtml } from "@/lib/abandoned-carts";
+import { parseCartLines, buildAbandonedCartReminderEmail } from "@/lib/abandoned-carts";
 
 // Vercel Cron tarafindan gunde bir kez tetiklenir (bkz. vercel.json, saat
 // 08:00), Vercel'in otomatik ekledigi "Authorization: Bearer $CRON_SECRET"
@@ -39,8 +39,7 @@ export async function GET(req: NextRequest) {
     const lines = parseCartLines(cart.linesJson);
     await sendMail({
       to: cart.email,
-      subject: "Sepetinizde ürünler sizi bekliyor",
-      html: buildAbandonedCartReminderHtml(lines, cart.totalCents)
+      ...buildAbandonedCartReminderEmail(lines, cart.totalCents)
     });
     await prisma.abandonedCart.update({ where: { id: cart.id }, data: { remindedAt: new Date() } });
   }
