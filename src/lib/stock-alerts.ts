@@ -106,7 +106,7 @@ export async function loadRestockInfo(item: RestockNotification): Promise<Restoc
 export async function sendRestockNotifications(items: RestockNotification[]): Promise<void> {
   for (const item of items) {
     try {
-      await sendMail({ to: item.email, ...restockEmail(await loadRestockInfo(item)) });
+      await sendMail({ to: item.email, ...restockEmail(await loadRestockInfo(item)), log: { kind: "RESTOCK" } });
     } catch (error) {
       console.error("Stok bildirimi e-postasi hazirlanamadi (yoksayildi):", error);
     }

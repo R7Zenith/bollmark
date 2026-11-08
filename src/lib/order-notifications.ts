@@ -84,18 +84,18 @@ export async function loadOrderEmailData(order: Order): Promise<OrderEmailData> 
 }
 
 export async function notifyCustomerOrderReceived(order: Order): Promise<void> {
-  await sendMail({ to: order.customerEmail, ...orderReceivedEmail(await loadOrderEmailData(order)) });
+  await sendMail({ to: order.customerEmail, ...orderReceivedEmail(await loadOrderEmailData(order)), log: { kind: "ORDER_RECEIVED" } });
 }
 
 export async function notifyCustomerStatusChange(order: Order, status: OrderStatus): Promise<void> {
   if (!notifiableStatuses.includes(status)) return;
   const kind = status as StatusEmailKind;
-  await sendMail({ to: order.customerEmail, ...orderStatusEmail(await loadOrderEmailData(order), kind) });
+  await sendMail({ to: order.customerEmail, ...orderStatusEmail(await loadOrderEmailData(order), kind), log: { kind: "ORDER_STATUS" } });
 }
 
 export async function notifyCustomerRefund(order: Order, amountCents: number, fullyRefunded: boolean): Promise<void> {
   const data = { siteUrl: emailSiteUrl(), customerName: order.customerName, orderNumber: order.orderNumber };
-  await sendMail({ to: order.customerEmail, ...refundEmail(data, amountCents, fullyRefunded) });
+  await sendMail({ to: order.customerEmail, ...refundEmail(data, amountCents, fullyRefunded), log: { kind: "REFUND" } });
 }
 
 // Talebin kalemleri: bu durumdaki en son guncellenen iade/degisim talebinden. Yalniz okur.
@@ -126,5 +126,5 @@ function parseReturnItems(raw: string): { orderItemId: string; quantity: number 
 
 export async function notifyReturnStatusChange(order: Order, status: ReturnStatus): Promise<void> {
   if (!returnStatusNotifiable.includes(status)) return;
-  await sendMail({ to: order.customerEmail, ...returnStatusEmail(await loadReturnEmailData(order, status), status) });
+  await sendMail({ to: order.customerEmail, ...returnStatusEmail(await loadReturnEmailData(order, status), status), log: { kind: "RETURN_STATUS" } });
 }

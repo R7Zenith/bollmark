@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { consentGroupsToPurge } from "@/lib/kalp-topla/consent";
 import { expireWaitingCredits } from "@/lib/kalp-topla/bar";
+import { EMAIL_LOG_RETENTION_DAYS } from "@/lib/email/log";
 
 // Kalp Topla gunluk temizlik (KALP_TOPLA_PLANI.md 5.9, Y3). Vercel Cron,
 // "Authorization: Bearer $CRON_SECRET" ile (bkz. vercel.json).
@@ -11,6 +12,7 @@ import { expireWaitingCredits } from "@/lib/kalp-topla/bar";
 //   eskiyse o musteri+kanalin o tarihe kadarki IP'leri null'lanir.
 // - Kullanilmis ya da suresi dolmus dogrulama tokenlari 7 gun sonra silinir.
 // - Suresi dolan bekleyen davet bonuslari EXPIRED olur (5.6.1, kampanya kapaliyken de).
+// - Giden mail kayitlari (EmailLog) 30 gun sonra silinir (admin > Giden Mailler).
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 export async function GET(req: NextRequest) {
@@ -52,8 +54,13 @@ export async function GET(req: NextRequest) {
     where: { OR: [{ usedAt: { lt: weekAgo } }, { expiresAt: { lt: weekAgo } }] }
   });
 
+  const emailLogs = await prisma.emailLog.deleteMany({
+    where: { createdAt: { lt: new Date(now.getTime() - EMAIL_LOG_RETENTION_DAYS * DAY_MS) } }
+  });
+
   return NextResponse.json({
     ok: true,
+    deletedEmailLogs: emailLogs.count,
     deletedDevices: devices.count,
     purgedOrderIps: orderIps.count,
     purgedIps,

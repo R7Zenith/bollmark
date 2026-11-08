@@ -1,4 +1,6 @@
 import { Resend } from "resend";
+import { prisma } from "@/lib/prisma";
+import type { EmailKind } from "@/lib/email/log";
 
 /**
  * Tum e-posta gonderimleri (sepet hatirlatma, stok bildirimi vb.) bu tek
@@ -21,10 +23,13 @@ export async function sendMail(params: {
   text?: string;
   replyTo?: string;
   headers?: Record<string, string>;
+  // Verilirse gonderim (basarili ya da hatali) EmailLog'a yazilir: yalniz musteriye giden e-postalar.
+  log?: { kind: EmailKind };
 }): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.error("E-posta gonderilemedi (RESEND_API_KEY tanimli degil, yoksayildi).");
+    await logEmail(params, false, "RESEND_API_KEY tanımlı değil");
     return false;
   }
   // Yerel gelistirme guvenligi (Kalp Topla Faz 0): yerel .env'de tanimliysa
@@ -43,9 +48,34 @@ export async function sendMail(params: {
       headers: params.headers
     });
     if (error) console.error("E-posta gonderilemedi (yoksayildi):", error);
+    await logEmail(params, !error, error ? errorText(error) : null);
     return !error;
   } catch (error) {
     console.error("E-posta gonderilemedi (yoksayildi):", error);
+    await logEmail(params, false, errorText(error));
     return false;
+  }
+}
+
+function errorText(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (error && typeof error === "object" && "message" in error) return String((error as { message: unknown }).message);
+  return String(error);
+}
+
+// Kayit hatasi gonderimi ya da cagiran islemi asla bozmaz. Asil alici yazilir
+// (MAIL_DEV_REDIRECT yerelde yonlendirse de).
+async function logEmail(
+  params: { to: string; subject: string; html: string; text?: string; log?: { kind: EmailKind } },
+  sent: boolean,
+  error: string | null
+): Promise<void> {
+  if (!params.log) return;
+  try {
+    await prisma.emailLog.create({
+      data: { kind: params.log.kind, to: params.to, subject: params.subject, html: params.html, text: params.text ?? null, sent, error }
+    });
+  } catch (logError) {
+    console.error("E-posta kaydi yazilamadi (yoksayildi):", logError);
   }
 }

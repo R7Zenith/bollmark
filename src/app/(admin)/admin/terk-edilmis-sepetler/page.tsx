@@ -32,7 +32,8 @@ async function resendReminderAction(formData: FormData) {
   const lines = parseCartLines(cart.linesJson);
   await sendMail({
     to: cart.email,
-    ...buildAbandonedCartReminderEmail(lines, cart.totalCents)
+    ...buildAbandonedCartReminderEmail(lines, cart.totalCents),
+    log: { kind: "ABANDONED_CART" }
   });
   await prisma.abandonedCart.update({ where: { id: cartId }, data: { remindedAt: new Date() } });
 

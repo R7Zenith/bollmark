@@ -1007,3 +1007,21 @@ model EmailVerificationToken {
   usedAt     DateTime?
   createdAt  DateTime  @default(now())
 }
+
+// Musteriye giden e-postalarin kaydi (admin > Giden Mailler). Admin'e giden
+// bildirimler kaydedilmez. 30 gunden eskiler gunluk temizlikte silinir
+// (api/cron/kalp-topla-temizlik). Bkz. src/lib/email/log.ts.
+model EmailLog {
+  id        String   @id @default(cuid())
+  kind      String   // EMAIL_KINDS (src/lib/email/log.ts)
+  to        String
+  subject   String
+  html      String
+  text      String?
+  sent      Boolean
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([to])
+}

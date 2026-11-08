@@ -1,6 +1,13 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-11-08, müşteri mailleri yeni tasarım)
+## KALDIĞIM YER (2026-11-08, admin "Giden Mailler" sayfası)
+
+- **Yapılan:** `/admin/giden-mailler` (yalnız ADMIN, kenar menü Müşteriler altında): müşteriye giden mailler alıcı, tür, tarih, durum ve tam HTML içeriğiyle. Alıcıya göre arama, tür/durum filtresi; detayda hata mesajı ve sandbox'lı önizleme.
+- **DB (canlı, kullanıcı onaylı, 2026-11-08):** `EmailLog` tablosu `prisma/migrations/20261108000000_email_log/migration.sql` ile `prisma db execute` üzerinden eklendi, `migrate diff` boş.
+- **Kural:** yalnız `sendMail`'e `log: { kind }` verilen 9 müşteri çağrısı kaydedilir; admin bildirimleri, iletişim formu ve `scripts/mail-test-gonder.ts` kaydedilmez. Kayıt hatası gönderimi bozmaz. Kayıtlar 30 gün sonra `kalp-topla-temizlik` cron'unda silinir.
+- **Doğrulama:** tsc, lint, 199/199 test, build temiz; yerelde örnek kayıtlarla liste/detay/filtre kullanıcıya gösterildi, örnekler silindi (tablo boş). Geçmiş mailler yok: kayıt bu deploy'dan sonra başlar.
+
+## Önceki not (2026-11-08, müşteri mailleri yeni tasarım)
 
 - **Plan:** `docs/mail-tasarimlari/MAIL_TASARIMLARI_PLANI.md` (referans tasarımlar aynı klasörde).
 - **Yapılan:** 01–08 işlem mailleri ortak şablona geçti (`src/lib/email/`). Kalp Topla açıkken doğrulama maili 14 (kalp verince) / 15 (üyelik), kapalıyken 06 sade. Kalp Topla'nın 10–13 maili ve admin mailleri değişmedi. Hangi durumda mail gittiği değişmedi. Şema değişikliği yok.

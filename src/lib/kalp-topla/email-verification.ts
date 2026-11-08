@@ -147,7 +147,7 @@ export async function sendVerificationEmail(
     // Kampanya verisi okunamazsa dogrulama yine gider (sade tasarimla).
     console.error("Kampanya dogrulama e-postasi hazirlanamadi, sade surum gidiyor:", error);
   }
-  await sendMail({ to: customer.email, ...email });
+  await sendMail({ to: customer.email, ...email, log: { kind: "VERIFICATION" } });
   return "sent";
 }
 

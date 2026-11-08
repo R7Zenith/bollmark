@@ -22,6 +22,7 @@ import {
   FileText,
   UserPlus,
   Mail,
+  Send,
   CreditCard,
   CalendarRange,
   ChevronDown,
@@ -93,7 +94,8 @@ const navGroups: NavGroup[] = [
     label: "Müşteriler",
     items: [
       { href: "/admin/musteriler", label: "Müşteriler", icon: Users },
-      { href: "/admin/mesajlar", label: "Mesajlar", icon: Mail }
+      { href: "/admin/mesajlar", label: "Mesajlar", icon: Mail },
+      { href: "/admin/giden-mailler", label: "Giden Mailler", icon: Send }
     ]
   },
   {

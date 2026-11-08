@@ -294,7 +294,7 @@ async function deliverEmail(notification: Notification, from: string[]) {
     }
     const email = await renderEmail(notification, customer);
     if (!email) return void (await finish(notification.id, "emailStatus", "NOT_APPLICABLE"));
-    const sent = await sendMail({ to: customer.email, ...email, headers: unsubscribeHeaders(customer.id) });
+    const sent = await sendMail({ to: customer.email, ...email, headers: unsubscribeHeaders(customer.id), log: { kind: "KALP_TOPLA" } });
     await finish(notification.id, "emailStatus", sent ? "SENT" : "FAILED");
   } catch (error) {
     console.error("Bildirim e-postasi gonderilemedi:", error);

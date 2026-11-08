@@ -39,7 +39,8 @@ export async function GET(req: NextRequest) {
     const lines = parseCartLines(cart.linesJson);
     await sendMail({
       to: cart.email,
-      ...buildAbandonedCartReminderEmail(lines, cart.totalCents)
+      ...buildAbandonedCartReminderEmail(lines, cart.totalCents),
+      log: { kind: "ABANDONED_CART" }
     });
     await prisma.abandonedCart.update({ where: { id: cart.id }, data: { remindedAt: new Date() } });
   }
