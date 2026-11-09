@@ -11,7 +11,7 @@ import { KalpHeroBar, KalpHeroHearts } from "./hero-kalp-topla-motion";
 export function HeroKalpToplaSlide({ threshold, discountPercent }: { threshold: number; discountPercent: number }) {
   const offer = discountPercent === 50 ? "yarı fiyat" : `%${discountPercent} indirim`;
   return (
-    <div className="relative flex min-h-screen items-end overflow-hidden bg-ink text-cream md:items-center">
+    <div className="relative flex min-h-svh items-end overflow-hidden bg-ink text-cream md:items-center">
       <HeroSlideDeferred>
         <Image
           src="/anasayfa/kalp-topla-mobile.jpg"

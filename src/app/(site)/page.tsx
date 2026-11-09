@@ -278,9 +278,13 @@ export default async function HomePage() {
           cengele yer acildi.
           Hero artik carousel (bkz. components/home/hero-carousel.tsx): bu
           sezon hero'su slayt 1, Kalp Topla slayti (yalniz mode LIVE iken)
-          slayt 2. Tek slayt kalirsa kontrolsuz statik hero gibi davranir. */}
+          slayt 2. Tek slayt kalirsa kontrolsuz statik hero gibi davranir.
+          Yukseklik min-h-svh (eskiden min-h-screen/100vh): mobilde 100vh
+          tarayici cubuklari gizliyken olculuyor, cubuklar gorunurken buton
+          ve slayt noktalari ekranin altina tasiyordu (kullanici geri
+          bildirimi, 9 Kasim 2026). Masaustunde svh = vh, degisiklik yok. */}
       <HeroCarousel>
-        <section className="relative flex min-h-screen items-end overflow-hidden bg-ink text-cream md:items-end">
+        <section className="relative flex min-h-svh items-end overflow-hidden bg-ink text-cream md:items-end">
           <Image
             src="/hero-model.jpg"
             alt="Bollmark kampanya görseli"
