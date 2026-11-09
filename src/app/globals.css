@@ -215,6 +215,49 @@ body {
   }
 }
 
+/* Hero carousel (bkz. components/home/hero-carousel.tsx): pasif slayttaki
+   giris animasyonu kaldirilir; slayt aktif olunca animation-name geri gelir
+   ve .hero-reveal girisi bastan oynar. */
+[data-hero-inactive] .hero-reveal > * {
+  animation-name: none;
+}
+
+/* Kalp Topla hero slaytinda yukselen kalpler (bkz.
+   components/home/hero-kalp-topla-motion.tsx). Kapsayici size-container,
+   kalp onun yuksekligi (100cqh) kadar yukselip solar; ic oge saga-sola
+   salinir. Slayt pasif/sekme gizliyken data-paused ile durur.
+   prefers-reduced-motion kontrolu bilerek yok (kullanici istegi, 9 Kasim 2026). */
+.hero-hearts {
+  container-type: size;
+}
+
+.hero-heart {
+  position: absolute;
+  bottom: 0;
+  animation: heroHeartRise var(--dur) linear var(--delay) infinite both;
+}
+
+.hero-heart > * {
+  animation: heroHeartSway calc(var(--dur) / 3) ease-in-out var(--delay) infinite alternate both;
+}
+
+.hero-hearts[data-paused] .hero-heart,
+.hero-hearts[data-paused] .hero-heart > * {
+  animation-play-state: paused;
+}
+
+@keyframes heroHeartRise {
+  0% { transform: translateY(0); opacity: 0; }
+  12% { opacity: 0.85; }
+  70% { opacity: 0.6; }
+  100% { transform: translateY(-100cqh); opacity: 0; }
+}
+
+@keyframes heroHeartSway {
+  from { transform: translateX(calc(var(--sway) * -1)); }
+  to { transform: translateX(var(--sway)); }
+}
+
 
 /* Admin giris sayfasi (bkz. src/app/(admin)/admin/login/page.tsx): form
    8px asagidan yukari belirir, gorsel yavasca scale(1.05 -> 1) ile oturur.

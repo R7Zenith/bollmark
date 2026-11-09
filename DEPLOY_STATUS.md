@@ -1,6 +1,14 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-11-08, admin "Giden Mailler" sayfası)
+## KALDIĞIM YER (2026-11-09, anasayfa hero carousel + Kalp Topla slaytı)
+
+- **Plan:** `KALP_TOPLA_HERO_CAROUSEL_PLANI.md`.
+- **Yapılan:** Anasayfa hero'su carousel oldu (`src/components/home/hero-carousel.tsx`, embla, loop, 6 sn otomatik geçiş). Slayt 1 mevcut sezon hero'su (görsel/yerleşim birebir aynı, h1 ve priority korundu). Slayt 2 Kalp Topla (`hero-kalp-topla-slide.tsx` + `hero-kalp-topla-motion.tsx`): yalnız `getKalpSettings().mode === "LIVE"` iken eklenir (ISR, tester mantığı yok); başlık h2, eşik/oran ayarlardan. Yükselen kalpler (CSS) + parça parça dolan bar + "%X kilit açıldı" döngüsü; slayt pasif/sekme gizliyken durur. Görseller `public/anasayfa/kalp-topla-{desktop,mobile}.jpg` (mozjpeg, ~255 KB); ilk yüklemede inmez, hydration'dan 2,5 sn sonra veya ilk etkileşimde yüklenir.
+- **Kurallar (kullanıcı kararı, 2026-11-09):** prefers-reduced-motion kontrolü yok, hover'da otomatik geçiş durmaz. Kaydırma/ok/nokta ve Durdur butonu otomatik geçişi durdurur (yalnız Oynat ile döner); klavye odağı içerideyken bekler. Tek slayt kalırsa hiçbir kontrol render edilmez. Durdur butonu noktaların yanında (sağ alt köşe "Bize yaz" butonunun altında kalıyordu).
+- **Doğrulama:** tsc, değişen dosyalarda lint (`.open-next` eski hataları hariç), build temiz. Playwright (1440/375): slayt 1 eski hero ile ölçü/font/konum olarak birebir; LCP `hero-model.jpg`; otomatik geçiş, ok/nokta/swipe, Durdur; LIVE değilken (kodda geçici mock, DB'ye dokunulmadı) tek slayt ve kontrol yok; 375'te yatay taşma yok; tek h1. Ekran görüntüleri `Claude outputs/hero-carousel/`.
+- **Bilinen:** Anasayfada açılan mevcut Kalp Topla tanıtım popup'ı hero'nun üstüne geliyor (değiştirilmedi). Next 16'da `priority` deprecated (`preload`), slayt 1'de istek üzerine bırakıldı.
+
+## Önceki not (2026-11-08, admin "Giden Mailler" sayfası)
 
 - **Yapılan:** `/admin/giden-mailler` (yalnız ADMIN, kenar menü Müşteriler altında): müşteriye giden mailler alıcı, tür, tarih, durum ve tam HTML içeriğiyle. Alıcıya göre arama, tür/durum filtresi; detayda hata mesajı ve sandbox'lı önizleme.
 - **DB (canlı, kullanıcı onaylı, 2026-11-08):** `EmailLog` tablosu `prisma/migrations/20261108000000_email_log/migration.sql` ile `prisma db execute` üzerinden eklendi, `migrate diff` boş.

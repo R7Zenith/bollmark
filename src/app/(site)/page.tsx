@@ -12,6 +12,9 @@ import { InstagramGrid } from "@/components/home/instagram-grid";
 import { parsePosts, parseProfile } from "@/lib/instagram-media";
 import { ShopByCategory, type CollectionBox } from "@/components/home/shop-by-category";
 import { TrustMarquee } from "@/components/home/trust-marquee";
+import { HeroCarousel } from "@/components/home/hero-carousel";
+import { HeroKalpToplaSlide } from "@/components/home/hero-kalp-topla-slide";
+import { getKalpSettings } from "@/lib/kalp-topla/settings";
 import { prisma } from "@/lib/prisma";
 import { catalogHref, GENDER_GROUPS, genderWhere } from "@/lib/catalog-url";
 import { getActiveAutomaticPercentCampaigns, resolveProductDisplayPrice } from "@/lib/coupons";
@@ -77,7 +80,8 @@ export default async function HomePage() {
     soldGroups,
     storeSettings,
     homeBundles,
-    instagram
+    instagram,
+    kalpSettings
   ] = await Promise.all([
     getPublishedProducts(),
     getActiveAutomaticPercentCampaigns(prisma),
@@ -116,7 +120,9 @@ export default async function HomePage() {
     prisma.instagramIntegration.findUnique({
       where: { id: "singleton" },
       select: { postsJson: true, profileJson: true, showOnHome: true }
-    })
+    }),
+    // Hero'daki Kalp Topla slayti yalniz LIVE iken (ISR: kisiye ozel tester yok).
+    getKalpSettings()
   ]);
 
   // Coklu rengi olan bir urun burada rengi kadar ayri kart olarak gorunur
@@ -269,37 +275,45 @@ export default async function HomePage() {
           ALT kenarindan tasip kirpiliyordu - h1'in kendi kutusu satir
           yuksekligiyle bitiyor, cengel onun disina cikiyordu; pb-[0.15em]
           (font-size'a orantili) ile h1'in kutusu asagi dogru genisletilip
-          cengele yer acildi. */}
-      <section className="relative flex min-h-screen items-end overflow-hidden bg-ink text-cream md:items-end">
-        <Image
-          src="/hero-model.jpg"
-          alt="Bollmark kampanya görseli"
-          fill
-          priority
-          sizes="100vw"
-          className="object-cover"
-          style={{ objectPosition: "50% 18%" }}
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-ink/70 via-ink/20 to-transparent" />
-        <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pb-14 md:max-w-none md:px-[54px] md:pb-16 md:pt-[97px] md:text-center">
-          <div className="hero-reveal">
-            <p className="text-[10px] uppercase tracking-widest2 text-cream/70 md:text-xs">2026 Sonbahar / Kış</p>
+          cengele yer acildi.
+          Hero artik carousel (bkz. components/home/hero-carousel.tsx): bu
+          sezon hero'su slayt 1, Kalp Topla slayti (yalniz mode LIVE iken)
+          slayt 2. Tek slayt kalirsa kontrolsuz statik hero gibi davranir. */}
+      <HeroCarousel>
+        <section className="relative flex min-h-screen items-end overflow-hidden bg-ink text-cream md:items-end">
+          <Image
+            src="/hero-model.jpg"
+            alt="Bollmark kampanya görseli"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
+            style={{ objectPosition: "50% 18%" }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-r from-ink/70 via-ink/20 to-transparent" />
+          <div className="relative z-10 mx-auto w-full max-w-7xl px-6 pb-14 md:max-w-none md:px-[54px] md:pb-16 md:pt-[97px] md:text-center">
+            <div className="hero-reveal">
+              <p className="text-[10px] uppercase tracking-widest2 text-cream/70 md:text-xs">2026 Sonbahar / Kış</p>
+            </div>
+            <div className="hero-reveal">
+              <h1 className="mt-2 max-w-[13rem] pb-[0.15em] font-display text-3xl font-light leading-[1.05] md:mx-auto md:mt-6 md:max-w-3xl md:text-[clamp(3.8125rem,1.7013rem+3.2986vw,5rem)] md:leading-[1.15]">
+                Her gün için, her parça için
+              </h1>
+            </div>
+            <div className="hero-reveal">
+              <Link
+                href="/urunler"
+                className="mt-5 inline-flex items-center rounded-full bg-cream px-6 py-2.5 text-xs uppercase tracking-wide text-ink transition hover:bg-clay hover:text-cream md:mt-10 md:border md:border-cream md:bg-transparent md:px-8 md:py-3.5 md:text-sm md:text-cream md:hover:bg-cream md:hover:text-ink"
+              >
+                Keşfet
+              </Link>
+            </div>
           </div>
-          <div className="hero-reveal">
-            <h1 className="mt-2 max-w-[13rem] pb-[0.15em] font-display text-3xl font-light leading-[1.05] md:mx-auto md:mt-6 md:max-w-3xl md:text-[clamp(3.8125rem,1.7013rem+3.2986vw,5rem)] md:leading-[1.15]">
-              Her gün için, her parça için
-            </h1>
-          </div>
-          <div className="hero-reveal">
-            <Link
-              href="/urunler"
-              className="mt-5 inline-flex items-center rounded-full bg-cream px-6 py-2.5 text-xs uppercase tracking-wide text-ink transition hover:bg-clay hover:text-cream md:mt-10 md:border md:border-cream md:bg-transparent md:px-8 md:py-3.5 md:text-sm md:text-cream md:hover:bg-cream md:hover:text-ink"
-            >
-              Keşfet
-            </Link>
-          </div>
-        </div>
-      </section>
+        </section>
+        {kalpSettings.mode === "LIVE" && (
+          <HeroKalpToplaSlide threshold={kalpSettings.threshold} discountPercent={kalpSettings.discountPercent} />
+        )}
+      </HeroCarousel>
 
       {/* 2) Yeni Gelenler / Öne Çıkanlar - Release temasindaki "just arrived"
           slider'i: masaustunde 4'lu, tek urun adimlarla kayan carousel
