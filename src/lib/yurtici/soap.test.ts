@@ -199,3 +199,29 @@ test("baglanti reddi ve 403 anlasilir Turkce mesaj verir; proxy adresi mesaja ya
     forbidden.close();
   }
 });
+
+test("ShippingOrderVO alan sirasi test WSDL'indeki sirayla ayni, zorunlu sayisal alanlar var", () => {
+  // WSDL ShippingOrderVO dizisi (2026-11-10, testwebservices), bizim gonderdiklerimiz:
+  const wsdlOrder = [
+    "cargoKey", "invoiceKey", "receiverCustName", "receiverAddress", "cityName", "townName", "receiverPhone1",
+    "receiverPhone2", "receiverPhone3", "emailAddress", "taxOfficeId", "taxNumber", "taxOfficeName", "desi", "kg",
+    "cargoCount", "waybillNo", "specialField1", "specialField2", "specialField3", "ttInvoiceAmount", "ttDocumentId",
+    "ttCollectionType", "ttDocumentSaveType", "dcSelectedCredit", "dcCreditRule", "description"
+  ];
+  const xml = buildCreateShipmentXml(creds, [vo]);
+  const sent = [...xml.slice(xml.indexOf("<ShippingOrderVO>") + 17, xml.indexOf("</ShippingOrderVO>")).matchAll(/<([A-Za-z0-9]+)>/g)].map((m) => m[1]);
+  const positions = sent.map((n) => wsdlOrder.indexOf(n));
+  assert.ok(positions.every((p) => p >= 0), `bilinmeyen alan: ${sent}`);
+  assert.deepEqual(positions, [...positions].sort((a, b) => a - b));
+  for (const required of ["taxOfficeId", "cargoCount", "ttDocumentId", "dcSelectedCredit", "dcCreditRule"]) {
+    assert.ok(sent.includes(required), required);
+  }
+});
+
+test("sonuc seviyesindeki errCode okunur", () => {
+  const xml = `<S:Envelope xmlns:S="x"><S:Body><ns2:queryShipmentResponse xmlns:ns2="y"><ShippingDeliveryVO><outFlag>2</outFlag><outResult>Kullanıcı adı veya şifre hatalı</outResult><errCode>60001</errCode><count>0</count></ShippingDeliveryVO></ns2:queryShipmentResponse></S:Body></S:Envelope>`;
+  const r = parseQueryResponse(xml);
+  assert.equal(r.errCode, "60001");
+  assert.equal(r.outFlag, "2");
+  assert.equal(r.rows.length, 0);
+});

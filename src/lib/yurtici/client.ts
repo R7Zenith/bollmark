@@ -36,6 +36,14 @@ export function ykErrorMessage(code: string, fallback = ""): string {
   return ERROR_MESSAGES[code] ?? (fallback ? `Yurtiçi: ${fallback} (kod ${code})` : `Yurtiçi hata kodu ${code}.`);
 }
 
+// Kayit donmeden sonuc seviyesinde hata (or. kullanici/sifre hatali): outResult ile firlatilir.
+function throwIfResultError(r: { outFlag: string; outResult: string; errCode: string; rows: unknown[] }) {
+  if (r.rows.length > 0) return;
+  if ((r.outFlag && r.outFlag !== "0") || (r.errCode && r.errCode !== "0")) {
+    throw new YurticiFault(r.outResult ? `Yurtiçi: ${r.outResult}` : `Yurtiçi hata kodu ${r.errCode || r.outFlag}.`);
+  }
+}
+
 function activeMode(): Exclude<YurticiMode, "off"> {
   const mode = getYurticiMode();
   if (mode === "off") throw new Error("Yurtiçi entegrasyonu kapalı (YURTICI_MODE=off).");
@@ -67,9 +75,7 @@ export async function createShipments(vos: ShippingOrderVO[]): Promise<CreateShi
     (creds) => buildCreateShipmentXml(creds, vos)
   );
   const parsed = parseCreateResponse(xml);
-  if (parsed.outFlag === "2" && parsed.rows.length === 0) {
-    throw new YurticiFault(parsed.outResult || "Yurtiçi beklenmeyen hata döndü.");
-  }
+  throwIfResultError(parsed);
   return {
     mode,
     egress: getYurticiEgress(),
@@ -91,7 +97,9 @@ export async function queryShipments(keys: string[]): Promise<QueryShipmentResul
     () => mockQueryShipment(keys),
     (creds) => buildQueryShipmentXml(creds, keys)
   );
-  return { mode, egress, rows: parseQueryResponse(xml).rows };
+  const parsed = parseQueryResponse(xml);
+  throwIfResultError(parsed);
+  return { mode, egress, rows: parsed.rows };
 }
 
 export type CancelShipmentResult = CallMeta & { rows: (CancelRow & { ok: boolean; message: string })[] };
@@ -105,10 +113,12 @@ export async function cancelShipments(keys: string[]): Promise<CancelShipmentRes
     () => mockCancelShipment(keys),
     (creds) => buildCancelShipmentXml(creds, keys)
   );
+  const parsed = parseCancelResponse(xml);
+  throwIfResultError(parsed);
   return {
     mode,
     egress,
-    rows: parseCancelResponse(xml).rows.map((r) => ({
+    rows: parsed.rows.map((r) => ({
       ...r,
       ok: r.errCode === "0" && r.operationStatus === "CNL",
       message: r.errCode === "0" ? r.operationMessage : ykErrorMessage(r.errCode, r.errMessage)

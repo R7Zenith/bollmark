@@ -1,7 +1,7 @@
 # Yurtiçi Kargo Entegrasyon Planı
 
 Tarih: 2026-11-10
-Durum: Faz 1–4 tamamlandı (2026-11-10, mock modda, yerel commit). Faz 5–6 Yurtiçi'nin IP onayını bekliyor. Sabit IP kararı: Bölüm 2 (Fixie + dükkan statik IP).
+Durum: Faz 1–4 tamamlandı ve canlıda (kapalı modda). Yurtiçi IP onayı geldi (2026-11-10). Faz 5 yarıda: test ortamı kullanıcısı bekleniyor, bkz. "Faz 5 durumu" (Bölüm 6 sonu). Sabit IP kararı: Bölüm 2 (Fixie + dükkan statik IP).
 
 Kaynak: Yurtiçi'nin gönderdiği üç doküman ("Web Servis Giden Kargo Teknik Doküman V3", "Web Servis Gelen-Giden Kargo Raporu", "Erişim Yetkilendirme Formu") ve müşteri tanım maili (10 Kasım 2026).
 
@@ -251,6 +251,18 @@ IP onayı geldikten sonra:
 **Test gönderileri canlı DB'ye yazılmamalı.** Test modunda `createShipment` için sipariş kaydına dokunmayan ayrı bir admin "Yurtiçi bağlantı testi" ekranı (ya da `scripts/yurtici-test.ts` script'i) kullanılır. Gerçek siparişlerin Shipment kaydı test cargoKey'iyle kirletilmez.
 
 ---
+
+### Faz 5 durumu (2026-11-10) – KALDIĞIMIZ YER
+
+- **Bağlantı tamam:** Fixie IP'leri Yurtiçi'de tanımlı. Test WSDL'i Fixie'den de dükkan bilgisayarından doğrudan da indi (WSDL herkese açık olabilir; tek başına kanıt değil). **Canlı** ortamda GÖ kullanıcımızla salt-okuma `queryShipment` (var olmayan anahtar) Fixie üzerinden "Başarılı" döndü, satırda 82519 "kargo anahtarı bulunmamaktadır": canlıda kimlik + IP çalışıyor.
+- **WSDL doğrulaması** (`scripts/yurtici-test.ts wsdl`, çıktı `scripts/output/yurtici-wsdl/`, git'e girmez): operasyonlar `createShipment` / `queryShipment` / `cancelShipment`, document/literal, soapAction '', iç elemanlar namespace'siz. Düzeltilen: `ShippingOrderVO`'da zorunlu `taxOfficeId`, `ttDocumentId`, `dcSelectedCredit`, `dcCreditRule` (0) şema sırasıyla eklendi; sonuç seviyesindeki `errCode`/`outResult` (kayıt dönmeyen hata) okunuyor. Cevap yapıları ayrıştırıcıyla uyumlu.
+- **Engel, test ortamı kullanıcısı yok:** test ortamında GÖ kullanıcımız tanımlı değil (1625, "kayıtlı kullanıcı yok"); dokümandaki ortak `YKTEST` kullanıcısı var ama şifresi artık dokümandaki gibi değil ("kullanıcı ve parola örtüşmüyor"). Test gönderisi oluşturulamadı.
+- **Kullanıcıdan beklenen:** yetki onayını gönderen temsilciye cevap maili: test ortamı kullanıcı adı/şifresi; veremezlerse "canlıda kendimize bir test gönderisi oluşturup şubeye vermeden iptal etmemiz uygun mu?".
+- **Cevap gelince:**
+  - Test kullanıcısı verilirse: değerler yalnız `.env`'ye; kod şu an test modunda `YKTEST`/`YK` sabit kullanıyor, bunun için `YURTICI_TEST_USERNAME` / `YURTICI_TEST_PASSWORD` env'leri eklenecek. Sonra `scripts/yurtici-test.ts olustur` (Fixie) → anahtar Yurtiçi Bilgi Sistemleri'ne → Yurtiçi işler → `sorgula`; ikinci gönderi `olustur --dogrudan` + `iptal` → CNL.
+  - Canlıda test onaylanırsa: canlıda kullanıcının kendisine tek gönderi (DB'ye yazmayan script ile), Yurtiçi'de kontrol, şubeye vermeden `iptal` (NOP → CNL).
+  - Sonra Bölüm 7 (Vercel env'leri kullanıcı onayıyla, `YURTICI_MODE=live`).
+- Fixie kullanımı 2026-11-10: 4 istek.
 
 ## 7. Canlıya geçiş
 

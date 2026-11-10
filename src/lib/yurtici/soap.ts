@@ -3,7 +3,8 @@ import type { ShippingOrderVO } from "./map";
 import { childText, findAll, findFirst, parseXml, xmlEscape } from "./xml";
 
 // Yurtici ShippingOrderDispatcherServices SOAP govdeleri ve cevap ayrıstırma.
-// Govde bicimi teknik dokuman V3'e gore; Faz 5'te WSDL ile dogrulanacak.
+// Govde bicimi test ortami WSDL'i ile dogrulandi (2026-11-10): alan adlari,
+// sirasi ve zorunlu alanlar; ic elemanlar namespace'siz (unqualified), soapAction ''.
 
 const NS = "http://yurticikargo.com.tr/ShippingOrderDispatcherServices";
 const TIMEOUT_MS = 15_000;
@@ -37,7 +38,13 @@ export function buildCreateShipmentXml(creds: Credentials, orders: ShippingOrder
         el("townName", o.townName) +
         el("receiverPhone1", o.receiverPhone1) +
         el("emailAddress", o.emailAddress) +
+        // WSDL'de zorunlu (minOccurs yok) sayisal alanlar, sema sirasiyla; 0 = yok
+        // (vergi dairesi, tahsilatli teslimat, kredi kurali kullanilmiyor).
+        el("taxOfficeId", 0) +
         el("cargoCount", o.cargoCount) +
+        el("ttDocumentId", 0) +
+        el("dcSelectedCredit", 0) +
+        el("dcCreditRule", 0) +
         el("description", o.description) +
         "</ShippingOrderVO>"
     )
@@ -74,7 +81,7 @@ export function buildCancelShipmentXml(creds: Credentials, keys: string[]): stri
 // --- Cevaplar ---
 
 export type CreateRow = { cargoKey: string; errCode: string; errMessage: string };
-export type CreateResult = { outFlag: string; outResult: string; jobId: string; rows: CreateRow[] };
+export type CreateResult = { outFlag: string; outResult: string; errCode: string; jobId: string; rows: CreateRow[] };
 
 export type QueryRow = {
   cargoKey: string;
@@ -88,7 +95,7 @@ export type QueryRow = {
   deliveryTime: string;
   rejectStatus: string;
 };
-export type QueryResult = { outFlag: string; outResult: string; rows: QueryRow[] };
+export type QueryResult = { outFlag: string; outResult: string; errCode: string; rows: QueryRow[] };
 
 export type CancelRow = {
   cargoKey: string;
@@ -97,7 +104,7 @@ export type CancelRow = {
   errCode: string;
   errMessage: string;
 };
-export type CancelResult = { outFlag: string; outResult: string; rows: CancelRow[] };
+export type CancelResult = { outFlag: string; outResult: string; errCode: string; rows: CancelRow[] };
 
 export class YurticiFault extends Error {}
 
@@ -113,6 +120,7 @@ export function parseCreateResponse(xml: string): CreateResult {
   return {
     outFlag: childText(result, "outFlag"),
     outResult: childText(result, "outResult"),
+    errCode: childText(result, "errCode"),
     jobId: childText(result, "jobId"),
     rows: findAll(result, "shippingOrderDetailVO").map((r) => ({
       cargoKey: childText(r, "cargoKey"),
@@ -129,6 +137,7 @@ export function parseQueryResponse(xml: string): QueryResult {
   return {
     outFlag: childText(result, "outFlag"),
     outResult: childText(result, "outResult"),
+    errCode: childText(result, "errCode"),
     rows: findAll(result, "shippingDeliveryDetailVO").map((r) => {
       const item = r.children.find((c) => c.name === "shippingDeliveryItemDetailVO") ?? null;
       return {
@@ -154,6 +163,7 @@ export function parseCancelResponse(xml: string): CancelResult {
   return {
     outFlag: childText(result, "outFlag"),
     outResult: childText(result, "outResult"),
+    errCode: childText(result, "errCode"),
     rows: findAll(result, "shippingCancelDetailVO").map((r) => ({
       cargoKey: childText(r, "cargoKey"),
       operationStatus: childText(r, "operationStatus"),
