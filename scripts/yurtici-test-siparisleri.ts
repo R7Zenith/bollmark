@@ -4,7 +4,10 @@
 // alici adi "TEST ALICI" ile baslayan siparislerde acar.
 //
 // Siparisler: durum PREPARING, odeme UNPAID (Vega yalniz odenmis siparis alir),
-// kalem yok (stok etkilenmez), mail gonderilmez.
+// kalem yok (stok etkilenmez), olustururken mail gonderilmez. Faz 4 durum
+// gecislerindeki "kargolandi/teslim edildi" mailleri test adresine gider
+// (yerelde MAIL_DEV_REDIRECT'e yonlenir). --sil bu siparislerin denetim
+// kayitlarini ve test adresine giden mail kayitlarini da siler.
 //
 // Olustur: npx tsx scripts/yurtici-test-siparisleri.ts --olustur
 // Sil:     npx tsx scripts/yurtici-test-siparisleri.ts --sil
@@ -12,6 +15,7 @@ import "dotenv/config";
 import { prisma } from "../src/lib/prisma";
 
 const PREFIX = "BLMTEST-";
+const TEST_EMAIL = "test.alici@example.com";
 
 const ORDERS = [
   {
@@ -62,7 +66,7 @@ async function create() {
         ...o,
         status: "PREPARING",
         paymentStatus: "UNPAID",
-        customerEmail: "test.alici@example.com",
+        customerEmail: TEST_EMAIL,
         note: "Yurtiçi mock denemesi - geçici test siparişi, silinecek",
         subtotalCents: 0,
         totalCents: 0,
@@ -81,7 +85,11 @@ async function remove() {
   const ids = orders.map((o) => o.id);
   const audit = await prisma.auditLog.deleteMany({ where: { targetType: "Order", targetId: { in: ids } } });
   const deleted = await prisma.order.deleteMany({ where: { id: { in: ids } } }); // Shipment cascade
-  console.log(`Silinen sipariş: ${deleted.count} (${orders.map((o) => o.orderNumber).join(", ") || "-"}), denetim kaydı: ${audit.count}`);
+  // Faz 4 denemesinde giden "kargolandi/teslim edildi" maillerinin kaydi (asil alici test adresi).
+  const mails = await prisma.emailLog.deleteMany({ where: { to: TEST_EMAIL } });
+  console.log(
+    `Silinen sipariş: ${deleted.count} (${orders.map((o) => o.orderNumber).join(", ") || "-"}), denetim kaydı: ${audit.count}, mail kaydı: ${mails.count}`
+  );
 }
 
 const arg = process.argv[2];

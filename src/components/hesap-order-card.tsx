@@ -26,7 +26,7 @@ export interface HesapOrderView {
   statusLabel: string;
   createdAtLabel: string;
   totalLabel: string;
-  shipment: { carrier: string; trackingCode: string | null } | null;
+  shipment: { carrier: string; trackingCode: string | null; trackingUrl: string | null } | null;
   items: HesapOrderItemView[];
   returnRequests: HesapReturnRequestView[];
   eligibleForReturn: boolean;
@@ -120,6 +120,14 @@ export function HesapOrderCard({ order }: { order: HesapOrderView }) {
         <p className="mt-3 text-xs text-ink/50">
           Kargo: {order.shipment.carrier || "Belirtilmedi"}
           {order.shipment.trackingCode ? ` · Takip: ${order.shipment.trackingCode}` : ""}
+          {order.shipment.trackingUrl && (
+            <>
+              {" · "}
+              <a href={order.shipment.trackingUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-ink">
+                Kargomu takip et
+              </a>
+            </>
+          )}
         </p>
       )}
 

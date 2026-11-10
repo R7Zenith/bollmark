@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { returnStatuses } from "@/lib/status";
+import { safeTrackingUrl } from "@/lib/yurtici/map";
 
 const schema = z.object({
   orderNumber: z.string().min(1),
@@ -73,7 +74,12 @@ export async function POST(req: NextRequest) {
       totalCents: order.totalCents,
       totalLabel: formatPrice(order.totalCents),
       shipment: order.shipment
-        ? { carrier: order.shipment.carrier, trackingCode: order.shipment.trackingCode, status: order.shipment.status }
+        ? {
+            carrier: order.shipment.carrier,
+            trackingCode: order.shipment.trackingCode,
+            status: order.shipment.status,
+            trackingUrl: order.shipment.ykCancelledAt ? null : safeTrackingUrl(order.shipment.trackingUrl)
+          }
         : null,
       items: order.items.map((item) => ({
         id: item.id,

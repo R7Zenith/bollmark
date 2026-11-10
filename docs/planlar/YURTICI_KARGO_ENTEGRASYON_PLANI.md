@@ -1,7 +1,7 @@
 # Yurtiçi Kargo Entegrasyon Planı
 
 Tarih: 2026-11-10
-Durum: Faz 1–3 tamamlandı (2026-11-10, mock modda, yerel commit). Sıradaki Faz 4. Faz 5–6 Yurtiçi'nin IP onayını bekliyor. Sabit IP kararı: Bölüm 2 (Fixie + dükkan statik IP).
+Durum: Faz 1–4 tamamlandı (2026-11-10, mock modda, yerel commit). Faz 5–6 Yurtiçi'nin IP onayını bekliyor. Sabit IP kararı: Bölüm 2 (Fixie + dükkan statik IP).
 
 Kaynak: Yurtiçi'nin gönderdiği üç doküman ("Web Servis Giden Kargo Teknik Doküman V3", "Web Servis Gelen-Giden Kargo Raporu", "Erişim Yetkilendirme Formu") ve müşteri tanım maili (10 Kasım 2026).
 
@@ -135,7 +135,7 @@ Yurtiçi API'si **etiket PDF'i vermiyor**. Doğru akış:
 2. Pakete **kendi etiketimizi** yapıştırıyoruz: üzerinde `cargoKey` barkodu (Code128) ve alıcı bilgileri olur.
 3. Şube barkodu okutunca alıcı bilgileri ekranına gelir. Şube Yurtiçi'nin kendi barkodunu ve taşıma irsaliyesini basar.
 
-Yani sitede "Kargo Etiketi Yazdır" sayfası olmalı: 10×7 cm termal, yatay (100 mm en × 70 mm boy; kullanıcının termal etiketi bu, 2026-11-10 kararı) ve A4'e 4'lü (normal yazıcı) seçenekleri. Etiketin içeriği: gönderici "BOLLMARK" + mağaza adresi/telefonu, alıcı ad/adres/il-ilçe/telefon, sipariş no, kargo anahtarı barkodu ve yazısı, koli adedi. Barkod sunucuda SVG olarak üretilir (küçük bir kütüphane, örn. `jsbarcode` + `xmldom` ya da saf TS Code128; bundle boyutuna dikkat).
+Yani sitede "Kargo Etiketi Yazdır" sayfası olmalı: 10×7 cm termal, yatay (100 mm en × 70 mm boy; kullanıcının termal etiketi bu, 2026-11-10 kararı. Dükkandaki Argox OS-214 plus, Vega'nın ayarı bozulmasın diye Windows'a ikinci adla "Argox Bollmark" olarak eklendi: stok 100×70 mm, yön Dikey. Sayfa kodu `@page` boyutu vermez, etiket seçilen kağıdı doldurur; gerekirse "Etiketi 90° döndür" kutusu) ve A4'e 4'lü (normal yazıcı) seçenekleri. Etiketin içeriği: gönderici "BOLLMARK" + mağaza adresi/telefonu, alıcı ad/adres/il-ilçe/telefon, sipariş no, kargo anahtarı barkodu ve yazısı, koli adedi. Barkod sunucuda SVG olarak üretilir (küçük bir kütüphane, örn. `jsbarcode` + `xmldom` ya da saf TS Code128; bundle boyutuna dikkat).
 
 ### 4.5 Gönderici adı
 

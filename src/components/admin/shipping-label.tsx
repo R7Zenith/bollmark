@@ -4,8 +4,8 @@ import { normalizeYkPhone } from "@/lib/yurtici/map";
 
 // Kargo etiketi (bkz. plan bolum 4.4). Yurtici API etiket vermiyor: pakete
 // bu etiket yapistirilir, sube kargo anahtari barkodunu okutur.
-// 10x7 (termal, yatay: 100 mm en x 70 mm boy) ya da A4'e 4'lu; olculer mm,
-// saf siyah-beyaz.
+// 10x7 termal (etiket 100 mm en x 70 mm boy; sayfa boyutu yazici penceresinden
+// secilir, bkz. labelPrintCss) ya da A4'e 4'lu; olculer mm, saf siyah-beyaz.
 
 export type LabelSize = "10x7" | "a4";
 
@@ -27,7 +27,16 @@ export function labelPhoneText(raw: string) {
 }
 
 export const labelPrintCss = (size: LabelSize) => `
-@page { size: ${size === "a4" ? "A4" : "100mm 70mm"}; margin: 0; }
+${
+  size === "a4"
+    ? "@page { size: A4; margin: 0; }"
+    : /* Termal: sayfa boyutu bilerek verilmez. 100x70 gibi "yatay" bir @page
+         verilince Chrome yatay yon secer ve surucu cikisi 90 derece dondurur.
+         Kagit yazicinin surucusunden gelir: dukkanda Vega'nin ayarini bozmamak
+         icin ayni Argox OS-214 plus ikinci adla ("Argox Bollmark") eklendi, o
+         yazicida stok 100 mm en x 70 mm boy, yon Dikey (2026-11-10). */
+      "@page { margin: 0; }"
+}
 .yk-label { box-sizing: border-box; background: #fff; color: #000; display: flex; flex-direction: column;
   overflow: hidden; font-variant-numeric: tabular-nums; }
 .yk-10x7 .yk-label { width: 100mm; height: 70mm; padding: 3mm 4mm; }
@@ -47,8 +56,14 @@ export const labelPrintCss = (size: LabelSize) => `
     padding: 0 !important; border: 0 !important; min-height: 0 !important; height: auto !important;
     width: auto !important; background: #fff !important; box-shadow: none !important; }
   .yk-sheet { display: block !important; margin: 0 !important; }
-  .yk-10x7 .yk-label, .yk-a4 .yk-page { break-after: page; }
-  .yk-10x7 .yk-label:last-child, .yk-a4 .yk-page:last-child { break-after: auto; }
+  /* Termal etiket secilen kagidi tam doldurur. "Etiketi 90 derece dondur"
+     (yk-rot) secilirse sayfaya dondurulmus olarak yine tam oturur. */
+  .yk-10x7 .yk-cell { width: 100vw; height: 100vh; overflow: hidden; position: relative; }
+  .yk-10x7 .yk-label { width: 100vw !important; height: 100vh !important; }
+  .yk-10x7.yk-rot .yk-label { width: 100vh !important; height: 100vw !important; position: absolute; left: 0; top: 0;
+    transform-origin: top left; transform: translateX(100vw) rotate(90deg); }
+  .yk-10x7 .yk-cell, .yk-a4 .yk-page { break-after: page; }
+  .yk-10x7 .yk-cell:last-child, .yk-a4 .yk-page:last-child { break-after: auto; }
 }
 `;
 
@@ -66,46 +81,48 @@ function Barcode({ cargoKey, className }: { cargoKey: string; className: string 
 function ThermalLabel({ label, test }: { label: ShippingLabelData; test: boolean }) {
   const a = STORE_INFO.address;
   return (
-    <article className="yk-label">
-      <header className="flex items-end justify-between gap-2 border-b-[0.6mm] border-black pb-[1mm]">
-        <div className="min-w-0">
-          <p className="text-[4.2mm] font-black leading-none tracking-tight">BOLLMARK</p>
-          <p className="mt-[0.6mm] text-[2.1mm] leading-tight">
-            Gönderici: {a.streetAddress}
-            <br />
-            {a.addressLocality} / {a.addressRegion}
-            {STORE_INFO.phone ? `, ${phoneDisplay(STORE_INFO.phone)}` : ""}
-          </p>
-        </div>
-        <div className="shrink-0 text-right leading-tight">
-          {test && <p className="border-[0.3mm] border-black px-[1mm] text-[2.2mm] font-bold">TEST – gönderi değil</p>}
-          <p className="text-[2.4mm] font-semibold">Yurtiçi Kargo</p>
-        </div>
-      </header>
+    <div className="yk-cell">
+      <article className="yk-label">
+        <header className="flex items-end justify-between gap-2 border-b-[0.6mm] border-black pb-[1mm]">
+          <div className="min-w-0">
+            <p className="text-[4.2mm] font-black leading-none tracking-tight">BOLLMARK</p>
+            <p className="mt-[0.6mm] text-[2.1mm] leading-tight">
+              Gönderici: {a.streetAddress}
+              <br />
+              {a.addressLocality} / {a.addressRegion}
+              {STORE_INFO.phone ? `, ${phoneDisplay(STORE_INFO.phone)}` : ""}
+            </p>
+          </div>
+          <div className="shrink-0 text-right leading-tight">
+            {test && <p className="border-[0.3mm] border-black px-[1mm] text-[2.2mm] font-bold">TEST – gönderi değil</p>}
+            <p className="text-[2.4mm] font-semibold">Yurtiçi Kargo</p>
+          </div>
+        </header>
 
-      <section className="min-h-0 flex-1 pt-[1.2mm]">
-        <p className="truncate text-[3.8mm] font-bold leading-tight">
-          <span className="text-[2.2mm] font-normal">Alıcı </span>
-          {label.name}
-        </p>
-        <p className="mt-[0.5mm] line-clamp-3 text-[2.7mm] leading-[1.25]">{label.address}</p>
-        <div className="mt-[0.6mm] flex items-baseline justify-between gap-2">
-          <p className="truncate text-[3.6mm] font-bold leading-tight">
-            {label.town.toLocaleUpperCase("tr-TR")} / {label.city.toLocaleUpperCase("tr-TR")}
+        <section className="min-h-0 flex-1 pt-[1.2mm]">
+          <p className="truncate text-[3.8mm] font-bold leading-tight">
+            <span className="text-[2.2mm] font-normal">Alıcı </span>
+            {label.name}
           </p>
-          <p className="shrink-0 text-[2.8mm]">Tel: {label.phone}</p>
-        </div>
-      </section>
+          <p className="mt-[0.5mm] line-clamp-3 text-[2.7mm] leading-[1.25]">{label.address}</p>
+          <div className="mt-[0.6mm] flex items-baseline justify-between gap-2">
+            <p className="truncate text-[3.6mm] font-bold leading-tight">
+              {label.town.toLocaleUpperCase("tr-TR")} / {label.city.toLocaleUpperCase("tr-TR")}
+            </p>
+            <p className="shrink-0 text-[2.8mm]">Tel: {label.phone}</p>
+          </div>
+        </section>
 
-      <footer className="border-t-[0.3mm] border-black pt-[1mm]">
-        <div className="flex items-baseline justify-between text-[2.5mm] leading-none">
-          <span>Sipariş {label.orderNumber}</span>
-          <span className="text-[3.2mm] font-bold">Koli {label.koli}</span>
-        </div>
-        <Barcode cargoKey={label.cargoKey} className="mt-[0.8mm] h-[15mm] w-[86mm]" />
-        <p className="mt-[0.6mm] text-center text-[3.8mm] font-bold leading-none tracking-[0.06em]">{label.cargoKey}</p>
-      </footer>
-    </article>
+        <footer className="border-t-[0.3mm] border-black pt-[1mm]">
+          <div className="flex items-baseline justify-between text-[2.5mm] leading-none">
+            <span>Sipariş {label.orderNumber}</span>
+            <span className="text-[3.2mm] font-bold">Koli {label.koli}</span>
+          </div>
+          <Barcode cargoKey={label.cargoKey} className="mt-[0.8mm] h-[15mm] w-[86mm]" />
+          <p className="mt-[0.6mm] text-center text-[3.8mm] font-bold leading-none tracking-[0.06em]">{label.cargoKey}</p>
+        </footer>
+      </article>
+    </div>
   );
 }
 

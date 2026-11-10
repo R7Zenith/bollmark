@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/require-customer";
 import { formatDate, formatPrice } from "@/lib/format";
 import { orderStatusLabel, returnStatuses, type OrderStatus } from "@/lib/status";
+import { safeTrackingUrl } from "@/lib/yurtici/map";
 import { HesapOrderCard, type HesapOrderView } from "@/components/hesap-order-card";
 
 interface ReturnItemSnapshot {
@@ -49,7 +50,13 @@ export default async function HesapSiparislerimPage() {
       statusLabel: orderStatusLabel[order.status as OrderStatus] ?? order.status,
       createdAtLabel: formatDate(order.createdAt),
       totalLabel: formatPrice(order.totalCents),
-      shipment: order.shipment ? { carrier: order.shipment.carrier, trackingCode: order.shipment.trackingCode } : null,
+      shipment: order.shipment
+        ? {
+            carrier: order.shipment.carrier,
+            trackingCode: order.shipment.trackingCode,
+            trackingUrl: order.shipment.ykCancelledAt ? null : safeTrackingUrl(order.shipment.trackingUrl)
+          }
+        : null,
       customerEmail: order.customerEmail,
       eligibleForReturn: order.status === "DELIVERED",
       items: order.items.map((item) => ({

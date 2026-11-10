@@ -49,7 +49,7 @@ interface OrderView {
   status: string;
   createdAt: string;
   totalLabel: string;
-  shipment: { carrier: string; trackingCode: string | null; status: string } | null;
+  shipment: { carrier: string; trackingCode: string | null; status: string; trackingUrl: string | null } | null;
   items: OrderItemView[];
 }
 
@@ -221,6 +221,14 @@ export default function SiparisDurumuPage() {
               <p className="mt-4 text-sm text-ink/60">
                 Kargo: {result.order.shipment.carrier || "Belirtilmedi"}
                 {result.order.shipment.trackingCode ? ` · Takip: ${result.order.shipment.trackingCode}` : ""}
+                {result.order.shipment.trackingUrl && (
+                  <>
+                    {" · "}
+                    <a href={result.order.shipment.trackingUrl} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-ink">
+                      Kargomu takip et
+                    </a>
+                  </>
+                )}
               </p>
             )}
           </div>

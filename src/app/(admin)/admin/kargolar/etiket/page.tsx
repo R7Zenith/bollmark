@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { PrintButton } from "@/components/admin/print-button";
+import { LabelRotateToggle } from "@/components/admin/label-rotate-toggle";
 import {
   ShippingLabel,
   labelPhoneText,
@@ -82,9 +83,16 @@ export default async function ShippingLabelsPage({
               {segment("10x7", "10×7 cm termal (yatay)")}
               {segment("a4", "A4, 4'lü")}
             </div>
+            {size === "10x7" && labels.length > 0 && <LabelRotateToggle />}
             {labels.length > 0 && <PrintButton label="Yazdır" />}
           </div>
         </div>
+        {size === "10x7" && labels.length > 0 && (
+          <p className="text-sm text-admin-text-muted">
+            Yazdırırken: hedef <strong className="text-admin-text">Argox Bollmark</strong> (100 × 70 mm stok), düzen Dikey, kenar
+            boşlukları <strong className="text-admin-text">Yok</strong>, ölçek %100. Vega etiketleri asıl Argox yazıcısından basılır.
+          </p>
+        )}
         {test && (
           <p className="rounded-md border border-amber-300 bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900">
             TEST MODU – gerçek gönderi oluşmaz. Bu etiketleri pakete yapıştırmayın.

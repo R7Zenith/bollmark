@@ -244,3 +244,67 @@ export function syncLockRemainingMs(lastSyncAt: Date | null, now = Date.now()): 
   if (!lastSyncAt) return 0;
   return Math.max(0, SYNC_LOCK_MS - (now - lastSyncAt.getTime()));
 }
+
+// --- Durum gecisleri (Faz 4) ---
+
+// Yurtici'den gelen takip linki yalniz https ise kullanilir (musteri sayfasinda link olur).
+export function safeTrackingUrl(url: string | null | undefined): string | null {
+  const value = (url ?? "").trim();
+  return /^https:\/\/[^\s"'<>]+$/i.test(value) ? value : null;
+}
+
+export type TransitionInput = {
+  orderStatus: string;
+  shipmentStatus: string;
+  shippedAt: Date | null;
+  deliveredAt: Date | null;
+  attentionNote: string | null;
+};
+
+export type TransitionRow = {
+  operationStatus: string;
+  rejectStatus: string;
+  deliveryDate: string;
+  deliveryTime: string;
+};
+
+export type TransitionPlan = {
+  shipmentStatus: ShipmentStatus | null;
+  cancelled: boolean;
+  setShippedAt: boolean;
+  deliveredAt: Date | null; // doluysa yazilir
+  // Siparis durumu yalniz bu "onceki durumlardan" biriyse degisir; mail bu
+  // kosullu guncelleme gerceklesirse gider (tek sefer).
+  orderStatus: { to: "SHIPPED" | "DELIVERED"; from: string[] } | null;
+  attention: string | null; // yeni not (ayni not zaten varsa null)
+};
+
+const SHIPPABLE_FROM = ["PAID", "PREPARING"];
+const DELIVERABLE_FROM = ["PAID", "PREPARING", "SHIPPED"];
+
+export function planYkTransition(prev: TransitionInput, row: TransitionRow, now = new Date()): TransitionPlan {
+  const mapped = mapYkStatus(row.operationStatus, row.rejectStatus);
+  const plan: TransitionPlan = {
+    shipmentStatus: mapped.shipmentStatus,
+    cancelled: mapped.cancelled,
+    setShippedAt: false,
+    deliveredAt: null,
+    orderStatus: null,
+    attention: null
+  };
+  const moving = mapped.shipmentStatus === "KARGOYA_VERILDI" || mapped.shipmentStatus === "DAGITIMDA";
+  if (moving || mapped.shipmentStatus === "TESLIM_EDILDI") plan.setShippedAt = prev.shippedAt === null;
+  if (moving && SHIPPABLE_FROM.includes(prev.orderStatus)) {
+    plan.orderStatus = { to: "SHIPPED", from: SHIPPABLE_FROM };
+  }
+  if (mapped.shipmentStatus === "TESLIM_EDILDI") {
+    if (prev.deliveredAt === null) plan.deliveredAt = parseYkDateTime(row.deliveryDate, row.deliveryTime) ?? now;
+    if (DELIVERABLE_FROM.includes(prev.orderStatus)) plan.orderStatus = { to: "DELIVERED", from: DELIVERABLE_FROM };
+  }
+  let attention = mapped.attention;
+  if (!attention && (moving || mapped.shipmentStatus === "TESLIM_EDILDI") && (prev.orderStatus === "CANCELLED" || prev.orderStatus === "REFUNDED")) {
+    attention = "Yurtiçi: sipariş iptal/iade durumunda ama kargo hareket ediyor.";
+  }
+  plan.attention = attention && attention !== prev.attentionNote ? attention : null;
+  return plan;
+}

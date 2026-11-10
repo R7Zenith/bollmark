@@ -144,3 +144,72 @@ test("60 sn sorgu kilidi", async () => {
   assert.equal(syncLockRemainingMs(new Date(now - 20_000), now), 40_000);
   assert.equal(syncLockRemainingMs(new Date(now - 61_000), now), 0);
 });
+
+test("takip linki yalniz https", async () => {
+  const { safeTrackingUrl } = await import("./map");
+  assert.equal(safeTrackingUrl("https://selfservis.yurticikargo.com/x?a=1&b=2"), "https://selfservis.yurticikargo.com/x?a=1&b=2");
+  assert.equal(safeTrackingUrl("javascript:alert(1)"), null);
+  assert.equal(safeTrackingUrl("http://x.com"), null);
+  assert.equal(safeTrackingUrl(""), null);
+  assert.equal(safeTrackingUrl(null), null);
+});
+
+test("durum gecisleri: kargoya verildi ve teslim maili yalniz ilk kez", async () => {
+  const { planYkTransition } = await import("./map");
+  const now = new Date("2026-11-10T12:00:00Z");
+  const base = { orderStatus: "PREPARING", shipmentStatus: "HAZIRLANIYOR", shippedAt: null, deliveredAt: null, attentionNote: null };
+  const row = (operationStatus: string, extra: Partial<{ rejectStatus: string; deliveryDate: string; deliveryTime: string }> = {}) => ({
+    operationStatus,
+    rejectStatus: "",
+    deliveryDate: "",
+    deliveryTime: "",
+    ...extra
+  });
+
+  const nop = planYkTransition(base, row("NOP"), now);
+  assert.equal(nop.orderStatus, null);
+  assert.equal(nop.setShippedAt, false);
+
+  const isr = planYkTransition(base, row("ISR"), now);
+  assert.equal(isr.shipmentStatus, "KARGOYA_VERILDI");
+  assert.equal(isr.setShippedAt, true);
+  assert.deepEqual(isr.orderStatus?.to, "SHIPPED");
+
+  // ikinci kez (siparis artik SHIPPED, shippedAt dolu): mail/gecis yok
+  const ind = planYkTransition({ ...base, orderStatus: "SHIPPED", shippedAt: now }, row("IND"), now);
+  assert.equal(ind.shipmentStatus, "DAGITIMDA");
+  assert.equal(ind.orderStatus, null);
+  assert.equal(ind.setShippedAt, false);
+
+  const dlv = planYkTransition({ ...base, orderStatus: "SHIPPED", shippedAt: now }, row("DLV", { deliveryDate: "20261111", deliveryTime: "143000" }), now);
+  assert.equal(dlv.orderStatus?.to, "DELIVERED");
+  assert.equal(dlv.deliveredAt?.toISOString(), "2026-11-11T11:30:00.000Z");
+  assert.ok(dlv.orderStatus?.from.includes("SHIPPED"));
+
+  const again = planYkTransition({ ...base, orderStatus: "DELIVERED", shippedAt: now, deliveredAt: now }, row("DLV"), now);
+  assert.equal(again.orderStatus, null);
+  assert.equal(again.deliveredAt, null);
+
+  // ISR gorulmeden dogrudan DLV: shippedAt da dolar, yalniz teslim gecisi
+  const direct = planYkTransition(base, row("DLV"), now);
+  assert.equal(direct.setShippedAt, true);
+  assert.equal(direct.orderStatus?.to, "DELIVERED");
+  assert.equal(direct.deliveredAt?.getTime(), now.getTime());
+});
+
+test("durum gecisleri: iade, BI, iptal ve iptal edilmis siparis", async () => {
+  const { planYkTransition } = await import("./map");
+  const base = { orderStatus: "SHIPPED", shipmentStatus: "DAGITIMDA", shippedAt: new Date(), deliveredAt: null, attentionNote: null };
+  const r = (operationStatus: string, rejectStatus = "") => ({ operationStatus, rejectStatus, deliveryDate: "", deliveryTime: "" });
+  const iade = planYkTransition(base, r("IND", "2"));
+  assert.equal(iade.shipmentStatus, "IADE");
+  assert.ok(iade.attention);
+  assert.equal(iade.orderStatus, null);
+  // ayni not zaten yazili: tekrar yazilmaz
+  assert.equal(planYkTransition({ ...base, attentionNote: iade.attention }, r("IND", "2")).attention, null);
+  assert.ok(planYkTransition(base, r("BI")).attention);
+  assert.equal(planYkTransition(base, r("CNL")).cancelled, true);
+  const cancelledOrder = planYkTransition({ ...base, orderStatus: "CANCELLED" }, r("IND"));
+  assert.equal(cancelledOrder.orderStatus, null);
+  assert.ok(cancelledOrder.attention);
+});
