@@ -693,6 +693,23 @@ model Shipment {
   deliveredAt  DateTime?
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
+
+  // Yurtici Kargo entegrasyonu (bkz. docs/planlar/YURTICI_KARGO_ENTEGRASYON_PLANI.md
+  // bolum 5.2). Hepsi eklemeli: eski/elle girilen kayitlarda provider null.
+  // Yurtici kaydinda carrier = "Yurtiçi Kargo", trackingCode = ykDocId (yoksa cargoKey).
+  provider           String?   // "YURTICI" | null
+  cargoKey           String?   @unique
+  ykJobId            String?
+  ykDocId            String?   // Yurtici gonderi no
+  ykOperationStatus  String?   // NOP | ISR | IND | DLV | CNL | ISC | BI
+  ykOperationMessage String?
+  ykRejectStatus     String?
+  trackingUrl        String?
+  cargoCount         Int       @default(1)
+  ykSentAt           DateTime?
+  ykCancelledAt      DateTime?
+  ykLastSyncAt       DateTime?
+  ykLastError        String?
 }
 
 // --- iyzico Sanal POS (bkz. IYZICO_SANAL_POS_PLANI.md bolum 4) ---

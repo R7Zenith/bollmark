@@ -39,7 +39,11 @@ export const auditActions = [
   "CUSTOMER_UPDATED",
   "CUSTOMER_ADDRESS_CREATED",
   "CUSTOMER_ADDRESS_UPDATED",
-  "CUSTOMER_ADDRESS_DELETED"
+  "CUSTOMER_ADDRESS_DELETED",
+  "YURTICI_GONDERILDI",
+  "YURTICI_GONDERIM_HATASI",
+  "YURTICI_SORGULANDI",
+  "YURTICI_IPTAL"
 ] as const;
 
 export const auditActionLabel: Record<string, string> = {
@@ -80,5 +84,9 @@ export const auditActionLabel: Record<string, string> = {
   CUSTOMER_UPDATED: "Müşteri Bilgileri Güncellendi",
   CUSTOMER_ADDRESS_CREATED: "Müşteri Adresi Eklendi",
   CUSTOMER_ADDRESS_UPDATED: "Müşteri Adresi Güncellendi",
-  CUSTOMER_ADDRESS_DELETED: "Müşteri Adresi Silindi"
+  CUSTOMER_ADDRESS_DELETED: "Müşteri Adresi Silindi",
+  YURTICI_GONDERILDI: "Yurtiçi'ye Gönderildi",
+  YURTICI_GONDERIM_HATASI: "Yurtiçi Gönderimi Başarısız",
+  YURTICI_SORGULANDI: "Yurtiçi Durumu Sorgulandı",
+  YURTICI_IPTAL: "Yurtiçi Gönderisi İptal"
 };

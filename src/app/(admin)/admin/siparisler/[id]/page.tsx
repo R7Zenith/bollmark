@@ -30,6 +30,9 @@ import { optionValue } from "@/lib/variant-attributes";
 import { OrderFeedback } from "@/components/admin/order-feedback";
 import { OrderDeleteButton, OrderRestoreButton } from "@/components/admin/order-delete-restore-actions";
 import { OrderPaymentCard } from "@/components/admin/order-payment-card";
+import { YurticiShipmentCard } from "@/components/admin/yurtici-shipment-card";
+import { getYurticiEgress, getYurticiMode } from "@/lib/yurtici/config";
+import { cancelYurticiShipment, sendOrdersToYurtici, syncYurticiShipment } from "@/lib/yurtici/shipments";
 
 const inputClass =
   "w-full rounded-md border border-admin-border px-3 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
@@ -75,6 +78,35 @@ async function updateShipmentAction(id: string, formData: FormData) {
     redirect(`/admin/siparisler/${id}?hata=guncellenemedi`);
   }
   redirect(`/admin/siparisler/${id}?basarili=kargo-guncellendi#kargo`);
+}
+
+async function yurticiActor() {
+  const session = await getServerSession(authOptions);
+  return { email: session?.user?.email ?? "bilinmiyor", role: session?.user?.role ?? "ADMIN" };
+}
+
+function yurticiRedirect(id: string, ok: boolean, success: string, message: string): never {
+  const query = ok ? `basarili=${success}` : `hata=yurtici&mesaj=${encodeURIComponent(message)}`;
+  redirect(`/admin/siparisler/${id}?${query}#kargo`);
+}
+
+async function yurticiSendAction(id: string, formData: FormData) {
+  "use server";
+  const cargoCount = Number(formData.get("cargoCount") || 1);
+  const [result] = await sendOrdersToYurtici([{ orderId: id, cargoCount }], await yurticiActor());
+  yurticiRedirect(id, !!result?.ok, "yurtici-gonderildi", result?.message ?? "Sipariş bulunamadı.");
+}
+
+async function yurticiSyncAction(id: string, shipmentId: string) {
+  "use server";
+  const result = await syncYurticiShipment(shipmentId, await yurticiActor());
+  yurticiRedirect(id, result.ok, "yurtici-sorgulandi", result.message);
+}
+
+async function yurticiCancelAction(id: string, shipmentId: string) {
+  "use server";
+  const result = await cancelYurticiShipment(shipmentId, await yurticiActor());
+  yurticiRedirect(id, result.ok, "yurtici-iptal", result.message);
 }
 
 export default async function OrderDetailPage({
@@ -147,6 +179,9 @@ export default async function OrderDetailPage({
     ...(order.shipment?.shippedAt ? [{ label: "Kargoya Verildi", date: order.shipment.shippedAt }] : []),
     ...(order.shipment?.deliveredAt ? [{ label: "Teslim Edildi", date: order.shipment.deliveredAt }] : [])
   ].sort((a, b) => a.date.getTime() - b.date.getTime());
+
+  const yurticiMode = getYurticiMode();
+  const manualShipmentForm = order.shipment ? <ManualShipmentForm orderId={order.id} shipment={order.shipment} /> : null;
 
   return (
     <div className="max-w-5xl">
@@ -331,31 +366,19 @@ export default async function OrderDetailPage({
                   Durum: {shipmentStatusLabel[order.shipment.status as keyof typeof shipmentStatusLabel] ?? order.shipment.status}
                 </p>
               </div>
+            ) : order.shipment && yurticiMode !== "off" ? (
+              <YurticiShipmentCard
+                order={order}
+                shipment={order.shipment}
+                mode={yurticiMode}
+                egress={getYurticiEgress()}
+                sendAction={yurticiSendAction.bind(null, order.id)}
+                syncAction={yurticiSyncAction.bind(null, order.id, order.shipment.id)}
+                cancelAction={yurticiCancelAction.bind(null, order.id, order.shipment.id)}
+                manualForm={manualShipmentForm}
+              />
             ) : order.shipment ? (
-              <form action={updateShipmentAction.bind(null, order.id)} className="space-y-3">
-                <input type="hidden" name="shipmentId" value={order.shipment.id} />
-                <div>
-                  <label className={labelClass}>Kargo Firması</label>
-                  <input name="carrier" defaultValue={order.shipment.carrier} className={`mt-1 ${inputClass}`} />
-                </div>
-                <div>
-                  <label className={labelClass}>Takip Kodu</label>
-                  <input name="trackingCode" defaultValue={order.shipment.trackingCode ?? ""} className={`mt-1 ${inputClass}`} />
-                </div>
-                <div>
-                  <label className={labelClass}>Durum</label>
-                  <select name="status" defaultValue={order.shipment.status} className={`mt-1 ${inputClass}`}>
-                    {shipmentStatuses.map((s) => (
-                      <option key={s} value={s}>
-                        {shipmentStatusLabel[s]}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <Button type="submit" size="sm" className="w-full justify-center">
-                  Kargo Bilgilerini Güncelle
-                </Button>
-              </form>
+              manualShipmentForm
             ) : (
               <p className="text-sm text-admin-text-muted">Bu siparişe ait kargo kaydı yok.</p>
             )}
@@ -363,5 +386,40 @@ export default async function OrderDetailPage({
         </div>
       </div>
     </div>
+  );
+}
+
+function ManualShipmentForm({
+  orderId,
+  shipment
+}: {
+  orderId: string;
+  shipment: { id: string; carrier: string; trackingCode: string | null; status: string };
+}) {
+  return (
+    <form action={updateShipmentAction.bind(null, orderId)} className="space-y-3">
+      <input type="hidden" name="shipmentId" value={shipment.id} />
+      <div>
+        <label className={labelClass}>Kargo Firması</label>
+        <input name="carrier" defaultValue={shipment.carrier} className={`mt-1 ${inputClass}`} />
+      </div>
+      <div>
+        <label className={labelClass}>Takip Kodu</label>
+        <input name="trackingCode" defaultValue={shipment.trackingCode ?? ""} className={`mt-1 ${inputClass}`} />
+      </div>
+      <div>
+        <label className={labelClass}>Durum</label>
+        <select name="status" defaultValue={shipment.status} className={`mt-1 ${inputClass}`}>
+          {shipmentStatuses.map((s) => (
+            <option key={s} value={s}>
+              {shipmentStatusLabel[s]}
+            </option>
+          ))}
+        </select>
+      </div>
+      <Button type="submit" size="sm" className="w-full justify-center">
+        Kargo Bilgilerini Güncelle
+      </Button>
+    </form>
   );
 }

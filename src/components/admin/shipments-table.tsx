@@ -2,9 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Pencil } from "lucide-react";
 import { DataTable, type DataTableColumn } from "@/components/admin/data-table";
 import { Badge } from "@/components/admin/badge";
+import type { BulkAction } from "@/components/admin/bulk-action-bar";
+import { useToast } from "@/components/admin/toast";
 import { shipmentStatuses, shipmentStatusLabel, shipmentStatusTone } from "@/lib/status";
 
 export interface ShipmentRow {
@@ -15,19 +18,61 @@ export interface ShipmentRow {
   carrier: string;
   trackingCode: string | null;
   status: string;
+  // Yurtici: aktif gonderide Yurtici durum etiketi, degilse null
+  yurticiLabel: string | null;
+  yurticiActive: boolean;
 }
+
+export type YurticiBulkResult = { sent: string[]; failed: { orderNumber: string; message: string }[] };
 
 const inputClass =
   "w-full rounded-md border border-admin-border px-2 py-1.5 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
 
 export function ShipmentsTable({
   shipments,
-  updateAction
+  updateAction,
+  yurticiSendAction
 }: {
   shipments: ShipmentRow[];
   updateAction: (formData: FormData) => void;
+  // Yurtici kapaliyken (YURTICI_MODE=off) verilmez; secim ve toplu islemler gizlenir.
+  yurticiSendAction?: (shipmentIds: string[]) => Promise<YurticiBulkResult>;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const router = useRouter();
+  const { showToast } = useToast();
+
+  async function handleYurticiSend(ids: string[], clearSelection: () => void) {
+    if (!yurticiSendAction || busy) return;
+    setBusy(true);
+    try {
+      const { sent, failed } = await yurticiSendAction(ids);
+      if (failed.length === 0) {
+        showToast(`${sent.length} sipariş Yurtiçi'ye gönderildi.`, "success");
+      } else {
+        const detail = failed.map((f) => `${f.orderNumber}: ${f.message}`).join(" · ");
+        showToast(`${sent.length} gönderildi, ${failed.length} gönderilemedi. ${detail}`, sent.length ? "success" : "error");
+      }
+      clearSelection();
+      router.refresh();
+    } catch {
+      showToast("Yurtiçi'ye gönderilemedi.", "error");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function bulkActions(ids: string[], clearSelection: () => void): BulkAction[] {
+    return [
+      { label: busy ? "Gönderiliyor..." : "Yurtiçi'ye gönder", variant: "primary", onClick: () => handleYurticiSend(ids, clearSelection) },
+      {
+        label: "Etiket yazdır (A4, 4'lü)",
+        variant: "secondary",
+        onClick: () => window.open(`/admin/kargolar/etiket?boyut=a4&ids=${ids.join(",")}`, "_blank")
+      }
+    ];
+  }
 
   const columns: DataTableColumn<ShipmentRow>[] = [
     {
@@ -90,6 +135,21 @@ export function ShipmentsTable({
           </Badge>
         )
     },
+    ...(yurticiSendAction
+      ? [
+          {
+            key: "yurtici",
+            header: "Yurtiçi",
+            hideOnMobile: true,
+            render: (row: ShipmentRow) =>
+              row.yurticiLabel ? (
+                <span className={row.yurticiActive ? "text-admin-text" : "text-admin-text-muted"}>{row.yurticiLabel}</span>
+              ) : (
+                <span className="text-admin-text-muted">-</span>
+              )
+          }
+        ]
+      : []),
     {
       key: "actions",
       header: "",
@@ -130,6 +190,8 @@ export function ShipmentsTable({
       columns={columns}
       data={shipments}
       getRowId={(row) => row.id}
+      selectable={!!yurticiSendAction}
+      bulkActions={yurticiSendAction ? bulkActions : undefined}
       emptyTitle="Sonuç bulunamadı"
       emptyDescription="Arama veya filtre kriterlerine uygun kargo kaydı yok."
     />

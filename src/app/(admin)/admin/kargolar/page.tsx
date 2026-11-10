@@ -1,10 +1,15 @@
 import { Truck } from "lucide-react";
 import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { applyShipmentUpdate } from "@/lib/shipment";
 import { EmptyState } from "@/components/admin/empty-state";
 import { KargolarFilters } from "@/components/admin/kargolar-filters";
-import { ShipmentsTable, type ShipmentRow } from "@/components/admin/shipments-table";
+import { ShipmentsTable, type ShipmentRow, type YurticiBulkResult } from "@/components/admin/shipments-table";
+import { getYurticiMode } from "@/lib/yurtici/config";
+import { isYurticiActive, ykOperationStatusLabel } from "@/lib/yurtici/map";
+import { sendOrdersToYurtici } from "@/lib/yurtici/shipments";
 import { ShipmentFeedback } from "@/components/admin/shipment-feedback";
 
 async function updateShipmentAction(formData: FormData) {
@@ -15,6 +20,22 @@ async function updateShipmentAction(formData: FormData) {
     redirect("/admin/kargolar?hata=guncellenemedi");
   }
   redirect("/admin/kargolar?basarili=guncellendi");
+}
+
+// Secilen kargolari tek Yurtici cagrisiyla gonderir (koli adedi 1; farkliysa
+// siparis detayindan tek tek gonderilir).
+async function yurticiBulkSendAction(shipmentIds: string[]): Promise<YurticiBulkResult> {
+  "use server";
+  const session = await getServerSession(authOptions);
+  const shipments = await prisma.shipment.findMany({ where: { id: { in: shipmentIds } }, select: { orderId: true } });
+  const results = await sendOrdersToYurtici(
+    shipments.map((s) => ({ orderId: s.orderId })),
+    { email: session?.user?.email ?? "bilinmiyor", role: session?.user?.role ?? "ADMIN" }
+  );
+  return {
+    sent: results.filter((r) => r.ok).map((r) => r.orderNumber),
+    failed: results.filter((r) => !r.ok).map((r) => ({ orderNumber: r.orderNumber, message: r.message }))
+  };
 }
 
 interface SearchParams {
@@ -60,8 +81,13 @@ export default async function AdminShipmentsPage({
     customerName: s.order.customerName,
     carrier: s.carrier,
     trackingCode: s.trackingCode,
-    status: s.status
+    status: s.status,
+    yurticiLabel: s.provider === "YURTICI" && s.ykOperationStatus
+      ? (ykOperationStatusLabel[s.ykOperationStatus] ?? s.ykOperationStatus)
+      : null,
+    yurticiActive: isYurticiActive(s)
   }));
+  const yurticiMode = getYurticiMode();
 
   return (
     <div>
@@ -69,12 +95,23 @@ export default async function AdminShipmentsPage({
 
       <ShipmentFeedback basarili={basarili} hata={hata} />
 
+      {(yurticiMode === "mock" || yurticiMode === "test") && (
+        <p className="mt-4 rounded-md border border-amber-300 bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-900">
+          TEST MODU – gerçek gönderi oluşmaz
+          <span className="ml-2 font-normal">Yalnız alıcı adı &quot;TEST ALICI&quot; ile başlayan siparişler gönderilebilir.</span>
+        </p>
+      )}
+
       <div className="mt-6">
         <KargolarFilters />
       </div>
 
       <div className="mt-4">
-        <ShipmentsTable shipments={rows} updateAction={updateShipmentAction} />
+        <ShipmentsTable
+          shipments={rows}
+          updateAction={updateShipmentAction}
+          yurticiSendAction={yurticiMode === "off" ? undefined : yurticiBulkSendAction}
+        />
       </div>
     </div>
   );

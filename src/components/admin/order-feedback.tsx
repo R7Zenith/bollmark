@@ -11,7 +11,10 @@ const successMessages: Record<string, string> = {
   "iptal-yapildi": "Ödeme iptal edildi.",
   sorgulandi: "Ödeme durumu iyzico'dan sorgulandı.",
   "uyari-kapatildi": "Uyarı kapatıldı.",
-  "kayit-sonuclandi": "Kayıt sonuçlandırıldı."
+  "kayit-sonuclandi": "Kayıt sonuçlandırıldı.",
+  "yurtici-gonderildi": "Yurtiçi'ye gönderildi.",
+  "yurtici-sorgulandi": "Yurtiçi durumu sorgulandı.",
+  "yurtici-iptal": "Yurtiçi gönderisi iptal edildi."
 };
 
 const errorMessages: Record<string, string> = {
@@ -19,6 +22,7 @@ const errorMessages: Record<string, string> = {
   "iade-basarisiz": "İade yapılamadı.",
   "iptal-basarisiz": "Ödeme iptal edilemedi.",
   "sorgu-basarisiz": "iyzico sorgulanamadı, biraz sonra tekrar deneyin.",
+  yurtici: "Yurtiçi işlemi yapılamadı.",
   "odeme-kurali":
     "Ödemesi iyzico ile denenmiş siparişler elle \"Ödendi\" yapılamaz; ödemesi incelenen siparişler hazırlanamaz."
 };
