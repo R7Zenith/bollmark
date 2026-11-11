@@ -1,7 +1,7 @@
 # Yurtiçi Kargo Entegrasyon Planı
 
 Tarih: 2026-11-10
-Durum: Faz 1–4 tamamlandı ve canlıda (kapalı modda). Yurtiçi IP onayı geldi (2026-11-10). Faz 5 tamam (2026-11-11): canlıda oluştur → sorgula → iptal döngüsü çalıştı, bkz. "Faz 5 durumu" (Bölüm 6 sonu). Sıradaki: Bölüm 7 (Vercel env'leri, kullanıcı onayıyla). Sabit IP kararı: Bölüm 2 (Fixie + dükkan statik IP).
+Durum: Faz 1–4 tamamlandı ve canlıda (kapalı modda). Yurtiçi IP onayı geldi (2026-11-10). Faz 5 tamam (2026-11-11): canlıda oluştur → sorgula → iptal döngüsü çalıştı, bkz. "Faz 5 durumu" (Bölüm 6 sonu). **CANLIDA AÇIK (2026-11-11):** Vercel Production'a `YURTICI_MODE=live`, `YURTICI_GO_USERNAME`, `YURTICI_GO_PASSWORD`, `YURTICI_PROXY_URL`, `YURTICI_SYNC=on` (hepsi sensitive) eklendi; `ignoreCommand` redeploy'u iptal ettiği için HEAD'in (`5417a2c`) temiz worktree'sinden `vercel deploy --prod` ile yayınlandı. Sıradaki: Bölüm 7 madde 4, ilk gerçek sipariş birlikte izlenir. Sabit IP kararı: Bölüm 2 (Fixie + dükkan statik IP).
 
 Kaynak: Yurtiçi'nin gönderdiği üç doküman ("Web Servis Giden Kargo Teknik Doküman V3", "Web Servis Gelen-Giden Kargo Raporu", "Erişim Yetkilendirme Formu") ve müşteri tanım maili (10 Kasım 2026).
 
