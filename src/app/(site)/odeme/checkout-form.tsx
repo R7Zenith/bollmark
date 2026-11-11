@@ -359,8 +359,11 @@ export default function CheckoutForm({
             <span>-{formatPrice(loyaltyDiscountCents)}</span>
           </div>
         )}
-        <div className="flex justify-between">
-          <span>Kargo</span>
+        <div className="flex items-center justify-between">
+          <span className="flex items-center gap-2">
+            Kargo
+            <Image src="/shipping/yurtici-kargo.svg" alt="Yurtiçi Kargo" width={178} height={44} unoptimized className="h-4 w-auto" />
+          </span>
           <span>{shippingCents === 0 ? "Ücretsiz" : formatPrice(shippingCents)}</span>
         </div>
         <div className="flex justify-between text-lg font-semibold">
@@ -568,7 +571,11 @@ export default function CheckoutForm({
           <section className="space-y-4">
             <h2 className="text-xl font-semibold">Kargo</h2>
             <div className="flex items-center justify-between rounded-xl border border-line px-4 py-3.5 text-sm">
-              <span>Standart Kargo</span>
+              <span className="flex items-center gap-3">
+                <Image src="/shipping/yurtici-kargo.svg" alt="Yurtiçi Kargo" width={178} height={44} unoptimized className="h-5 w-auto" />
+                <span aria-hidden="true" className="h-4 w-px bg-line" />
+                <span className="text-ink/60">Standart teslimat</span>
+              </span>
               <span className="font-medium">{shippingCents === 0 ? "Ücretsiz" : formatPrice(shippingCents)}</span>
             </div>
           </section>

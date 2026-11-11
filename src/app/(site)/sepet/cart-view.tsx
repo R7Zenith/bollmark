@@ -217,12 +217,15 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
 
         <div className="mt-10 bg-ink/5 p-8 lg:mt-0 lg:w-[432px] lg:shrink-0">
           <div className="mb-8">
-            <p className="flex items-center gap-2 text-xs text-ink">
-              <Truck size={14} strokeWidth={1.5} />
-              {remainingForFreeShippingCents > 0
-                ? `Ücretsiz kargo için ${formatPrice(remainingForFreeShippingCents)} daha harcayın`
-                : "Ücretsiz kargo kazandınız"}
-            </p>
+            <div className="flex items-center justify-between gap-3">
+              <p className="flex items-center gap-2 text-xs text-ink">
+                <Truck size={14} strokeWidth={1.5} />
+                {remainingForFreeShippingCents > 0
+                  ? `Ücretsiz kargo için ${formatPrice(remainingForFreeShippingCents)} daha harcayın`
+                  : "Ücretsiz kargo kazandınız"}
+              </p>
+              <Image src="/shipping/yurtici-kargo.svg" alt="Yurtiçi Kargo" width={178} height={44} unoptimized className="h-4 w-auto shrink-0" />
+            </div>
             <div className="mt-2 h-[2px] w-full bg-transparent">
               <div className="h-full bg-stone transition-all" style={{ width: `${shippingProgressPercent}%` }} />
             </div>

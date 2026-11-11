@@ -39,6 +39,10 @@ const TRUST_ITEMS = [
 // şart koşuyor (bkz. docs.iyzico.com/ek-bilgiler/iyzico-logo-paketi).
 const IYZICO_LOGO_BAND = { src: "/payment/iyzico-logo-band-white.svg", width: 456, height: 32 };
 
+// Anlasmali kargo firmasi. Resmi logo yurticikargo.com'dan, koyu zemin icin
+// renkleri beyaza cevrilmis kopya (renkli asli: public/shipping/yurtici-kargo.svg).
+const YURTICI_LOGO_WHITE = { src: "/shipping/yurtici-kargo-white.svg", width: 178, height: 44 };
+
 const FOOTER_LINK_CLASS = "nav-underline inline-block text-cream";
 
 export function SiteFooter() {
@@ -199,14 +203,25 @@ export function SiteFooter() {
       <div className="px-6 py-4 xl:px-9">
         <div className="flex w-full flex-wrap items-center justify-between gap-x-6 gap-y-3 text-xs text-cream">
           <span>© {new Date().getFullYear()} Bollmark. Tüm hakları saklıdır.</span>
-          <Image
-            src={IYZICO_LOGO_BAND.src}
-            alt="iyzico ile Öde, Mastercard, Visa, American Express, Troy"
-            width={IYZICO_LOGO_BAND.width}
-            height={IYZICO_LOGO_BAND.height}
-            unoptimized
-            className="h-5 w-auto"
-          />
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-3">
+            <Image
+              src={IYZICO_LOGO_BAND.src}
+              alt="iyzico ile Öde, Mastercard, Visa, American Express, Troy"
+              width={IYZICO_LOGO_BAND.width}
+              height={IYZICO_LOGO_BAND.height}
+              unoptimized
+              className="h-5 w-auto"
+            />
+            <span aria-hidden="true" className="hidden h-4 w-px bg-cream/25 sm:block" />
+            <Image
+              src={YURTICI_LOGO_WHITE.src}
+              alt="Yurtiçi Kargo"
+              width={YURTICI_LOGO_WHITE.width}
+              height={YURTICI_LOGO_WHITE.height}
+              unoptimized
+              className="h-[18px] w-auto"
+            />
+          </div>
         </div>
       </div>
     </footer>

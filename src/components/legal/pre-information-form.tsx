@@ -119,7 +119,7 @@ export function PreInformationForm({
 
       <h2 className={h2Class}>3. Teslimat Bilgileri ve Masrafları</h2>
       <p className={pClass}>
-        {DISPATCH_TEXT} Teslimat, sipariş sırasında belirttiğiniz adrese anlaşmalı kargo firması aracılığıyla yapılır.
+        {DISPATCH_TEXT} Teslimat, sipariş sırasında belirttiğiniz adrese anlaşmalı kargo firmamız Yurtiçi Kargo aracılığıyla yapılır.
         Teslimat süresi, siparişin onaylanmasından itibaren hiçbir durumda yasal 30 günlük süreyi aşmaz. Resmi tatiller ve
         yoğun kampanya dönemlerinde teslimat süresi uzayabilir; böyle bir durumda tarafınıza bilgi verilir.
       </p>

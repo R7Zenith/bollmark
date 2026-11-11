@@ -224,7 +224,7 @@ Son güncelleme: 26 Ekim 2026`
 
 Kargonuz yola çıktığında takip bilgileri e-posta ve/veya SMS ile tarafınıza iletilir.
 
-Teslimat, sipariş sırasında belirttiğiniz adrese anlaşmalı kargo firmamız aracılığıyla yapılır.
+Teslimat, sipariş sırasında belirttiğiniz adrese anlaşmalı kargo firmamız Yurtiçi Kargo aracılığıyla yapılır.
 
 Resmi tatiller ve yoğun kampanya dönemlerinde teslimat süresi uzayabilir; böyle bir durumda tarafınıza bilgi verilir.
 
