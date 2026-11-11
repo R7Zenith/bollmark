@@ -1,7 +1,7 @@
 # Yurtiçi Kargo Entegrasyon Planı
 
 Tarih: 2026-11-10
-Durum: Faz 1–4 tamamlandı ve canlıda (kapalı modda). Yurtiçi IP onayı geldi (2026-11-10). Faz 5 yarıda: test ortamı kullanıcısı bekleniyor, bkz. "Faz 5 durumu" (Bölüm 6 sonu). Sabit IP kararı: Bölüm 2 (Fixie + dükkan statik IP).
+Durum: Faz 1–4 tamamlandı ve canlıda (kapalı modda). Yurtiçi IP onayı geldi (2026-11-10). Faz 5 tamam (2026-11-11): canlıda oluştur → sorgula → iptal döngüsü çalıştı, bkz. "Faz 5 durumu" (Bölüm 6 sonu). Sıradaki: Bölüm 7 (Vercel env'leri, kullanıcı onayıyla). Sabit IP kararı: Bölüm 2 (Fixie + dükkan statik IP).
 
 Kaynak: Yurtiçi'nin gönderdiği üç doküman ("Web Servis Giden Kargo Teknik Doküman V3", "Web Servis Gelen-Giden Kargo Raporu", "Erişim Yetkilendirme Formu") ve müşteri tanım maili (10 Kasım 2026).
 
@@ -252,7 +252,7 @@ IP onayı geldikten sonra:
 
 ---
 
-### Faz 5 durumu (2026-11-10) – KALDIĞIMIZ YER
+### Faz 5 durumu – TAMAMLANDI (2026-11-11)
 
 - **Bağlantı tamam:** Fixie IP'leri Yurtiçi'de tanımlı. Test WSDL'i Fixie'den de dükkan bilgisayarından doğrudan da indi (WSDL herkese açık olabilir; tek başına kanıt değil). **Canlı** ortamda GÖ kullanıcımızla salt-okuma `queryShipment` (var olmayan anahtar) Fixie üzerinden "Başarılı" döndü, satırda 82519 "kargo anahtarı bulunmamaktadır": canlıda kimlik + IP çalışıyor.
 - **WSDL doğrulaması** (`scripts/yurtici-test.ts wsdl`, çıktı `scripts/output/yurtici-wsdl/`, git'e girmez): operasyonlar `createShipment` / `queryShipment` / `cancelShipment`, document/literal, soapAction '', iç elemanlar namespace'siz. Düzeltilen: `ShippingOrderVO`'da zorunlu `taxOfficeId`, `ttDocumentId`, `dcSelectedCredit`, `dcCreditRule` (0) şema sırasıyla eklendi; sonuç seviyesindeki `errCode`/`outResult` (kayıt dönmeyen hata) okunuyor. Cevap yapıları ayrıştırıcıyla uyumlu.
@@ -262,7 +262,10 @@ IP onayı geldikten sonra:
   - Test kullanıcısı verilirse: değerler yalnız `.env`'ye; kod şu an test modunda `YKTEST`/`YK` sabit kullanıyor, bunun için `YURTICI_TEST_USERNAME` / `YURTICI_TEST_PASSWORD` env'leri eklenecek. Sonra `scripts/yurtici-test.ts olustur` (Fixie) → anahtar Yurtiçi Bilgi Sistemleri'ne → Yurtiçi işler → `sorgula`; ikinci gönderi `olustur --dogrudan` + `iptal` → CNL.
   - Canlıda test onaylanırsa: canlıda kullanıcının kendisine tek gönderi (DB'ye yazmayan script ile), Yurtiçi'de kontrol, şubeye vermeden `iptal` (NOP → CNL).
   - Sonra Bölüm 7 (Vercel env'leri kullanıcı onayıyla, `YURTICI_MODE=live`).
-- Fixie kullanımı 2026-11-10: 4 istek.
+- **Yurtiçi cevabı (2026-11-11):** yalnız "IP'ler tanımlı" dendi, test kullanıcısı verilmedi. Kullanıcı kararıyla canlıda test + iptal yapıldı.
+- **Canlı deneme (2026-11-11, `olustur/sorgula/iptal --canli`, Fixie, DB'ye yazılmadı):** `BLMTEST261111-1221` oluşturuldu (outFlag 0, jobId 7860393) → sorgu `NOP` "Kargo İşlem Görmemiş" → iptal `CNL` "Verisi İptal Edilmiştir. Kargo Çıkışı Engellendi" → tekrar sorguda 82519 (anahtar artık yok). Şubeye bir şey verilmedi, kargo bedeli yok. Gerçek ilk siparişte ISR/IND/DLV geçişleri ayrıca izlenecek (Bölüm 7 madde 4).
+- `scripts/yurtici-test.ts`'e `--canli` eklendi (CANLI ortam + GÖ kullanıcısı; oluşturunca iptal komutunu hatırlatır).
+- Fixie kullanımı: 2026-11-10 4 istek, 2026-11-11 4 istek.
 
 ## 7. Canlıya geçiş
 

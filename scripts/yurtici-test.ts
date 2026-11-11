@@ -2,6 +2,8 @@
 // gercek siparislere dokunmaz; her zaman TEST ortamini ve dokumandaki ortak
 // test kullanicisini (YKTEST) kullanir. Cikis yolu .env'deki YURTICI_PROXY_URL'ye
 // gore: doluysa Fixie, bossa dogrudan. --dogrudan proxy'yi bu calisma icin kapatir.
+// --canli: CANLI ortam + .env'deki GO kullanicisi. Olusturulan gonderi subeye
+// verilmeden "iptal" ile kapatilmali (NOP -> CNL), yoksa gercek gonderi kalir.
 //
 //   npx tsx scripts/yurtici-test.ts wsdl [--dogrudan]       servis tanimini indirir
 //   npx tsx scripts/yurtici-test.ts olustur [--dogrudan]    "TEST ALICI" adina test gonderisi
@@ -16,9 +18,10 @@ import { toConnectionError } from "../src/lib/yurtici/soap";
 
 const args = process.argv.slice(2);
 const direct = args.includes("--dogrudan");
+const live = args.includes("--canli");
 const [command, key] = args.filter((a) => !a.startsWith("--"));
 
-process.env.YURTICI_MODE = "test";
+process.env.YURTICI_MODE = live ? "live" : "test";
 if (direct) process.env.YURTICI_PROXY_URL = "";
 const egress = process.env.YURTICI_PROXY_URL ? "proxy (Fixie)" : "doğrudan";
 
@@ -60,7 +63,7 @@ function testKey(): string {
 }
 
 async function main() {
-  console.log(`Ortam: TEST, çıkış: ${egress}`);
+  console.log(`Ortam: ${live ? "CANLI" : "TEST"}, çıkış: ${egress}`);
   if (command === "wsdl") return wsdl();
   if (command === "olustur") {
     const cargoKey = testKey();
@@ -79,6 +82,7 @@ async function main() {
       }
     ]);
     console.log(JSON.stringify({ outFlag: r.outFlag, jobId: r.jobId, rows: r.rows }, null, 2));
+    if (live) console.log(`UNUTMA: şubeye vermeden iptal et -> iptal ${cargoKey} --canli`);
     return;
   }
   if ((command === "sorgula" || command === "iptal") && key) {
@@ -86,7 +90,7 @@ async function main() {
     console.log(JSON.stringify(r.rows, null, 2));
     return;
   }
-  console.log("Kullanım: wsdl | olustur | sorgula <anahtar> | iptal <anahtar>  [--dogrudan]");
+  console.log("Kullanım: wsdl | olustur | sorgula <anahtar> | iptal <anahtar>  [--dogrudan] [--canli]");
 }
 
 main().catch((e) => {
