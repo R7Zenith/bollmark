@@ -527,3 +527,26 @@ export async function getBarsSummary(productIds: string[]) {
     .filter((b) => allowed.has(b.productId) && thresholds.has(b.currentRoundId))
     .map((b) => ({ productId: b.productId, points: b.points, threshold: thresholds.get(b.currentRoundId)! }));
 }
+
+// Anasayfa "Cok Satanlar" siralamasi: urun basina acik turdaki kalp sayisi
+// (kart rozetindeki sayiyla ayni: KalpBar.points). Test turlari ve Kalp
+// Topla disi urunler sayilmaz.
+export async function getHeartPointsByProduct(): Promise<Map<string, number>> {
+  const bars = await prisma.kalpBar.findMany({
+    where: { points: { gt: 0 } },
+    select: { productId: true, points: true, currentRoundId: true }
+  });
+  if (bars.length === 0) return new Map();
+  const [liveRounds, products] = await Promise.all([
+    prisma.kalpRound.findMany({ where: { id: { in: bars.map((b) => b.currentRoundId) }, isTest: false }, select: { id: true } }),
+    prisma.product.findMany({
+      where: { id: { in: bars.map((b) => b.productId) }, status: "PUBLISHED", kalpToplaExcluded: false },
+      select: { id: true }
+    })
+  ]);
+  const live = new Set(liveRounds.map((r) => r.id));
+  const allowed = new Set(products.map((p) => p.id));
+  return new Map(
+    bars.filter((b) => live.has(b.currentRoundId) && allowed.has(b.productId)).map((b) => [b.productId, b.points])
+  );
+}

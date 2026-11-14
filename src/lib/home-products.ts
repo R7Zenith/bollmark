@@ -85,11 +85,18 @@ export function pickNewArrivals(products: PublishedProduct[]): PublishedProduct[
 
 // `products` katalog sirasiyla gelir (getPublishedProducts: sezon, sonra en
 // yeni); yedek sirasi bu sayede "one cikanlar, sonra en yeniler" olur. Stokta olmayanlar hep disarida.
-export function pickBestsellers(products: PublishedProduct[], soldByProductId: Map<string, number>): PublishedProduct[] {
+// Siralama: once en cok kalp verilen (Kalp Topla), esitlikte satis adedi.
+export function pickBestsellers(
+  products: PublishedProduct[],
+  soldByProductId: Map<string, number>,
+  heartsByProductId: Map<string, number>
+): PublishedProduct[] {
   const inStock = products.filter((p) => !isOutOfStock(p.variants));
+  const hearts = (p: PublishedProduct) => heartsByProductId.get(p.id) ?? 0;
+  const soldCount = (p: PublishedProduct) => soldByProductId.get(p.id) ?? 0;
   const sold = inStock
-    .filter((p) => (soldByProductId.get(p.id) ?? 0) > 0)
-    .sort((a, b) => (soldByProductId.get(b.id) ?? 0) - (soldByProductId.get(a.id) ?? 0))
+    .filter((p) => hearts(p) > 0 || soldCount(p) > 0)
+    .sort((a, b) => hearts(b) - hearts(a) || soldCount(b) - soldCount(a))
     .slice(0, BESTSELLER_TAB_LIMIT);
   if (sold.length >= BESTSELLER_MIN_SOLD) return sold;
 

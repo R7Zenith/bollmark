@@ -15,6 +15,7 @@ import { TrustMarquee } from "@/components/home/trust-marquee";
 import { HeroCarousel } from "@/components/home/hero-carousel";
 import { HeroKalpToplaSlide } from "@/components/home/hero-kalp-topla-slide";
 import { getKalpSettings } from "@/lib/kalp-topla/settings";
+import { getHeartPointsByProduct } from "@/lib/kalp-topla/bar";
 import { prisma } from "@/lib/prisma";
 import { catalogHref, GENDER_GROUPS, genderWhere } from "@/lib/catalog-url";
 import { getActiveAutomaticPercentCampaigns, resolveProductDisplayPrice } from "@/lib/coupons";
@@ -81,7 +82,8 @@ export default async function HomePage() {
     storeSettings,
     homeBundles,
     instagram,
-    kalpSettings
+    kalpSettings,
+    heartPoints
   ] = await Promise.all([
     getPublishedProducts(),
     getActiveAutomaticPercentCampaigns(prisma),
@@ -122,7 +124,9 @@ export default async function HomePage() {
       select: { postsJson: true, profileJson: true, showOnHome: true }
     }),
     // Hero'daki Kalp Topla slayti yalniz LIVE iken (ISR: kisiye ozel tester yok).
-    getKalpSettings()
+    getKalpSettings(),
+    // Cok Satanlar siralamasi: en cok kalp verilen once (bkz. pickBestsellers).
+    getHeartPointsByProduct()
   ]);
 
   // Coklu rengi olan bir urun burada rengi kadar ayri kart olarak gorunur
@@ -218,6 +222,8 @@ export default async function HomePage() {
   // Tumu ve cinsiyet sekmeleri yalniz giyim; ayakkabi/aksesuar agaci (parfum
   // dahil) yalniz Aksesuar sekmesinde - cinsiyet kutularindaki ayrimla ayni.
   const soldByProductId = new Map(soldGroups.map((g) => [g.productId, g._sum.quantity ?? 0]));
+  // Kalp Topla yayinda degilse kalpler gorunmez; siralama satisa kalir.
+  const heartsByProductId = kalpSettings.mode === "LIVE" ? heartPoints : new Map<string, number>();
   const clothingProducts = products.filter((p) => !shoeAndAccessoryIds.has(p.id));
   const bestsellerTabs: BestsellerTab[] = [
     { key: "tumu", label: "Tümü", gender: null },
@@ -238,7 +244,8 @@ export default async function HomePage() {
           : gender
             ? clothingProducts.filter((p) => p.gender != null && (GENDER_GROUPS[gender] ?? [gender]).includes(p.gender))
             : clothingProducts,
-        soldByProductId
+        soldByProductId,
+        heartsByProductId
       )
         .map((p) => {
           const entries = productToCatalogEntries(p);
