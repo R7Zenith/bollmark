@@ -135,7 +135,7 @@ HEPSIJET_XDOCK_CODE=
 
 ### 8.1 Kaldığımız yer (2026-11-14) ve HepsiJET cevabı gelince yapılacaklar
 
-**Durum:** Faz 1–4 yerel commit'li (`97ab415`, `208a881`, `ebcd47a`, `1f3e6ce`), **push/deploy yok, Vercel'e env eklenmedi**. Canlıda HepsiJET kodu yok; canlı DB'de yalnız 6 boş hj sütunu var.
+**Durum:** Faz 1–4 commit'leri (`97ab415`, `208a881`, `ebcd47a`, `1f3e6ce`, `937efbb`) **`hepsijet` dalında, GitHub'a push edildi (2026-11-14); `main`'e birleştirilmedi, canlıya deploy yok, Vercel'e env eklenmedi**. Devam: `git checkout hepsijet`. Canlıya alma = `main`'e birleştirip push (otomatik deploy), yalnız kullanıcı onayıyla. Canlıda HepsiJET kodu yok; canlı DB'de yalnız 6 boş hj sütunu var.
 
 **Bekleyen:** HepsiJET test hesabı askıda (423). Kullanıcı HepsiJET'e mail attı: hesabın açılması, şifre teyidi ve dokümanda olmayan 5 soru (takip yolu, silme metodu, etiket yanıt biçimi, durum kodu listesi, `X-ClientId`/`X-Client-Id`).
 
