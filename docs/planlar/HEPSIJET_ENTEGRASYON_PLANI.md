@@ -130,4 +130,23 @@ HEPSIJET_XDOCK_CODE=
 | 2 – DB | Tamam (2026-11-14, canlı DB, kullanıcı onaylı) | `Shipment`a 6 nullable hj sütunu, `prisma/migrations/20261114000000_hepsijet_shipment/migration.sql`, `prisma db execute` ile; `migrate diff` boş. Ayrı geliştirme DB yok (yerel = canlı). |
 | 3 – Admin | Tamam (2026-11-14, mock modda kullanıcı denedi) | Sipariş detayında Yurtiçi / HepsiJET sekmesi (`?kargo=`), `hepsijet-shipment-card.tsx`, DB katmanı `src/lib/hepsijet/orders.ts`. Etiket route'u plandaki `/api/admin/...` yerine `/admin/kargolar/hepsijet-etiket/[id]` (`/api` proxy korumasının dışında). Çift gönderim koruması iki yönlü (Yurtiçi `sendBlockReason`'a tek satır). İptal edilen HepsiJET gönderisinde `provider` boşalır. Test siparişi `BLM261114-6828` (TEST ALICI Deneme) canlı DB'de; Faz 5 sonunda silinecek. |
 | 4 – Takip | Tamam (2026-11-14, mock modda) | `/api/cron/yurtici-takip` Yurtiçi'den sonra aktif HepsiJET gönderilerini tek istekte sorgular (hatası Yurtiçi'yi bozmaz, `HEPSIJET_SYNC=off` atlar). Eşleme `mapHjStatus`: ACCEPTED ve tanınmayan kodlar → Kargoya verildi, DELIVERING → Dağıtımda, DELIVERED → Teslim (son), UNDELIVERED/iade kalıbı → İade + dikkat notu, silme/iptal kalıbı → iptal. Sipariş durumu + mail + puan Yurtiçi'yle aynı kuralla (koşullu, tek sefer). Müşteri tarafı: `siparis-sorgula` ve Siparişlerim'de takip linki koşulu HepsiJET için düzeltildi. Tam kod listesi gelince eşleme daraltılacak. |
-| 5 – Test gönderileri | Bekliyor | Hesap açılmadan yapılamaz. |
+| 5 – Test gönderileri | Betik hazır, HepsiJET'i bekliyor | `scripts/hepsijet-test-gonderileri.ts` (DB'ye yazmaz; 3 TEST ALICI gönderisi → etiket PDF → takip → 3.'yü iptal → takip; takip yolu ve silme metodu adaylarını dener; giriş hatasında durur). Mock modda kuru denendi. Çıktı `Claude outputs/hepsijet-test/`. |
+| 6 – Canlı | Bekliyor | HepsiJET canlı bilgileri + kullanıcı onayı. |
+
+### 8.1 Kaldığımız yer (2026-11-14) ve HepsiJET cevabı gelince yapılacaklar
+
+**Durum:** Faz 1–4 yerel commit'li (`97ab415`, `208a881`, `ebcd47a`, `1f3e6ce`), **push/deploy yok, Vercel'e env eklenmedi**. Canlıda HepsiJET kodu yok; canlı DB'de yalnız 6 boş hj sütunu var.
+
+**Bekleyen:** HepsiJET test hesabı askıda (423). Kullanıcı HepsiJET'e mail attı: hesabın açılması, şifre teyidi ve dokümanda olmayan 5 soru (takip yolu, silme metodu, etiket yanıt biçimi, durum kodu listesi, `X-ClientId`/`X-Client-Id`).
+
+**Yerel ortamın şu anki hali (repoda görünmez):**
+- `.env`: `HEPSIJET_*` değerleri dolu; `HEPSIJET_MODE=mock` (geçici; asıl hedef `test`).
+- Canlı DB'de test siparişi `BLM261114-6828` (id `cmwg4s2wt0000xw2ql5kfxwyz`, "TEST ALICI Deneme", status PAID, **paymentStatus UNPAID** ki Vega çekmesin, kalem 1, stok düşmedi). Kargo kaydında mock denemelerinden kalan `BLM261114-6828-2` olabilir. Faz 5 sonunda silinecek.
+
+**HepsiJET cevabı gelince sırayla:**
+1. Cevaptaki bilgileri işle: yeni şifre varsa kullanıcı `.env`'deki `HEPSIJET_PASSWORD`'ü günceller (asla dosyaya/commit'e yazılmaz). Cevaplanan sorular (takip yolu, silme metodu, etiket biçimi, durum kodları, header) → `shipments.ts` başındaki "DOGRULANMADI" sabitleri, `mapHjStatus` (map.ts), `parseTracking` ve bölüm 2.1 güncellenir.
+2. Önce **tek** token denemesi (hesap açık mı); 401/423 ise dur, kullanıcıya söyle.
+3. `.env`'de `HEPSIJET_MODE=test`, sonra `npx tsx scripts/hepsijet-test-gonderileri.ts`. `rapor.json`'dan gerçek yanıt biçimlerini al; `parseTracking`/`extractPdf`/sabitleri gerçeğe göre daralt, testleri güncelle.
+4. Kullanıcıya özet: gönderi numaraları, API yanıtları, hatalar + HepsiJET'e yanıt maili taslağı (numaralar + 3 haneli firma kodu, canlıda IP kısıtlaması, etiket ölçüsü soruları).
+5. İstenirse admin kartı test modunda `BLM261114-6828` ile de denenir. Sonra test siparişi silinir, DEPLOY_STATUS + yerel commit.
+6. Faz 6 (canlı) yalnız kullanıcı onayıyla: Vercel env'leri, `HEPSIJET_MODE=live`, push/deploy. Deploy, DB sütunları zaten eklendiği için güvenli.
