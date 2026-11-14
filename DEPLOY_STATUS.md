@@ -1,6 +1,13 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-11-09, anasayfa hero carousel + Kalp Topla slaytı)
+## KALDIĞIM YER (2026-11-14, HepsiJET entegrasyonu Faz 1)
+
+- **Plan:** `docs/planlar/HEPSIJET_ENTEGRASYON_PLANI.md` (bölüm 2.1 doküman doğrulaması, bölüm 8 faz durumu).
+- **Yapılan:** `src/lib/hepsijet/` istemcisi (config, client, map, mock, shipments + testler). Henüz hiçbir yerden çağrılmıyor; şema, admin, cron ve müşteri tarafı değişmedi. Yurtiçi'ye dokunulmadı. `.env.example`'a boş `HEPSIJET_*` anahtarları eklendi; değerler yalnız yerel `.env`'de.
+- **Engel:** HepsiJET test hesabı 2026-11-14'te hatalı şifre (401) denemelerinden sonra askıya alındı (423). HepsiJET'ten yeniden aktivasyon ve şifre teyidi istenecek. Takip yolu, silme metodu, etiket yanıt biçimi ve durum listesi dokümanda yok; hesap açılınca doğrulanacak (`shipments.ts` başındaki sabitler).
+- **Doğrulama:** 262/262 test, tsc, lint temiz. Push/deploy yok, Vercel env'ine bir şey eklenmedi.
+
+## Önceki not (2026-11-09, anasayfa hero carousel + Kalp Topla slaytı)
 
 - **Plan:** `KALP_TOPLA_HERO_CAROUSEL_PLANI.md`.
 - **Yapılan:** Anasayfa hero'su carousel oldu (`src/components/home/hero-carousel.tsx`, embla, loop, 6 sn otomatik geçiş). Slayt 1 mevcut sezon hero'su (görsel/yerleşim birebir aynı, h1 ve priority korundu). Slayt 2 Kalp Topla (`hero-kalp-topla-slide.tsx` + `hero-kalp-topla-motion.tsx`): yalnız `getKalpSettings().mode === "LIVE"` iken eklenir (ISR, tester mantığı yok); başlık h2, eşik/oran ayarlardan. Yükselen kalpler (CSS) + parça parça dolan bar + "%X kilit açıldı" döngüsü; slayt pasif/sekme gizliyken durur. Görseller `public/anasayfa/kalp-topla-{desktop,mobile}.jpg` (mozjpeg, ~255 KB); ilk yüklemede inmez, hydration'dan 2,5 sn sonra veya ilk etkileşimde yüklenir.
