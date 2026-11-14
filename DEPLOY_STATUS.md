@@ -1,6 +1,10 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-11-14, HepsiJET entegrasyonu Faz 1)
+## KALDIĞIM YER (2026-11-14, HepsiJET entegrasyonu Faz 1–2)
+
+- **Faz 2 – DB (canlı, kullanıcı onaylı, 2026-11-14):** `Shipment`'a 6 nullable sütun (`hjStatus`, `hjStatusMessage`, `hjSentAt`, `hjCancelledAt`, `hjLastSyncAt`, `hjLastError`), `prisma/migrations/20261114000000_hepsijet_shipment/migration.sql` ile `prisma db execute` üzerinden; `migrate diff` boş. Mevcut 28 kargo kaydı okunuyor, hj alanları boş. Henüz bu alanlara yazan kod yok.
+
+Faz 1 notu:
 
 - **Plan:** `docs/planlar/HEPSIJET_ENTEGRASYON_PLANI.md` (bölüm 2.1 doküman doğrulaması, bölüm 8 faz durumu).
 - **Yapılan:** `src/lib/hepsijet/` istemcisi (config, client, map, mock, shipments + testler). Henüz hiçbir yerden çağrılmıyor; şema, admin, cron ve müşteri tarafı değişmedi. Yurtiçi'ye dokunulmadı. `.env.example`'a boş `HEPSIJET_*` anahtarları eklendi; değerler yalnız yerel `.env`'de.
