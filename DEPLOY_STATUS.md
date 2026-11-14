@@ -1,6 +1,8 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-11-14, HepsiJET entegrasyonu Faz 1–3)
+## KALDIĞIM YER (2026-11-14, HepsiJET entegrasyonu Faz 1–4)
+
+- **Faz 4 – Takip:** HepsiJET takibi mevcut `/api/cron/yurtici-takip` içinde (yeni cron yok), Yurtiçi adımı aynen önce çalışır. Durum eşleme ve sipariş/mail geçişleri plan bölüm 8'de. Müşteri tarafında takip linki koşulu (`ykCancelledAt`) HepsiJET gönderisini gizlemesin diye düzeltildi. Sıradaki: Faz 5 (test gönderileri), HepsiJET test hesabının yeniden açılmasını bekliyor.
 
 - **Faz 3 – Admin:** sipariş detayı kargo kartında Yurtiçi / HepsiJET sekmesi (yalnız iki mod da açıkken ve aktif gönderi yokken), HepsiJET kartı (gönder, etiket PDF `/admin/kargolar/hepsijet-etiket/[id]`, durumu yenile, iptal). `HEPSIJET_MODE=off` iken sayfa eskisiyle aynı. HepsiJET'te aktif sipariş Yurtiçi'ye gönderilemez (Yurtiçi `sendBlockReason`'a tek satır). Yerel `.env`'de mod geçici `mock` (test hesabı askıda). **Canlı DB'de test siparişi `BLM261114-6828` (TEST ALICI Deneme, PAID) var; Faz 5 sonunda silinecek, Vega çekerse Vega'dan elle silinmeli.**
 

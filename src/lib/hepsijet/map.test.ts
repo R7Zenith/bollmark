@@ -195,3 +195,45 @@ test("Yurtici kurali: HepsiJET'te aktif siparis Yurtici'ye gonderilemez", async 
   assert.equal(sendBlockReason(testOrder, ykShipment, "mock"), null);
   assert.match(sendBlockReason(testOrder, { ...ykShipment, provider: "HEPSIJET" }, "mock")!, /HepsiJET/);
 });
+
+test("durum eslemesi: bilinen kodlar, silme/iade kaliplari, bilinmeyen = yolda", async () => {
+  const { mapHjStatus } = await import("./map");
+  assert.deepEqual(mapHjStatus(null), { shipmentStatus: null, cancelled: false, attention: null, final: false });
+  assert.equal(mapHjStatus("ACCEPTED").shipmentStatus, "KARGOYA_VERILDI");
+  assert.equal(mapHjStatus("IN_TRANSFER").shipmentStatus, "KARGOYA_VERILDI");
+  assert.equal(mapHjStatus("delivering").shipmentStatus, "DAGITIMDA");
+  assert.deepEqual(mapHjStatus("DELIVERED"), { shipmentStatus: "TESLIM_EDILDI", cancelled: false, attention: null, final: true });
+  assert.equal(mapHjStatus("UNDELIVERED").shipmentStatus, "IADE");
+  assert.ok(mapHjStatus("UNDELIVERED").attention);
+  for (const c of ["DELETED", "CANCELLED", "SİLİNDİ"]) assert.equal(mapHjStatus(c).cancelled, true, c);
+});
+
+test("tarih: saat dilimsizse Turkiye, gecersizse null", async () => {
+  const { parseHjDate } = await import("./map");
+  assert.equal(parseHjDate("2026-11-14 10:30")!.toISOString(), "2026-11-14T07:30:00.000Z");
+  assert.equal(parseHjDate("2026-11-14T10:30:05Z")!.toISOString(), "2026-11-14T10:30:05.000Z");
+  assert.equal(parseHjDate("14.11.2026"), null);
+  assert.equal(parseHjDate(null), null);
+});
+
+test("gecis: yolda -> SHIPPED (bir kez), teslim -> DELIVERED + tarih, iptal edilmis sipariste uyari", async () => {
+  const { planHjTransition } = await import("./map");
+  const now = new Date("2026-11-14T12:00:00Z");
+  const base = { orderStatus: "PAID", shippedAt: null, deliveredAt: null, attentionNote: null };
+  const none = planHjTransition(base, { statusCode: null, at: null }, now);
+  assert.deepEqual([none.shipmentStatus, none.orderStatus, none.setShippedAt], [null, null, false]);
+  const acc = planHjTransition(base, { statusCode: "ACCEPTED", at: null }, now);
+  assert.equal(acc.shipmentStatus, "KARGOYA_VERILDI");
+  assert.equal(acc.setShippedAt, true);
+  assert.equal(acc.orderStatus?.to, "SHIPPED");
+  const again = planHjTransition({ ...base, orderStatus: "SHIPPED", shippedAt: now }, { statusCode: "DELIVERING", at: null }, now);
+  assert.deepEqual([again.orderStatus, again.setShippedAt], [null, false]);
+  const dlv = planHjTransition({ ...base, orderStatus: "SHIPPED", shippedAt: now }, { statusCode: "DELIVERED", at: "2026-11-14 10:00" }, now);
+  assert.equal(dlv.orderStatus?.to, "DELIVERED");
+  assert.equal(dlv.deliveredAt!.toISOString(), "2026-11-14T07:00:00.000Z");
+  const cancelled = planHjTransition({ ...base, orderStatus: "CANCELLED" }, { statusCode: "ACCEPTED", at: null }, now);
+  assert.equal(cancelled.orderStatus, null);
+  assert.match(cancelled.attention!, /iptal/);
+  const same = planHjTransition({ ...base, orderStatus: "CANCELLED", attentionNote: cancelled.attention }, { statusCode: "ACCEPTED", at: null }, now);
+  assert.equal(same.attention, null);
+});

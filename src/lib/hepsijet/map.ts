@@ -267,3 +267,93 @@ export function nextDeliveryNo(
   }
   return deliveryNoFor(prefix, orderNumber, prev.hjCancelledAt !== null ? attempt + 1 : attempt);
 }
+
+// --- Durum eslemesi ve gecisler (Faz 4) ---
+//
+// Dokumanda gecen kodlar: ACCEPTED (kurye okuttu, ilk hareket), DELIVERING
+// (dagitimda), UNDELIVERED (teslim edilemedi / iade dongusu), silinen gonderi
+// "SILINDI". Tam liste dokumanda yok (bkz. plan 2.1). Kurye okutmadan once kod
+// gelmez; bu yuzden taninmayan her kod "kurye teslim aldi, yolda" sayilir.
+// Silme/iptal ve iade gibi gorunen kodlar ad kalibiyla ayrilir.
+
+export type HjStatusMapping = {
+  shipmentStatus: "KARGOYA_VERILDI" | "DAGITIMDA" | "TESLIM_EDILDI" | "IADE" | null; // null = degismez
+  cancelled: boolean; // HepsiJET kaydi silinmis
+  attention: string | null;
+  final: boolean; // artik takip edilmez
+};
+
+export const HJ_FINAL_STATUSES = ["DELIVERED"];
+
+export function mapHjStatus(code: string | null): HjStatusMapping {
+  if (!code) return { shipmentStatus: null, cancelled: false, attention: null, final: false };
+  const c = code.trim().toLocaleUpperCase("tr-TR").replace(/İ/g, "I");
+  if (c === "DELIVERED") return { shipmentStatus: "TESLIM_EDILDI", cancelled: false, attention: null, final: true };
+  if (c === "DELIVERING") return { shipmentStatus: "DAGITIMDA", cancelled: false, attention: null, final: false };
+  if (/DELETE|CANCEL|SILIN/.test(c)) return { shipmentStatus: null, cancelled: true, attention: null, final: true };
+  if (/UNDELIVER|RETURN|IADE/.test(c)) {
+    return { shipmentStatus: "IADE", cancelled: false, attention: "HepsiJET: gönderi teslim edilemedi / iade sürecinde.", final: false };
+  }
+  return { shipmentStatus: "KARGOYA_VERILDI", cancelled: false, attention: null, final: false };
+}
+
+// HepsiJET tarih metni: ISO ya da "YYYY-MM-DD HH:mm[:ss]" (saat dilimi yoksa Turkiye).
+export function parseHjDate(value: string | null): Date | null {
+  const v = (value ?? "").trim();
+  const m = v.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}(?::\d{2})?)(\.\d+)?(Z|[+-]\d{2}:?\d{2})?$/);
+  if (!m) return null;
+  const time = m[2].length === 5 ? `${m[2]}:00` : m[2];
+  const d = new Date(`${m[1]}T${time}${m[3] ?? ""}${m[4] ?? "+03:00"}`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+export type HjTransitionInput = {
+  orderStatus: string;
+  shippedAt: Date | null;
+  deliveredAt: Date | null;
+  attentionNote: string | null;
+};
+
+export type HjTransitionPlan = {
+  shipmentStatus: HjStatusMapping["shipmentStatus"];
+  cancelled: boolean;
+  setShippedAt: boolean;
+  deliveredAt: Date | null; // doluysa yazilir
+  // Siparis durumu yalniz "from" durumlarindan biriyse degisir; mail bu kosullu
+  // guncelleme gerceklesirse gider (tek sefer). Yurtici akisiyla ayni kural.
+  orderStatus: { to: "SHIPPED" | "DELIVERED"; from: string[] } | null;
+  attention: string | null; // yeni not (ayni not zaten varsa null)
+};
+
+const HJ_SHIPPABLE_FROM = ["PAID", "PREPARING"];
+const HJ_DELIVERABLE_FROM = ["PAID", "PREPARING", "SHIPPED"];
+
+export function planHjTransition(
+  prev: HjTransitionInput,
+  row: { statusCode: string | null; at: string | null },
+  now = new Date()
+): HjTransitionPlan {
+  const mapped = mapHjStatus(row.statusCode);
+  const plan: HjTransitionPlan = {
+    shipmentStatus: mapped.shipmentStatus,
+    cancelled: mapped.cancelled,
+    setShippedAt: false,
+    deliveredAt: null,
+    orderStatus: null,
+    attention: null
+  };
+  const moving = mapped.shipmentStatus === "KARGOYA_VERILDI" || mapped.shipmentStatus === "DAGITIMDA";
+  const delivered = mapped.shipmentStatus === "TESLIM_EDILDI";
+  if (moving || delivered) plan.setShippedAt = prev.shippedAt === null;
+  if (moving && HJ_SHIPPABLE_FROM.includes(prev.orderStatus)) plan.orderStatus = { to: "SHIPPED", from: HJ_SHIPPABLE_FROM };
+  if (delivered) {
+    if (prev.deliveredAt === null) plan.deliveredAt = parseHjDate(row.at) ?? now;
+    if (HJ_DELIVERABLE_FROM.includes(prev.orderStatus)) plan.orderStatus = { to: "DELIVERED", from: HJ_DELIVERABLE_FROM };
+  }
+  let attention = mapped.attention;
+  if (!attention && (moving || delivered) && (prev.orderStatus === "CANCELLED" || prev.orderStatus === "REFUNDED")) {
+    attention = "HepsiJET: sipariş iptal/iade durumunda ama kargo hareket ediyor.";
+  }
+  plan.attention = attention && attention !== prev.attentionNote ? attention : null;
+  return plan;
+}

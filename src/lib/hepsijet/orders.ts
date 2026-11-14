@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit-log";
+import { notifyCustomerStatusChange } from "@/lib/order-notifications";
+import { awardLoyaltyPoints } from "@/lib/loyalty";
 import { optionValue } from "@/lib/variant-attributes";
 import { getHepsijetCompanyInfo, getHepsijetMode } from "./config";
 import { HepsijetError } from "./client";
@@ -8,12 +10,14 @@ import {
   hjSendBlockReason,
   hjTrackingUrl,
   HJ_CARRIER,
+  HJ_FINAL_STATUSES,
   HJ_PROVIDER,
   isHepsijetActive,
   nextDeliveryNo,
+  planHjTransition,
   type HjOrderItem
 } from "./map";
-import { deleteDelivery, getLabelPdf, sendDelivery, trackDeliveries } from "./shipments";
+import { deleteDelivery, getLabelPdf, sendDelivery, trackDeliveries, type HjTrackingRow } from "./shipments";
 
 // HepsiJET islemlerinin DB tarafi (admin siparis karti, etiket route'u).
 // Her islem tek HepsiJET cagrisi yapar.
@@ -110,33 +114,139 @@ export async function sendOrderToHepsijet(orderId: string, actor: Actor): Promis
   }
 }
 
-// "Durumu yenile" (tek gonderi). Faz 3: yalniz HepsiJET alanlari yazilir;
-// Shipment/siparis durumu eslemesi ve mailler Faz 4'te.
-export async function syncHepsijetShipment(shipmentId: string, actor: Actor): Promise<HjResult> {
-  const shipment = await prisma.shipment.findUnique({ where: { id: shipmentId } });
-  if (!shipment?.cargoKey || !isHepsijetActive(shipment)) return { ok: false, message: "HepsiJET'te aktif gönderi yok." };
+// --- Durum sorgusu ve gecisler (Faz 4) ---
+
+type ShipmentWithOrder = NonNullable<Awaited<ReturnType<typeof loadShipment>>>;
+
+function loadShipment(id: string) {
+  return prisma.shipment.findUnique({ where: { id }, include: { order: true } });
+}
+
+const SYSTEM_ACTOR: Actor = { email: "hepsijet-takip", role: "SYSTEM" };
+
+// Tek takip satirini uygular: HepsiJET alanlari, Shipment.status, tarihler,
+// siparis durumu (kosullu, tek sefer) ve buna bagli mail. Yurtici akisiyla ayni.
+async function applyHjRow(shipment: ShipmentWithOrder, row: HjTrackingRow, actor: Actor): Promise<string> {
   const now = new Date();
+  const order = shipment.order;
+  const plan = planHjTransition(
+    {
+      orderStatus: order.status,
+      shippedAt: shipment.shippedAt,
+      deliveredAt: shipment.deliveredAt,
+      attentionNote: order.needsAttention ? order.attentionNote : null
+    },
+    row,
+    now
+  );
+  await prisma.shipment.update({
+    where: { id: shipment.id },
+    data: {
+      hjStatus: row.statusCode,
+      hjStatusMessage: row.statusMessage || null,
+      hjLastSyncAt: now,
+      hjLastError: null,
+      // HepsiJET tarafinda silinmis: admin iptaliyle ayni sonuc.
+      ...(plan.cancelled
+        ? { provider: null, hjCancelledAt: now, status: "HAZIRLANIYOR", carrier: "", trackingCode: null, trackingUrl: null }
+        : {}),
+      ...(plan.shipmentStatus ? { status: plan.shipmentStatus } : {}),
+      ...(plan.setShippedAt ? { shippedAt: now } : {}),
+      ...(plan.deliveredAt ? { deliveredAt: plan.deliveredAt } : {})
+    }
+  });
+
+  if (plan.attention) {
+    await prisma.order.update({ where: { id: order.id }, data: { needsAttention: true, attentionNote: plan.attention } });
+  }
+
+  if (plan.orderStatus) {
+    // Kosullu guncelleme: ayni gecis iki kez (cron + elle sorgu) gelse de yalniz biri basarir.
+    const { count } = await prisma.order.updateMany({
+      where: { id: order.id, status: { in: plan.orderStatus.from } },
+      data: { status: plan.orderStatus.to }
+    });
+    if (count === 1) {
+      const updated = await prisma.order.findUniqueOrThrow({ where: { id: order.id } });
+      await logAudit({
+        actorEmail: actor.email,
+        actorRole: actor.role,
+        action: "ORDER_STATUS_CHANGED",
+        targetType: "Order",
+        targetId: order.id,
+        detail: `${order.status} -> ${plan.orderStatus.to} (HepsiJET ${row.statusCode})`
+      });
+      await notifyCustomerStatusChange(updated, plan.orderStatus.to).catch((error) =>
+        console.error("HepsiJET durum maili başarısız:", error)
+      );
+      if (plan.orderStatus.to === "DELIVERED") {
+        await awardLoyaltyPoints(updated).catch((error) => console.error("Sadakat puanı eklenemedi (yoksayıldı):", error));
+      }
+    }
+  }
+  return row.statusCode ?? "hareket yok";
+}
+
+// "Durumu yenile" (tek gonderi).
+export async function syncHepsijetShipment(shipmentId: string, actor: Actor): Promise<HjResult> {
+  const shipment = await loadShipment(shipmentId);
+  if (!shipment?.cargoKey || !isHepsijetActive(shipment)) return { ok: false, message: "HepsiJET'te aktif gönderi yok." };
   try {
     const { rows } = await trackDeliveries([shipment.cargoKey]);
-    const row = rows[0];
-    await prisma.shipment.update({
-      where: { id: shipmentId },
-      data: { hjStatus: row.statusCode, hjStatusMessage: row.statusMessage || null, hjLastSyncAt: now, hjLastError: null }
-    });
+    const result = await applyHjRow(shipment, rows[0], actor);
     await logAudit({
       actorEmail: actor.email,
       actorRole: actor.role,
       action: "HEPSIJET_SORGULANDI",
       targetType: "Order",
       targetId: shipment.orderId,
-      detail: `${shipment.cargoKey}: ${row.statusCode ?? "hareket yok"}`
+      detail: `${shipment.cargoKey}: ${result}`
     });
-    return { ok: true, message: row.statusCode ?? "Kurye henüz teslim almadı." };
+    return { ok: true, message: rows[0].statusCode ?? "Kurye henüz teslim almadı." };
   } catch (error) {
     const message = friendly(error);
-    await prisma.shipment.update({ where: { id: shipmentId }, data: { hjLastSyncAt: now, hjLastError: message } });
+    await prisma.shipment.update({ where: { id: shipmentId }, data: { hjLastSyncAt: new Date(), hjLastError: message } });
     return { ok: false, message };
   }
+}
+
+export const HJ_TRACK_WINDOW_DAYS = 30;
+
+// Otomatik takip (Yurtici cron'u icinde): takipteki tum gonderiler TEK istekte.
+// Takip edilecek kayit yoksa HepsiJET'e hic istek atilmaz.
+export async function syncActiveHepsijetShipments(
+  now = new Date()
+): Promise<{ tracked: number; requested: boolean; results: Record<string, string> }> {
+  const since = new Date(now.getTime() - HJ_TRACK_WINDOW_DAYS * 24 * 60 * 60 * 1000);
+  const due = await prisma.shipment.findMany({
+    where: {
+      provider: HJ_PROVIDER,
+      cargoKey: { not: null },
+      hjCancelledAt: null,
+      hjSentAt: { gte: since },
+      OR: [{ hjStatus: null }, { hjStatus: { notIn: HJ_FINAL_STATUSES } }]
+    },
+    include: { order: true }
+  });
+  if (due.length === 0) return { tracked: 0, requested: false, results: {} };
+
+  const results: Record<string, string> = {};
+  try {
+    const { rows } = await trackDeliveries(due.map((s) => s.cargoKey!));
+    for (const shipment of due) {
+      const row = rows.find((r) => r.customerDeliveryNo === shipment.cargoKey)!;
+      try {
+        results[shipment.cargoKey!] = await applyHjRow(shipment, row, SYSTEM_ACTOR);
+      } catch (error) {
+        results[shipment.cargoKey!] = friendly(error);
+      }
+    }
+  } catch (error) {
+    const message = friendly(error);
+    await prisma.shipment.updateMany({ where: { id: { in: due.map((s) => s.id) } }, data: { hjLastSyncAt: now, hjLastError: message } });
+    for (const s of due) results[s.cargoKey!] = message;
+  }
+  return { tracked: due.length, requested: true, results };
 }
 
 // Yalniz kurye toplamadan once (hjStatus bos). Iptalden sonra provider bosalir,
