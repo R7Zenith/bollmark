@@ -128,6 +128,6 @@ HEPSIJET_XDOCK_CODE=
 | 0 – Doküman doğrulama | Kısmen | Doküman okundu (bkz. 2.1). Test hesabı 2026-11-14'te 401 sonrası **askıya alındı (423)**; HepsiJET'ten yeniden aktivasyon + şifre teyidi istendi. Takip yolu, silme metodu, etiket yanıt biçimi, durum listesi hâlâ doğrulanmadı. |
 | 1 – İstemci | Tamam (2026-11-14, commit 97ab415) | `src/lib/hepsijet/` (config, client, map, mock, shipments + 3 test dosyası). Doğrulanmamış uç noktalar `shipments.ts` başında sabit. `customerDeliveryNo` = sipariş no (zaten `BLM` ile başlıyor, önek tekrarlanmaz), yeniden gönderimde `-2`. |
 | 2 – DB | Tamam (2026-11-14, canlı DB, kullanıcı onaylı) | `Shipment`a 6 nullable hj sütunu, `prisma/migrations/20261114000000_hepsijet_shipment/migration.sql`, `prisma db execute` ile; `migrate diff` boş. Ayrı geliştirme DB yok (yerel = canlı). |
-| 3 – Admin | Bekliyor | |
+| 3 – Admin | Tamam (2026-11-14, mock modda kullanıcı denedi) | Sipariş detayında Yurtiçi / HepsiJET sekmesi (`?kargo=`), `hepsijet-shipment-card.tsx`, DB katmanı `src/lib/hepsijet/orders.ts`. Etiket route'u plandaki `/api/admin/...` yerine `/admin/kargolar/hepsijet-etiket/[id]` (`/api` proxy korumasının dışında). Çift gönderim koruması iki yönlü (Yurtiçi `sendBlockReason`'a tek satır). İptal edilen HepsiJET gönderisinde `provider` boşalır. Test siparişi `BLM261114-6828` (TEST ALICI Deneme) canlı DB'de; Faz 5 sonunda silinecek. |
 | 4 – Takip | Bekliyor | |
 | 5 – Test gönderileri | Bekliyor | Hesap açılmadan yapılamaz. |

@@ -1,6 +1,8 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-11-14, HepsiJET entegrasyonu Faz 1–2)
+## KALDIĞIM YER (2026-11-14, HepsiJET entegrasyonu Faz 1–3)
+
+- **Faz 3 – Admin:** sipariş detayı kargo kartında Yurtiçi / HepsiJET sekmesi (yalnız iki mod da açıkken ve aktif gönderi yokken), HepsiJET kartı (gönder, etiket PDF `/admin/kargolar/hepsijet-etiket/[id]`, durumu yenile, iptal). `HEPSIJET_MODE=off` iken sayfa eskisiyle aynı. HepsiJET'te aktif sipariş Yurtiçi'ye gönderilemez (Yurtiçi `sendBlockReason`'a tek satır). Yerel `.env`'de mod geçici `mock` (test hesabı askıda). **Canlı DB'de test siparişi `BLM261114-6828` (TEST ALICI Deneme, PAID) var; Faz 5 sonunda silinecek, Vega çekerse Vega'dan elle silinmeli.**
 
 - **Faz 2 – DB (canlı, kullanıcı onaylı, 2026-11-14):** `Shipment`'a 6 nullable sütun (`hjStatus`, `hjStatusMessage`, `hjSentAt`, `hjCancelledAt`, `hjLastSyncAt`, `hjLastError`), `prisma/migrations/20261114000000_hepsijet_shipment/migration.sql` ile `prisma db execute` üzerinden; `migrate diff` boş. Mevcut 28 kargo kaydı okunuyor, hj alanları boş. Henüz bu alanlara yazan kod yok.
 

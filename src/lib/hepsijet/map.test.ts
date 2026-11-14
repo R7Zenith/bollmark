@@ -149,3 +149,49 @@ test("adet 0 olan kalem atlanir, stok kodu bos kalem reddedilir", () => {
   const bad = buildHjPayload(order, [{ sku: " ", name: "Y", variantLabel: "", quantity: 1 }], company, { deliveryNo: "BLM1" });
   assert.ok(!bad.ok);
 });
+
+const sh = {
+  status: "HAZIRLANIYOR",
+  provider: null as string | null,
+  cargoKey: null as string | null,
+  ykSentAt: null as Date | null,
+  ykCancelledAt: null as Date | null,
+  hjSentAt: null as Date | null,
+  hjCancelledAt: null as Date | null
+};
+const testOrder = { status: "PAID", customerName: "TEST ALICI Bir", deletedAt: null };
+
+test("gonderim kurali: test modu TEST ALICI, Yurtici'de aktifse engel, iptal sonrasi acik", async () => {
+  const { hjSendBlockReason, isHepsijetActive } = await import("./map");
+  assert.equal(hjSendBlockReason(testOrder, sh, "mock"), null);
+  assert.equal(hjSendBlockReason({ ...testOrder, customerName: "test alıcı iki" }, sh, "test"), null);
+  assert.match(hjSendBlockReason({ ...testOrder, customerName: "Ayşe Yılmaz" }, sh, "test")!, /TEST ALICI/);
+  assert.equal(hjSendBlockReason({ ...testOrder, customerName: "Ayşe Yılmaz" }, sh, "live"), null);
+  assert.match(hjSendBlockReason(testOrder, sh, "off")!, /kapalı/);
+  assert.ok(hjSendBlockReason({ ...testOrder, status: "CANCELLED" }, sh, "mock"));
+  assert.ok(hjSendBlockReason(testOrder, { ...sh, status: "KARGOYA_VERILDI" }, "mock"));
+  assert.ok(hjSendBlockReason(testOrder, null, "mock"));
+  const ykActive = { ...sh, provider: "YURTICI", ykSentAt: new Date() };
+  assert.match(hjSendBlockReason(testOrder, ykActive, "mock")!, /Yurtiçi/);
+  assert.equal(hjSendBlockReason(testOrder, { ...ykActive, ykCancelledAt: new Date() }, "mock"), null);
+  const hjActive = { ...sh, provider: "HEPSIJET", hjSentAt: new Date() };
+  assert.equal(isHepsijetActive(hjActive), true);
+  assert.match(hjSendBlockReason(testOrder, hjActive, "mock")!, /zaten HepsiJET/);
+  assert.equal(isHepsijetActive({ ...hjActive, hjCancelledAt: new Date() }), false);
+});
+
+test("sonraki gonderi no: iptal sonrasi -2, basarisiz denemede ayni, Yurtici nosunda ayni", async () => {
+  const { nextDeliveryNo } = await import("./map");
+  assert.equal(nextDeliveryNo("BLM", "BLM261105-9473", sh), "BLM261105-9473");
+  assert.equal(nextDeliveryNo("BLM", "BLM261105-9473", { cargoKey: "BLM261105-9473", hjCancelledAt: null }), "BLM261105-9473");
+  assert.equal(nextDeliveryNo("BLM", "BLM261105-9473", { cargoKey: "BLM261105-9473", hjCancelledAt: new Date() }), "BLM261105-9473-2");
+  assert.equal(nextDeliveryNo("BLM", "BLM261105-9473", { cargoKey: "BLM261105-9473-2", hjCancelledAt: new Date() }), "BLM261105-9473-3");
+  assert.equal(nextDeliveryNo("BLM", "BLM261105-9473", { cargoKey: "BLM261105-9473-3", hjCancelledAt: null }), "BLM261105-9473-3");
+});
+
+test("Yurtici kurali: HepsiJET'te aktif siparis Yurtici'ye gonderilemez", async () => {
+  const { sendBlockReason } = await import("@/lib/yurtici/map");
+  const ykShipment = { status: "HAZIRLANIYOR", provider: null as string | null, ykSentAt: null, ykCancelledAt: null };
+  assert.equal(sendBlockReason(testOrder, ykShipment, "mock"), null);
+  assert.match(sendBlockReason(testOrder, { ...ykShipment, provider: "HEPSIJET" }, "mock")!, /HepsiJET/);
+});

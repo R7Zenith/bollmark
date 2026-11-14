@@ -198,3 +198,72 @@ export function buildHjPayload(
     }
   };
 }
+
+// --- Gonderim kararlari (admin karti ve sunucu ayni kurali kullanir) ---
+
+export const HJ_PROVIDER = "HEPSIJET";
+export const HJ_CARRIER = "HepsiJET";
+
+export function hjTrackingUrl(deliveryNo: string): string {
+  return `https://www.hepsijet.com/gonderi-takibi/${encodeURIComponent(deliveryNo)}`;
+}
+
+export type ShipmentHjState = {
+  status: string;
+  provider: string | null;
+  cargoKey: string | null;
+  ykSentAt: Date | null;
+  ykCancelledAt: Date | null;
+  hjSentAt: Date | null;
+  hjCancelledAt: Date | null;
+};
+
+// HepsiJET'te aktif (gonderilmis ve iptal edilmemis) kayit mi?
+export function isHepsijetActive(s: Pick<ShipmentHjState, "provider" | "hjSentAt" | "hjCancelledAt">): boolean {
+  return s.provider === HJ_PROVIDER && s.hjSentAt !== null && s.hjCancelledAt === null;
+}
+
+// Mock ve test modunda gercek siparisler kirletilmesin diye yalniz "TEST ALICI" ile baslayanlar.
+export function isHjTestReceiver(customerName: string): boolean {
+  return customerName.trim().toLocaleUpperCase("tr-TR").replace(/İ/g, "I").startsWith("TEST ALICI");
+}
+
+// Gonderilemiyorsa nedeni (Turkce), gonderilebiliyorsa null.
+export function hjSendBlockReason(
+  order: { status: string; customerName: string; deletedAt: Date | null },
+  shipment: ShipmentHjState | null,
+  mode: "off" | "mock" | "test" | "live"
+): string | null {
+  if (mode === "off") return "HepsiJET entegrasyonu kapalı.";
+  if (order.deletedAt) return "Silinmiş sipariş gönderilemez.";
+  if (!shipment) return "Siparişin kargo kaydı yok.";
+  if (isHepsijetActive(shipment)) return "Bu sipariş zaten HepsiJET'e gönderildi.";
+  if (shipment.provider === "YURTICI" && shipment.ykSentAt !== null && shipment.ykCancelledAt === null) {
+    return "Bu sipariş Yurtiçi'ye gönderildi; önce Yurtiçi'de iptal edin.";
+  }
+  if (order.status !== "PAID" && order.status !== "PREPARING") {
+    return "Yalnız ödenmiş ya da hazırlanan siparişler gönderilebilir.";
+  }
+  if (shipment.status !== "HAZIRLANIYOR") return "Kargo durumu elle değiştirilmiş; önce 'Hazırlanıyor' yapın.";
+  if (mode !== "live" && !isHjTestReceiver(order.customerName)) {
+    return "Test modunda yalnız alıcı adı 'TEST ALICI' ile başlayan siparişler gönderilebilir.";
+  }
+  return null;
+}
+
+// Onceki HepsiJET gonderisi iptal edildiyse bir sonraki ek (-2, -3); aksi
+// halde ayni no (basarisiz deneme ya da baska firmaya ait onceki no).
+export function nextDeliveryNo(
+  prefix: string,
+  orderNumber: string,
+  prev: Pick<ShipmentHjState, "cargoKey" | "hjCancelledAt">
+): string {
+  const first = deliveryNoFor(prefix, orderNumber, 1);
+  if (!prev.cargoKey) return first;
+  let attempt = 1;
+  if (prev.cargoKey !== first) {
+    const m = prev.cargoKey.startsWith(first) ? prev.cargoKey.slice(first.length).match(/^-(\d+)$/) : null;
+    attempt = m ? Number(m[1]) : 1;
+  }
+  return deliveryNoFor(prefix, orderNumber, prev.hjCancelledAt !== null ? attempt + 1 : attempt);
+}
