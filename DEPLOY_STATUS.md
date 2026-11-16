@@ -1,5 +1,25 @@
 # Bollmark - Güncel Durum
 
+## KALDIĞIM YER (2026-11-16, HepsiJET canlıya alındı)
+
+- **Faz 6 – Canlı (2026-11-16, kullanıcı onaylı):** `hepsijet` → `main` birleştirildi, push = deploy. Vercel production'a 13 `HEPSIJET_*` env (sensitive, `HEPSIJET_MODE=live`). Canlı pilot `BLM261116-PILOT1` betikle açıldı. **Bilinen sorun:** canlıda HepsiJET PDF etiket servisi 400 veriyor (PNG çalışıyor); admin "Etiket" butonu bu düzelene kadar hata verir, HepsiJET'e soruldu (plan 8.1).
+
+- **Faz 5 – Test gönderileri (2026-11-16):** HepsiJET test ortamında 3 gönderi, etiket PDF, takip ve iptal başarılı; admin akışı (gönder/etiket/durum/iptal) test siparişiyle uçtan uca denendi. Test siparişi `BLM261114-6828` canlı DB'den silindi. Yerel `.env` `HEPSIJET_MODE=test`. Sıradaki: HepsiJET canlı bilgileri + kullanıcı onayıyla Faz 6 (plan bölüm 8.1 adım 6).
+- **Devam etmek için:** `docs/planlar/HEPSIJET_ENTEGRASYON_PLANI.md` bölüm **8.1**.
+
+- **Faz 4 – Takip:** HepsiJET takibi mevcut `/api/cron/yurtici-takip` içinde (yeni cron yok), Yurtiçi adımı aynen önce çalışır. Durum eşleme ve sipariş/mail geçişleri plan bölüm 8'de. Müşteri tarafında takip linki koşulu (`ykCancelledAt`) HepsiJET gönderisini gizlemesin diye düzeltildi. Sıradaki: Faz 5 (test gönderileri), HepsiJET test hesabının yeniden açılmasını bekliyor.
+
+- **Faz 3 – Admin:** sipariş detayı kargo kartında Yurtiçi / HepsiJET sekmesi (yalnız iki mod da açıkken ve aktif gönderi yokken), HepsiJET kartı (gönder, etiket PDF `/admin/kargolar/hepsijet-etiket/[id]`, durumu yenile, iptal). `HEPSIJET_MODE=off` iken sayfa eskisiyle aynı. HepsiJET'te aktif sipariş Yurtiçi'ye gönderilemez (Yurtiçi `sendBlockReason`'a tek satır). Yerel `.env`'de mod geçici `mock` (test hesabı askıda). **Canlı DB'de test siparişi `BLM261114-6828` (TEST ALICI Deneme, PAID) var; Faz 5 sonunda silinecek, Vega çekerse Vega'dan elle silinmeli.**
+
+- **Faz 2 – DB (canlı, kullanıcı onaylı, 2026-11-14):** `Shipment`'a 6 nullable sütun (`hjStatus`, `hjStatusMessage`, `hjSentAt`, `hjCancelledAt`, `hjLastSyncAt`, `hjLastError`), `prisma/migrations/20261114000000_hepsijet_shipment/migration.sql` ile `prisma db execute` üzerinden; `migrate diff` boş. Mevcut 28 kargo kaydı okunuyor, hj alanları boş. Henüz bu alanlara yazan kod yok.
+
+Faz 1 notu:
+
+- **Plan:** `docs/planlar/HEPSIJET_ENTEGRASYON_PLANI.md` (bölüm 2.1 doküman doğrulaması, bölüm 8 faz durumu).
+- **Yapılan:** `src/lib/hepsijet/` istemcisi (config, client, map, mock, shipments + testler). Henüz hiçbir yerden çağrılmıyor; şema, admin, cron ve müşteri tarafı değişmedi. Yurtiçi'ye dokunulmadı. `.env.example`'a boş `HEPSIJET_*` anahtarları eklendi; değerler yalnız yerel `.env`'de.
+- **Engel:** HepsiJET test hesabı 2026-11-14'te hatalı şifre (401) denemelerinden sonra askıya alındı (423). HepsiJET'ten yeniden aktivasyon ve şifre teyidi istenecek. Takip yolu, silme metodu, etiket yanıt biçimi ve durum listesi dokümanda yok; hesap açılınca doğrulanacak (`shipments.ts` başındaki sabitler).
+- **Doğrulama:** 262/262 test, tsc, lint temiz. Push/deploy yok, Vercel env'ine bir şey eklenmedi.
+
 ## Not (2026-11-16, menüde animasyonlu "Kalp Topla" + /kalp-topla "Trend kalpler")
 
 - **Plan:** `MENU_KALP_TOPLA_BUTONU_VE_TREND_PLANI.md`.
@@ -8,7 +28,7 @@
 - **Açık:** GA4 `select_promotion` eklenmedi (`lib/ga4.ts`'te tarayıcı olayı yardımcısı yok; olaylar `lib/meta/track.ts`'ten). Localhost'ta header hesap linkinde eski bir hydration uyumsuzluğu ve `/api/sepet` 500 görüldü, bu işle ilgisiz, bakılmadı.
 - **Doğrulama:** tsc, `src` lint 0 hata, 270/270 test, build temiz. Playwright: 1440'ta şeffaf header ve hover büyümesi, 390'da mobil çekmece satırı görüldü. Beyaz header ve trend bölümü ekran görüntüsüyle kontrol edilmedi.
 
-## KALDIĞIM YER (2026-11-09, anasayfa hero carousel + Kalp Topla slaytı)
+## Önceki not (2026-11-09, anasayfa hero carousel + Kalp Topla slaytı)
 
 - **Plan:** `KALP_TOPLA_HERO_CAROUSEL_PLANI.md`.
 - **Yapılan:** Anasayfa hero'su carousel oldu (`src/components/home/hero-carousel.tsx`, embla, loop, 6 sn otomatik geçiş). Slayt 1 mevcut sezon hero'su (görsel/yerleşim birebir aynı, h1 ve priority korundu). Slayt 2 Kalp Topla (`hero-kalp-topla-slide.tsx` + `hero-kalp-topla-motion.tsx`): yalnız `getKalpSettings().mode === "LIVE"` iken eklenir (ISR, tester mantığı yok); başlık h2, eşik/oran ayarlardan. Yükselen kalpler (CSS) + parça parça dolan bar + "%X kilit açıldı" döngüsü; slayt pasif/sekme gizliyken durur. Görseller `public/anasayfa/kalp-topla-{desktop,mobile}.jpg` (mozjpeg, ~255 KB); ilk yüklemede inmez, hydration'dan 2,5 sn sonra veya ilk etkileşimde yüklenir.

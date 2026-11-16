@@ -697,7 +697,7 @@ model Shipment {
   // Yurtici Kargo entegrasyonu (bkz. docs/planlar/YURTICI_KARGO_ENTEGRASYON_PLANI.md
   // bolum 5.2). Hepsi eklemeli: eski/elle girilen kayitlarda provider null.
   // Yurtici kaydinda carrier = "Yurtiçi Kargo", trackingCode = ykDocId (yoksa cargoKey).
-  provider           String?   // "YURTICI" | null
+  provider           String?   // "YURTICI" | "HEPSIJET" | null
   cargoKey           String?   @unique
   ykJobId            String?
   ykDocId            String?   // Yurtici gonderi no
@@ -710,6 +710,16 @@ model Shipment {
   ykCancelledAt      DateTime?
   ykLastSyncAt       DateTime?
   ykLastError        String?
+
+  // HepsiJET entegrasyonu (bkz. docs/planlar/HEPSIJET_ENTEGRASYON_PLANI.md bolum 4).
+  // Hepsi eklemeli. HepsiJET kaydinda provider = "HEPSIJET", carrier = "HepsiJET",
+  // cargoKey = trackingCode = customerDeliveryNo.
+  hjStatus           String?   // son HepsiJET durum kodu (ACCEPTED, DELIVERING ...)
+  hjStatusMessage    String?
+  hjSentAt           DateTime?
+  hjCancelledAt      DateTime?
+  hjLastSyncAt       DateTime?
+  hjLastError        String?
 }
 
 // --- iyzico Sanal POS (bkz. IYZICO_SANAL_POS_PLANI.md bolum 4) ---

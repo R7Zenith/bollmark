@@ -1,0 +1,157 @@
+# HepsiJET Kargo Entegrasyonu Planı
+
+Tarih: 2026-11-14
+Kaynak: HepsiJET "RETAIL TR Documentation" (Postman) + HepsiJET Product Management'tan gelen "Test Ortam Bilgileri" maili.
+Durum: Test ortamı aşaması. HepsiJET, canlıya geçmeden önce **STD (Standart Teslimat) test gönderilerinin** iletilmesini istiyor.
+
+> Kimlik bilgileri (kullanıcı adı / şifre / adres ID) bu dosyaya **yazılmaz**; yalnız yerel `.env`'de durur (`.gitignore`'da `.env*` var).
+
+---
+
+## 1. Hedef
+
+Yurtiçi Kargo entegrasyonunun yanına ikinci kargo firması olarak HepsiJET eklenir. Admin, sipariş detayında kargo firmasını seçer (Yurtiçi / HepsiJET), "HepsiJET'e gönder" der, etiketi (PDF) yazdırır, durum otomatik takip edilir, müşteri sipariş durumunda takip linkini görür.
+
+Mevcut Yurtiçi yapısı (`src/lib/yurtici/*`, `Shipment.provider`, `yurtici-shipment-card.tsx`, `/api/cron/yurtici-takip`) **örnek alınır, bozulmaz**.
+
+## 2. API özeti (dokümandan)
+
+| İş | Metot | Yol | Not |
+|---|---|---|---|
+| Token | POST | `/auth/token` | Body `{username,password}` → `data.token`. TTL 60 dk. |
+| Gönderi oluştur (etiketsiz) | POST | `/delivery/sendDeliveryOrder` | Sadece "OK" döner. **Önerilen.** |
+| Gönderi oluştur (ZPL'li) | POST | `/delivery/sendDeliveryOrderEnhanced` | Anında ZPL döner. |
+| Etiket (PDF/PNG/JPEG) | POST | `/delivery/barcodes-label?format=PDF` | Body `{ "barcodes": ["<customerDeliveryNo>"] }` |
+| Etiket (ZPL) | GET/POST | `/delivery/generateZplBarcode/{barkod}/{totalParcels}` | Termal ZPL yazıcı için |
+| Takip | POST | `getDeliveryTracking` (tam yol koleksiyon JSON'undan doğrulanacak) | Body `{ "deliveries": [{ "customerDeliveryNo": "..." }] }` — çoklu sorgu destekli |
+| İptal/Sil | — | `/delivery/deleteDeliveryOrder/{barkod}` (metot doğrulanacak) | Yalnız kurye **toplamadan önce**. |
+| Güncelleme | — | `/delivery-update` | Faz 2 |
+| Adres sözlüğü | GET | `/settlement/cities`, `/settlement/city/{id}/towns`, `/settlement/town/{id}/districts` | İl/ilçe adı doğrulama |
+
+**Ortak header'lar:** `Content-Type: application/json`, `Accept: application/json`, `X-Origin: integration`, `X-ClientId: hj-integration` (cURL örneğinde `X-Client-Id` yazıyor — ikisi de denenip çalışan sabitlenecek). Token sonrası her istekte `X-Auth-Token: <token>`.
+
+**Base URL:** Test `https://integration-apitest.hepsijet.com` (maildeki ve cURL'deki tireli hali) · Canlı `https://integration.hepsijet.com`.
+
+Koleksiyonun ham JSON'u (tüm açıklamalar dahil): `https://documenter.gw.postman.com/api/collections/33109546/2sA2rGwKq9?segregateAuth=true&versionTag=latest`
+
+### 2.1 Doküman doğrulaması (2026-11-14, koleksiyon JSON'u okundu)
+
+Koleksiyonda istek örneği neredeyse yok; bilgiler klasör açıklamalarında (S.S.S.).
+
+**Kesinleşenler:**
+- Test host'u **tireli** `integration-apitest.hepsijet.com`. Auth tablosundaki tiresiz `integrationapitest` DNS'te yok (ENOTFOUND).
+- `deliveryContent[]` ve `currentXDock` **kök seviyede** (`company`, `delivery` ile kardeş), `delivery` içinde değil. `delivery.desi` string (`"1"`), `deliveryContent[].desi` sayı (`1`). `senderAddress`, `receiver`, `recipientAddress`, `recipientPerson*` `delivery` içinde.
+- `serviceType` standart gönderide hiç eklenmez.
+- `customerDeliveryNo` en fazla 19 karakter (K-barkod `_2` eki için 21'e yer bırakılır). `customerOrderId` en fazla 25 karakter, etikette görünür.
+- Etiket: `POST /delivery/barcodes-label?format=PDF|PNG|JPEG`, body `{"barcodes":[...]}` (çoklu destekli). Etiket ölçüsü **10×8 cm** (HepsiJET ortak barkodu; 10×15 etikete yatay yerleştirilebilir). → Bölüm 7 soru 3 dokümanla yanıtlandı.
+- ZPL: `GET /delivery/generateZplBarcode/{barkod}/{totalParcels}`.
+- Silme: `/delivery/deleteDeliveryOrder/{barkod}`, body `{"deleteReason":"IPTAL"}`. Yanıt `{"status":"OK","message":"Gönderi başarıyla silindi"}`; zaten silinmişse `{"status":"FAIL","message":"Bu gönderi sistemimizde zaten silinmiş durumda"}`. Silinen barkod yeniden kullanılabilir (yine de `-2` eki ile göndereceğiz). Kurye okuttuktan sonra silinemez.
+- Toplandıktan sonra, dağıtıma (`DELIVERING`) çıkmadan önce geri çağırma: `POST /deliveryReturn/externalRecallDeliveryOrder/{barkod}` (bu fazda yok).
+- Takip body'si `{"deliveries":[{"customerDeliveryNo":"..."}]}`, POST, çoklu destekli. Kurye okutmadan önce yalnız `"status":"OK"` döner (hareket yok). İlk hareket `ACCEPTED`. Dokümanda geçen diğer kodlar yalnız `DELIVERING` ve `UNDELIVERED` (iade döngüsü, barkod değişmez); silinen gönderi "SİLİNDİ" statüsüne geçer.
+- `hepsijet.com/gonderi-takibi/<no>` linki yalnız canlı gönderilerde çalışır; test gönderileri webden sorgulanamaz.
+- Hata yanıt biçimi: `{"status":"FAIL","message":"..."}` (HTTP 401 hatalı kullanıcı/şifre, 423 hesap askıda).
+
+**Dokümanda YOK (test API'den doğrulanacak):**
+- `getDeliveryTracking` tam yolu.
+- `deleteDeliveryOrder` HTTP metodu (POST mu DELETE mi).
+- `barcodes-label` yanıt biçimi (ham PDF mi, base64'lü JSON mu).
+- Tam durum kodu listesi (teslim edildi kodu dahil).
+- `sendDeliveryOrder` tam yolu (yalnız Enhanced'in yolu var: `/delivery/sendDeliveryOrderEnhanced`; düz olanın `/delivery/sendDeliveryOrder` olduğu varsayılıyor).
+- Header: tablo `X-ClientId`, cURL `X-Client-Id` diyor. İkisi de gönderilecek.
+
+## 3. STD payload kuralları
+
+- `company.name` / `company.abbreviationCode`: HepsiJET'in verdiği sabit değerler (env).
+- `delivery.customerDeliveryNo`: **3 harfli firma öneki + sipariş no**, en fazla 19 karakter, benzersiz. (Önek HepsiJET'e teyit ettirilecek; mailde ayrıca verilmedi.) Aynı siparişe yeniden gönderimde sonek (`-2`) eklenir.
+- `customerOrderId`: sipariş no (≤25 karakter).
+- `deliveryDateOriginal`: bugünün tarihi, `YYYY-MM-DD`, **Europe/Istanbul** saatine göre.
+- `totalParcels`: "1" (string). `desi`: varsayılan "1" (1–41 arası). `deliverySlotOriginal`: "0". `deliveryType`: "RETAIL". `product.productCode`: "HX_STD".
+- `senderAddress`: sabit `companyAddressId` + il/ilçe/mahalle/açık adres (HepsiJET'in yazdığı haliyle, env).
+- `receiver.companyCustomerId` ve `recipientAddress.companyAddressId`: **her gönderide yeni `randomUUID()`** (çapraz kargo hatasını önler).
+- `phone1` zorunlu (`05xxxxxxxxx` formatı); `phone2`/`email` yoksa `""` — alan silinmez.
+- `recipientAddress.district.name`: sistemde mahalle ayrı tutulmuyorsa `""` ver, mahalle zaten açık adreste.
+- `recipientPerson` / `recipientPersonPhone1`: alıcı ad soyad / telefon.
+- `currentXDock.abbreviationCode`: sabit (env).
+- `deliveryContent[]`: her sipariş kalemi → `sku`, `description` (ürün adı + renk/beden), `desi` (1), `quantity`, `indivisibleQuantity: false`.
+- Kapıda ödeme (POD) yok — kullanılmayacak.
+
+## 4. Tasarım kararları
+
+1. **Mod anahtarı:** `HEPSIJET_MODE = off | mock | test | live` (Yurtiçi'deki gibi; tanımsız = off → Vercel'de hiçbir şey görünmez).
+2. **Veri modeli:** `Shipment` tek satır/sipariş kalır. `provider = "HEPSIJET"`, `carrier = "HepsiJET"`, `cargoKey = customerDeliveryNo` (mevcut unique alan), `trackingCode = customerDeliveryNo`, `trackingUrl = https://www.hepsijet.com/gonderi-takibi/<no>`. HepsiJET'e özel yalnız **eklemeli** alanlar: `hjStatus`, `hjStatusMessage`, `hjSentAt`, `hjCancelledAt`, `hjLastSyncAt`, `hjLastError`. Mevcut kayıtlara dokunulmaz.
+3. **Token:** modül içi bellekte önbellek, 50 dk sonra veya 401'de yenile (1 kez tekrar dene).
+4. **Etiket:** `sendDeliveryOrder` + `barcodes-label?format=PDF`. PDF admin'de yeni sekmede açılır, Chrome'dan Argox ile basılır (Yurtiçi'deki gibi). ZPL faz 2.
+5. **Takip:** yeni cron **eklenmez** (Vercel function sayısı/storage şişmesin); mevcut `/api/cron/yurtici-takip` route'u içinde HepsiJET aktif gönderileri de toplu (tek istekte `deliveries[]`) sorgulanır. `HEPSIJET_SYNC=off` acil kapatma.
+6. **Durum eşleme:** HepsiJET durum kodları (ilk okutma = `ACCEPTED`, teslim, iade vb.) dokümandaki listeye göre Bollmark `Shipment.status` / sipariş durumuna eşlenir; teslimde mevcut "kargolandı/teslim edildi" mailleri Yurtiçi akışındaki gibi tetiklenir.
+7. **Test güvenliği:** mock/test modunda yalnız alıcı adı "TEST ALICI" ile başlayan siparişlerde HepsiJET butonları açılır (Yurtiçi kuralıyla aynı).
+8. **Admin UI:** sipariş detayındaki kargo kartında firma seçimi (Yurtiçi | HepsiJET). `hepsijet-shipment-card.tsx`: Gönder · Etiket yazdır · Durumu yenile · İptal et (yalnız toplanmadan önce). Test modunda sarı uyarı şeridi.
+
+## 5. Fazlar
+
+- **Faz 1 – İstemci:** `src/lib/hepsijet/` → `config.ts`, `client.ts` (token + istek), `map.ts` (sipariş → payload, saf fonksiyon), `shipments.ts` (gönder/etiket/takip/iptal), `mock.ts`, birim testleri (`map.test.ts`, `client.test.ts`).
+- **Faz 2 – DB:** `Shipment`'a hj alanları (yalnız ekleme). Canlı DB'ye uygulama **kullanıcı onayıyla**, `migrate diff` kontrolüyle.
+- **Faz 3 – Admin:** kart + firma seçimi + PDF etiket route'u (`/api/admin/kargolar/hepsijet-etiket/[id]`).
+- **Faz 4 – Takip:** cron entegrasyonu, durum eşleme, müşteri tarafında takip linki (`siparis-durumu`, `hesap/siparislerim`).
+- **Faz 5 – Test gönderileri:** test ortamında 2–3 adet STD gönderi (TEST ALICI) oluştur → etiket PDF'ini al → takip sorgula → biri iptal. Oluşan `customerDeliveryNo`'lar ve etiket PDF'leri HepsiJET'e (Hülya Hanım) yanıt maili ile iletilir.
+- **Faz 6 – Canlı:** HepsiJET canlı kullanıcı bilgilerini verince Vercel env'leri (sensitive) + `HEPSIJET_MODE=live`. Kullanıcı onayı olmadan push/deploy yok.
+
+## 6. Env değişkenleri (yalnız yerel `.env`, değerler burada yok)
+
+```
+HEPSIJET_MODE=test
+HEPSIJET_SYNC=on
+HEPSIJET_USERNAME=
+HEPSIJET_PASSWORD=
+HEPSIJET_COMPANY_NAME=
+HEPSIJET_COMPANY_CODE=
+HEPSIJET_DELIVERY_PREFIX=
+HEPSIJET_SENDER_ADDRESS_ID=
+HEPSIJET_SENDER_CITY=
+HEPSIJET_SENDER_TOWN=
+HEPSIJET_SENDER_DISTRICT=
+HEPSIJET_SENDER_ADDRESS_LINE=
+HEPSIJET_XDOCK_CODE=
+```
+`.env.example`'a yalnız anahtar adları (boş) eklenir.
+
+## 7. HepsiJET'e sorulacaklar
+
+1. `customerDeliveryNo` başına koyacağımız 3 haneli firma kodu ne olmalı?
+2. Canlı ortamda IP kısıtlaması var mı? (Varsa Yurtiçi için açılan Fixie sabit IP'si kullanılabilir.)
+3. Etiket ölçüsü (barcodes-label PDF) kaç cm? 10×10 termal etikete uygun mu? (Doküman: ortak barkod 10×8 cm. PDF'in sayfa ölçüsü yine de teyit edilecek.)
+4. Kurye toplama: günlük düzenli uğrama mı, gönderi oluştukça çağrı mı?
+
+## 8. Faz durumu
+
+| Faz | Durum | Not |
+|---|---|---|
+| 0 – Doküman doğrulama | Tamam (2026-11-16) | Test API'sinde doğrulandı: `/delivery/sendDeliveryOrder` → `{"status":"OK","data":"<no>"}`; etiket ham PDF (`%PDF`); takip `POST /deliveryTransaction/getDeliveryTracking`, kurye okutmadan yalnız `{"status":"OK"}`; silme `POST`, `{"status":"OK","message":"Gönderi başarıyla silindi"}`. Durum kodu listesi hâlâ yok (test gönderisi kurye okutmadığı için hareket oluşmaz). |
+| 1 – İstemci | Tamam (2026-11-14, commit 97ab415) | `src/lib/hepsijet/` (config, client, map, mock, shipments + 3 test dosyası). Doğrulanmamış uç noktalar `shipments.ts` başında sabit. `customerDeliveryNo` = sipariş no (zaten `BLM` ile başlıyor, önek tekrarlanmaz), yeniden gönderimde `-2`. |
+| 2 – DB | Tamam (2026-11-14, canlı DB, kullanıcı onaylı) | `Shipment`a 6 nullable hj sütunu, `prisma/migrations/20261114000000_hepsijet_shipment/migration.sql`, `prisma db execute` ile; `migrate diff` boş. Ayrı geliştirme DB yok (yerel = canlı). |
+| 3 – Admin | Tamam (2026-11-14, mock modda kullanıcı denedi) | Sipariş detayında Yurtiçi / HepsiJET sekmesi (`?kargo=`), `hepsijet-shipment-card.tsx`, DB katmanı `src/lib/hepsijet/orders.ts`. Etiket route'u plandaki `/api/admin/...` yerine `/admin/kargolar/hepsijet-etiket/[id]` (`/api` proxy korumasının dışında). Çift gönderim koruması iki yönlü (Yurtiçi `sendBlockReason`'a tek satır). İptal edilen HepsiJET gönderisinde `provider` boşalır. Test siparişi `BLM261114-6828` (TEST ALICI Deneme) canlı DB'de; Faz 5 sonunda silinecek. |
+| 4 – Takip | Tamam (2026-11-14, mock modda) | `/api/cron/yurtici-takip` Yurtiçi'den sonra aktif HepsiJET gönderilerini tek istekte sorgular (hatası Yurtiçi'yi bozmaz, `HEPSIJET_SYNC=off` atlar). Eşleme `mapHjStatus`: ACCEPTED ve tanınmayan kodlar → Kargoya verildi, DELIVERING → Dağıtımda, DELIVERED → Teslim (son), UNDELIVERED/iade kalıbı → İade + dikkat notu, silme/iptal kalıbı → iptal. Sipariş durumu + mail + puan Yurtiçi'yle aynı kuralla (koşullu, tek sefer). Müşteri tarafı: `siparis-sorgula` ve Siparişlerim'de takip linki koşulu HepsiJET için düzeltildi. Tam kod listesi gelince eşleme daraltılacak. |
+| 5 – Test gönderileri | Tamam (2026-11-16) | `scripts/hepsijet-test-gonderileri.ts` test modunda çalıştı: BLM261116-T15481/T15482/T15483 oluştu, 3 etiket PDF alındı, takip çalıştı, T15483 iptal edildi. Çıktı `Claude outputs/hepsijet-test/`. |
+| 6 – Canlı | Bekliyor | HepsiJET canlı bilgileri + kullanıcı onayı. |
+
+### 8.1 Kaldığımız yer (2026-11-14) ve HepsiJET cevabı gelince yapılacaklar
+
+**Durum:** Faz 1–4 commit'leri (`97ab415`, `208a881`, `ebcd47a`, `1f3e6ce`, `937efbb`) **`hepsijet` dalında, GitHub'a push edildi (2026-11-14); `main`'e birleştirilmedi, canlıya deploy yok, Vercel'e env eklenmedi**. Devam: `git checkout hepsijet`. Canlıya alma = `main`'e birleştirip push (otomatik deploy), yalnız kullanıcı onayıyla. Canlıda HepsiJET kodu yok; canlı DB'de yalnız 6 boş hj sütunu var.
+
+**Bekleyen:** HepsiJET test hesabı askıda (423). Kullanıcı HepsiJET'e mail attı: hesabın açılması, şifre teyidi ve dokümanda olmayan 5 soru (takip yolu, silme metodu, etiket yanıt biçimi, durum kodu listesi, `X-ClientId`/`X-Client-Id`).
+
+**Yerel ortamın şu anki hali (repoda görünmez):**
+- `.env`: `HEPSIJET_*` değerleri dolu; `HEPSIJET_MODE=test` (2026-11-16'dan beri).
+- Canlı DB'de test siparişi `BLM261114-6828` (id `cmwg4s2wt0000xw2ql5kfxwyz`, "TEST ALICI Deneme", status PAID, **paymentStatus UNPAID** ki Vega çekmesin, kalem 1, stok düşmedi). Kargo kaydında mock denemelerinden kalan `BLM261114-6828-2` olabilir. Faz 5 sonunda silinecek.
+
+**2026-11-16 güncelleme:** Hülya Hanım askının kaldırıldığını yazdı. Tek token denemesi **200, giriş tamam**. `.env` → `HEPSIJET_MODE=test`. Test betiği çalıştı: 3 gönderinin üçü de `400 "Tanımlı firma deposu bulunamadı."` ile reddedildi (etiket/takip/iptal adımlarına geçilemedi). Bulgular: token yanıtındaki `company.name` ve `abbreviationCode` env ile birebir aynı. Yanıtta dokümandaki örnekte olan `xdock` nesnesi **yok** (kullanıcıya depo/X-Dock bağlanmamış görünüyor). Doküman `senderAddress.companyAddressId` için "HepsiJET'in tanımladığı sabit **UUID**" diyor; env'deki değer 18 karakter, UUID biçiminde değil. → HepsiJET'ten test firmasına toplama deposu tanımlanması ve doğru `companyAddressId` (UUID) + `currentXDock` kodunun teyidi istenecek. Gelince 3. adımdan devam.
+→ Aynı gün HepsiJET test ortamında depoyu tanımladı; değerler değişmeden gönderiler geçti (18 karakterlik ID doğruymuş). Faz 5 tamam. Adım 4: numaralar + etiketler Hülya Hanım'a iletildi (kullanıcı), canlı bilgileri ve IP kısıtlaması soruldu. Adım 5: admin akışı (`sendOrderToHepsijet` → etiket → durum → iptal) `BLM261114-6828` ile test API'de başarılı (gönderi `BLM261114-6828-2`); ardından test siparişi canlı DB'den silindi. **Sıradaki:** adım 6 canlı (HepsiJET canlı bilgileri + kullanıcı onayı).
+
+**2026-11-16 canlı pilot:** Canlı bilgiler geldi (aynı kullanıcı/firma; farklı: `HEPSIJET_SENDER_ADDRESS_ID` ve `HEPSIJET_XDOCK_CODE`). Yerel `.env` → `HEPSIJET_MODE=live`, test değerleri `# test:` yorum satırı olarak duruyor. Canlı token 200. Pilot gönderi `BLM261116-PILOT1` (alıcı kullanıcının kendisi, dükkan adresi) betikle oluştu, DB'ye yazılmadı; paket hazırlanmadı. **Canlıda `barcodes-label?format=PDF` 400 "Beklenmeyen bir hata oluştu"** veriyor (hata kimlikleri `integration-20261116T144008`, `integration-20261116T144040`); `format=PNG` (JSON içinde `data.labels[]` base64 data URI) ve `generateZplBarcode` çalışıyor. PNG etiket `Claude outputs/hepsijet-canli-pilot/`. HepsiJET'e soruldu. Canlıya geçmeden çözülmeli: ya HepsiJET PDF'i düzeltir ya da `getLabelPdf`'e PNG yedeği eklenir.
+
+**HepsiJET cevabı gelince sırayla:**
+1. Cevaptaki bilgileri işle: yeni şifre varsa kullanıcı `.env`'deki `HEPSIJET_PASSWORD`'ü günceller (asla dosyaya/commit'e yazılmaz). Cevaplanan sorular (takip yolu, silme metodu, etiket biçimi, durum kodları, header) → `shipments.ts` başındaki "DOGRULANMADI" sabitleri, `mapHjStatus` (map.ts), `parseTracking` ve bölüm 2.1 güncellenir.
+2. Önce **tek** token denemesi (hesap açık mı); 401/423 ise dur, kullanıcıya söyle.
+3. `.env`'de `HEPSIJET_MODE=test`, sonra `npx tsx scripts/hepsijet-test-gonderileri.ts`. `rapor.json`'dan gerçek yanıt biçimlerini al; `parseTracking`/`extractPdf`/sabitleri gerçeğe göre daralt, testleri güncelle.
+4. Kullanıcıya özet: gönderi numaraları, API yanıtları, hatalar + HepsiJET'e yanıt maili taslağı (numaralar + 3 haneli firma kodu, canlıda IP kısıtlaması, etiket ölçüsü soruları).
+5. İstenirse admin kartı test modunda `BLM261114-6828` ile de denenir. Sonra test siparişi silinir, DEPLOY_STATUS + yerel commit.
+6. Faz 6 (canlı) yalnız kullanıcı onayıyla: Vercel env'leri, `HEPSIJET_MODE=live`, push/deploy. Deploy, DB sütunları zaten eklendiği için güvenli.

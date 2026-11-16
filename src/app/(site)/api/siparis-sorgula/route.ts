@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
             carrier: order.shipment.carrier,
             trackingCode: order.shipment.trackingCode,
             status: order.shipment.status,
-            trackingUrl: order.shipment.ykCancelledAt ? null : safeTrackingUrl(order.shipment.trackingUrl)
+            trackingUrl: order.shipment.provider !== "HEPSIJET" && order.shipment.ykCancelledAt ? null : safeTrackingUrl(order.shipment.trackingUrl)
           }
         : null,
       items: order.items.map((item) => ({

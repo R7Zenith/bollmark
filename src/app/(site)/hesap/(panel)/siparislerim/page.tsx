@@ -54,7 +54,7 @@ export default async function HesapSiparislerimPage() {
         ? {
             carrier: order.shipment.carrier,
             trackingCode: order.shipment.trackingCode,
-            trackingUrl: order.shipment.ykCancelledAt ? null : safeTrackingUrl(order.shipment.trackingUrl)
+            trackingUrl: order.shipment.provider !== "HEPSIJET" && order.shipment.ykCancelledAt ? null : safeTrackingUrl(order.shipment.trackingUrl)
           }
         : null,
       customerEmail: order.customerEmail,

@@ -33,6 +33,12 @@ import { OrderPaymentCard } from "@/components/admin/order-payment-card";
 import { YurticiShipmentCard } from "@/components/admin/yurtici-shipment-card";
 import { getYurticiEgress, getYurticiMode } from "@/lib/yurtici/config";
 import { cancelYurticiShipment, sendOrdersToYurtici, syncYurticiShipment } from "@/lib/yurtici/shipments";
+import { isYurticiActive } from "@/lib/yurtici/map";
+import { HepsijetShipmentCard } from "@/components/admin/hepsijet-shipment-card";
+import { getHepsijetCompanyInfo, getHepsijetMode, type HepsijetCompanyInfo } from "@/lib/hepsijet/config";
+import { isHepsijetActive } from "@/lib/hepsijet/map";
+import { cancelHepsijetShipment, orderItemsForHj, sendOrderToHepsijet, syncHepsijetShipment } from "@/lib/hepsijet/orders";
+import Link from "next/link";
 
 const inputClass =
   "w-full rounded-md border border-admin-border px-3 py-2 text-sm focus:border-admin-accent focus:outline-none focus:ring-1 focus:ring-admin-accent";
@@ -109,15 +115,38 @@ async function yurticiCancelAction(id: string, shipmentId: string) {
   yurticiRedirect(id, result.ok, "yurtici-iptal", result.message);
 }
 
+function hepsijetRedirect(id: string, ok: boolean, success: string, message: string): never {
+  const query = ok ? `basarili=${success}` : `hata=hepsijet&mesaj=${encodeURIComponent(message)}`;
+  redirect(`/admin/siparisler/${id}?${query}#kargo`);
+}
+
+async function hepsijetSendAction(id: string) {
+  "use server";
+  const result = await sendOrderToHepsijet(id, await yurticiActor());
+  hepsijetRedirect(id, result.ok, "hepsijet-gonderildi", result.message);
+}
+
+async function hepsijetSyncAction(id: string, shipmentId: string) {
+  "use server";
+  const result = await syncHepsijetShipment(shipmentId, await yurticiActor());
+  hepsijetRedirect(id, result.ok, "hepsijet-sorgulandi", result.message);
+}
+
+async function hepsijetCancelAction(id: string, shipmentId: string) {
+  "use server";
+  const result = await cancelHepsijetShipment(shipmentId, await yurticiActor());
+  hepsijetRedirect(id, result.ok, "hepsijet-iptal", result.message);
+}
+
 export default async function OrderDetailPage({
   params,
   searchParams
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ basarili?: string; hata?: string; mesaj?: string }>;
+  searchParams: Promise<{ basarili?: string; hata?: string; mesaj?: string; kargo?: string }>;
 }) {
   const { id } = await params;
-  const { basarili, hata, mesaj } = await searchParams;
+  const { basarili, hata, mesaj, kargo } = await searchParams;
   const session = await getServerSession(authOptions);
   const isAdmin = session?.user?.role === "ADMIN";
   const order = await prisma.order.findUnique({
@@ -182,6 +211,36 @@ export default async function OrderDetailPage({
 
   const yurticiMode = getYurticiMode();
   const manualShipmentForm = order.shipment ? <ManualShipmentForm orderId={order.id} shipment={order.shipment} /> : null;
+
+  // Kargo firmasi: HEPSIJET_MODE=off iken eskisi gibi yalniz Yurtici. Aktif
+  // gonderisi olan firmanin karti; yoksa ve iki entegrasyon da aciksa sekme
+  // (?kargo=). Sekme secilmemisse en son kullanilan firma.
+  const hepsijetMode = getHepsijetMode();
+  const hjActive = order.shipment ? isHepsijetActive(order.shipment) : false;
+  const ykActive = order.shipment ? isYurticiActive(order.shipment) : false;
+  const showCarrierTabs = hepsijetMode !== "off" && yurticiMode !== "off" && !hjActive && !ykActive;
+  const lastUsedHepsijet = !!order.shipment && (order.shipment.hjSentAt !== null || order.shipment.hjLastError !== null);
+  const carrier: "yurtici" | "hepsijet" | null =
+    hepsijetMode === "off"
+      ? yurticiMode !== "off" ? "yurtici" : null
+      : hjActive
+        ? "hepsijet"
+        : ykActive
+          ? yurticiMode !== "off" ? "yurtici" : null
+          : yurticiMode === "off"
+            ? "hepsijet"
+            : kargo === "hepsijet" || kargo === "yurtici"
+              ? kargo
+              : lastUsedHepsijet ? "hepsijet" : "yurtici";
+  let hjCompany: HepsijetCompanyInfo | null = null;
+  let hjCompanyError: string | null = null;
+  if (carrier === "hepsijet") {
+    try {
+      hjCompany = getHepsijetCompanyInfo();
+    } catch (error) {
+      hjCompanyError = error instanceof Error ? error.message : "HepsiJET ayarları okunamadı.";
+    }
+  }
 
   return (
     <div className="max-w-5xl">
@@ -366,7 +425,39 @@ export default async function OrderDetailPage({
                   Durum: {shipmentStatusLabel[order.shipment.status as keyof typeof shipmentStatusLabel] ?? order.shipment.status}
                 </p>
               </div>
-            ) : order.shipment && yurticiMode !== "off" ? (
+            ) : order.shipment && carrier ? (
+              <>
+                {showCarrierTabs && (
+                  <div className="mb-4 grid grid-cols-2 gap-1 rounded-md bg-admin-bg p-1 text-sm font-medium" role="tablist" aria-label="Kargo firması">
+                    {(["yurtici", "hepsijet"] as const).map((c) => (
+                      <Link
+                        key={c}
+                        href={`/admin/siparisler/${order.id}?kargo=${c}#kargo`}
+                        role="tab"
+                        aria-selected={carrier === c}
+                        className={`rounded px-3 py-1.5 text-center transition-colors ${
+                          carrier === c ? "bg-admin-surface text-admin-text shadow-sm" : "text-admin-text-muted hover:text-admin-text"
+                        }`}
+                      >
+                        {c === "yurtici" ? "Yurtiçi" : "HepsiJET"}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                {carrier === "hepsijet" && hepsijetMode !== "off" ? (
+                  <HepsijetShipmentCard
+                    order={order}
+                    items={orderItemsForHj(order.items)}
+                    shipment={order.shipment}
+                    mode={hepsijetMode}
+                    company={hjCompany}
+                    companyError={hjCompanyError}
+                    sendAction={hepsijetSendAction.bind(null, order.id)}
+                    syncAction={hepsijetSyncAction.bind(null, order.id, order.shipment.id)}
+                    cancelAction={hepsijetCancelAction.bind(null, order.id, order.shipment.id)}
+                    manualForm={manualShipmentForm}
+                  />
+                ) : (
               <YurticiShipmentCard
                 order={order}
                 shipment={order.shipment}
@@ -377,6 +468,8 @@ export default async function OrderDetailPage({
                 cancelAction={yurticiCancelAction.bind(null, order.id, order.shipment.id)}
                 manualForm={manualShipmentForm}
               />
+                )}
+              </>
             ) : order.shipment ? (
               manualShipmentForm
             ) : (

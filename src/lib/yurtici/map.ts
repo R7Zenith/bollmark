@@ -227,6 +227,8 @@ export function sendBlockReason(
   if (order.deletedAt) return "Silinmiş sipariş gönderilemez.";
   if (!shipment) return "Siparişin kargo kaydı yok.";
   if (isYurticiActive(shipment)) return "Bu sipariş zaten Yurtiçi'ye gönderildi.";
+  // HepsiJET iptalinde provider bosalir; doluysa gonderi HepsiJET'te aktiftir.
+  if (shipment.provider === "HEPSIJET") return "Bu sipariş HepsiJET'e gönderildi; önce HepsiJET'te iptal edin.";
   if (order.status !== "PAID" && order.status !== "PREPARING") {
     return "Yalnız ödenmiş ya da hazırlanan siparişler gönderilebilir.";
   }
