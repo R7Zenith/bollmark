@@ -1,8 +1,9 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-11-14, HepsiJET entegrasyonu Faz 1–4, Faz 5 HepsiJET'i bekliyor)
+## KALDIĞIM YER (2026-11-16, HepsiJET Faz 1–5 tamam, Faz 6 canlı bilgileri bekliyor)
 
-- **Devam etmek için:** `docs/planlar/HEPSIJET_ENTEGRASYON_PLANI.md` bölüm **8.1** (yerel ortamın hali, test siparişi, HepsiJET cevabı gelince adım adım ne yapılacağı). Faz 5 betiği `scripts/hepsijet-test-gonderileri.ts` hazır, mock'ta denendi.
+- **Faz 5 – Test gönderileri (2026-11-16):** HepsiJET test ortamında 3 gönderi, etiket PDF, takip ve iptal başarılı; admin akışı (gönder/etiket/durum/iptal) test siparişiyle uçtan uca denendi. Test siparişi `BLM261114-6828` canlı DB'den silindi. Yerel `.env` `HEPSIJET_MODE=test`. Sıradaki: HepsiJET canlı bilgileri + kullanıcı onayıyla Faz 6 (plan bölüm 8.1 adım 6).
+- **Devam etmek için:** `docs/planlar/HEPSIJET_ENTEGRASYON_PLANI.md` bölüm **8.1**.
 
 - **Faz 4 – Takip:** HepsiJET takibi mevcut `/api/cron/yurtici-takip` içinde (yeni cron yok), Yurtiçi adımı aynen önce çalışır. Durum eşleme ve sipariş/mail geçişleri plan bölüm 8'de. Müşteri tarafında takip linki koşulu (`ykCancelledAt`) HepsiJET gönderisini gizlemesin diye düzeltildi. Sıradaki: Faz 5 (test gönderileri), HepsiJET test hesabının yeniden açılmasını bekliyor.
 
