@@ -6,10 +6,10 @@ import { mockDelete, mockLabelPdf, mockSendDelivery, mockTrack } from "./mock";
 // HepsiJET islemleri (gonder / etiket PDF / takip / iptal). Moda gore mock ya da
 // gercek API. DB'ye yazmaz; cagiran taraf (admin karti, cron) sonucu isler.
 //
-// DOGRULANMADI (dokumanda yok, test hesabi acilinca kesinlesecek; bkz. plan 2.1):
-export const SEND_PATH = "/delivery/sendDeliveryOrder"; // yalniz Enhanced'in yolu dokumanda var
-export const TRACK_PATH = "/deliveryTransaction/getDeliveryTracking"; // tam yol dokumanda yok
-export const DELETE_METHOD: "POST" | "DELETE" = "POST"; // metot dokumanda yok
+// Dokumanda yok; test API'sinde dogrulandi (2026-11-16, bkz. plan 2.1):
+export const SEND_PATH = "/delivery/sendDeliveryOrder";
+export const TRACK_PATH = "/deliveryTransaction/getDeliveryTracking";
+export const DELETE_METHOD: "POST" | "DELETE" = "POST";
 
 export const LABEL_PATH = "/delivery/barcodes-label?format=PDF";
 export const deletePath = (no: string) => `/delivery/deleteDeliveryOrder/${encodeURIComponent(no)}`;

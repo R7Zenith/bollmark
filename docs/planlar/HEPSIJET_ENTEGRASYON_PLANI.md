@@ -125,12 +125,12 @@ HEPSIJET_XDOCK_CODE=
 
 | Faz | Durum | Not |
 |---|---|---|
-| 0 – Doküman doğrulama | Kısmen | Doküman okundu (bkz. 2.1). Test hesabı 2026-11-14'te 401 sonrası **askıya alındı (423)**; HepsiJET'ten yeniden aktivasyon + şifre teyidi istendi. Takip yolu, silme metodu, etiket yanıt biçimi, durum listesi hâlâ doğrulanmadı. |
+| 0 – Doküman doğrulama | Tamam (2026-11-16) | Test API'sinde doğrulandı: `/delivery/sendDeliveryOrder` → `{"status":"OK","data":"<no>"}`; etiket ham PDF (`%PDF`); takip `POST /deliveryTransaction/getDeliveryTracking`, kurye okutmadan yalnız `{"status":"OK"}`; silme `POST`, `{"status":"OK","message":"Gönderi başarıyla silindi"}`. Durum kodu listesi hâlâ yok (test gönderisi kurye okutmadığı için hareket oluşmaz). |
 | 1 – İstemci | Tamam (2026-11-14, commit 97ab415) | `src/lib/hepsijet/` (config, client, map, mock, shipments + 3 test dosyası). Doğrulanmamış uç noktalar `shipments.ts` başında sabit. `customerDeliveryNo` = sipariş no (zaten `BLM` ile başlıyor, önek tekrarlanmaz), yeniden gönderimde `-2`. |
 | 2 – DB | Tamam (2026-11-14, canlı DB, kullanıcı onaylı) | `Shipment`a 6 nullable hj sütunu, `prisma/migrations/20261114000000_hepsijet_shipment/migration.sql`, `prisma db execute` ile; `migrate diff` boş. Ayrı geliştirme DB yok (yerel = canlı). |
 | 3 – Admin | Tamam (2026-11-14, mock modda kullanıcı denedi) | Sipariş detayında Yurtiçi / HepsiJET sekmesi (`?kargo=`), `hepsijet-shipment-card.tsx`, DB katmanı `src/lib/hepsijet/orders.ts`. Etiket route'u plandaki `/api/admin/...` yerine `/admin/kargolar/hepsijet-etiket/[id]` (`/api` proxy korumasının dışında). Çift gönderim koruması iki yönlü (Yurtiçi `sendBlockReason`'a tek satır). İptal edilen HepsiJET gönderisinde `provider` boşalır. Test siparişi `BLM261114-6828` (TEST ALICI Deneme) canlı DB'de; Faz 5 sonunda silinecek. |
 | 4 – Takip | Tamam (2026-11-14, mock modda) | `/api/cron/yurtici-takip` Yurtiçi'den sonra aktif HepsiJET gönderilerini tek istekte sorgular (hatası Yurtiçi'yi bozmaz, `HEPSIJET_SYNC=off` atlar). Eşleme `mapHjStatus`: ACCEPTED ve tanınmayan kodlar → Kargoya verildi, DELIVERING → Dağıtımda, DELIVERED → Teslim (son), UNDELIVERED/iade kalıbı → İade + dikkat notu, silme/iptal kalıbı → iptal. Sipariş durumu + mail + puan Yurtiçi'yle aynı kuralla (koşullu, tek sefer). Müşteri tarafı: `siparis-sorgula` ve Siparişlerim'de takip linki koşulu HepsiJET için düzeltildi. Tam kod listesi gelince eşleme daraltılacak. |
-| 5 – Test gönderileri | Betik hazır, HepsiJET'i bekliyor | `scripts/hepsijet-test-gonderileri.ts` (DB'ye yazmaz; 3 TEST ALICI gönderisi → etiket PDF → takip → 3.'yü iptal → takip; takip yolu ve silme metodu adaylarını dener; giriş hatasında durur). Mock modda kuru denendi. Çıktı `Claude outputs/hepsijet-test/`. |
+| 5 – Test gönderileri | Tamam (2026-11-16) | `scripts/hepsijet-test-gonderileri.ts` test modunda çalıştı: BLM261116-T15481/T15482/T15483 oluştu, 3 etiket PDF alındı, takip çalıştı, T15483 iptal edildi. Çıktı `Claude outputs/hepsijet-test/`. |
 | 6 – Canlı | Bekliyor | HepsiJET canlı bilgileri + kullanıcı onayı. |
 
 ### 8.1 Kaldığımız yer (2026-11-14) ve HepsiJET cevabı gelince yapılacaklar
@@ -140,8 +140,11 @@ HEPSIJET_XDOCK_CODE=
 **Bekleyen:** HepsiJET test hesabı askıda (423). Kullanıcı HepsiJET'e mail attı: hesabın açılması, şifre teyidi ve dokümanda olmayan 5 soru (takip yolu, silme metodu, etiket yanıt biçimi, durum kodu listesi, `X-ClientId`/`X-Client-Id`).
 
 **Yerel ortamın şu anki hali (repoda görünmez):**
-- `.env`: `HEPSIJET_*` değerleri dolu; `HEPSIJET_MODE=mock` (geçici; asıl hedef `test`).
+- `.env`: `HEPSIJET_*` değerleri dolu; `HEPSIJET_MODE=test` (2026-11-16'dan beri).
 - Canlı DB'de test siparişi `BLM261114-6828` (id `cmwg4s2wt0000xw2ql5kfxwyz`, "TEST ALICI Deneme", status PAID, **paymentStatus UNPAID** ki Vega çekmesin, kalem 1, stok düşmedi). Kargo kaydında mock denemelerinden kalan `BLM261114-6828-2` olabilir. Faz 5 sonunda silinecek.
+
+**2026-11-16 güncelleme:** Hülya Hanım askının kaldırıldığını yazdı. Tek token denemesi **200, giriş tamam**. `.env` → `HEPSIJET_MODE=test`. Test betiği çalıştı: 3 gönderinin üçü de `400 "Tanımlı firma deposu bulunamadı."` ile reddedildi (etiket/takip/iptal adımlarına geçilemedi). Bulgular: token yanıtındaki `company.name` ve `abbreviationCode` env ile birebir aynı. Yanıtta dokümandaki örnekte olan `xdock` nesnesi **yok** (kullanıcıya depo/X-Dock bağlanmamış görünüyor). Doküman `senderAddress.companyAddressId` için "HepsiJET'in tanımladığı sabit **UUID**" diyor; env'deki değer 18 karakter, UUID biçiminde değil. → HepsiJET'ten test firmasına toplama deposu tanımlanması ve doğru `companyAddressId` (UUID) + `currentXDock` kodunun teyidi istenecek. Gelince 3. adımdan devam.
+→ Aynı gün HepsiJET test ortamında depoyu tanımladı; değerler değişmeden gönderiler geçti (18 karakterlik ID doğruymuş). Faz 5 tamam. **Sıradaki:** adım 4 (Hülya Hanım'a gönderi numaraları), adım 5 (admin kartı denemesi + test siparişini silme), adım 6 canlı.
 
 **HepsiJET cevabı gelince sırayla:**
 1. Cevaptaki bilgileri işle: yeni şifre varsa kullanıcı `.env`'deki `HEPSIJET_PASSWORD`'ü günceller (asla dosyaya/commit'e yazılmaz). Cevaplanan sorular (takip yolu, silme metodu, etiket biçimi, durum kodları, header) → `shipments.ts` başındaki "DOGRULANMADI" sabitleri, `mapHjStatus` (map.ts), `parseTracking` ve bölüm 2.1 güncellenir.
