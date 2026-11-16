@@ -8,6 +8,12 @@ import { firstImageUrl } from "@/lib/catalog";
 const NEAR_LIMIT = 4;
 const TOP_LIMIT = 6;
 const CANDIDATES = 200;
+// Trend: son 7 gunde en cok kalp alanlar. 3'ten az urun varsa liste bos doner
+// (bolum gizlenir, yarim gorunmesin).
+const TREND_LIMIT = 8;
+const TREND_MIN = 3;
+const TREND_CANDIDATES = 30;
+const TREND_DAYS = 7;
 
 export type VitrinProduct = {
   productId: string;
@@ -19,20 +25,52 @@ export type VitrinProduct = {
   closedRounds: number;
 };
 
+export type TrendProduct = VitrinProduct & { weekHearts: number };
+
+type TrendSource = Pick<VitrinProduct, "productId" | "slug" | "name" | "image">;
+
+// Yayinda olmayan / kampanya disi urunler (sources'ta yok) atlanir. Bari
+// adaylarda olmayan urunde ilerleme 0.
+export function buildTrend(
+  counts: { productId: string; count: number }[],
+  sources: Map<string, TrendSource>,
+  rows: Map<string, VitrinProduct>
+): TrendProduct[] {
+  const trend = counts.flatMap(({ productId, count }) => {
+    const source = sources.get(productId);
+    if (!source) return [];
+    const row = rows.get(productId);
+    return [{ ...source, points: row?.points ?? 0, threshold: row?.threshold ?? 0, closedRounds: row?.closedRounds ?? 0, weekHearts: count }];
+  });
+  trend.sort((a, b) => b.weekHearts - a.weekHearts);
+  return trend.length < TREND_MIN ? [] : trend.slice(0, TREND_LIMIT);
+}
+
 // Onbelleksiz okuma: dogrulama e-postasi yedek urun secimi de kullanir.
 export async function loadVitrin() {
-  const bars = await prisma.kalpBar.findMany({
-    where: { OR: [{ points: { gt: 0 } }, { closedRounds: { gt: 0 } }] },
-    orderBy: { updatedAt: "desc" },
-    take: CANDIDATES,
-    select: { productId: true, points: true, closedRounds: true, currentRoundId: true }
-  });
-  if (bars.length === 0) return { near: [], top: [] };
+  const [bars, trendGroups] = await Promise.all([
+    prisma.kalpBar.findMany({
+      where: { OR: [{ points: { gt: 0 } }, { closedRounds: { gt: 0 } }] },
+      orderBy: { updatedAt: "desc" },
+      take: CANDIDATES,
+      select: { productId: true, points: true, closedRounds: true, currentRoundId: true }
+    }),
+    prisma.kalpHeart.groupBy({
+      by: ["productId"],
+      where: { createdAt: { gte: new Date(Date.now() - TREND_DAYS * 24 * 60 * 60 * 1000) }, status: { in: ["ACTIVE", "WON"] } },
+      _count: { _all: true },
+      orderBy: { _count: { productId: "desc" } },
+      take: TREND_CANDIDATES
+    })
+  ]);
+  if (bars.length === 0 && trendGroups.length === 0) return { near: [], top: [], trend: [] };
 
+  // Trend urunleri ayni urun sorgusuna girer: ek tur yok.
+  const productIds = [...new Set([...bars.map((b) => b.productId), ...trendGroups.map((g) => g.productId)])];
   const [rounds, products] = await Promise.all([
     prisma.kalpRound.findMany({ where: { id: { in: bars.map((b) => b.currentRoundId) } }, select: { id: true, threshold: true } }),
     prisma.product.findMany({
-      where: { id: { in: bars.map((b) => b.productId) }, status: "PUBLISHED", kalpToplaExcluded: false },
+      where: { id: { in: productIds }, status: "PUBLISHED", kalpToplaExcluded: false },
       select: {
         id: true,
         slug: true,
@@ -62,7 +100,14 @@ export async function loadVitrin() {
     ];
   });
 
+  const trend = buildTrend(
+    trendGroups.map((g) => ({ productId: g.productId, count: g._count._all })),
+    new Map(products.map((p) => [p.id, { productId: p.id, slug: p.slug, name: p.name, image: firstImageUrl(p) }])),
+    new Map(rows.map((r) => [r.productId, r]))
+  );
+
   return {
+    trend,
     near: rows
       .filter((r) => r.points > 0)
       .sort((a, b) => b.points / b.threshold - a.points / a.threshold)

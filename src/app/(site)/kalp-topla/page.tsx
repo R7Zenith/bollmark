@@ -9,7 +9,7 @@ import { Heart } from "lucide-react";
 import { customerAuthOptions } from "@/lib/customer-auth";
 import { campaignStateFrom, getKalpSettings } from "@/lib/kalp-topla/settings";
 import { campaignPitch, campaignSlogan } from "@/lib/kalp-topla/messages";
-import { getVitrin, type VitrinProduct } from "@/lib/kalp-topla/vitrin";
+import { getVitrin, type TrendProduct, type VitrinProduct } from "@/lib/kalp-topla/vitrin";
 import { COUPON_SHAPE, KalpNasilCalisir } from "@/components/kalp-topla/kalp-nasil-calisir";
 
 // Kampanya sayfasi (KALP_TOPLA_PLANI.md 6.8). Oturuma gore dinamik render edilir.
@@ -122,6 +122,39 @@ function NearCard({ product }: { product: VitrinProduct }) {
   );
 }
 
+function TrendCard({ product }: { product: TrendProduct }) {
+  const percent = product.threshold > 0 ? Math.min(100, (product.points / product.threshold) * 100) : 0;
+  return (
+    <li>
+      <Link href={`/urunler/${product.slug}`} className="group block">
+        <div className="relative aspect-[3/4] overflow-hidden bg-image-bg">
+          {product.image && (
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              sizes="(min-width: 768px) 25vw, 50vw"
+              className="object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          )}
+          <span className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-xs font-medium text-sale">
+            <Heart size={12} className="shrink-0 fill-sale" aria-hidden="true" />
+            {product.weekHearts} kalp bu hafta
+          </span>
+        </div>
+        <p className="mt-3 line-clamp-2 text-sm text-ink">{product.name}</p>
+        <div
+          className="mt-2 h-1 overflow-hidden rounded-full bg-ink/10"
+          role="img"
+          aria-label={product.threshold > 0 ? `${product.points} / ${product.threshold} kalp` : "Bar henüz başlamadı"}
+        >
+          <div className="h-full rounded-full bg-sale" style={{ width: `${percent}%` }} />
+        </div>
+      </Link>
+    </li>
+  );
+}
+
 function TopRow({ product }: { product: VitrinProduct }) {
   return (
     <li>
@@ -181,7 +214,7 @@ export default async function KalpToplaPage() {
   if (state === "INVISIBLE") notFound();
 
   const active = state === "ACTIVE";
-  const { near, top } = active ? await getVitrin(settings.mode) : { near: [], top: [] };
+  const { near, top, trend } = active ? await getVitrin(settings.mode) : { near: [], top: [], trend: [] };
   const faq = faqItems(settings);
 
   return (
@@ -214,6 +247,19 @@ export default async function KalpToplaPage() {
           <HeroBar threshold={settings.threshold} percent={settings.discountPercent} animate={active} />
         </div>
       </section>
+
+      {/* buildTrend 3'ten az urunde bos liste doner. */}
+      {trend.length >= 3 && (
+        <section id="trend" className="mx-auto max-w-[1400px] px-6 pt-14 md:pt-20 xl:px-9">
+          <h2 className="text-[28px] font-medium tracking-[-0.8px] text-ink md:text-4xl">Trend kalpler</h2>
+          <p className="mt-2 text-base text-ink/70">Bu hafta en çok kalp alanlar</p>
+          <ul className="mt-8 grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">
+            {trend.map((product) => (
+              <TrendCard key={product.productId} product={product} />
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="mx-auto max-w-[1100px] px-6 py-14 md:py-20">
         <h2 className="text-[28px] font-medium tracking-[-0.8px] text-ink md:text-4xl">Nasıl çalışır?</h2>
