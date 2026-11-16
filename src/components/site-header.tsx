@@ -13,6 +13,7 @@ import { MEGA_MENU_CARDS, type MegaMenuCard } from "@/lib/mega-menu-cards";
 import { CartDrawer } from "@/components/cart-drawer";
 import { SearchOverlay, type SearchChip } from "@/components/search-overlay";
 import { BildirimZili } from "@/components/kalp-topla/bildirim-zili";
+import { MenuKalpToplaLink } from "@/components/kalp-topla/menu-kalp-topla-link";
 import type { MegaMenuData, MenuCategory } from "@/lib/site-nav";
 
 // logo.png / logo-white.png dosyalarinin gercek en-boy orani (1400x273px).
@@ -402,11 +403,13 @@ type TabKey = "kadin" | "erkek" | "cocuk" | "aksesuar";
 function DesktopNav({
   menuData,
   openMenu,
-  setOpenMenu
+  setOpenMenu,
+  transparent
 }: {
   menuData: MegaMenuData;
   openMenu: TabKey | null;
   setOpenMenu: (key: TabKey | null) => void;
+  transparent: boolean;
 }) {
   const tabs: { key: TabKey; label: string; href: string }[] = [
     { key: "kadin", label: "Kadın", href: catalogHref({ gender: "Kadın" }) },
@@ -439,6 +442,10 @@ function DesktopNav({
           <ChevronIcon open={openMenu === tab.key} size={12} />
         </Link>
       ))}
+      <MenuKalpToplaLink
+        transparent={transparent}
+        className={`${linkClassName} km-grow`}
+      />
     </nav>
   );
 }
@@ -666,6 +673,11 @@ function MobileMenu({
                 <ForwardIcon />
               </button>
             ))}
+            <MenuKalpToplaLink
+              transparent={false}
+              onClick={onClose}
+              className="flex items-center gap-2 border-b border-line py-4 text-sm uppercase tracking-wide"
+            />
             <Link
               href={session?.user ? "/hesap" : "/hesap/giris"}
               onClick={onClose}
@@ -811,7 +823,12 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
             {/* Mobilde sag sutun dolu: zil aramanin yaninda (logo ortada kalsin). */}
             <BildirimZili desktop={false} />
             {/* Arama acikken hover mega menuyu acmasin (panel arkada kalirdi). */}
-            <DesktopNav menuData={menuData} openMenu={openMenu} setOpenMenu={searchOpen ? () => {} : setOpenMenu} />
+            <DesktopNav
+              menuData={menuData}
+              openMenu={openMenu}
+              setOpenMenu={searchOpen ? () => {} : setOpenMenu}
+              transparent={transparent}
+            />
           </div>
 
           <Link href="/" aria-label="Bollmark anasayfa" className="flex justify-center">

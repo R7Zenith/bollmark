@@ -17,6 +17,14 @@ Faz 1 notu:
 - **Engel:** HepsiJET test hesabı 2026-11-14'te hatalı şifre (401) denemelerinden sonra askıya alındı (423). HepsiJET'ten yeniden aktivasyon ve şifre teyidi istenecek. Takip yolu, silme metodu, etiket yanıt biçimi ve durum listesi dokümanda yok; hesap açılınca doğrulanacak (`shipments.ts` başındaki sabitler).
 - **Doğrulama:** 262/262 test, tsc, lint temiz. Push/deploy yok, Vercel env'ine bir şey eklenmedi.
 
+## Not (2026-11-16, menüde animasyonlu "Kalp Topla" + /kalp-topla "Trend kalpler")
+
+- **Plan:** `MENU_KALP_TOPLA_BUTONU_VE_TREND_PLANI.md`.
+- **Menü:** `src/components/kalp-topla/menu-kalp-topla-link.tsx` (yeni). Masaüstünde Aksesuar'dan sonra, mobil çekmecede Aksesuar satırının altında (`site-header.tsx`). Yalnız kampanya `ACTIVE` iken render edilir (`useKalpDurumDetay`), değilse null. Animasyonlar `globals.css`'te `km-` önekli, yalnız CSS: yarı kalın yazıda 2 sn'lik akan renk (beyaz header: kırmızı-pembe-amber-mor; şeffaf header: pembe-açık pembe-altın-açık mor), kalp 2.4 sn'de bir atar ve 6 nokta patlar; hover'da patlama tekrar oynar, masaüstünde link %8 büyür (`km-grow`). Renkler ve hız kullanıcı geri bildirimiyle plandan değişti. prefers-reduced-motion kontrolü yok (proje kuralı).
+- **Trend:** `src/lib/kalp-topla/vitrin.ts` `loadVitrin()` artık `trend` de döner (son 7 gün, ACTIVE/WON kalp sayısı, yayında ve kampanya dışı olmayan ilk 8; 3'ten azsa boş). Yeni cache anahtarı yok; groupBy bar sorgusuyla paralel, trend ürünleri mevcut ürün sorgusuna katıldı (ek tur yok). Bar adaylarında (son güncellenen 200) olmayan ürünün ilerlemesi 0. `/kalp-topla`'da hero altında `id="trend"` bölümü (masaüstü 4, mobil 2 sütun). Test: `vitrin.test.ts`.
+- **Açık:** GA4 `select_promotion` eklenmedi (`lib/ga4.ts`'te tarayıcı olayı yardımcısı yok; olaylar `lib/meta/track.ts`'ten). Localhost'ta header hesap linkinde eski bir hydration uyumsuzluğu ve `/api/sepet` 500 görüldü, bu işle ilgisiz, bakılmadı.
+- **Doğrulama:** tsc, `src` lint 0 hata, 270/270 test, build temiz. Playwright: 1440'ta şeffaf header ve hover büyümesi, 390'da mobil çekmece satırı görüldü. Beyaz header ve trend bölümü ekran görüntüsüyle kontrol edilmedi.
+
 ## Önceki not (2026-11-09, anasayfa hero carousel + Kalp Topla slaytı)
 
 - **Plan:** `KALP_TOPLA_HERO_CAROUSEL_PLANI.md`.
