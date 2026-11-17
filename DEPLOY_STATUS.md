@@ -2,7 +2,7 @@
 
 ## KALDIĞIM YER (2026-11-16, HepsiJET canlıya alındı)
 
-- **Faz 6 – Canlı (2026-11-16, kullanıcı onaylı):** `hepsijet` → `main` birleştirildi, push = deploy. Vercel production'a 13 `HEPSIJET_*` env (sensitive, `HEPSIJET_MODE=live`). Canlı pilot `BLM261116-PILOT1` betikle açıldı. **Bilinen sorun:** canlıda HepsiJET PDF etiket servisi 400 veriyor (PNG çalışıyor); admin "Etiket" butonu bu düzelene kadar hata verir, HepsiJET'e soruldu (plan 8.1).
+- **Faz 6 – Canlı (2026-11-16, kullanıcı onaylı):** `hepsijet` → `main` birleştirildi, push = deploy. Vercel production'a 13 `HEPSIJET_*` env (sensitive, `HEPSIJET_MODE=live`). Canlı pilot `BLM261116-PILOT1` betikle açıldı. Pilot 2026-11-17'de silindi. Canlıda PDF etiket ilk denemede 400 verdi, sonradan çalıştığı teyit edildi.
 
 - **Faz 5 – Test gönderileri (2026-11-16):** HepsiJET test ortamında 3 gönderi, etiket PDF, takip ve iptal başarılı; admin akışı (gönder/etiket/durum/iptal) test siparişiyle uçtan uca denendi. Test siparişi `BLM261114-6828` canlı DB'den silindi. Yerel `.env` `HEPSIJET_MODE=test`. Sıradaki: HepsiJET canlı bilgileri + kullanıcı onayıyla Faz 6 (plan bölüm 8.1 adım 6).
 - **Devam etmek için:** `docs/planlar/HEPSIJET_ENTEGRASYON_PLANI.md` bölüm **8.1**.
