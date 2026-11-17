@@ -17,7 +17,8 @@ const successMessages: Record<string, string> = {
   "yurtici-iptal": "Yurtiçi gönderisi iptal edildi.",
   "hepsijet-gonderildi": "HepsiJET'e gönderildi.",
   "hepsijet-sorgulandi": "HepsiJET durumu sorgulandı.",
-  "hepsijet-iptal": "HepsiJET gönderisi iptal edildi."
+  "hepsijet-iptal": "HepsiJET gönderisi iptal edildi.",
+  "alici-guncellendi": "Alıcı bilgileri güncellendi."
 };
 
 const errorMessages: Record<string, string> = {

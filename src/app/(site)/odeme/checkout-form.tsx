@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { useCart } from "@/lib/cart";
 import { formatPrice } from "@/lib/format";
+import { FULL_NAME_MESSAGE, FULL_NAME_PATTERN, hasFullName } from "@/lib/full-name";
 import { CouponField, type CouponResult } from "@/components/coupon-field";
 import { LoyaltyField, type LoyaltyResult } from "@/components/loyalty-field";
 import { KalpSatirKontrolu, KalpSepetKutusu, kalpLineCents } from "@/components/kalp-topla/kalp-sepet";
@@ -141,10 +142,14 @@ export default function CheckoutForm({
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    if (!hasFullName(String(form.get("customerName") || ""))) {
+      setError(FULL_NAME_MESSAGE);
+      return;
+    }
     setSubmitting(true);
     setError(null);
 
-    const form = new FormData(e.currentTarget);
     const payload = {
       customerName: String(form.get("customerName") || ""),
       customerEmail: String(form.get("customerEmail") || ""),
@@ -508,6 +513,8 @@ export default function CheckoutForm({
               key={`name-${addressChoice}`}
               name="customerName"
               required
+              pattern={FULL_NAME_PATTERN}
+              title={FULL_NAME_MESSAGE}
               autoComplete="name"
               placeholder="Ad Soyad"
               defaultValue={selectedAddress?.name ?? ""}

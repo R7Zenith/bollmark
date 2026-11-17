@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { FULL_NAME_MESSAGE, FULL_NAME_PATTERN } from "@/lib/full-name";
 
 const inputClass = "rounded-lg border border-line px-3 py-2 text-sm focus:border-ink focus:outline-none";
 const actionLinkClass = "text-[10px] uppercase tracking-[1px] underline text-ink/60 hover:text-ink";
@@ -35,7 +36,7 @@ export function HesapAddressRow({
       <li className="p-4">
         <form action={updateAction} className="grid grid-cols-2 gap-2" onSubmit={() => setEditing(false)}>
           <input name="label" defaultValue={address.label} required placeholder="Etiket (Ev, İş...)" className={inputClass} />
-          <input name="name" defaultValue={address.name} required placeholder="Ad Soyad" className={inputClass} />
+          <input name="name" defaultValue={address.name} required pattern={FULL_NAME_PATTERN} title={FULL_NAME_MESSAGE} placeholder="Ad Soyad" className={inputClass} />
           <input name="phone" defaultValue={address.phone} required placeholder="Telefon" className={inputClass} />
           <input name="postalCode" defaultValue={address.postalCode ?? ""} placeholder="Posta Kodu" className={inputClass} />
           <input name="address" defaultValue={address.address} required placeholder="Adres" className={`col-span-2 ${inputClass}`} />

@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { requireCustomer } from "@/lib/require-customer";
 import { HesapAddressRow } from "@/components/hesap-address-row";
+import { FULL_NAME_MESSAGE, FULL_NAME_PATTERN, hasFullName } from "@/lib/full-name";
 
 const PATH = "/hesap/adreslerim";
 
@@ -16,6 +17,7 @@ async function addAddress(customerId: string, formData: FormData) {
   const district = String(formData.get("district") || "").trim();
   const postalCode = String(formData.get("postalCode") || "").trim() || null;
   if (!label || !name || !phone || !address || !city || !district) redirect(`${PATH}?hata=eksik-alan`);
+  if (!hasFullName(name)) redirect(`${PATH}?hata=ad-soyad`);
 
   const existingCount = await prisma.customerAddress.count({ where: { customerId } });
   await prisma.customerAddress.create({
@@ -38,6 +40,7 @@ async function updateAddress(id: string, customerId: string, formData: FormData)
   const district = String(formData.get("district") || "").trim();
   const postalCode = String(formData.get("postalCode") || "").trim() || null;
   if (!label || !name || !phone || !address || !city || !district) redirect(`${PATH}?hata=eksik-alan`);
+  if (!hasFullName(name)) redirect(`${PATH}?hata=ad-soyad`);
 
   await prisma.customerAddress.update({ where: { id }, data: { label, name, phone, address, city, district, postalCode } });
   revalidatePath(PATH);
@@ -90,7 +93,7 @@ export default async function HesapAdreslerimPage({
 
       {(basarili || hata) && (
         <p className={`mt-4 text-sm ${hata ? "text-red-600" : "text-ink/70"}`}>
-          {hata ? "İşlem gerçekleştirilemedi, lütfen alanları kontrol edin." : "İşlem başarılı."}
+          {hata === "ad-soyad" ? FULL_NAME_MESSAGE : hata ? "İşlem gerçekleştirilemedi, lütfen alanları kontrol edin." : "İşlem başarılı."}
         </p>
       )}
 
@@ -98,7 +101,7 @@ export default async function HesapAdreslerimPage({
         <h3 className="font-display text-lg">Yeni Adres Ekle</h3>
         <form action={addAddress.bind(null, customerId)} className="mt-4 grid grid-cols-2 gap-3">
           <input name="label" required placeholder="Etiket (Ev, İş...)" className={addressInputClass} />
-          <input name="name" required autoComplete="name" placeholder="Ad Soyad" className={addressInputClass} />
+          <input name="name" required pattern={FULL_NAME_PATTERN} title={FULL_NAME_MESSAGE} autoComplete="name" placeholder="Ad Soyad" className={addressInputClass} />
           <input name="phone" required autoComplete="tel" placeholder="Telefon" className={addressInputClass} />
           <input name="postalCode" autoComplete="postal-code" placeholder="Posta Kodu" className={addressInputClass} />
           <input name="address" required autoComplete="street-address" placeholder="Adres" className={`col-span-2 ${addressInputClass}`} />

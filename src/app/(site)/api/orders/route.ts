@@ -13,6 +13,7 @@ import { localPaymentTest } from "@/lib/payment/iyzico/mode";
 import { revalidateCatalog } from "@/lib/revalidate-catalog";
 import { buildOrderMetaContext } from "@/lib/meta/capi";
 import { getClientIpInfo } from "@/lib/client-ip";
+import { FULL_NAME_MESSAGE, hasFullName } from "@/lib/full-name";
 
 const lineSchema = z.object({
   productId: z.string(),
@@ -26,7 +27,7 @@ const lineSchema = z.object({
 });
 
 const orderSchema = z.object({
-  customerName: z.string().min(2),
+  customerName: z.string().min(2).refine(hasFullName, FULL_NAME_MESSAGE),
   customerEmail: z.string().email(),
   customerPhone: z.string().min(6),
   shippingAddress: z.string().min(5),

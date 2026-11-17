@@ -115,6 +115,36 @@ async function yurticiCancelAction(id: string, shipmentId: string) {
   yurticiRedirect(id, result.ok, "yurtici-iptal", result.message);
 }
 
+const recipientFields = ["customerName", "customerPhone", "shippingAddress", "district", "city"] as const;
+
+async function updateRecipientAction(id: string, formData: FormData) {
+  "use server";
+  const data = Object.fromEntries(recipientFields.map((k) => [k, String(formData.get(k) || "").trim()])) as Record<
+    (typeof recipientFields)[number],
+    string
+  >;
+  if (recipientFields.some((k) => !data[k])) {
+    redirect(`/admin/siparisler/${id}?hata=guncellenemedi&mesaj=${encodeURIComponent("Tüm alanlar dolu olmalı.")}`);
+  }
+  const actor = await yurticiActor();
+  try {
+    const before = await prisma.order.findUniqueOrThrow({ where: { id }, select: { customerName: true, customerPhone: true, shippingAddress: true, district: true, city: true } });
+    await prisma.order.update({ where: { id }, data });
+    const changes = recipientFields.filter((k) => before[k] !== data[k]).map((k) => `${k}: ${before[k]} -> ${data[k]}`);
+    logAudit({
+      actorEmail: actor.email,
+      actorRole: actor.role,
+      action: "ORDER_RECIPIENT_UPDATED",
+      targetType: "Order",
+      targetId: id,
+      detail: changes.join("; ") || "Değişiklik yok"
+    });
+  } catch {
+    redirect(`/admin/siparisler/${id}?hata=guncellenemedi`);
+  }
+  redirect(`/admin/siparisler/${id}?basarili=alici-guncellendi`);
+}
+
 function hepsijetRedirect(id: string, ok: boolean, success: string, message: string): never {
   const query = ok ? `basarili=${success}` : `hata=hepsijet&mesaj=${encodeURIComponent(message)}`;
   redirect(`/admin/siparisler/${id}?${query}#kargo`);
@@ -414,6 +444,39 @@ export default async function OrderDetailPage({
               {order.shippingAddress}, {order.district} / {order.city} {order.postalCode}
             </p>
             {order.note && <p className="mt-2 text-sm italic text-admin-text-muted">Not: {order.note}</p>}
+            {!isDeleted && (
+              <details className="mt-4 border-t border-admin-border pt-3">
+                <summary className="cursor-pointer text-sm font-medium text-admin-text">Alıcı bilgilerini düzenle</summary>
+                <form action={updateRecipientAction.bind(null, order.id)} className="mt-3 space-y-2">
+                  <label className="block">
+                    <span className={labelClass}>Ad Soyad</span>
+                    <input name="customerName" defaultValue={order.customerName} required className={`mt-1 ${inputClass}`} />
+                  </label>
+                  <label className="block">
+                    <span className={labelClass}>Telefon</span>
+                    <input name="customerPhone" defaultValue={order.customerPhone} required className={`mt-1 ${inputClass}`} />
+                  </label>
+                  <label className="block">
+                    <span className={labelClass}>Adres</span>
+                    <textarea name="shippingAddress" defaultValue={order.shippingAddress} required rows={2} className={`mt-1 ${inputClass}`} />
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block">
+                      <span className={labelClass}>İlçe</span>
+                      <input name="district" defaultValue={order.district} required className={`mt-1 ${inputClass}`} />
+                    </label>
+                    <label className="block">
+                      <span className={labelClass}>İl</span>
+                      <input name="city" defaultValue={order.city} required className={`mt-1 ${inputClass}`} />
+                    </label>
+                  </div>
+                  <p className="text-xs text-admin-text-muted">Kargoya gönderilmiş siparişte kargo firmasındaki bilgi değişmez.</p>
+                  <Button type="submit" size="sm">
+                    Kaydet
+                  </Button>
+                </form>
+              </details>
+            )}
           </Card>
 
           <Card title="Kargo" className="scroll-mt-6" id="kargo">
