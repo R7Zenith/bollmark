@@ -224,7 +224,10 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
                   ? `Ücretsiz kargo için ${formatPrice(remainingForFreeShippingCents)} daha harcayın`
                   : "Ücretsiz kargo kazandınız"}
               </p>
-              <Image src="/shipping/yurtici-kargo.svg" alt="Yurtiçi Kargo" width={178} height={44} unoptimized className="h-4 w-auto shrink-0" />
+              <span className="flex shrink-0 items-center gap-2">
+                <Image src="/shipping/yurtici-kargo.svg" alt="Yurtiçi Kargo" width={178} height={44} unoptimized className="h-4 w-auto" />
+                <Image src="/shipping/hepsijet.png" alt="HepsiJET" width={622} height={132} unoptimized className="h-3.5 w-auto" />
+              </span>
             </div>
             <div className="mt-2 h-[2px] w-full bg-transparent">
               <div className="h-full bg-stone transition-all" style={{ width: `${shippingProgressPercent}%` }} />

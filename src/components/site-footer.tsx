@@ -42,6 +42,8 @@ const IYZICO_LOGO_BAND = { src: "/payment/iyzico-logo-band-white.svg", width: 45
 // Anlasmali kargo firmasi. Resmi logo yurticikargo.com'dan, koyu zemin icin
 // renkleri beyaza cevrilmis kopya (renkli asli: public/shipping/yurtici-kargo.svg).
 const YURTICI_LOGO_WHITE = { src: "/shipping/yurtici-kargo-white.svg", width: 178, height: 44 };
+// HepsiJET logosunun beyaz kopyasi (renkli: public/shipping/hepsijet.png).
+const HEPSIJET_LOGO_WHITE = { src: "/shipping/hepsijet-white.png", width: 622, height: 132 };
 
 const FOOTER_LINK_CLASS = "nav-underline inline-block text-cream";
 
@@ -220,6 +222,14 @@ export function SiteFooter() {
               height={YURTICI_LOGO_WHITE.height}
               unoptimized
               className="h-[18px] w-auto"
+            />
+            <Image
+              src={HEPSIJET_LOGO_WHITE.src}
+              alt="HepsiJET"
+              width={HEPSIJET_LOGO_WHITE.width}
+              height={HEPSIJET_LOGO_WHITE.height}
+              unoptimized
+              className="h-4 w-auto"
             />
           </div>
         </div>
