@@ -210,10 +210,20 @@ const MENU_GROUPS = [
   { title: "Aksesuar", slugs: ["canta", "ayakkabi", "parfum"] }
 ];
 
-function groupMenuCategories(categories: MenuCategory[]): { title: string; categories: MenuCategory[] }[] {
-  const grouped = new Set(MENU_GROUPS.flatMap((g) => g.slugs));
+// Kadin menusunde yelek Dis Giyim yerine Ust Giyim altinda.
+const KADIN_MENU_GROUPS = MENU_GROUPS.map((g) =>
+  g.title === "Üst Giyim"
+    ? { ...g, slugs: [...g.slugs, "yelek"] }
+    : g.title === "Dış Giyim"
+      ? { ...g, slugs: g.slugs.filter((s) => s !== "yelek") }
+      : g
+);
+
+function groupMenuCategories(gender: GenderKey, categories: MenuCategory[]): { title: string; categories: MenuCategory[] }[] {
+  const menuGroups = gender === "kadin" ? KADIN_MENU_GROUPS : MENU_GROUPS;
+  const grouped = new Set(menuGroups.flatMap((g) => g.slugs));
   return [
-    ...MENU_GROUPS.map((g) => ({ title: g.title, categories: categories.filter((c) => g.slugs.includes(c.slug)) })),
+    ...menuGroups.map((g) => ({ title: g.title, categories: categories.filter((c) => g.slugs.includes(c.slug)) })),
     { title: "Diğer", categories: categories.filter((c) => !grouped.has(c.slug)) }
   ].filter((g) => g.categories.length > 0);
 }
@@ -229,7 +239,7 @@ function GenderPanel({ gender, categories }: { gender: GenderKey; categories: Me
   const allProductsHref = catalogHref({ gender: genderLabel });
   const isAllProductsActive = !activeSlug && activeGender === genderLabel;
   const cards = MEGA_MENU_CARDS[gender];
-  const groups = groupMenuCategories(categories);
+  const groups = groupMenuCategories(gender, categories);
 
   // Release'de panel iceriginin max-width'i YOK: her ekran genisliginde tam
   // viewport, yan bosluk sabit 36px (px-9), dikey 32px (py-8). Solda kategori
