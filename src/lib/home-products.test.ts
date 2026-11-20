@@ -48,3 +48,8 @@ test("exclude verilmezse eski davranis: en yeni urun", () => {
   assert.equal(newestProductImage([product("eski", 1), product("yeni", 9)])?.productId, "yeni");
   assert.equal(newestProductImage([]), null);
 });
+
+test("yeni sezonlu urun, sezonsuz daha yeni urunun onune gecer (katalog sirasi)", () => {
+  const sezonlu = { ...product("bot", 1), season: { rank: 20271 } } as Product;
+  assert.equal(newestProductImage([product("spor", 9), sezonlu], true)?.productId, "bot");
+});

@@ -117,8 +117,12 @@ export type HomeImage = { url: string; greyBackdrop: boolean };
 // ayni fotografi gostermesin diye sonraki secimler bunlari atlar.
 export type ImageExclusions = { productIds: Set<string>; urls: Set<string> };
 
-// Gruptaki en yeni, gorselli urunun ilk gorseli; featuredFirst ile once one
-// cikan (isFeatured) urunlere bakilir. Hic gorsel yoksa null (kart yazili kalir).
+// Katalogdaki siralama gibi (lib/seasons.ts sortBySeason): yeni sezon onde,
+// sezonsuz en sonda.
+const seasonRank = (p: { season?: { rank: number } | null }) => p.season?.rank ?? -Infinity;
+
+// Gruptaki en yeni (once sezon, sonra eklenme tarihi), gorselli urunun ilk
+// gorseli; featuredFirst ile once one cikan (isFeatured) urunlere bakilir. Hic gorsel yoksa null (kart yazili kalir).
 // exclude verilirse haric tutulmayan ilk aday secilir; hepsi haric ise kart
 // gorselsiz kalmasin diye yine en yeni (tekrar eden) gorsele dusulur.
 export function newestProductImage(
@@ -128,7 +132,9 @@ export function newestProductImage(
 ): (HomeImage & { productId: string }) | null {
   const sorted = [...products].sort(
     (a, b) =>
-      (featuredFirst ? Number(b.isFeatured) - Number(a.isFeatured) : 0) || b.createdAt.getTime() - a.createdAt.getTime()
+      (featuredFirst ? Number(b.isFeatured) - Number(a.isFeatured) : 0) ||
+      seasonRank(b) - seasonRank(a) ||
+      b.createdAt.getTime() - a.createdAt.getTime()
   );
   let repeated: (HomeImage & { productId: string }) | null = null;
   for (const p of sorted) {
