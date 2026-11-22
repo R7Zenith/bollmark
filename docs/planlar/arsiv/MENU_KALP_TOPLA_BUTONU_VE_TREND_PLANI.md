@@ -1,6 +1,7 @@
 # Menü "Kalp Topla" Butonu + Trend Kalpler Planı
 
 Tarih: 16 Kasım 2026
+Durum: uygulandı (2026-11-16, bkz. DEPLOY_STATUS.md notu)
 
 ## Amaç
 Üst menünün sonuna (Aksesuar'dan sonra) sürekli hareketli bir **KALP TOPLA** butonu eklemek. Buton `/kalp-topla` sayfasına gider; sayfanın en üstünde (hero'nun hemen altında) **"Trend kalpler — bu hafta en çok kalp alanlar"** bölümü görünür.

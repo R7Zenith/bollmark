@@ -22,6 +22,11 @@ Kod yorumlarındaki `bkz. X_PLANI.md` atıfları dosya adıyla verilmiştir; dos
 | `META_PIXEL_CAPI_PLANI.md` | Uygulandı ve push edildi (2026-10-24). Kalan: canlıda Olay Yöneticisi doğrulaması (localhost'ta CAPI, IP olmadığı için "yetersiz müşteri bilgisi" ile reddediliyor; token/Pixel bağlantısı elle doğrulandı) |
 | `WHATSAPP_BUSINESS_VE_SITE_BUTONU_PLANI.md` | Devam ediyor: Bölüm 2 (sitede WhatsApp) localhost'ta (2026-10-27), commit bekliyor. Kalan: Bölüm 1, 3, 4 (kullanıcı) |
 | `VEGA_SIPARIS_AKTARIM_PLANI.md` | Devam ediyor: Faz 0-3 canlıda (2026-10-26), test siparişi Vega listesine düştü. Kalan: stok ayırma doğrulaması, ilk gerçek sipariş |
+| `GA4_KURULUM_PLANI.md` | Uygulandı ve push edildi (2026-10-25). Kalan: canlıda olay doğrulaması (2026-11-23'te kökten taşındı) |
+| `KALP_TOPLA_PLANI.md` | Yayında (2026-10-31). Kampanya sürüyor; kod yorumları bu dosyaya atıf yapar (2026-11-23'te kökten taşındı) |
+| `NEON_TRANSFER_AZALTMA_PLANI.md` | Durduruldu (2026-10-30), bkz. dosya sonu "Uygulama durumu" (2026-11-23'te kökten taşındı) |
+| `ILK_SATIS_YOL_PLANI.md` | Taslak (2026-10-19), kullanıcıyla netleştiriliyor |
+| `INSTAGRAM_AD_DEGISIKLIGI_PLANI.md` | Planda "bekliyor"; DEPLOY_STATUS'a göre hesap adı 2026-10-27'de `bollmarkcom` oldu. Kalan adımlar kullanıcıyla kontrol edilecek |
 
 ## Arşiv
 
@@ -56,6 +61,10 @@ içindeki her alt maddenin tek tek doğrulandığı anlamına gelmez.
 ### Uygulandı
 
 - `ADMIN_PANEL_PLAN.md`
+- `AKTIF_SEPETLER_PLANI.md` (2026-11-23: Faz 1 + Terk Edilmiş Sepetler'de "Üye Sepetleri"; Faz 2 yapılmadı)
+- `KALP_TOPLA_HERO_CAROUSEL_PLANI.md` (2026-11-09)
+- `MENU_KALP_TOPLA_BUTONU_VE_TREND_PLANI.md` (2026-11-16)
+- `MUSTERI_DETAY_SAYFASI_PLANI.md` (2026-11-04)
 - `ANASAYFA_ALT_BOLUM_YENILEME_PLANI.md` (2026-10-23: üç faz da uygulandı)
 - `ANASAYFA_ALT_BOLUMLER_PLANI.md`
 - `ANASAYFA_HERO_METIN_BUTON_HIZALAMA_PLANI.md`

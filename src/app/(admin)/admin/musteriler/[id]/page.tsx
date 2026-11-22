@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatExactPrice, formatRelativeTime } from "@/lib/format";
+import { parseStoredCartLines, resolveCartLines } from "@/lib/cart-lines";
+import { CartLineList } from "@/components/admin/cart-line-list";
 import { Badge } from "@/components/admin/badge";
 import { Card } from "@/components/admin/card";
 import { KalpCouponActions } from "@/components/admin/kalp-coupon-actions";
@@ -89,16 +91,22 @@ export default async function AdminCustomerDetailPage({
       createdAt: true,
       emailVerifiedAt: true,
       marketingEmailAt: true,
-      addresses: { orderBy: { createdAt: "asc" } }
+      addresses: { orderBy: { createdAt: "asc" } },
+      cart: { select: { linesJson: true, updatedAt: true } }
     }
   });
   if (!customer) notFound();
 
   // Hesap acmadan once misafir olarak verdigi siparisler de sayilir.
-  const [orders, deviceEvents] = await Promise.all([
+  // Su anki sepeti: tek ek sorgu (urun cozumleme, sepet bossa hic sorgu yok).
+  const [orders, deviceEvents, resolvedCart] = await Promise.all([
     loadCustomerOrders({ OR: [{ customerId: id }, { customerEmail: customer.email }] }),
-    deviceIpEvents(id)
+    deviceIpEvents(id),
+    resolveCartLines(parseStoredCartLines(customer.cart?.linesJson))
   ]);
+  // Silinmis urun satirlari (name === "") atlanir.
+  const cartLines = resolvedCart.filter((l) => l.name !== "");
+  const cartTotalCents = cartLines.reduce((sum, l) => sum + l.quantity * l.priceCents, 0);
   const ipEvents = [...orderIpEvents(orders), ...deviceEvents].sort((a, b) => b.at.getTime() - a.at.getTime());
   const trackingStart = ipEvents.length === 0 ? await ipTrackingStart() : null;
   const ordersHref = `/admin/siparisler?q=${encodeURIComponent(customer.email)}`;
@@ -203,6 +211,29 @@ export default async function AdminCustomerDetailPage({
       </Card>
 
       <OrderHistoryCard orders={orders} allOrdersHref={ordersHref} />
+
+      <Card
+        title="Şu anki sepeti"
+        action={
+          cartLines.length > 0 && customer.cart ? (
+            <span className="text-xs text-admin-text-muted" title={formatDateTime(customer.cart.updatedAt)}>
+              Son güncelleme: {formatRelativeTime(customer.cart.updatedAt)}
+            </span>
+          ) : undefined
+        }
+      >
+        {cartLines.length === 0 ? (
+          <Empty>Sepeti boş.</Empty>
+        ) : (
+          <>
+            <CartLineList lines={cartLines} />
+            <p className="mt-3 flex justify-between border-t border-admin-border pt-3 text-sm font-semibold text-admin-text">
+              <span>Toplam ({cartLines.reduce((sum, l) => sum + l.quantity, 0)} adet)</span>
+              <span>{formatExactPrice(cartTotalCents)}</span>
+            </p>
+          </>
+        )}
+      </Card>
 
       <IpLocationCard events={ipEvents} withDevices trackingStart={trackingStart} />
 

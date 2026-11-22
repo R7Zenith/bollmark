@@ -38,6 +38,19 @@ export function formatDateTime(value: DateInput, options?: Intl.DateTimeFormatOp
   return new Date(value).toLocaleString("tr-TR", { ...options, timeZone: TIME_ZONE });
 }
 
+// "3 saat önce", "2 gün önce" - admin listelerinde son guncelleme icin.
+export function formatRelativeTime(value: DateInput, now: Date = new Date()): string {
+  const diffSec = Math.round((new Date(value).getTime() - now.getTime()) / 1000);
+  const rtf = new Intl.RelativeTimeFormat("tr", { numeric: "auto" });
+  const abs = Math.abs(diffSec);
+  if (abs < 60) return rtf.format(diffSec, "second");
+  if (abs < 3600) return rtf.format(Math.round(diffSec / 60), "minute");
+  if (abs < 86400) return rtf.format(Math.round(diffSec / 3600), "hour");
+  if (abs < 86400 * 30) return rtf.format(Math.round(diffSec / 86400), "day");
+  if (abs < 86400 * 365) return rtf.format(Math.round(diffSec / (86400 * 30)), "month");
+  return rtf.format(Math.round(diffSec / (86400 * 365)), "year");
+}
+
 export function formatTime(value: DateInput): string {
   return new Date(value).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: TIME_ZONE });
 }

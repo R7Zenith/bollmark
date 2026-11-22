@@ -6,7 +6,8 @@ import { useToast } from "@/components/admin/toast";
 
 const errorMessages: Record<string, string> = {
   bulunamadi: "Sepet bulunamadı.",
-  kurtarilmis: "Bu sepet zaten tamamlanmış bir siparişe dönüşmüş, hatırlatma gönderilmedi."
+  kurtarilmis: "Bu sepet zaten tamamlanmış bir siparişe dönüşmüş, hatırlatma gönderilmedi.",
+  "sepet-bos": "Üyenin sepeti artık boş, hatırlatma gönderilmedi."
 };
 
 const successMessages: Record<string, string> = {

@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   ShoppingBag,
   ShoppingCart,
+  ShoppingBasket,
   Tag,
   Award,
   Percent,
@@ -94,6 +95,7 @@ const navGroups: NavGroup[] = [
     label: "Müşteriler",
     items: [
       { href: "/admin/musteriler", label: "Müşteriler", icon: Users },
+      { href: "/admin/sepetler", label: "Aktif Sepetler", icon: ShoppingBasket },
       { href: "/admin/mesajlar", label: "Mesajlar", icon: Mail },
       { href: "/admin/giden-mailler", label: "Giden Mailler", icon: Send }
     ]

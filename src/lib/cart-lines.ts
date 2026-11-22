@@ -19,6 +19,24 @@ export const cartLinesSchema = z.array(cartLineInputSchema).max(MAX_CART_LINES);
 
 export type CartLineInput = z.infer<typeof cartLineInputSchema>;
 
+// DB'deki linesJson -> dogrulanmis satirlar; bozuk/gecersiz kayit bos sepet sayilir.
+export function parseStoredCartLines(linesJson: string | null | undefined): CartLineInput[] {
+  try {
+    const parsed = cartLinesSchema.safeParse(JSON.parse(linesJson ?? "[]"));
+    return parsed.success ? parsed.data : [];
+  } catch {
+    return [];
+  }
+}
+
+// Birden cok sepeti TEK urun sorgusuyla cozumler (admin Aktif Sepetler):
+// tum satirlar tek resolveCartLines cagrisinda birlestirilip sepetlere geri dagitilir.
+export async function resolveManyCarts(carts: CartLineInput[][]): Promise<ResolvedCartLine[][]> {
+  const resolved = await resolveCartLines(carts.flat());
+  let offset = 0;
+  return carts.map((lines) => resolved.slice(offset, (offset += lines.length)));
+}
+
 // product-viewer.tsx'teki galeri fallback'i ile ayni gorsel.
 const FALLBACK_IMAGE = "/gorsel-yakinda.svg";
 

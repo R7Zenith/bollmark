@@ -1,5 +1,7 @@
 # Müşteri Detay Sayfası — Araştırma ve Claude Code Promptu (2026-11-04)
 
+Durum: uygulandı (2026-11-04, bkz. DEPLOY_STATUS.md notu)
+
 ## Kullanıcının isteği
 
 Panelde müşteriye tıklayınca sadece sipariş sayfasına gidiyor. Adres, telefon,
