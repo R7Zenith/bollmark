@@ -9,6 +9,14 @@ export type KalpPreview = {
   applicable: string[];
 };
 
+// Efsane Cuma (lib/efsane-cuma.ts): indirimli adetler ve kampanya notu.
+export type EfsanePreview = {
+  active: boolean;
+  discountCents: number;
+  lines: { variantId: string; count: number; unitCents: number; originalUnitCents: number }[];
+  combineNote: string | null;
+};
+
 export type CouponResult = {
   discountCents: number;
   freeShipping: boolean;
@@ -18,6 +26,7 @@ export type CouponResult = {
   kalpDiscountCents: number;
   pointsCapCents: number;
   kalp: KalpPreview;
+  efsane: EfsanePreview;
 } | null;
 
 // Sepet ve odeme sayfalarinin ikisinde de kullanilan "indirim kodu" alani -
@@ -81,7 +90,8 @@ export function CouponField({
         bundleDiscountCents: data.bundleDiscountCents,
         kalpDiscountCents: data.kalpDiscountCents,
         pointsCapCents: data.pointsCapCents,
-        kalp: data.kalp
+        kalp: data.kalp,
+        efsane: data.efsane
       });
     } catch {
       if (isExplicitApply) {

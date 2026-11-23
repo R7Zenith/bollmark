@@ -90,7 +90,7 @@ export async function initializePayment(orderNumber: string, ip: string): Promis
         name: item.product.name.slice(0, 200),
         category: item.product.category?.name ?? "Giyim",
         lineTotalCents: item.totalCents,
-        noDiscount: item.kalpCouponId !== null
+        noDiscount: item.kalpCouponId !== null || item.campaignOriginalUnitCents !== null
       })),
       shippingCents: order.shippingCents,
       totalCents: order.totalCents

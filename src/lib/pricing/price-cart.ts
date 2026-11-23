@@ -7,6 +7,8 @@ import { calculateShippingCents } from "@/lib/shipping";
 import { lockCustomer } from "@/lib/kalp-topla/bar";
 import { campaignStateFor } from "@/lib/kalp-topla/settings";
 import { assignKalpCoupons, couponGain, type KalpAssignment, type KalpPriceLine, type KalpSelection } from "@/lib/kalp-topla/pricing";
+import { assignEfsane, efsaneActiveAt, efsaneDiscountOf, EFSANE_CODE_NOTE, EFSANE_COMBINE_NOTE, type EfsaneAssignment } from "@/lib/efsane-cuma";
+import { getEfsaneWindow } from "@/lib/efsane-cuma-server";
 
 type Tx = PrismaClient | Prisma.TransactionClient;
 
@@ -101,9 +103,32 @@ async function reserveCoupons(tx: Tx, customerId: string, assignments: KalpAssig
   }
 }
 
+type DiscountedUnits = { variantId: string; count: number; unitCents: number }[];
+
+function withoutUnits<T extends { variantId: string; quantity: number }>(lines: T[], units: DiscountedUnits): T[] {
+  const taken = new Map(units.map((u) => [u.variantId, u.count]));
+  return lines
+    .map((line) => ({ ...line, quantity: line.quantity - (taken.get(line.variantId) ?? 0) }))
+    .filter((line) => line.quantity > 0);
+}
+
+// Efsane Cuma suresince (kod, bundle ve puan kapali) urunler icin odenecek tutar:
+// indirimli adetler + kalan adetlere otomatik kampanya. Kalp ile Efsane'yi karsilastirir.
+async function efsanePeriodItemsCents(db: Tx, lines: PriceLine[], units: DiscountedUnits): Promise<number> {
+  const remaining = withoutUnits(lines, units);
+  const best = await resolveBestDiscount(db, null, remaining);
+  return (
+    remaining.reduce((sum, l) => sum + l.priceCents * l.quantity, 0) +
+    units.reduce((sum, u) => sum + u.unitCents * u.count, 0) -
+    best.discountCents
+  );
+}
+
 // Sepet ve siparisin TEK fiyat hesabi (KALP_TOPLA_PLANI.md 5.6, T17). Sira: kalp
 // atamasi, kuponlu adetler cikarilmis satirlarla bundle ve kupon, puan, kargo.
 // ORDER modu transaction icinde cagrilir: uye kilitlenir, kuponlar RESERVED olur.
+// Efsane Cuma acikken (docs/reklam/efsane-cuma-2026.md): kupon kodu, bundle ve puan
+// kapali; Kalp kuponu ile Efsane'den musteriye avantajli olan uygulanir.
 export async function priceCart(
   db: Tx,
   input: {
@@ -114,39 +139,61 @@ export async function priceCart(
     pointsToRedeem?: number;
     defaultShippingCents: number;
     mode: "PREVIEW" | "ORDER";
+    // Yalniz test: Efsane Cuma penceresini bu ana gore degerlendirir.
+    now?: Date;
   }
 ) {
   const { customerId, lines, defaultShippingCents, mode } = input;
   if (mode === "ORDER" && customerId) await lockCustomer(db as Prisma.TransactionClient, customerId);
 
+  const efsaneOn = efsaneActiveAt(await getEfsaneWindow(), input.now ?? new Date());
   const code = input.couponCode?.trim().toUpperCase() || null;
   const kalp = await loadKalp(db, customerId, code);
   const selection = input.kalpSelection ?? noSelection;
   const percent = kalp.coupons[0]?.discountPercent ?? 0;
-  const priceLines = kalp.coupons.length > 0 ? await withCurrentBest(db, lines) : [];
-  const assignments = assignKalpCoupons(priceLines, kalp.coupons, selection, kalp.forcedCouponId);
+  const priceLines = kalp.coupons.length > 0 || efsaneOn ? await withCurrentBest(db, lines) : [];
+  let assignments = assignKalpCoupons(priceLines, kalp.coupons, selection, kalp.forcedCouponId);
+  let efsane: EfsaneAssignment[] = efsaneOn
+    ? assignEfsane(priceLines.map((l, i) => ({ variantId: l.variantId, unitCents: l.currentBestCents, quantity: lines[i].quantity })))
+    : [];
+  // Kalp kuponu ile Efsane birlesmez: odenecek urun tutari dusuk olan kalir (esitlikte Efsane).
+  let combineNote: string | null = null;
+  if (assignments.length > 0 && efsane.length > 0) {
+    combineNote = EFSANE_COMBINE_NOTE;
+    const kalpItems = await efsanePeriodItemsCents(db, lines, assignments.map((a) => ({ ...a, count: 1 })));
+    const efsaneItems = await efsanePeriodItemsCents(db, lines, efsane);
+    if (efsaneItems <= kalpItems) assignments = [];
+    else efsane = [];
+  }
+  const efsaneWon = combineNote !== null && efsane.length > 0;
   const assignmentOf = new Map(assignments.map((a) => [a.variantId, a]));
   const forcedApplied = assignments.some((a) => a.couponId === kalp.forcedCouponId);
   const kalpCodeMessage =
-    kalp.codeMessage ?? (kalp.forcedCouponId && !forcedApplied ? "Bu kupon sepetindeki ürünlere uygulanamadı." : null);
+    kalp.codeMessage ?? (kalp.forcedCouponId && !forcedApplied && !efsaneWon ? "Bu kupon sepetindeki ürünlere uygulanamadı." : null);
 
   if (mode === "ORDER") {
     if (kalpCodeMessage) throw new KalpCouponInvalidError(kalpCodeMessage);
     if (assignments.length > 0) await reserveCoupons(db, customerId!, assignments);
   }
 
-  const remaining = lines
-    .map((line) => ({ ...line, quantity: line.quantity - (assignmentOf.has(line.variantId) ? 1 : 0) }))
-    .filter((line) => line.quantity > 0);
+  const discountedUnits: DiscountedUnits = [...assignments.map((a) => ({ ...a, count: 1 })), ...efsane];
+  const remaining = withoutUnits(lines, discountedUnits);
   const remainingCents = remaining.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
-  const couponUnitsCents = assignments.reduce((sum, a) => sum + a.unitCents, 0);
+  const couponUnitsCents = discountedUnits.reduce((sum, u) => sum + u.unitCents * u.count, 0);
   const fullSubtotalCents = lines.reduce((sum, l) => sum + l.priceCents * l.quantity, 0);
+  const rawPriceOf = new Map(lines.map((l) => [l.variantId, l.priceCents]));
+  const kalpUnitsCents = assignments.reduce((sum, a) => sum + a.unitCents, 0);
+  // Efsane adetlerindeki otomatik kampanya payi (liste fiyati - guncel satis fiyati):
+  // ekranda "Indirim" satirina eklenir, Efsane satiri yalniz %50'yi gosterir.
+  const efsaneAutoShareCents = efsane.reduce((sum, a) => sum + (rawPriceOf.get(a.variantId)! - a.originalUnitCents) * a.count, 0);
 
-  const { discountCents: bundleDiscountCents } = await resolveBundleDiscount(db, remaining);
-  const best = await resolveBestDiscount(db, kalp.normalCode, remaining);
+  const { discountCents: bundleDiscountCents } = efsaneOn ? { discountCents: 0 } : await resolveBundleDiscount(db, remaining);
+  const resolved = await resolveBestDiscount(db, efsaneOn ? null : kalp.normalCode, remaining);
+  const best = efsaneOn && kalp.normalCode ? { ...resolved, codeMessage: EFSANE_CODE_NOTE } : resolved;
 
   // T7: puan yalniz kuponsuz satirlara harcanir. Tavani asan puan bakiyeden dusmez.
-  const pointsCapCents = Math.max(0, remainingCents - bundleDiscountCents - best.discountCents);
+  // Efsane Cuma suresince puan kullanilmaz.
+  const pointsCapCents = efsaneOn ? 0 : Math.max(0, remainingCents - bundleDiscountCents - best.discountCents);
   const requestedPoints = Math.min(input.pointsToRedeem ?? 0, Math.floor(pointsCapCents / LOYALTY_REDEEM_RATE_CENTS));
   const loyalty = await resolveLoyaltyRedemption(db, customerId, requestedPoints, pointsCapCents);
 
@@ -158,7 +205,13 @@ export async function priceCart(
     fullSubtotalCents,
     // Kuponlu birimler net fiyatiyla dahildir: OrderItem toplamlari buna esittir.
     subtotalCents: netSubtotalCents,
-    kalpDiscountCents: fullSubtotalCents - netSubtotalCents,
+    kalpDiscountCents: assignments.reduce((sum, a) => sum + rawPriceOf.get(a.variantId)!, 0) - kalpUnitsCents,
+    // Efsane Cuma: indirimli adetler de net fiyatiyla subtotal'a dahildir (Kalp ile ayni desen).
+    efsaneActive: efsaneOn,
+    efsane,
+    efsaneDiscountCents: efsaneDiscountOf(efsane),
+    efsaneAutoShareCents,
+    combineNote,
     bundleDiscountCents,
     best,
     pointsRedeemed: loyalty.pointsRedeemed,
@@ -173,8 +226,9 @@ export async function priceCart(
       couponCount: kalp.coupons.length,
       lines: assignments.map((a) => ({ variantId: a.variantId, unitCents: a.unitCents, originalUnitCents: a.originalUnitCents })),
       // [Kupon uygula]: bosta kupon varken kazanc saglayan kuponsuz satirlar.
+      // Efsane uygulanmissa Kalp kuponu zaten kaybeder; dugme gosterilmez.
       applicable:
-        assignments.length < kalp.coupons.length
+        assignments.length < kalp.coupons.length && efsane.length === 0
           ? priceLines.filter((l) => couponGain(l, percent) > 0 && !assignmentOf.has(l.variantId)).map((l) => l.variantId)
           : []
     }

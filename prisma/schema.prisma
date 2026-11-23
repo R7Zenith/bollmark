@@ -371,6 +371,10 @@ model Order {
   kalpDiscountCents Int @default(0)       // rapor ve özet için
   kalpTestAt        DateTime?             // Y12: test kuponuyla verilmiş sipariş; kampanya raporlarından hariç
 
+  // Sepet kampanyası (Efsane Cuma, lib/efsane-cuma.ts): yalnız bilgi. İndirim
+  // OrderItem satırlarına gömülüdür (kalpDiscountCents ile aynı desen).
+  campaignDiscountCents Int @default(0)
+
   @@index([deletedAt])
   @@index([paymentStatus])
 }
@@ -543,6 +547,10 @@ model OrderItem {
   kalpCouponId          String?           // bu satıra uygulanan Kalp Topla kuponu
   kalpOriginalUnitCents Int?              // kuponsuz olsaydı ödenecek birim fiyat
   kalpRestoredAt        DateTime?         // kupon bu satırdan bir kez geri yüklendi
+  // Sepet kampanyası (Efsane Cuma): indirimli adet ayrı satırdır, unitPriceCents
+  // indirimli fiyattır; burada indirimsiz (o anki satış) birim fiyatı ve etiket.
+  campaignOriginalUnitCents Int?
+  campaignLabel             String?
 
   @@index([kalpCouponId])
 }
@@ -846,6 +854,18 @@ model KalpToplaSettings {
   sameIpWindowHours  Int      @default(24)
   sameIpMinAccounts  Int      @default(3)      // pencere içinde aynı IP özetinden bu kadar ya da fazla yeni hesap: yalnız "aynı IP" işareti
   updatedAt          DateTime @updatedAt
+}
+
+// Efsane Cuma sepet kampanyası (lib/efsane-cuma.ts). Tek satır; satır yoksa
+// koddaki varsayılanlar (26-29 Kasım 2026, ikisi de açık) geçerlidir.
+model EfsaneCumaSettings {
+  id             String   @id @default("singleton")
+  enabled        Boolean  @default(true)  // kampanya anahtarı
+  kalpPause      Boolean  @default(true)  // Kalp Topla arası anahtarı (aynı tarihler)
+  startsAt       DateTime
+  endsAt         DateTime
+  updatedByEmail String?
+  updatedAt      DateTime @updatedAt
 }
 
 // Y4: npm paketine ek, admin'in elle engellediği alan adları.

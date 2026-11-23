@@ -13,6 +13,8 @@ import { useWishlist } from "@/lib/wishlist";
 import { trackViewContent } from "@/lib/meta/track";
 import { getItemGroupId } from "@/lib/item-group-id";
 import { formatPrice } from "@/lib/format";
+import { EfsaneFiyatYazisi } from "@/components/efsane-cuma/vitrin";
+import { useEfsane } from "@/components/efsane-cuma/efsane-context";
 import { DISPATCH_TEXT, SHIPPING_THRESHOLD_CENTS, shippingFeeSummary } from "@/lib/shipping";
 import { effectivePrice } from "@/lib/variant";
 import { resolveProductDisplayPrice, type AutomaticPercentCampaign } from "@/lib/coupons";
@@ -290,6 +292,7 @@ export function ProductViewer({
   // kampanyadan hangisi musteriye daha avantajliysa onu yansitir - ikisi asla
   // ust uste uygulanmaz (bkz. lib/coupons.ts resolveProductDisplayPrice,
   // product-card.tsx'in de kullandigi ayni fonksiyon).
+  const { active: efsaneActive } = useEfsane();
   const priceResolution = resolveProductDisplayPrice(automaticCampaigns ?? [], {
     priceCents: selectedPriceCents,
     compareAtCents,
@@ -644,8 +647,12 @@ export function ProductViewer({
           </div>
           <span className="text-[10px] uppercase tracking-wide text-ink/40">KDV dahildir.</span>
         </div>
+        <div className="text-center md:text-left">
+          <EfsaneFiyatYazisi priceCents={priceResolution.finalPriceCents} size="lg" />
+        </div>
         <KalpBar productId={productId} />
-        {bundleInfo && bundleInfo.otherProductNames.length > 0 && (
+        {/* Efsane Cuma suresince kombin indirimi uygulanmaz (lib/pricing/price-cart.ts). */}
+        {bundleInfo && bundleInfo.otherProductNames.length > 0 && !efsaneActive && (
           <div className="mt-3 border border-clay/40 bg-clay/5 px-4 py-3 text-sm text-ink/80">
             <p>
               Bu ürünü <span className="font-medium">{bundleInfo.otherProductNames.join(", ")}</span> ile birlikte al,

@@ -306,7 +306,7 @@ export function SearchOverlay({
   // header'in altindan baslar (header ve X'e donen arama ikonu gorunur kalir),
   // mobilde tam ekrandir ve kendi "Vazgec" butonu vardir.
   return createPortal(
-    <div className="fixed inset-0 z-50 xl:top-[72px]">
+    <div className="fixed inset-0 z-50 xl:top-[72px] xl:[body:has([data-efsane-serit])_&]:top-[104px]">
       <button
         type="button"
         aria-label="Aramayı kapat"

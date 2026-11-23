@@ -7,7 +7,7 @@ import type { KalpCampaignState } from "@/lib/kalp-topla/settings";
 // Kalp Topla gorunurlugu istemcide oturuma gore cozulur (plan 5.0): ISR
 // onbellekli sayfalar gizli yayini sizdirmasin diye. Ayni oturum icin sayfa
 // basina tek istek; INVISIBLE (404) null doner. undefined = henuz bilinmiyor.
-export type KalpDurum = { state: KalpCampaignState; threshold: number; discountPercent: number };
+export type KalpDurum = { state: KalpCampaignState; paused: boolean; threshold: number; discountPercent: number };
 
 const cache = new Map<string, Promise<KalpDurum | null>>();
 

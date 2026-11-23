@@ -242,7 +242,7 @@ export async function CatalogPage({ query, scope }: { query: CatalogQuery; scope
           banner 50svh (450px / 422px) ve header'in alt bosluguna kadar uzaniyor;
           breadcrumb (34px) header'in ~33px altinda, baslik kalan alanda ortali
           (~10-12px asagida). */}
-      <div className="relative flex h-[50svh] min-h-[320px] w-full flex-col items-center overflow-hidden bg-ink pb-[72px] pt-[101px] md:pb-24">
+      <div className="relative flex h-[50svh] min-h-[320px] w-full flex-col items-center overflow-hidden bg-ink pb-[72px] pt-[101px] md:pb-24 [body:has([data-efsane-serit])_&]:pt-[133px]">
         <div className="absolute inset-0 bg-gradient-to-b from-ink to-ink/70" />
         {/* Mega menudeki PromoCard ile ayni sebepten duz <img>: kategori
             imageUrl'i Unsplash/Blob disinda bir kaynaktan da gelebiliyor,

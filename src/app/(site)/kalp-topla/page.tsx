@@ -8,6 +8,8 @@ import { getServerSession } from "next-auth";
 import { Heart } from "lucide-react";
 import { customerAuthOptions } from "@/lib/customer-auth";
 import { campaignStateFrom, getKalpSettings } from "@/lib/kalp-topla/settings";
+import { kalpPausedNow } from "@/lib/efsane-cuma-server";
+import { KalpAraNotu } from "@/components/kalp-topla/kalp-ara-notu";
 import { campaignPitch, campaignSlogan } from "@/lib/kalp-topla/messages";
 import { getVitrin, type TrendProduct, type VitrinProduct } from "@/lib/kalp-topla/vitrin";
 import { COUPON_SHAPE, KalpNasilCalisir } from "@/components/kalp-topla/kalp-nasil-calisir";
@@ -23,7 +25,8 @@ const PILL_FILLED = `${PILL} bg-ink text-white hover:bg-ink/90`;
 const resolvePage = cache(async () => {
   const [session, settings] = await Promise.all([getServerSession(customerAuthOptions), getKalpSettings()]);
   const customerId = session?.user?.id ?? null;
-  return { settings, loggedIn: Boolean(customerId), state: await campaignStateFrom(settings, customerId) };
+  const state = await campaignStateFrom(settings, customerId);
+  return { settings, loggedIn: Boolean(customerId), state, paused: state === "FROZEN" && (await kalpPausedNow()) };
 });
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -210,7 +213,7 @@ function faqItems(s: { threshold: number; discountPercent: number; couponHours: 
 }
 
 export default async function KalpToplaPage() {
-  const { settings, loggedIn, state } = await resolvePage();
+  const { settings, loggedIn, state, paused } = await resolvePage();
   if (state === "INVISIBLE") notFound();
 
   const active = state === "ACTIVE";
@@ -219,7 +222,13 @@ export default async function KalpToplaPage() {
 
   return (
     <>
-      {state === "FROZEN" && <FrozenNote loggedIn={loggedIn} />}
+      {paused ? (
+        <div className="mx-auto max-w-[1400px] px-6 pt-4 xl:px-9">
+          <KalpAraNotu />
+        </div>
+      ) : (
+        state === "FROZEN" && <FrozenNote loggedIn={loggedIn} />
+      )}
 
       <section className="overflow-hidden bg-[#FFF1F4]">
         <div className="mx-auto max-w-[1400px] px-6 pb-10 pt-12 md:pb-14 md:pt-20 xl:px-9">

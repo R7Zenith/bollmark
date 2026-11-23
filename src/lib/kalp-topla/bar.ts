@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit-log";
 import type { Prisma } from "@/generated/prisma/client";
 import { campaignStateFrom, currentThreshold, getKalpSettings, type KalpCampaignState } from "./settings";
+import { kalpPausedNow } from "@/lib/efsane-cuma-server";
+import { KALP_PAUSE_NOTE } from "@/lib/efsane-cuma";
 import { generateCouponCode } from "./coupons";
 import { sendVerificationEmail } from "./email-verification";
 import { applyCreditsToBar, chooseTargetHeart, readWaitingCredits } from "./bonus";
@@ -182,6 +184,8 @@ async function assertProductInCampaign(productId: string) {
 async function stateOrThrow(settings: Settings, customerId: string, allowFrozen: boolean): Promise<KalpCampaignState> {
   const state = await campaignStateFrom(settings, customerId);
   if (state === "INVISIBLE") throw new KalpError("NOT_FOUND", "Bulunamadı.");
+  // Efsane Cuma arasinda kalp verilemez ve geri de cekilemez.
+  if (state === "FROZEN" && (await kalpPausedNow())) throw new KalpError("FROZEN", KALP_PAUSE_NOTE);
   if (state === "FROZEN" && !allowFrozen) throw new KalpError("FROZEN", "Kampanya şu an duraklatıldı.");
   return state;
 }

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Minus, Plus, X } from "lucide-react";
 import { useCart } from "@/lib/cart";
-import { formatPrice } from "@/lib/format";
+import { formatExactPrice, formatPrice } from "@/lib/format";
 import { useAutomaticDiscount } from "@/lib/use-automatic-discount";
 import { CartNotices } from "@/components/cart-notices";
 
@@ -164,14 +164,14 @@ export function CartDrawer() {
             {automaticDiscountCents > 0 && (
               <div className="mt-2 flex items-center justify-between text-sm text-clay">
                 <span>{appliedName ? `İndirim (${appliedName})` : "İndirim"}</span>
-                <span>-{formatPrice(automaticDiscountCents)}</span>
+                <span>-{formatExactPrice(automaticDiscountCents)}</span>
               </div>
             )}
             {automaticDiscountCents > 0 && (
               <div className="mt-2 flex items-center justify-between text-[21px] tracking-[-0.84px]">
                 <span>Toplam</span>
                 <span className="font-semibold tracking-[0.2px]">
-                  {formatPrice(totalCents - automaticDiscountCents)}
+                  {formatExactPrice(totalCents - automaticDiscountCents)}
                 </span>
               </div>
             )}

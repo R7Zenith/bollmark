@@ -796,7 +796,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
   return (
     <>
       <header
-        className={`fixed inset-x-0 top-0 z-40 h-[72px] transition-colors duration-300 ${
+        className={`fixed inset-x-0 top-0 z-40 h-[72px] transition-colors duration-300 [body:has([data-efsane-serit])_&]:top-8 ${
           transparent
             ? "border-b border-white/[0.12] bg-transparent text-cream"
             : "border-b border-line bg-cream text-ink"
@@ -926,7 +926,7 @@ export function SiteHeader({ menuData }: { menuData: MegaMenuData }) {
         <SearchOverlay open={searchOpen} onClose={closeSearch} chips={searchChips} />
         <CartDrawer />
       </header>
-      {!isTransparentPage && <div aria-hidden className="h-[72px]" />}
+      {!isTransparentPage && <div aria-hidden className="h-[72px] [body:has([data-efsane-serit])_&]:h-[104px]" />}
     </>
   );
 }

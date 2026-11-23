@@ -6,7 +6,8 @@ import { Heart, Ticket } from "lucide-react";
 import type { BarView } from "@/lib/kalp-topla/bar";
 import { barMessage } from "@/lib/kalp-topla/messages";
 import { HEART_EMAIL_NOTICE } from "@/lib/kalp-topla/consent-texts";
-import { useKalpDurum } from "./use-kalp-durum";
+import { useKalpDurum, useKalpDurumDetay } from "./use-kalp-durum";
+import { KalpAraNotu } from "./kalp-ara-notu";
 import { KalpDialog } from "./kalp-dialog";
 import { COUPON_SHAPE, KalpNasilCalisir } from "./kalp-nasil-calisir";
 import { ArkadasiniCagir } from "./davet-paylas";
@@ -18,6 +19,7 @@ const MAX_CELLS = 20;
 
 export function KalpBar({ productId }: { productId: string }) {
   const state = useKalpDurum();
+  const durum = useKalpDurumDetay();
   const [view, setView] = useState<BarView | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +116,7 @@ export function KalpBar({ productId }: { productId: string }) {
     );
   };
 
+  if (durum?.paused) return <KalpAraNotu className="mt-4" />;
   if (state !== "ACTIVE" || !view) return null;
 
   const { points, threshold } = view;

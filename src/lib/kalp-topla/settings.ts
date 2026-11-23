@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import type { KalpToplaSettings } from "@/generated/prisma/client";
+import { kalpPausedNow } from "@/lib/efsane-cuma-server";
 
 // Kalp Topla ayarlari ve kampanya durumu (KALP_TOPLA_PLANI.md 5.0, Y10, T14).
 
@@ -50,8 +51,9 @@ export async function campaignStateFrom(
   customerId: string | null
 ): Promise<KalpCampaignState> {
   const isTester = Boolean(customerId && settings.testerCustomerIds.includes(customerId));
-  if (settings.mode === "LIVE") return "ACTIVE";
-  if (settings.mode === "HIDDEN") return isTester ? "ACTIVE" : "INVISIBLE";
+  // Efsane Cuma arasi (lib/efsane-cuma.ts): ACTIVE olacak durum FROZEN olur; bitince kendiliginden doner.
+  if (settings.mode === "LIVE") return (await kalpPausedNow()) ? "FROZEN" : "ACTIVE";
+  if (settings.mode === "HIDDEN") return isTester ? ((await kalpPausedNow()) ? "FROZEN" : "ACTIVE") : "INVISIBLE";
   const anyRound = await prisma.kalpRound.findFirst({
     where: isTester ? {} : { isTest: false },
     select: { id: true }

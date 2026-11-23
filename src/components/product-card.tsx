@@ -9,6 +9,7 @@ import { useWishlist } from "@/lib/wishlist";
 import { useCart } from "@/lib/cart";
 import { ProductBadge } from "@/components/product-badge";
 import { KalpCardBadge } from "@/components/kalp-topla/kalp-card-badge";
+import { EfsaneFiyatYazisi } from "@/components/efsane-cuma/vitrin";
 import type { QuickAddVariant } from "@/lib/catalog";
 
 export type ProductCardData = {
@@ -323,6 +324,7 @@ export function ProductCard({
           </span>
         )}
       </div>
+      <EfsaneFiyatYazisi priceCents={finalPriceCents} />
       {colors.length > 1 && (
         <div className="mt-2 flex items-center gap-1.5 px-2 md:px-0">
           {colors.slice(0, 4).map((color, index) => (

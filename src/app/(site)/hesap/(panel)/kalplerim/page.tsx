@@ -11,6 +11,8 @@ import { ensureReferralCode } from "@/lib/kalp-topla/invite";
 import { inviteHistoryLabel, maskName } from "@/lib/kalp-topla/invite-rules";
 import { DavetHedefSecici, DavetPaylasim } from "@/components/kalp-topla/davet-paylas";
 import { WithdrawHeartButton } from "./withdraw-button";
+import { kalpPausedNow } from "@/lib/efsane-cuma-server";
+import { KalpAraNotu } from "@/components/kalp-topla/kalp-ara-notu";
 
 export const metadata = { title: "Kalplerim", robots: { index: false } };
 
@@ -73,6 +75,7 @@ export default async function HesapKalplerimPage() {
   const state = await campaignStateFrom(settings, customerId);
   if (state === "INVISIBLE") notFound();
   if (state === "ACTIVE") await settlePending(customerId, settings);
+  const paused = state === "FROZEN" && (await kalpPausedNow());
 
   const [customer, hearts, coupons, invites, referralCode] = await Promise.all([
     prisma.customer.findUnique({ where: { id: customerId }, select: { emailVerifiedAt: true, inviteTargetProductId: true } }),
@@ -119,10 +122,14 @@ export default async function HesapKalplerimPage() {
           </span>
           {hearts.some((h) => h.status === "PENDING") && " (bekleyen kalpler de hak kullanır)"}
         </p>
-        {state === "FROZEN" && (
-          <p className="mt-4 rounded-lg bg-ink/[0.04] px-4 py-3 text-sm text-ink/80">
-            Kampanya duraklatıldı, barların korunuyor. Kalbini istersen geri çekebilirsin.
-          </p>
+        {paused ? (
+          <KalpAraNotu className="mt-4" />
+        ) : (
+          state === "FROZEN" && (
+            <p className="mt-4 rounded-lg bg-ink/[0.04] px-4 py-3 text-sm text-ink/80">
+              Kampanya duraklatıldı, barların korunuyor. Kalbini istersen geri çekebilirsin.
+            </p>
+          )
         )}
         {!customer?.emailVerifiedAt && (
           <p className="mt-4 rounded-lg bg-ink/[0.04] px-4 py-3 text-sm text-ink/80">
@@ -165,7 +172,7 @@ export default async function HesapKalplerimPage() {
                       {heart.status === "PENDING" ? "Bekliyor: e-postanı doğrulayınca sayılır" : `${points}/${threshold} kalp`}
                     </p>
                   </div>
-                  <WithdrawHeartButton productId={heart.productId} />
+                  {!paused && <WithdrawHeartButton productId={heart.productId} />}
                 </li>
               );
             })}

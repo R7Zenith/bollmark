@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { formatDate, formatPrice, formatTime } from "@/lib/format";
+import { formatDate, formatExactPrice, formatPrice, formatTime } from "@/lib/format";
 import { applyShipmentUpdate } from "@/lib/shipment";
 import { notifyCustomerStatusChange } from "@/lib/order-notifications";
 import { awardLoyaltyPoints } from "@/lib/loyalty";
@@ -370,6 +370,13 @@ export default async function OrderDetailPage({
                         {item.product.name} × {item.quantity}
                         {item.kalpCouponId && <span className="ml-2 text-xs text-admin-text-muted">Kalp Topla kuponlu{kalpCouponNote(item)}</span>}
                       </div>
+                      {item.campaignOriginalUnitCents != null && (
+                        <div className="mt-0.5 text-xs font-medium text-red-700">
+                          {item.campaignLabel ?? "Kampanya"}: birim {formatExactPrice(item.unitPriceCents)} (normal{" "}
+                          {formatExactPrice(item.campaignOriginalUnitCents)}, indirim{" "}
+                          {formatExactPrice((item.campaignOriginalUnitCents - item.unitPriceCents) * item.quantity)})
+                        </div>
+                      )}
                       {detay.length > 0 && <div className="mt-0.5 text-xs text-admin-text-muted">{detay.join(" · ")}</div>}
                     </div>
                     <span className="shrink-0">{formatPrice(item.totalCents)}</span>
@@ -384,6 +391,11 @@ export default async function OrderDetailPage({
                 {order.kalpDiscountCents > 0 && (
                   <p className="text-xs text-admin-text-muted">
                     Ara toplama {formatPrice(order.kalpDiscountCents)} Kalp Topla indirimi dahildir.
+                  </p>
+                )}
+                {order.campaignDiscountCents > 0 && (
+                  <p className="text-xs text-admin-text-muted">
+                    Ara toplama {formatExactPrice(order.campaignDiscountCents)} Efsane Cuma indirimi dahildir (satırlarda gösterildi).
                   </p>
                 )}
                 {order.discountCents > 0 && (

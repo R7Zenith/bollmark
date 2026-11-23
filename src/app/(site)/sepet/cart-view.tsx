@@ -5,7 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2, Truck } from "lucide-react";
 import { useCart } from "@/lib/cart";
-import { formatPrice } from "@/lib/format";
+import { formatExactPrice, formatPrice } from "@/lib/format";
+import { EfsaneOzetSatiri, EfsaneSatirEtiketi, EfsaneSepetNotu, efsaneLineDiscountCents } from "@/components/efsane-cuma/sepet";
 import { DISPATCH_TEXT, SHIPPING_THRESHOLD_CENTS, shippingFeeSummary } from "@/lib/shipping";
 import { CouponField, type CouponResult } from "@/components/coupon-field";
 import { KalpSatirKontrolu, KalpSepetKutusu, kalpLineCents } from "@/components/kalp-topla/kalp-sepet";
@@ -19,6 +20,8 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
   const bundleDiscountCents = coupon?.bundleDiscountCents ?? 0;
   const kalpDiscountCents = coupon?.kalpDiscountCents ?? 0;
   const kalp = coupon?.kalp;
+  const efsane = coupon?.efsane;
+  const efsaneDiscountCents = efsane?.discountCents ?? 0;
   const couponLineDiscounts = new Map((coupon?.lineDiscounts ?? []).map((d) => [d.variantId, d.discountCents]));
 
   // GA4 view_cart: sayfa basina bir kez, sepet (localStorage) yuklenince.
@@ -46,8 +49,10 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
     );
   }
 
-  const remainingForFreeShippingCents = Math.max(0, SHIPPING_THRESHOLD_CENTS - totalCents);
-  const shippingProgressPercent = Math.min(100, (totalCents / SHIPPING_THRESHOLD_CENTS) * 100);
+  // Kargo esigi indirimler dusuldukten sonraki tutara bakar (sunucu ile ayni, lib/shipping.ts).
+  const payableCents = totalCents - kalpDiscountCents - bundleDiscountCents - discountCents - efsaneDiscountCents;
+  const remainingForFreeShippingCents = Math.max(0, SHIPPING_THRESHOLD_CENTS - payableCents);
+  const shippingProgressPercent = Math.min(100, (payableCents / SHIPPING_THRESHOLD_CENTS) * 100);
   const checkoutDisabled = hasBlockingIssues;
 
   return (
@@ -73,6 +78,10 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
       </div>
 
       <div className="mt-6 empty:hidden">
+        <EfsaneSepetNotu efsane={efsane} itemCount={totalCount} />
+      </div>
+
+      <div className="mt-6 empty:hidden">
         <KalpSepetKutusu kalp={kalp} />
       </div>
 
@@ -91,7 +100,8 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
               // sunucu tarafinda ikisi zaten asla ayni anda pozitif olmuyor.
               const lineCouponDiscountCents = line.compareAtCents ? 0 : (couponLineDiscounts.get(line.variantId) ?? 0);
               const lineTotalCents = line.priceCents * line.quantity;
-              const lineNetTotalCents = kalpLineCents(line, kalp) - lineCouponDiscountCents;
+              const lineNetTotalCents =
+                kalpLineCents(line, kalp) - lineCouponDiscountCents - efsaneLineDiscountCents(line.variantId, efsane);
               const hasLineDiscount = Boolean(line.compareAtCents) || lineNetTotalCents < lineTotalCents;
 
               const quantityControl = (
@@ -158,7 +168,7 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
                         </div>
                         <div className="shrink-0 text-right">
                           <p className={`text-sm font-medium ${hasLineDiscount ? "text-sale" : ""}`}>
-                            {formatPrice(lineNetTotalCents)}
+                            {formatExactPrice(lineNetTotalCents)}
                           </p>
                           {hasLineDiscount && (
                             <p className="text-xs text-ink/40 line-through">{formatPrice(lineTotalCents)}</p>
@@ -166,6 +176,7 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
                         </div>
                       </div>
                       <KalpSatirKontrolu line={line} kalp={kalp} />
+                      <EfsaneSatirEtiketi variantId={line.variantId} efsane={efsane} />
                       <div className="mt-3">{quantityControl}</div>
                     </div>
                   </div>
@@ -188,13 +199,14 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
                           {line.color} · {line.size}
                         </p>
                         <KalpSatirKontrolu line={line} kalp={kalp} />
+                        <EfsaneSatirEtiketi variantId={line.variantId} efsane={efsane} />
                       </div>
                     </div>
                     <p className={`text-sm ${hasLineDiscount ? "text-sale" : ""}`}>{formatPrice(line.priceCents)}</p>
                     {quantityControl}
                     <div className="text-right">
                       <p className={`text-sm font-medium ${hasLineDiscount ? "text-sale" : ""}`}>
-                        {formatPrice(lineNetTotalCents)}
+                        {formatExactPrice(lineNetTotalCents)}
                       </p>
                       {hasLineDiscount && (
                         <p className="text-xs text-ink/40 line-through">
@@ -247,6 +259,7 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
                 <span>-{formatPrice(kalpDiscountCents)}</span>
               </div>
             )}
+            <EfsaneOzetSatiri efsane={efsane} />
             {bundleDiscountCents > 0 && (
               <div className="flex items-center justify-between text-sm text-clay">
                 <span>Bundle İndirimi</span>
@@ -264,7 +277,7 @@ export default function CartView({ defaultShippingCents }: { defaultShippingCent
             </p>
             <div className="flex items-center justify-between border-t border-line pt-4">
               <span className="text-lg">Toplam</span>
-              <span className="text-lg font-medium">{formatPrice(totalCents - kalpDiscountCents - bundleDiscountCents - discountCents)}</span>
+              <span className="text-lg font-medium">{formatExactPrice(payableCents)}</span>
             </div>
           </div>
 

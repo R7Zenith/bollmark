@@ -289,12 +289,13 @@ export function trackContact(method: "whatsapp" | "instagram", productCode?: str
   ga4("contact", params);
 }
 
-export function trackInitiateCheckout(lines: CartLineLike[]) {
+// valueCents: indirimler (ve kargo) sonrasi odenecek tutar - Purchase ile ayni anlam.
+export function trackInitiateCheckout(lines: CartLineLike[], valueCents: number) {
   const eventId = crypto.randomUUID();
-  const data = cartData(lines);
+  const data = { ...cartData(lines), value: valueCents / 100 };
   fire("InitiateCheckout", data, eventId);
   forwardToServer("InitiateCheckout", eventId, data);
-  ga4("begin_checkout", ga4CartData(lines));
+  ga4("begin_checkout", ga4CartData(lines, valueCents));
 }
 
 // Odeme formunda siparis (teslimat adresi) olusturulunca.

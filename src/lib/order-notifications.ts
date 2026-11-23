@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { sendMail } from "@/lib/mail";
-import { formatPrice } from "@/lib/format";
+import { formatExactPrice, formatPrice } from "@/lib/format";
 import { getSiteUrl } from "@/lib/site-url";
 import { returnStatusNotifiable, returnTypes, type OrderStatus, type ReturnStatus, type ReturnType } from "@/lib/status";
 import { emailSiteUrl } from "@/lib/email/layout";
@@ -55,6 +55,8 @@ export async function loadOrderEmailData(order: Order): Promise<OrderEmailData> 
         id: true,
         quantity: true,
         totalCents: true,
+        campaignLabel: true,
+        campaignOriginalUnitCents: true,
         product: { select: { name: true, ...emailProductImagesSelect } },
         variant: { select: emailVariantSelect }
       }
@@ -69,7 +71,15 @@ export async function loadOrderEmailData(order: Order): Promise<OrderEmailData> 
     items: items.map((item) => ({
       id: item.id,
       name: item.product.name,
-      variant: variantValues(item.variant),
+      // Efsane Cuma: indirimli adet ayri satirdir; hangi urune ne indirim yapildigi yazilir.
+      variant: [
+        variantValues(item.variant),
+        item.campaignOriginalUnitCents != null
+          ? `${item.campaignLabel ?? "Kampanya"} (normal birim ${formatExactPrice(item.campaignOriginalUnitCents)})`
+          : null
+      ]
+        .filter(Boolean)
+        .join(" · "),
       quantity: item.quantity,
       totalCents: item.totalCents,
       imageUrl: variantImageUrl(item.product, item.variant)

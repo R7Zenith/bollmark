@@ -17,6 +17,9 @@ import { ga4Config } from "@/lib/ga4";
 import { getMegaMenuData } from "@/lib/site-nav";
 import { baseOpenGraph, siteIcons } from "@/lib/site-metadata";
 import { getSiteUrl } from "@/lib/site-url";
+import { getEfsaneClientValue } from "@/lib/efsane-cuma-server";
+import { EfsaneProvider } from "@/components/efsane-cuma/efsane-context";
+import { EfsaneSerit } from "@/components/efsane-cuma/vitrin";
 
 // Shopify "Release" temasi referansi: tek govde/baslik fontu Poppins
 // (400-600 agirlik - 600 katalog karti urun basligi icin, bkz.
@@ -55,11 +58,14 @@ export const metadata: Metadata = {
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const menuData = await getMegaMenuData();
   const ga4 = ga4Config();
+  const efsane = await getEfsaneClientValue();
 
   return (
     <html lang="tr" className={`${poppins.variable} ${cormorant.variable}`}>
       <body className="storefront flex min-h-screen flex-col font-sans antialiased">
         <CustomerSessionProvider>
+          <EfsaneProvider value={efsane}>
+          <EfsaneSerit />
           <CartProvider>
             <WishlistProvider>
               {/* BUILD HATASI (13 Eylul 2026): SiteHeader `useSearchParams()`
@@ -97,6 +103,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
               )}
             </WishlistProvider>
           </CartProvider>
+          </EfsaneProvider>
         </CustomerSessionProvider>
       </body>
     </html>

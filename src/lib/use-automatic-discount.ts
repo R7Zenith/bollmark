@@ -32,9 +32,10 @@ export function useAutomaticDiscount(lines: CartLine[]): { discountCents: number
       .then((data) => {
         if (cancelled) return;
         const kalpCents = data.kalpDiscountCents ?? 0;
+        const efsaneCents = data.efsane?.discountCents ?? 0;
         setResult({
-          discountCents: (data.discountCents ?? 0) + kalpCents,
-          appliedName: kalpCents > 0 ? "Kalp Topla" : (data.appliedName ?? null)
+          discountCents: (data.discountCents ?? 0) + kalpCents + efsaneCents,
+          appliedName: efsaneCents > 0 ? "Efsane Cuma" : kalpCents > 0 ? "Kalp Topla" : (data.appliedName ?? null)
         });
       })
       .catch(() => {

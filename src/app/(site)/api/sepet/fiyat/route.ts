@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth";
 import { prisma } from "@/lib/prisma";
 import { customerAuthOptions } from "@/lib/customer-auth";
 import { loadPriceLines, priceCart } from "@/lib/pricing/price-cart";
+import { EFSANE_CODE_NOTE } from "@/lib/efsane-cuma";
 
 const NO_STORE = { "Cache-Control": "no-store" };
 
@@ -40,7 +41,20 @@ export async function POST(req: NextRequest) {
   const { best } = price;
   const hasCode = code.trim().length > 0;
   const codeMessage = price.kalpCodeMessage ?? best.codeMessage;
-  const codeValid = !hasCode || (!price.kalpCodeMessage && !(best.codeMessage && best.couponId == null));
+  const efsaneBlockedCode = best.codeMessage === EFSANE_CODE_NOTE;
+  const codeValid =
+    !hasCode || (!efsaneBlockedCode && !price.kalpCodeMessage && !(best.codeMessage && best.couponId == null));
+  // Efsane adetlerindeki otomatik kampanya payi "Indirim" satirinda kalir (bkz. price-cart.ts).
+  const rawPriceOf = new Map(lines.map((l) => [l.variantId, l.priceCents]));
+  const autoShareOf = new Map(
+    price.efsane.map((a) => [a.variantId, (rawPriceOf.get(a.variantId)! - a.originalUnitCents) * a.count])
+  );
+  const lineDiscounts = [
+    ...best.lineDiscounts.map((d) => ({ ...d, discountCents: d.discountCents + (autoShareOf.get(d.variantId) ?? 0) })),
+    ...[...autoShareOf]
+      .filter(([variantId, cents]) => cents > 0 && !best.lineDiscounts.some((d) => d.variantId === variantId))
+      .map(([variantId, discountCents]) => ({ variantId, discountCents }))
+  ];
   const message = price.kalpCodeApplied
     ? "Kalp Topla kuponu uygulandı."
     : (codeMessage ??
@@ -57,12 +71,18 @@ export async function POST(req: NextRequest) {
       ok: true,
       codeValid,
       message,
-      discountCents: best.discountCents,
+      discountCents: best.discountCents + price.efsaneAutoShareCents,
       freeShipping: best.freeShipping,
       appliedName: best.appliedName,
-      lineDiscounts: best.lineDiscounts,
+      lineDiscounts,
       bundleDiscountCents: price.bundleDiscountCents,
       kalpDiscountCents: price.kalpDiscountCents,
+      efsane: {
+        active: price.efsaneActive,
+        discountCents: price.efsaneDiscountCents,
+        lines: price.efsane,
+        combineNote: price.combineNote
+      },
       pointsCapCents: price.pointsCapCents,
       kalp: price.kalp
     },

@@ -11,7 +11,7 @@ import { EmptyState } from "@/components/admin/empty-state";
 import { IadelerFilters } from "@/components/admin/iadeler-filters";
 import { ReturnsTable, type ReturnRow } from "@/components/admin/returns-table";
 import { ReturnFeedback } from "@/components/admin/return-feedback";
-import { formatDate, formatPrice } from "@/lib/format";
+import { formatDate, formatExactPrice, formatPrice } from "@/lib/format";
 import { handleReturnCompleted, saveExchange, settleExchangeDiff } from "@/lib/kalp-topla/returns";
 
 interface ReturnItemSnapshot {
@@ -143,7 +143,13 @@ export default async function AdminReturnsPage({
     const itemsSummary = parseItemsJson(rr.itemsJson)
       .map((line) => {
         const item = itemsById.get(line.orderItemId);
-        return item ? `${item.product.name} ×${line.quantity}` : null;
+        if (!item) return null;
+        // Efsane Cuma: degisimde hangi urune ne indirim yapildigi gorunsun.
+        const campaign =
+          item.campaignOriginalUnitCents != null
+            ? ` (${item.campaignLabel ?? "Kampanya"}: ödenen birim ${formatExactPrice(item.unitPriceCents)}, normal ${formatExactPrice(item.campaignOriginalUnitCents)})`
+            : "";
+        return `${item.product.name} ×${line.quantity}${campaign}`;
       })
       .filter((v): v is string => v !== null)
       .join(", ");

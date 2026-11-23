@@ -14,6 +14,7 @@ import { ShopByCategory, type CollectionBox } from "@/components/home/shop-by-ca
 import { TrustMarquee } from "@/components/home/trust-marquee";
 import { HeroCarousel } from "@/components/home/hero-carousel";
 import { HeroKalpToplaSlide } from "@/components/home/hero-kalp-topla-slide";
+import { EfsaneAnasayfaBandi } from "@/components/efsane-cuma/vitrin";
 import { getKalpSettings } from "@/lib/kalp-topla/settings";
 import { getHeartPointsByProduct } from "@/lib/kalp-topla/bar";
 import { prisma } from "@/lib/prisma";
@@ -290,6 +291,7 @@ export default async function HomePage() {
           tarayici cubuklari gizliyken olculuyor, cubuklar gorunurken buton
           ve slayt noktalari ekranin altina tasiyordu (kullanici geri
           bildirimi, 9 Kasim 2026). Masaustunde svh = vh, degisiklik yok. */}
+      <EfsaneAnasayfaBandi />
       <HeroCarousel>
         <section className="relative flex min-h-svh items-end overflow-hidden bg-ink text-cream md:items-end">
           <Image

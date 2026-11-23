@@ -1,6 +1,8 @@
 // Kalp Topla kupon atamasi (KALP_TOPLA_PLANI.md 5.6, T5, T17). Saf fonksiyonlar:
 // DB'ye dokunmaz, istemci de tip olarak kullanabilir. Tutarlar tam sayi kurus.
 
+import type { EfsaneAssignment } from "@/lib/efsane-cuma";
+
 export type KalpSelection = { manual: string[]; removed: string[] };
 
 export type KalpPriceLine = {
@@ -94,16 +96,32 @@ export function assignKalpCoupons(
 }
 
 // Kuponlu adet ayri satir olur, kalan adetler normal fiyatla kalir (plan 5.6).
+// Efsane Cuma'nin indirimli adetleri de ayni sekilde ayri satirdir (lib/efsane-cuma.ts).
 export function splitOrderItems(
   lines: { productId: string; variantId: string; quantity: number; priceCents: number }[],
-  assignments: KalpAssignment[]
+  assignments: KalpAssignment[],
+  campaign: { units: EfsaneAssignment[]; label: string } = { units: [], label: "" }
 ) {
   const assignmentOf = new Map(assignments.map((a) => [a.variantId, a]));
+  const campaignOf = new Map(campaign.units.map((a) => [a.variantId, a]));
   return lines.flatMap((line) => {
     const base = { productId: line.productId, variantId: line.variantId };
     const assignment = assignmentOf.get(line.variantId);
-    const rest = line.quantity - (assignment ? 1 : 0);
+    const unit = campaignOf.get(line.variantId);
+    const rest = line.quantity - (assignment ? 1 : 0) - (unit?.count ?? 0);
     return [
+      ...(unit
+        ? [
+            {
+              ...base,
+              quantity: unit.count,
+              unitPriceCents: unit.unitCents,
+              totalCents: unit.unitCents * unit.count,
+              campaignOriginalUnitCents: unit.originalUnitCents,
+              campaignLabel: campaign.label
+            }
+          ]
+        : []),
       ...(assignment
         ? [
             {

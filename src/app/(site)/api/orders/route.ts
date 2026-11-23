@@ -7,6 +7,7 @@ import { CouponInvalidError } from "@/lib/coupons";
 import { LoyaltyInvalidError } from "@/lib/loyalty";
 import { KalpCouponInvalidError, loadPriceLines, priceCart } from "@/lib/pricing/price-cart";
 import { splitOrderItems } from "@/lib/kalp-topla/pricing";
+import { EFSANE_LINE_LABEL } from "@/lib/efsane-cuma";
 import { customerAuthOptions } from "@/lib/customer-auth";
 import { getPaymentSettings, getReadiness } from "@/lib/payment/settings";
 import { localPaymentTest } from "@/lib/payment/iyzico/mode";
@@ -41,6 +42,8 @@ const orderSchema = z.object({
   // Ekrandaki Kalp Topla indirimi: kupon arada dolduysa ya da atama degistiyse
   // farkli tutar tahsil edilmesin diye uyusmazlikta siparis durur.
   expectedKalpDiscountCents: z.number().int().nonnegative().optional(),
+  // Ekrandaki Efsane Cuma indirimi: kampanya arada basladi/bittiyse ayni gerekceyle durur.
+  expectedCampaignDiscountCents: z.number().int().nonnegative().optional(),
   // Client tarafindaki "required" disable yetmez - mesafeli satis sozlesmesi
   // onayi sunucuda da zorunlu tutulur (fiyat/indirim ile ayni "istemciden
   // gelen degere guvenme" prensibi).
@@ -166,6 +169,9 @@ export async function POST(req: NextRequest) {
       if (data.expectedKalpDiscountCents !== undefined && data.expectedKalpDiscountCents !== price.kalpDiscountCents) {
         throw new KalpPriceChangedError();
       }
+      if (data.expectedCampaignDiscountCents !== undefined && data.expectedCampaignDiscountCents !== price.efsaneDiscountCents) {
+        throw new KalpPriceChangedError();
+      }
       const result = price.best;
       if (data.couponCode && result.codeMessage && result.couponId == null) {
         throw new CouponInvalidError(result.codeMessage);
@@ -196,6 +202,7 @@ export async function POST(req: NextRequest) {
           couponId,
           bundleDiscountCents,
           kalpDiscountCents,
+          campaignDiscountCents: price.efsaneDiscountCents,
           pointsRedeemed,
           loyaltyDiscountCents,
           shippingCents,
@@ -208,7 +215,7 @@ export async function POST(req: NextRequest) {
           ipCountry: ipInfo.country,
           paymentStatus: "UNPAID",
           paymentExpiresAt: new Date(Date.now() + paymentSettings.orderExpiryMinutes * 60 * 1000),
-          items: { create: splitOrderItems(resolvedLines!, price.assignments) },
+          items: { create: splitOrderItems(resolvedLines!, price.assignments, { units: price.efsane, label: EFSANE_LINE_LABEL }) },
           shipment: { create: {} }
         }
       });

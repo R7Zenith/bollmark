@@ -6,7 +6,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { ChevronDown } from "lucide-react";
 import { useCart } from "@/lib/cart";
-import { formatPrice } from "@/lib/format";
+import { formatExactPrice, formatPrice } from "@/lib/format";
+import { EfsaneOzetSatiri, EfsaneSatirEtiketi, EfsaneSepetNotu, efsaneLineDiscountCents } from "@/components/efsane-cuma/sepet";
 import { FULL_NAME_MESSAGE, FULL_NAME_PATTERN, hasFullName } from "@/lib/full-name";
 import { CouponField, type CouponResult } from "@/components/coupon-field";
 import { LoyaltyField, type LoyaltyResult } from "@/components/loyalty-field";
@@ -96,8 +97,10 @@ export default function CheckoutForm({
   const kalpDiscountCents = coupon?.kalpDiscountCents ?? 0;
   const kalp = coupon?.kalp;
   const discountCents = coupon?.discountCents ?? 0;
+  const efsane = coupon?.efsane;
+  const efsaneDiscountCents = efsane?.discountCents ?? 0;
   const loyaltyDiscountCents = loyalty?.discountCents ?? 0;
-  const totalDiscountCents = kalpDiscountCents + bundleDiscountCents + discountCents + loyaltyDiscountCents;
+  const totalDiscountCents = kalpDiscountCents + bundleDiscountCents + discountCents + efsaneDiscountCents + loyaltyDiscountCents;
   const shippingCents = calculateShippingCents(
     totalCents - totalDiscountCents,
     coupon?.freeShipping ?? false,
@@ -105,13 +108,14 @@ export default function CheckoutForm({
   );
   const grandTotalCents = totalCents - totalDiscountCents + shippingCents;
 
-  // Meta InitiateCheckout + GA4 begin_checkout: sayfa basina bir kez, sepet (localStorage) yuklenince.
+  // Meta InitiateCheckout + GA4 begin_checkout: sayfa basina bir kez, fiyat
+  // onizlemesi gelince - deger indirim ve kargo sonrasi odenecek tutardir.
   const checkoutTracked = useRef(false);
   useEffect(() => {
-    if (checkoutTracked.current || lines.length === 0) return;
+    if (checkoutTracked.current || lines.length === 0 || !coupon) return;
     checkoutTracked.current = true;
-    trackInitiateCheckout(lines);
-  }, [lines]);
+    trackInitiateCheckout(lines, grandTotalCents);
+  }, [lines, coupon, grandTotalCents]);
 
   // Kullanici e-posta alanina yazip baska bir alana gectiginde (odeme
   // tamamlanmadan once) sepeti arka planda kaydeder - terk edilmis sepet
@@ -163,6 +167,7 @@ export default function CheckoutForm({
       pointsToRedeem: loyalty?.pointsRedeemed || undefined,
       kalpSelection,
       expectedKalpDiscountCents: coupon ? kalpDiscountCents : undefined,
+      expectedCampaignDiscountCents: coupon ? efsaneDiscountCents : undefined,
       termsAccepted,
       lines: lines.map((l) => ({
         productId: l.productId,
@@ -285,13 +290,15 @@ export default function CheckoutForm({
 
   const summaryPanel = (
     <div className="space-y-4 px-4 pb-4 lg:px-0 lg:pb-0 lg:pt-8">
+      <EfsaneSepetNotu efsane={efsane} itemCount={lines.reduce((sum, l) => sum + l.quantity, 0)} />
       <KalpSepetKutusu kalp={kalp} />
 
       <div className="space-y-4">
         {lines.map((l) => {
           const lineCouponDiscountCents = l.compareAtCents ? 0 : (couponLineDiscounts.get(l.variantId) ?? 0);
           const lineTotalCents = l.priceCents * l.quantity;
-          const lineNetTotalCents = kalpLineCents(l, kalp) - lineCouponDiscountCents;
+          const lineNetTotalCents =
+            kalpLineCents(l, kalp) - lineCouponDiscountCents - efsaneLineDiscountCents(l.variantId, efsane);
           const hasLineDiscount = Boolean(l.compareAtCents) || lineNetTotalCents < lineTotalCents;
 
           return (
@@ -310,10 +317,11 @@ export default function CheckoutForm({
                   {l.color} · {l.size}
                 </p>
                 <KalpSatirKontrolu line={l} kalp={kalp} />
+                <EfsaneSatirEtiketi variantId={l.variantId} efsane={efsane} />
               </div>
               <div className="text-right">
                 <p className={`text-sm font-semibold ${hasLineDiscount ? "text-sale" : ""}`}>
-                  {formatPrice(lineNetTotalCents)}
+                  {formatExactPrice(lineNetTotalCents)}
                 </p>
                 {hasLineDiscount && (
                   <p className="text-xs text-ink/40 line-through">
@@ -346,6 +354,7 @@ export default function CheckoutForm({
             <span>-{formatPrice(kalpDiscountCents)}</span>
           </div>
         )}
+        <EfsaneOzetSatiri efsane={efsane} />
         {bundleDiscountCents > 0 && (
           <div className="flex justify-between text-clay">
             <span>Bundle İndirimi</span>
@@ -374,7 +383,7 @@ export default function CheckoutForm({
         </div>
         <div className="flex justify-between text-lg font-semibold">
           <span>Toplam</span>
-          <span>{formatPrice(grandTotalCents)}</span>
+          <span>{formatExactPrice(grandTotalCents)}</span>
         </div>
       </div>
 

@@ -1,5 +1,14 @@
 # Bollmark - Güncel Durum
 
+## KALDIĞIM YER (2026-11-23, Efsane Cuma, dal `efsane-cuma`)
+
+- **Durum:** kod `efsane-cuma` dalında, push edildi; `main`'e birleştirilmedi, canlıda değil. Kampanya 26 Kasım 00:00 – 29 Kasım 23:59 (İstanbul); en geç 25 Kasım akşamı canlıya çıkmalı (main'e birleştirme = deploy).
+- **DB (canlı, kullanıcı onaylı, 2026-11-23):** `EfsaneCumaSettings` tablosu, `OrderItem.campaignOriginalUnitCents` + `campaignLabel`, `Order.campaignDiscountCents`. `prisma/migrations/20261123000000_efsane_cuma/migration.sql` ile `prisma db execute`; `migrate diff` boş. Ayar satırı henüz yok, koddaki varsayılan tarihler geçerli.
+- **Kararlar:** kargo 150 TL kalıyor; kampanya süresince kupon kodu, kombin ve puan kapalı; Kalp kuponu ile avantajlı olan uygulanır.
+- **Yapılmayan:** gerçek iyzico sandbox ödemesi (ortak DB'ye sipariş yazar, kullanıcı onayı ve yerel sandbox anahtarları bekleniyor); ekran görüntülerinin çoğu (kullanıcı vazgeçti).
+- **Yerel:** `.env.local`'de geçici `EFSANE_CUMA_TEST_START/END` (kampanya yerelde şimdiden açık görünür; Vercel'de yok sayılır). İş bitince silinecek.
+- **Ayrıntı ve test tablosu:** `docs/reklam/efsane-cuma-2026.md`.
+
 ## KALDIĞIM YER (2026-11-16, HepsiJET canlıya alındı)
 
 - **Faz 6 – Canlı (2026-11-16, kullanıcı onaylı):** `hepsijet` → `main` birleştirildi, push = deploy. Vercel production'a 13 `HEPSIJET_*` env (sensitive, `HEPSIJET_MODE=live`). Canlı pilot `BLM261116-PILOT1` betikle açıldı. Pilot 2026-11-17'de silindi. Canlıda PDF etiket ilk denemede 400 verdi, sonradan çalıştığı teyit edildi.
