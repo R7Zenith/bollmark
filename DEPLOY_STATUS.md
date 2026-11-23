@@ -1,8 +1,8 @@
 # Bollmark - Güncel Durum
 
-## KALDIĞIM YER (2026-11-23, Efsane Cuma, dal `efsane-cuma`)
+## KALDIĞIM YER (2026-11-24, Efsane Cuma canlıya alındı)
 
-- **Durum:** kod `efsane-cuma` dalında, push edildi; `main`'e birleştirilmedi, canlıda değil. Kampanya 26 Kasım 00:00 – 29 Kasım 23:59 (İstanbul); en geç 25 Kasım akşamı canlıya çıkmalı (main'e birleştirme = deploy).
+- **Durum (2026-11-24, kullanıcı onaylı):** `efsane-cuma` → `main` birleştirildi, push = deploy. Kampanya 26 Kasım 00:00 – 29 Kasım 23:59 (İstanbul) kendiliğinden açılıp kapanır; Kalp Topla arası aynı tarihlerde. Elle kapatmak için `/admin/efsane-cuma`'da iki anahtar da kapatılmalı (Kalp arası kampanya anahtarından bağımsız).
 - **DB (canlı, kullanıcı onaylı, 2026-11-23):** `EfsaneCumaSettings` tablosu, `OrderItem.campaignOriginalUnitCents` + `campaignLabel`, `Order.campaignDiscountCents`. `prisma/migrations/20261123000000_efsane_cuma/migration.sql` ile `prisma db execute`; `migrate diff` boş. Ayar satırı henüz yok, koddaki varsayılan tarihler geçerli.
 - **Kararlar:** kargo 150 TL kalıyor; kampanya süresince kupon kodu, kombin ve puan kapalı; Kalp kuponu ile avantajlı olan uygulanır.
 - **Yapılmayan:** gerçek iyzico sandbox ödemesi (ortak DB'ye sipariş yazar, kullanıcı onayı ve yerel sandbox anahtarları bekleniyor); ekran görüntülerinin çoğu (kullanıcı vazgeçti).
