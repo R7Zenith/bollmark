@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useCart, type CartLine } from "@/lib/cart";
+import type { EfsanePreview } from "@/components/coupon-field";
 
 // cart-drawer.tsx ve sepet/page.tsx'in (CouponField uzerinden) kullandigi
 // otomatik kampanya indirimi onizlemesi - sepet icerigi degistikce kod
@@ -9,9 +10,11 @@ import { useCart, type CartLine } from "@/lib/cart";
 // gerekce: kod olmasa da sepete uyan aktif bir otomatik kampanya varsa
 // yakalanmasi icin). Baglayici degildir, nihai tutar siparis olusturulurken
 // sunucuda priceCart ile tekrar hesaplanir.
-export function useAutomaticDiscount(lines: CartLine[]): { discountCents: number; appliedName: string | null } {
+type AutomaticDiscount = { discountCents: number; appliedName: string | null; efsane?: EfsanePreview };
+
+export function useAutomaticDiscount(lines: CartLine[]): AutomaticDiscount {
   const { kalpSelection } = useCart();
-  const [result, setResult] = useState({ discountCents: 0, appliedName: null as string | null });
+  const [result, setResult] = useState<AutomaticDiscount>({ discountCents: 0, appliedName: null });
 
   useEffect(() => {
     if (lines.length === 0) {
@@ -35,7 +38,8 @@ export function useAutomaticDiscount(lines: CartLine[]): { discountCents: number
         const efsaneCents = data.efsane?.discountCents ?? 0;
         setResult({
           discountCents: (data.discountCents ?? 0) + kalpCents + efsaneCents,
-          appliedName: efsaneCents > 0 ? "Efsane Cuma" : kalpCents > 0 ? "Kalp Topla" : (data.appliedName ?? null)
+          appliedName: efsaneCents > 0 ? "Efsane Cuma" : kalpCents > 0 ? "Kalp Topla" : (data.appliedName ?? null),
+          efsane: data.efsane
         });
       })
       .catch(() => {

@@ -9,6 +9,7 @@ import { useCart } from "@/lib/cart";
 import { formatExactPrice, formatPrice } from "@/lib/format";
 import { useAutomaticDiscount } from "@/lib/use-automatic-discount";
 import { CartNotices } from "@/components/cart-notices";
+import { EfsaneSatirEtiketi, efsaneLineDiscountCents } from "@/components/efsane-cuma/sepet";
 
 // MobileMenu'deki (site-header.tsx) ile ayni mount/visible iki asamali
 // pattern - `open` false olur olmaz DOM'dan kaldirmiyoruz, transform
@@ -17,7 +18,7 @@ import { CartNotices } from "@/components/cart-notices";
 export function CartDrawer() {
   const { lines, removeLine, updateQuantity, totalCents, totalCount, isDrawerOpen, closeDrawer, hasBlockingIssues } =
     useCart();
-  const { discountCents: automaticDiscountCents, appliedName } = useAutomaticDiscount(lines);
+  const { discountCents: automaticDiscountCents, appliedName, efsane } = useAutomaticDiscount(lines);
   const [mounted, setMounted] = useState(false);
   const [shouldRender, setShouldRender] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -94,7 +95,10 @@ export function CartDrawer() {
               <CartNotices />
             </div>
             <div className="divide-y divide-line">
-            {lines.map((line) => (
+            {lines.map((line) => {
+              const lineTotalCents = line.priceCents * line.quantity;
+              const efsaneCents = efsaneLineDiscountCents(line.variantId, efsane);
+              return (
               <div key={line.variantId} className="flex gap-4 py-6">
                 <div className={`relative h-[120px] w-[90px] flex-shrink-0 overflow-hidden ${line.greyBackdrop ? "bg-image-bg" : "bg-line"}`}>
                   <Image
@@ -108,6 +112,7 @@ export function CartDrawer() {
                 <div className="flex flex-1 flex-col">
                   <p className="text-xs font-semibold uppercase tracking-[0.24px]">{line.name}</p>
                   <p className="mt-1 text-xs text-ink/75">{line.color} · {line.size}</p>
+                  <EfsaneSatirEtiketi variantId={line.variantId} efsane={efsane} />
                   <div className="mt-3 flex items-center gap-3">
                     <div className="flex h-[46px] items-center justify-between rounded-full border border-line px-1">
                       <button
@@ -140,17 +145,18 @@ export function CartDrawer() {
                   </div>
                 </div>
                 <div className="flex flex-col items-end">
-                  <p className={`text-sm font-medium ${line.compareAtCents ? "text-sale" : ""}`}>
-                    {formatPrice(line.priceCents * line.quantity)}
+                  <p className={`text-sm font-medium ${line.compareAtCents || efsaneCents > 0 ? "text-sale" : ""}`}>
+                    {efsaneCents > 0 ? formatExactPrice(lineTotalCents - efsaneCents) : formatPrice(lineTotalCents)}
                   </p>
-                  {line.compareAtCents && (
+                  {(line.compareAtCents || efsaneCents > 0) && (
                     <p className="text-xs text-ink/40 line-through">
-                      {formatPrice(line.compareAtCents * line.quantity)}
+                      {formatPrice((line.compareAtCents ?? line.priceCents) * line.quantity)}
                     </p>
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
             </div>
           </div>
         )}
