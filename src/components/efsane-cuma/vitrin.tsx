@@ -30,8 +30,8 @@ export function EfsaneSerit() {
       className="fixed inset-x-0 top-0 z-[41] flex h-8 items-center justify-center overflow-hidden whitespace-nowrap px-3 text-[11px] font-semibold text-white md:text-[13px]"
       style={{ backgroundColor: EFSANE_RED }}
     >
-      <span className="md:hidden">EFSANE CUMA: 2. ürüne %50 indirim — {range}</span>
-      <span className="hidden md:inline">EFSANE CUMA: Tüm ürünlerde 2. ürüne %50 indirim — {range}</span>
+      <span className="md:hidden">MUHTEŞEM KASIM: 2. ürüne %50 indirim — {range}</span>
+      <span className="hidden md:inline">MUHTEŞEM KASIM: Tüm ürünlerde 2. ürüne %50 indirim — {range}</span>
     </Link>
   );
 }
@@ -66,7 +66,7 @@ export function EfsaneAnasayfaBandi() {
       className="px-6 pb-12 pt-[128px] text-center text-white md:pb-16 md:pt-[152px]"
       style={{ backgroundColor: EFSANE_RED }}
     >
-      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/80 md:text-xs">Efsane Cuma · {efsaneDateRange(window)}</p>
+      <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/80 md:text-xs">Muhteşem Kasım · {efsaneDateRange(window)}</p>
       <h2 className="mx-auto mt-4 max-w-3xl font-display text-4xl font-semibold leading-[1.05] tracking-[-0.03em] md:text-7xl">
         Tüm ürünlerde 2. ürüne %50 indirim
       </h2>

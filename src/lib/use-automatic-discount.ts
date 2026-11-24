@@ -38,7 +38,7 @@ export function useAutomaticDiscount(lines: CartLine[]): AutomaticDiscount {
         const efsaneCents = data.efsane?.discountCents ?? 0;
         setResult({
           discountCents: (data.discountCents ?? 0) + kalpCents + efsaneCents,
-          appliedName: efsaneCents > 0 ? "Efsane Cuma" : kalpCents > 0 ? "Kalp Topla" : (data.appliedName ?? null),
+          appliedName: efsaneCents > 0 ? "Muhteşem Kasım" : kalpCents > 0 ? "Kalp Topla" : (data.appliedName ?? null),
           efsane: data.efsane
         });
       })

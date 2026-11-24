@@ -29,10 +29,10 @@ export default async function EfsaneCumaAdminPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold">Efsane Cuma</h1>
+        <h1 className="text-2xl font-semibold">Muhteşem Kasım</h1>
         <p className="mt-1 text-sm text-admin-text-muted">
           {EFSANE_NAME}. Başlangıç ve bitiş otomatiktir; anahtarlarla elle de açıp kapatabilirsiniz.{" "}
-          <Link href="/efsane-cuma" className="underline" target="_blank">
+          <Link href="/muhtesem-kasim" className="underline" target="_blank">
             Koşullar sayfası
           </Link>
         </p>

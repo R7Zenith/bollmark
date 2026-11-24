@@ -2,9 +2,9 @@
 // fonksiyonlar: hem istemci (vitrin yazilari, serit, geri sayim) hem sunucu
 // (lib/pricing/price-cart.ts) kullanir. DB/ortam okumasi efsane-cuma-server.ts'te.
 
-export const EFSANE_NAME = "Efsane Cuma — 2. Ürüne %50 İndirim";
-export const EFSANE_LINE_LABEL = "Efsane Cuma – 2. ürüne %50";
-export const EFSANE_PATH = "/efsane-cuma";
+export const EFSANE_NAME = "Muhteşem Kasım — 2. Ürüne %50 İndirim";
+export const EFSANE_LINE_LABEL = "Muhteşem Kasım – 2. ürüne %50";
+export const EFSANE_PATH = "/muhtesem-kasim";
 export const EFSANE_RED = "#D0021B";
 
 // Istanbul saatiyle 26 Kasim 2026 00:00:00 - 29 Kasim 2026 23:59:59 (UTC+3).
@@ -12,10 +12,10 @@ export const EFSANE_DEFAULT_START = new Date("2026-11-26T00:00:00+03:00");
 export const EFSANE_DEFAULT_END = new Date("2026-11-29T23:59:59+03:00");
 
 export const EFSANE_COMBINE_NOTE =
-  "Efsane Cuma indirimi ile Kalp Topla kuponu birlikte kullanılamaz; sana daha avantajlı olan uygulandı.";
-export const EFSANE_CODE_NOTE = "Efsane Cuma boyunca kupon kodu kullanılamaz.";
+  "Muhteşem Kasım indirimi ile Kalp Topla kuponu birlikte kullanılamaz; sana daha avantajlı olan uygulandı.";
+export const EFSANE_CODE_NOTE = "Muhteşem Kasım boyunca kupon kodu kullanılamaz.";
 export const EFSANE_SINGLE_ITEM_NOTE = "Bir ürün daha ekle, ucuz olana %50 indirim uygulansın.";
-export const KALP_PAUSE_NOTE = "Kalp Topla, Efsane Cuma boyunca ara verdi. 30 Kasım'da kaldığın yerden devam ediyor.";
+export const KALP_PAUSE_NOTE = "Kalp Topla, Muhteşem Kasım boyunca ara verdi. 30 Kasım'da kaldığın yerden devam ediyor.";
 
 // Sayfalara (ISR) gomulen pencere; aktiflik tarayicida o anki saatle hesaplanir.
 export type EfsaneWindow = {

@@ -67,7 +67,7 @@ const navGroups: NavGroup[] = [
     items: [
       { href: "/admin/kampanyalar", label: "Kampanyalar", icon: Percent },
       { href: "/admin/bundle-kampanyalari", label: "Bundle Kampanyaları", icon: Percent },
-      { href: "/admin/efsane-cuma", label: "Efsane Cuma", icon: Percent },
+      { href: "/admin/efsane-cuma", label: "Muhteşem Kasım", icon: Percent },
       { href: "/admin/terk-edilmis-sepetler", label: "Terk Edilmiş Sepetler", icon: ShoppingCart }
     ]
   },

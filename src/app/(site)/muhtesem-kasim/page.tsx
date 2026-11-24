@@ -11,9 +11,9 @@ import { EfsaneDurum } from "@/components/efsane-cuma/durum";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Efsane Cuma Kampanya Koşulları",
-  description: "Efsane Cuma: tüm ürünlerde sepetteki 2. ürüne %50 indirim. Kampanya tarihleri ve koşulları.",
-  alternates: { canonical: "/efsane-cuma" }
+  title: "Muhteşem Kasım Kampanya Koşulları",
+  description: "Muhteşem Kasım: tüm ürünlerde sepetteki 2. ürüne %50 indirim. Kampanya tarihleri ve koşulları.",
+  alternates: { canonical: "/muhtesem-kasim" }
 };
 
 const dateTime = (iso: string) =>

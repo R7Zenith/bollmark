@@ -10,7 +10,7 @@ export function KalpAraNotu({ className = "" }: { className?: string }) {
       <p>
         {KALP_PAUSE_NOTE}{" "}
         <Link href={EFSANE_PATH} className="underline underline-offset-2">
-          Efsane Cuma
+          Muhteşem Kasım
         </Link>
       </p>
     </div>

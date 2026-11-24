@@ -395,7 +395,7 @@ export default async function OrderDetailPage({
                 )}
                 {order.campaignDiscountCents > 0 && (
                   <p className="text-xs text-admin-text-muted">
-                    Ara toplama {formatExactPrice(order.campaignDiscountCents)} Efsane Cuma indirimi dahildir (satırlarda gösterildi).
+                    Ara toplama {formatExactPrice(order.campaignDiscountCents)} Muhteşem Kasım indirimi dahildir (satırlarda gösterildi).
                   </p>
                 )}
                 {order.discountCents > 0 && (

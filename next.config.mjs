@@ -11,7 +11,10 @@ const nextConfig = {
   // CDN'den servis edildigi icin lambda'da gereksiz. public/instagram haric.
   // Kalp Topla T9: Favorilerim -> Kaydedilenler (eski adres 301 ile yonlenir).
   async redirects() {
-    return [{ source: "/hesap/favorilerim", destination: "/hesap/kaydedilenler", statusCode: 301 }];
+    return [
+      { source: "/hesap/favorilerim", destination: "/hesap/kaydedilenler", statusCode: 301 },
+      { source: "/efsane-cuma", destination: "/muhtesem-kasim", statusCode: 301 }
+    ];
   },
   outputFileTracingExcludes: {
     "/": [

@@ -1,5 +1,11 @@
 # Bollmark - Güncel Durum
 
+## KALDIĞIM YER (2026-11-24, kampanya adı "Muhteşem Kasım" oldu)
+
+- **Durum (kullanıcı onaylı):** "Efsane Cuma" görünen adı her yerde "Muhteşem Kasım". Kural, tarihler (26–29 Kasım), indirim hesabı ve DB değişmedi. Koşullar sayfası `/muhtesem-kasim`; eski `/efsane-cuma` 301 ile yönlenir (`next.config.mjs`). İç adlar (`efsane-cuma.ts`, `EFSANE_*`, `EfsaneCumaSettings`, `/admin/efsane-cuma`, test env adları) bilerek aynı.
+- **DB:** salt okunur tarama, "efsane" geçen metin yok; bekleyen DB işi yok.
+- **Ayrıntı:** `docs/reklam/muhtesem-kasim-ad-degisikligi.md`.
+
 ## KALDIĞIM YER (2026-11-24, Efsane Cuma canlıya alındı)
 
 - **Durum (2026-11-24, kullanıcı onaylı):** `efsane-cuma` → `main` birleştirildi, push = deploy. Kampanya 26 Kasım 00:00 – 29 Kasım 23:59 (İstanbul) kendiliğinden açılıp kapanır; Kalp Topla arası aynı tarihlerde. Elle kapatmak için `/admin/efsane-cuma`'da iki anahtar da kapatılmalı (Kalp arası kampanya anahtarından bağımsız).

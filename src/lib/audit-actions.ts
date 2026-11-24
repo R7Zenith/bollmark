@@ -76,7 +76,7 @@ export const auditActionLabel: Record<string, string> = {
   PAYMENT_REFUND_RESOLVED: "Belirsiz İade Kaydı Sonuçlandırıldı",
   KALP_TOPLA_AYAR_DEGISTI: "Kalp Topla Ayarı Değişti",
   KALP_TOPLA_MOD_DEGISTI: "Kalp Topla Modu Değişti",
-  EFSANE_CUMA_AYAR_DEGISTI: "Efsane Cuma Ayarı Değişti",
+  EFSANE_CUMA_AYAR_DEGISTI: "Muhteşem Kasım Ayarı Değişti",
   KALP_TOPLA_ALAN_ADI_ENGELLENDI: "E-posta Alan Adı Engellendi",
   KALP_TOPLA_ALAN_ADI_KALDIRILDI: "Engelli Alan Adı Kaldırıldı",
   KALP_TOPLA_TUR_KAPANDI: "Kalp Topla Turu Kapandı",
