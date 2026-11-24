@@ -18,7 +18,7 @@ import { jpegCopyUrl } from "@/lib/image-storage";
 // Meta katalogu (/feed/meta.xml, bkz. META_KATALOG_PLANI.md) ayni feed'i su
 // farklarla alir: availability boslukla ("in stock"), gorseller R2'deki JPEG
 // kopyalari (Meta WebP kabul etmiyor), basliktaki renk/beden ve tamami buyuk harf
-// urun adi "Bas Harf Buyuk".
+// urun adi "Bas Harf Buyuk", g:custom_label_1 = urunun sezon adi (yoksa "sezonsuz").
 
 export type FeedFormat = "google" | "meta";
 
@@ -72,7 +72,8 @@ export async function buildMerchantFeed(format: FeedFormat): Promise<string> {
         optionImages: { include: { value: true }, orderBy: { position: "asc" } },
         variants: { include: variantOptionsInclude },
         brand: true,
-        category: { include: { parent: true } }
+        category: { include: { parent: true } },
+        season: { select: { name: true } }
       }
     }),
     getActiveAutomaticPercentCampaigns(prisma),
@@ -146,6 +147,8 @@ export async function buildMerchantFeed(format: FeedFormat): Promise<string> {
           tag("g:size", size),
           tag("g:gender", gender),
           tag("g:age_group", ageGroup),
+          // Meta urun setleri sezona gore filtrelenir (custom_label_0 baska is icin ayrildi).
+          meta ? tag("g:custom_label_1", product.season?.name ?? "sezonsuz") : "",
           `<g:shipping>${tag("g:country", "TR")}${tag("g:price", money(shippingCents))}</g:shipping>`,
           "</item>"
         ].join("")

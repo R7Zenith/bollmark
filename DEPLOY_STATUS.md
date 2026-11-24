@@ -1,5 +1,12 @@
 # Bollmark - Güncel Durum
 
+## KALDIĞIM YER (2026-11-24, Meta akışına sezon etiketi)
+
+- **Durum:** `/feed/meta.xml`'de her varyanta `g:custom_label_1` = ürünün panel sezon adı (`2026 Yaz`, `2027 Kış`, `HER SEZON`), sezonsuzsa `sezonsuz` (`src/lib/merchant-feed.ts`). Meta ürün setleri buna göre filtrelenecek. `custom_label_0` boş (başka iş için ayrıldı); Google akışı ve mevcut alanlar değişmedi. Localhost'ta doğrulandı; commit/push kullanıcı onayı bekliyor. Canlıda akış en geç 1 saatte (revalidate) yenilenir, Commerce Manager günde bir çeker.
+- **DB:** değişiklik yok. Sezon ürün düzeyinde tek alan (`Product.seasonId` → `Season`), çoklu sezon mümkün değil.
+- **Sıradaki:** 18 sezonsuz ürüne panelden sezon atanacak; Meta'da sezona göre ürün setleri kurulacak.
+- **Ayrıntı:** `docs/reklam/sezon-etiketi-raporu.md`.
+
 ## KALDIĞIM YER (2026-11-24, kampanya adı "Muhteşem Kasım" oldu)
 
 - **Durum (kullanıcı onaylı):** "Efsane Cuma" görünen adı her yerde "Muhteşem Kasım". Kural, tarihler (26–29 Kasım), indirim hesabı ve DB değişmedi. Koşullar sayfası `/muhtesem-kasim`; eski `/efsane-cuma` 301 ile yönlenir (`next.config.mjs`). İç adlar (`efsane-cuma.ts`, `EFSANE_*`, `EfsaneCumaSettings`, `/admin/efsane-cuma`, test env adları) bilerek aynı.
