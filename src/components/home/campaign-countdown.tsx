@@ -17,7 +17,16 @@ const serverMinute = () => null;
 
 // Kampanya bandindaki geri sayim. endsAt: kampanyanin son gununun Istanbul
 // saatiyle 23:59:59'u (bkz. page.tsx). Sure dolunca kendini gizler.
-export function CampaignCountdown({ endsAt }: { endsAt: string }) {
+// listClassName/mutedClassName: hero slaytinda sola hizali ya da koyu yazili kullanim icin.
+export function CampaignCountdown({
+  endsAt,
+  listClassName = "justify-center",
+  mutedClassName = "text-cream/70"
+}: {
+  endsAt: string;
+  listClassName?: string;
+  mutedClassName?: string;
+}) {
   const now = useSyncExternalStore(subscribe, currentMinute, serverMinute);
   if (now === null) return null;
   const left = new Date(endsAt).getTime() - now;
@@ -32,11 +41,11 @@ export function CampaignCountdown({ endsAt }: { endsAt: string }) {
 
   return (
     <div className="mt-8">
-      <p className="text-xs text-cream/70">Kampanyanın bitmesine</p>
-      <dl className="mt-3 flex justify-center gap-6 md:gap-10">
+      <p className={`text-xs ${mutedClassName}`}>Kampanyanın bitmesine</p>
+      <dl className={`mt-3 flex gap-6 md:gap-10 ${listClassName}`}>
         {parts.map((p) => (
           <div key={p.label} className="flex flex-col-reverse items-center">
-            <dt className="mt-1 text-[10px] font-medium uppercase tracking-[0.1em] text-cream/70">{p.label}</dt>
+            <dt className={`mt-1 text-[10px] font-medium uppercase tracking-[0.1em] ${mutedClassName}`}>{p.label}</dt>
             <dd className="font-display text-3xl font-light tabular-nums md:text-4xl">
               {String(p.value).padStart(2, "0")}
             </dd>

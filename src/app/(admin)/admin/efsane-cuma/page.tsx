@@ -73,6 +73,10 @@ export default async function EfsaneCumaAdminPage({
             <input type="checkbox" name="kalpPause" defaultChecked={settings.kalpPause} className="h-4 w-4" />
             Kalp Topla bu tarihlerde ara versin (yeni kalp, geri çekme ve bar dolumu durur; kuponlar kullanılabilir)
           </label>
+          <label className="flex items-center gap-3 text-sm">
+            <input type="checkbox" name="homeBand" defaultChecked={settings.homeBand} className="h-4 w-4" />
+            Anasayfadaki kırmızı Muhteşem Kasım bandını göster (hero&apos;nun üstünde; banner açıkken aynı mesajı tekrar edebilir)
+          </label>
           <div className="grid gap-4 md:grid-cols-2">
             <div>
               <label className={labelClass} htmlFor="startsAt">

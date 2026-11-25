@@ -1,5 +1,12 @@
 # Bollmark - Güncel Durum
 
+## KALDIĞIM YER (2026-11-25, anasayfa banner yönetimi)
+
+- **Durum:** Hero slaytları panelden yönetiliyor: `/admin/bannerlar` (ekle, düzenle, sırala, aç/kapat, tarih penceresi, sil, canlı önizleme). Muhteşem Kasım A (açık), B (kapalı), ücretsiz kargo, sezon hero'su ve Kalp Topla (sistem) slaytları hazır. `/admin/efsane-cuma`'da kırmızı anasayfa bandı anahtarı (`homeBand`, açık). Kullanıcı kararı (2026-11-25): **A açık, B kapalı (silinmedi), kırmızı bant açık**. Localhost'ta doğrulandı, kullanıcı onayıyla commit + push edildi.
+- **DB (canlı, kullanıcı onaylı, 2026-11-25):** `HomeSlide` tablosu + `EfsaneCumaSettings.homeBand`; `prisma/migrations/20261125000000_anasayfa_banner/migration.sql` ile `prisma db execute`, `migrate diff` boş. İlk içerik `scripts/anasayfa-banner-ilk-icerik.ts --uygula` ile yazıldı (5 slayt + audit).
+- **Dikkat:** İlk görseller R2 yerine `public/anasayfa/banner/*.webp` (yerelde R2 anahtarı yok, Vercel'dekiler Sensitive; kullanıcı kararı). Deploy edilmeden canlıda görünmez; canlıdaki eski kod HomeSlide'ı okumadığı için deploy'a kadar sorun yok. Panelden sonraki yüklemeler canlıda R2'ye gider (`banner/`).
+- **Ayrıntı:** `docs/planlar/ANASAYFA_BANNER_YONETIMI_PLANI.md` ("Uygulama durumu"), ekran görüntüleri `Claude outputs/anasayfa-banner/ekran/`.
+
 ## KALDIĞIM YER (2026-11-24, Meta akışına sezon etiketi)
 
 - **Durum:** `/feed/meta.xml`'de her varyanta `g:custom_label_1` = ürünün panel sezon adı (`2026 Yaz`, `2027 Kış`, `HER SEZON`), sezonsuzsa `sezonsuz` (`src/lib/merchant-feed.ts`). Meta ürün setleri buna göre filtrelenecek. `custom_label_0` boş (başka iş için ayrıldı); Google akışı ve mevcut alanlar değişmedi. Localhost'ta doğrulandı; commit/push kullanıcı onayı bekliyor. Canlıda akış en geç 1 saatte (revalidate) yenilenir, Commerce Manager günde bir çeker.

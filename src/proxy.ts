@@ -129,7 +129,9 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname === "/admin" || pathname.startsWith("/admin/")) {
+  // /banner-onizleme: panelin banner onizleme cercevesi (panel kabugu disinda
+  // tam ekran cizilsin diye /admin altinda degil), yine yalniz yoneticiye acik.
+  if (pathname === "/admin" || pathname.startsWith("/admin/") || pathname === "/banner-onizleme") {
     return guardAdmin(request);
   }
 

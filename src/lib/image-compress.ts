@@ -19,11 +19,22 @@ export function toJpeg(image: Sharp): Sharp {
  */
 export async function compressImage(
   buffer: Buffer
-): Promise<{ buffer: Buffer; contentType: string; ext: string; jpeg: Buffer }> {
-  const resized = sharp(buffer).rotate().resize({ width: MAX_WIDTH, withoutEnlargement: true });
+): Promise<{ buffer: Buffer; contentType: string; ext: string; jpeg: Buffer }>;
+// Anasayfa banner'i gibi ozel profil: genislik/kalite verilir, JPEG kopyasi yazilmaz.
+export async function compressImage(
+  buffer: Buffer,
+  options: { maxWidth: number; quality: number; jpeg: false }
+): Promise<{ buffer: Buffer; contentType: string; ext: string; jpeg?: undefined }>;
+export async function compressImage(
+  buffer: Buffer,
+  options?: { maxWidth: number; quality: number; jpeg: false }
+): Promise<{ buffer: Buffer; contentType: string; ext: string; jpeg?: Buffer }> {
+  const resized = sharp(buffer)
+    .rotate()
+    .resize({ width: options?.maxWidth ?? MAX_WIDTH, withoutEnlargement: true });
   const [output, jpeg] = await Promise.all([
-    resized.clone().webp({ quality: WEBP_QUALITY }).toBuffer(),
-    toJpeg(resized.clone()).toBuffer()
+    resized.clone().webp({ quality: options?.quality ?? WEBP_QUALITY }).toBuffer(),
+    options ? undefined : toJpeg(resized.clone()).toBuffer()
   ]);
   return { buffer: output, contentType: "image/webp", ext: "webp", jpeg };
 }

@@ -49,7 +49,10 @@ export const auditActions = [
   "HEPSIJET_GONDERILDI",
   "HEPSIJET_GONDERIM_HATASI",
   "HEPSIJET_SORGULANDI",
-  "HEPSIJET_IPTAL"
+  "HEPSIJET_IPTAL",
+  "ANASAYFA_BANNER_EKLENDI",
+  "ANASAYFA_BANNER_DEGISTI",
+  "ANASAYFA_BANNER_SILINDI"
 ] as const;
 
 export const auditActionLabel: Record<string, string> = {
@@ -100,5 +103,8 @@ export const auditActionLabel: Record<string, string> = {
   HEPSIJET_GONDERILDI: "HepsiJET'e Gönderildi",
   HEPSIJET_GONDERIM_HATASI: "HepsiJET Gönderimi Başarısız",
   HEPSIJET_SORGULANDI: "HepsiJET Durumu Sorgulandı",
-  HEPSIJET_IPTAL: "HepsiJET Gönderisi İptal"
+  HEPSIJET_IPTAL: "HepsiJET Gönderisi İptal",
+  ANASAYFA_BANNER_EKLENDI: "Anasayfa Banner'ı Eklendi",
+  ANASAYFA_BANNER_DEGISTI: "Anasayfa Banner'ı Değişti",
+  ANASAYFA_BANNER_SILINDI: "Anasayfa Banner'ı Silindi"
 };

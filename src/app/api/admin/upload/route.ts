@@ -27,11 +27,27 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Dosya boyutu en fazla 4.5MB olabilir." }, { status: 400 });
   }
 
+  // profile=banner: anasayfa hero gorselleri (2400 px, JPEG kopyasi yok; bkz.
+  // ANASAYFA_BANNER_YONETIMI_PLANI.md). Yalniz tam yetkili yukleyebilir.
+  const banner = formData?.get("profile") === "banner";
+  if (banner && session.user?.role !== "ADMIN") {
+    return NextResponse.json({ error: "Yetkisiz istek." }, { status: 403 });
+  }
+
   try {
     const original = Buffer.from(await file.arrayBuffer());
-    const { buffer, contentType, ext, jpeg } = await compressImage(original);
+    const { buffer, contentType, ext, jpeg } = banner
+      ? await compressImage(original, { maxWidth: 2400, quality: 82, jpeg: false })
+      : await compressImage(original);
     const baseName = file.name.replace(/\.[^./\\]+$/, "");
-    const url = await uploadImage({ folder: "admin-upload", nameHint: baseName, buffer, contentType, ext, jpeg });
+    const url = await uploadImage({
+      folder: banner ? "banner" : "admin-upload",
+      nameHint: baseName,
+      buffer,
+      contentType,
+      ext,
+      jpeg
+    });
     return NextResponse.json({ url });
   } catch (error) {
     if (error instanceof R2ConfigError) {

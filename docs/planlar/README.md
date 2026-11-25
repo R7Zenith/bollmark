@@ -17,6 +17,7 @@ Kod yorumlarındaki `bkz. X_PLANI.md` atıfları dosya adıyla verilmiştir; dos
 
 | Plan | Durum |
 |---|---|
+| `ANASAYFA_BANNER_YONETIMI_PLANI.md` | Uygulandı ve push edildi (2026-11-25). Seçim: A açık, B kapalı, kırmızı bant açık. Kalan: canlıda deploy sonrası kontrol |
 | `BLOB_TAMAMEN_KALDIRMA_PLANI.md` | Taşıma ve Faz 3 kod temizliği bitti (2026-10-13). Kalan: Faz 4, Blob deposunu kapatma (kullanıcı) |
 | `META_KATALOG_PLANI.md` | Uygulandı (2026-10-26). Kalan: 24–48 saat sonra Commerce Manager'da eşleşme oranı kontrolü (hedef ≥%90) |
 | `META_PIXEL_CAPI_PLANI.md` | Uygulandı ve push edildi (2026-10-24). Kalan: canlıda Olay Yöneticisi doğrulaması (localhost'ta CAPI, IP olmadığı için "yetersiz müşteri bilgisi" ile reddediliyor; token/Pixel bağlantısı elle doğrulandı) |

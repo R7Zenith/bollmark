@@ -20,16 +20,17 @@ export function isAcceptedImage(file: { type: string; name: string }): boolean {
   return ACCEPTED_IMAGE_EXTENSIONS.some((ext) => name.endsWith(ext));
 }
 
-export async function resizeImageForUpload(file: File): Promise<File> {
+// maxEdge: uzun kenar siniri (urunler 2000, anasayfa banner'i 2400).
+export async function resizeImageForUpload(file: File, maxEdge = MAX_EDGE): Promise<File> {
   try {
     const bitmap = await createImageBitmap(file, { imageOrientation: "from-image" });
     const longEdge = Math.max(bitmap.width, bitmap.height);
-    if (longEdge <= MAX_EDGE && file.size <= MAX_UPLOAD_BYTES) {
+    if (longEdge <= maxEdge && file.size <= MAX_UPLOAD_BYTES) {
       bitmap.close();
       return file;
     }
 
-    const scale = Math.min(1, MAX_EDGE / longEdge);
+    const scale = Math.min(1, maxEdge / longEdge);
     const width = Math.round(bitmap.width * scale);
     const height = Math.round(bitmap.height * scale);
     const canvas = document.createElement("canvas");

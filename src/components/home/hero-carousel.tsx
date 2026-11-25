@@ -38,13 +38,14 @@ export function HeroSlideDeferred({ children }: { children: ReactNode }) {
   return useContext(SlideContext).warm ? <>{children}</> : null;
 }
 
-export function HeroCarousel({ children }: { children: ReactNode }) {
+// darkSlides: acik zeminli (koyu yazili) slaytlarda oklar/noktalar koyu cizilir.
+export function HeroCarousel({ children, darkSlides = [] }: { children: ReactNode; darkSlides?: boolean[] }) {
   const slides = Children.toArray(children);
   if (slides.length <= 1) return <>{slides}</>;
-  return <Carousel slides={slides} />;
+  return <Carousel slides={slides} darkSlides={darkSlides} />;
 }
 
-function Carousel({ slides }: { slides: ReactNode[] }) {
+function Carousel({ slides, darkSlides }: { slides: ReactNode[]; darkSlides: boolean[] }) {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
   const [selected, setSelected] = useState(0);
   const [playing, setPlaying] = useState(true);
@@ -75,6 +76,8 @@ function Carousel({ slides }: { slides: ReactNode[] }) {
     }, AUTOPLAY_MS);
     return () => window.clearTimeout(t);
   }, [emblaApi, playing, focused, selected]);
+
+  const control = darkSlides[selected] ? "text-ink" : "text-cream";
 
   const goTo = useCallback(
     (index: number) => {
@@ -125,7 +128,7 @@ function Carousel({ slides }: { slides: ReactNode[] }) {
           emblaApi?.scrollPrev();
         }}
         aria-label="Önceki slayt"
-        className="absolute left-4 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center text-cream transition-opacity hover:opacity-60 md:flex"
+        className={`absolute left-4 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center ${control} transition-opacity hover:opacity-60 md:flex`}
       >
         <ChevronLeft size={32} strokeWidth={1.25} aria-hidden="true" />
       </button>
@@ -136,7 +139,7 @@ function Carousel({ slides }: { slides: ReactNode[] }) {
           emblaApi?.scrollNext();
         }}
         aria-label="Sonraki slayt"
-        className="absolute right-4 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center text-cream transition-opacity hover:opacity-60 md:flex"
+        className={`absolute right-4 top-1/2 z-20 hidden h-11 w-11 -translate-y-1/2 items-center justify-center ${control} transition-opacity hover:opacity-60 md:flex`}
       >
         <ChevronRight size={32} strokeWidth={1.25} aria-hidden="true" />
       </button>
@@ -155,7 +158,7 @@ function Carousel({ slides }: { slides: ReactNode[] }) {
           >
             <span
               className={`block h-1.5 rounded-full transition-all duration-300 ${
-                i === selected ? "w-6 bg-cream" : "w-1.5 bg-cream/50"
+                i === selected ? `w-6 ${darkSlides[selected] ? "bg-ink" : "bg-cream"}` : `w-1.5 ${darkSlides[selected] ? "bg-ink/40" : "bg-cream/50"}`
               }`}
             />
           </button>
@@ -165,7 +168,7 @@ function Carousel({ slides }: { slides: ReactNode[] }) {
           data-hero-playpause=""
           onClick={() => setPlaying(!playing)}
           aria-label={playing ? "Otomatik geçişi durdur" : "Otomatik geçişi başlat"}
-          className="pointer-events-auto ml-1 flex h-8 w-8 items-center justify-center text-cream/80 transition hover:text-cream"
+          className={`pointer-events-auto ml-1 flex h-8 w-8 items-center justify-center ${control} opacity-80 transition hover:opacity-100`}
         >
           {playing ? (
             <Pause size={14} strokeWidth={1.5} aria-hidden="true" />

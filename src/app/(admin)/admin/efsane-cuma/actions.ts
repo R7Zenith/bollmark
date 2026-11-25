@@ -22,6 +22,7 @@ export async function saveEfsaneSettings(formData: FormData) {
   const session = await requireAdmin();
   const enabled = formData.get("enabled") === "on";
   const kalpPause = formData.get("kalpPause") === "on";
+  const homeBand = formData.get("homeBand") === "on";
   const startsAt = istanbulInput(formData.get("startsAt"));
   // Bitis dakikasi sonuna kadar gecerli (23:59 -> 23:59:59).
   const endInput = istanbulInput(formData.get("endsAt"));
@@ -32,8 +33,8 @@ export async function saveEfsaneSettings(formData: FormData) {
   const updatedByEmail = session.user?.email ?? null;
   await prisma.efsaneCumaSettings.upsert({
     where: { id: "singleton" },
-    create: { id: "singleton", enabled, kalpPause, startsAt, endsAt, updatedByEmail },
-    update: { enabled, kalpPause, startsAt, endsAt, updatedByEmail }
+    create: { id: "singleton", enabled, kalpPause, homeBand, startsAt, endsAt, updatedByEmail },
+    update: { enabled, kalpPause, homeBand, startsAt, endsAt, updatedByEmail }
   });
 
   const onOff = (v: boolean) => (v ? "açık" : "kapalı");
@@ -45,6 +46,7 @@ export async function saveEfsaneSettings(formData: FormData) {
     targetId: "singleton",
     detail:
       `Kampanya ${onOff(before.enabled)} → ${onOff(enabled)}; Kalp Topla arası ${onOff(before.kalpPause)} → ${onOff(kalpPause)}; ` +
+      `Anasayfa bandı ${onOff(before.homeBand)} → ${onOff(homeBand)}; ` +
       `${formatDateTime(startsAt)} – ${formatDateTime(endsAt)}`
   });
 

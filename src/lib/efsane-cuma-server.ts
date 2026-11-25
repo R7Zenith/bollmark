@@ -18,6 +18,7 @@ export async function getEfsaneSettings() {
   return {
     enabled: row?.enabled ?? true,
     kalpPause: row?.kalpPause ?? true,
+    homeBand: row?.homeBand ?? true,
     startsAt: row?.startsAt ?? EFSANE_DEFAULT_START,
     endsAt: row?.endsAt ?? EFSANE_DEFAULT_END,
     updatedByEmail: row?.updatedByEmail ?? null,

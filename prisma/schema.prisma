@@ -862,10 +862,43 @@ model EfsaneCumaSettings {
   id             String   @id @default("singleton")
   enabled        Boolean  @default(true)  // kampanya anahtarı
   kalpPause      Boolean  @default(true)  // Kalp Topla arası anahtarı (aynı tarihler)
+  homeBand       Boolean  @default(true)  // anasayfadaki kırmızı kampanya bandı
   startsAt       DateTime
   endsAt         DateTime
   updatedByEmail String?
   updatedAt      DateTime @updatedAt
+}
+
+// Anasayfa hero slaytları (docs/planlar/ANASAYFA_BANNER_YONETIMI_PLANI.md,
+// lib/home-slides.ts). Kalp Topla slaytı içerik olarak kodda; burada yalnız
+// id "kalp-topla", kind KALP_TOPLA satırıyla aç/kapat + sıra tutulur.
+model HomeSlide {
+  id              String    @id @default(cuid())
+  name            String                         // yalnız panelde görünen iç ad
+  kind            String    @default("IMAGE_ONLY") // IMAGE_ONLY | TEXT_OVERLAY | KALP_TOPLA (sistem)
+  enabled         Boolean   @default(true)
+  sortOrder       Int       @default(0)
+  startsAt        DateTime?
+  endsAt          DateTime?
+  desktopImageUrl String    @default("")
+  mobileImageUrl  String?                        // boşsa masaüstü görseli kullanılır
+  desktopFocus    String    @default("50% 50%")  // CSS object-position
+  mobileFocus     String    @default("50% 50%")
+  altText         String    @default("")
+  href            String?
+  eyebrow         String?
+  title           String?
+  subtitle        String?
+  buttonLabel     String?
+  textAlign       String    @default("LEFT")     // LEFT | CENTER
+  textTone        String    @default("LIGHT")    // LIGHT (beyaz yazı) | DARK (siyah yazı)
+  overlay         String    @default("NONE")     // NONE | LIGHT | MEDIUM
+  showCountdown   Boolean   @default(false)      // bitiş tarihine geri sayım
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  updatedByEmail  String?
+
+  @@index([sortOrder])
 }
 
 // Y4: npm paketine ek, admin'in elle engellediği alan adları.
