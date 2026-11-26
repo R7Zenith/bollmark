@@ -1,5 +1,11 @@
 # Bollmark - Güncel Durum
 
+## KALDIĞIM YER (2026-11-27, reklam videosu şablonu, YARIM)
+
+- **Durum:** `video-sablon` dalında, `main`'e alınmadı (canlıya etkisi yok). Yalnız `docs/reklam/video-sablon/lib/akis.mjs` (Meta akışı okuyucu) ve durum notu yazıldı; video üretilmedi.
+- **Devam:** `docs/reklam/video-sablon/DURUM.md` (kullanıcının brifi aynen, kararlar, kalan adımlar, yeni bilgisayar kurulumu). `.claude/skills/` artık Git'te.
+- **DB:** değişiklik yok.
+
 ## KALDIĞIM YER (2026-11-27, Microsoft Clarity)
 
 - **Durum:** Clarity (oturum kaydı + ısı haritası) yalnız `(site)` layout'unda, `lazyOnload`; **çerez rızasına bağlı değil** (kullanıcı kararı, KVKK riski bilerek kabul edildi). GA4/Meta rıza davranışı değişmedi. Kimlik `NEXT_PUBLIC_CLARITY_PROJECT_ID` (yalnız yerel `.env`; boşsa hiçbir şey yüklenmez). Olaylar `lib/meta/track.ts`'ten: `sepete_ekle`, `sepeti_gor`, `odeme_baslat`, `odeme_bilgisi`, `satin_alma`; kampanya aktifken `kampanya=muhtesem-kasim`. Kişisel alanlar `data-clarity-mask="True"` (ödeme Teslimat, giriş/kayıt girdileri, Hesabım paneli, sipariş durumu, sipariş no, üye adı).

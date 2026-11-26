@@ -41,8 +41,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local tooling
-.claude/
+# local tooling (.claude/skills/ iki bilgisayardan calisilsin diye Git'te)
+.claude/*
+!.claude/skills/
 bollmark.zip
 
 .env*
@@ -62,3 +63,6 @@ bollmark.zip
 # Kalp Topla test scriptlerinin ayar yedekleri
 /scripts/.kalp-topla-yedek-*.json
 /scripts/.kalp-topla-faz5-yedek-*.json
+
+# Reklam videosu sablonunun urettigi videolar (bkz. docs/reklam/video-sablon/)
+/Claude outputs/videolar/
