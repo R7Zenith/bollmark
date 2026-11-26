@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus } from "lucide-react";
 import { formatPrice } from "@/lib/format";
-import { SHIPPING_THRESHOLD_CENTS } from "@/lib/shipping";
+import { RETURN_SHIPPING_TEXT, SHIPPING_THRESHOLD_CENTS } from "@/lib/shipping";
 import { STORE_INFO } from "@/lib/store-info";
 import { WhatsAppLink } from "@/components/contact-links";
 
@@ -40,8 +40,7 @@ function buildFaqs(defaultShippingCents: number): Faq[] {
     },
     {
       question: "İade nasıl yapılır?",
-      answer:
-        "Teslim aldığınız üründen 14 gün içinde, gerekçe göstermeksizin cayma hakkınızı kullanabilirsiniz. Ürünü faturası, orijinal ambalajı ve etiketleriyle, kullanılmamış ve hasarsız şekilde göndermeniz gerekir. İade kargo ücreti alıcıya aittir.",
+      answer: `Teslim aldığınız üründen 14 gün içinde, gerekçe göstermeksizin cayma hakkınızı kullanabilirsiniz. Ürünü faturası, orijinal ambalajı ve etiketleriyle, kullanılmamış ve hasarsız şekilde göndermeniz gerekir. ${RETURN_SHIPPING_TEXT}`,
       link: { href: "/sayfa/iade-kosullari", label: "İade koşulları" }
     },
     {

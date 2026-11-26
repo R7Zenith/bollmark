@@ -15,7 +15,7 @@ import { getItemGroupId } from "@/lib/item-group-id";
 import { formatPrice } from "@/lib/format";
 import { EfsaneFiyatYazisi } from "@/components/efsane-cuma/vitrin";
 import { useEfsane } from "@/components/efsane-cuma/efsane-context";
-import { DISPATCH_TEXT, SHIPPING_THRESHOLD_CENTS, shippingFeeSummary } from "@/lib/shipping";
+import { DISPATCH_TEXT, RETURN_SHIPPING_TEXT, SHIPPING_THRESHOLD_CENTS, shippingFeeSummary } from "@/lib/shipping";
 import { effectivePrice } from "@/lib/variant";
 import { resolveProductDisplayPrice, type AutomaticPercentCampaign } from "@/lib/coupons";
 import { ProductBadge } from "@/components/product-badge";
@@ -1048,7 +1048,7 @@ export function ProductViewer({
               şekilde paketleyin.
             </li>
             <li>Belirtilen adrese gönderin.</li>
-            <li>İade kargo ücreti alıcıya aittir.</li>
+            <li>{RETURN_SHIPPING_TEXT}</li>
             <li>Ürün elimize ulaşıp kontrolü tamamlandıktan sonra bedeli en geç 14 gün içinde ödeme yaptığınız yönteme iade edilir.</li>
           </ol>
         </div>

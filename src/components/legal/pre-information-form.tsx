@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { formatPrice } from "@/lib/format";
 import { legalIdentityRows, phoneDisplay, STORE_INFO } from "@/lib/store-info";
-import { DISPATCH_TEXT, SHIPPING_THRESHOLD_CENTS, shippingFeeSummary } from "@/lib/shipping";
+import { DISPATCH_TEXT, RETURN_SHIPPING_TEXT, SHIPPING_THRESHOLD_CENTS, shippingFeeSummary } from "@/lib/shipping";
 
 // On Bilgilendirme Formu (6502 sayili Kanun m.48, Mesafeli Sozlesmeler
 // Yonetmeligi m.5). Hem /on-bilgilendirme-formu (genel metin) hem odeme
@@ -145,9 +145,9 @@ export function PreInformationForm({
       </p>
       <p className={pClass}>
         Cayma hakkınızı kullanmak için bu süre içinde {STORE_INFO.email} adresine sipariş numaranızla birlikte açık bir
-        bildirim göndermeniz yeterlidir. Ürünü, cayma bildiriminden itibaren 10 gün içinde faturası, kutusu/ambalajı ve
-        etiketleriyle birlikte, kullanılmamış ve hasarsız olarak {sellerAddress} adresine göndermeniz gerekir. İade kargo
-        ücreti alıcıya aittir. Ürün bedeli, cayma bildiriminin bize ulaşmasından itibaren en geç 14 gün içinde ödemeyi
+        bildirim göndermeniz yeterlidir. Bildiriminiz üzerine iade kodunuz e-posta ile tarafınıza iletilir. Ürünü, cayma
+        bildiriminden itibaren 10 gün içinde faturası, kutusu/ambalajı ve etiketleriyle birlikte, kullanılmamış ve
+        hasarsız olarak {sellerAddress} adresine göndermeniz gerekir. {RETURN_SHIPPING_TEXT} Ürün bedeli, cayma bildiriminin bize ulaşmasından itibaren en geç 14 gün içinde ödemeyi
         yaptığınız yönteme iade edilir. Ayrıntılar için{" "}
         <Link href="/sayfa/iade-kosullari" className="text-ink underline underline-offset-2">
           İade Koşulları

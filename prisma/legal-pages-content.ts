@@ -7,6 +7,8 @@
 // markdown ayristirilmaz) - bu yuzden basliklar "## " isareti olmadan, bos
 // satirlarla ayrilmis duz metin olarak yazilmistir.
 
+import { STORE_INFO } from "../src/lib/store-info";
+
 const YAYIN_TARIHI = "18 Eylül 2026";
 
 export type LegalPageSeed = { slug: string; title: string; content: string };
@@ -195,7 +197,7 @@ ALICI, hiçbir hukuki ve cezai sorumluluk üstlenmeksizin ve hiçbir gerekçe g�
 
 Cayma hakkının kullanılması halinde:
 - Ürünün faturası, kutusu, ambalajı, varsa standart aksesuarları ile birlikte eksiksiz ve hasarsız olarak iade edilmesi gerekir.
-- İade kargo ücreti ALICI'ya aittir.
+- İade için SATICI'nın anlaşmalı kargo firması: ${STORE_INFO.returnCarrier}. ALICI, ürünü bu firma ile, kendisine iletilen iade kodunu kullanarak ücretsiz gönderebilir. Anlaşmalı kargo firması dışında bir kargo firmasıyla yapılan gönderimlerde iade kargo ücreti ALICI'ya aittir.
 - Ürün, işyeri adresimize (Runguçpaşa Mah. 75. Sk. No:6/A Karacabey/Bursa) gönderilir.
 - Cayma bildiriminin SATICI'ya ulaşmasından ve ürünün SATICI'ya ulaşıp kontrolünün yapılmasından itibaren en geç 14 gün içinde ürün bedeli ALICI'ya iade edilir.
 
@@ -242,7 +244,7 @@ Son güncelleme: ${YAYIN_TARIHI}`
 1. bilgi@bollmark.com adresine sipariş numaranızla birlikte iade talebinizi iletin.
 2. Ürünü faturası, orijinal kutusu/ambalajı ve etiketleriyle birlikte, kullanılmamış ve hasarsız şekilde paketleyin.
 3. Ürünü Runguçpaşa Mah. 75. Sk. No:6/A Karacabey/Bursa adresine gönderin.
-4. İade kargo ücreti alıcıya aittir.
+4. İade için anlaşmalı kargo firmamız: ${STORE_INFO.returnCarrier}. Ürünü bu firma ile, tarafınıza iletilen iade kodunu kullanarak ücretsiz gönderebilirsiniz. Anlaşmalı kargo firmamız dışında bir kargo firmasıyla yapılan gönderimlerde iade kargo ücreti alıcıya aittir.
 5. Ürün elimize ulaşıp kontrolü tamamlandıktan sonra bedeli, en geç 14 gün içinde ödemeyi yaptığınız yönteme iade edilir.
 
 İade edilemeyecek ürünler: İç giyim, mayo, bikini gibi hijyen açısından hassas ürünlerde, ambalajı/etiketi açılmış veya kullanılmışsa cayma hakkı kullanılamaz.

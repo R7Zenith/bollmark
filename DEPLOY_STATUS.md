@@ -1,5 +1,12 @@
 # Bollmark - Güncel Durum
 
+## KALDIĞIM YER (2026-11-26, iade kargo ücreti metinleri)
+
+- **Durum (kullanıcı onaylı):** Mesafeli Sözleşmeler Yönetmeliği'ne uyum: "İade kargo ücreti alıcıya aittir" her yerde "anlaşmalı kargo firmamız (iade koduyla) ücretsiz, başka firmayla gönderimde alıcıya ait" oldu. Yerler: anasayfa SSS, ürün sayfası İade Adımları, Ön Bilgilendirme Formu 5. bölüm (iade kodunun e-postayla iletildiği eklendi), iade onay e-postası.
+- **Firma adı tek yerde:** `STORE_INFO.returnCarrier` (`src/lib/store-info.ts`, "Yurtiçi Kargo"); site metni `RETURN_SHIPPING_TEXT` (`src/lib/shipping.ts`).
+- **DB (canlı, kullanıcı onaylı, 2026-11-26):** `iade-kosullari` ve `mesafeli-satis-sozlesmesi` kayıtlarında yalnız iade kargo satırı `scripts/iade-kargo-metni-guncelle.ts --yaz` ile yazıldı. Firma değişirse: sabiti değiştir, betiği `--yaz` ile yeniden çalıştır.
+- **Yapılmayan:** "Son güncelleme" tarihleri değiştirilmedi.
+
 ## KALDIĞIM YER (2026-11-25, anasayfa banner yönetimi)
 
 - **Durum:** Hero slaytları panelden yönetiliyor: `/admin/bannerlar` (ekle, düzenle, sırala, aç/kapat, tarih penceresi, sil, canlı önizleme). Muhteşem Kasım A (açık), B (kapalı), ücretsiz kargo, sezon hero'su ve Kalp Topla (sistem) slaytları hazır. `/admin/efsane-cuma`'da kırmızı anasayfa bandı anahtarı (`homeBand`, açık). Kullanıcı kararı (2026-11-25): **A açık, B kapalı (silinmedi), kırmızı bant açık**. Localhost'ta doğrulandı, kullanıcı onayıyla commit + push edildi.

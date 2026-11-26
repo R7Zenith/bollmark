@@ -257,7 +257,7 @@ const RETURN_STEPS: ReturnStatus[] = ["TALEP_EDILDI", "ONAYLANDI", "KARGODA", "T
 function returnNextStep(status: ReturnStatus, type: ReturnType | null): string | null {
   const a = STORE_INFO.address;
   if (status === "ONAYLANDI") {
-    return `Ürünü faturası, orijinal ambalajı ve etiketleriyle birlikte, kullanılmamış şekilde paketleyip ${a.streetAddress} ${a.addressLocality}/${a.addressRegion} adresine gönderebilir ya da ${a.addressLocality} mağazamıza getirebilirsin. İade kargo ücreti alıcıya aittir.`;
+    return `Ürünü faturası, orijinal ambalajı ve etiketleriyle birlikte, kullanılmamış şekilde paketleyip ${a.streetAddress} ${a.addressLocality}/${a.addressRegion} adresine gönderebilir ya da ${a.addressLocality} mağazamıza getirebilirsin. İade için anlaşmalı kargo firmamız: ${STORE_INFO.returnCarrier}. Ürünü bu firma ile, sana iletilen iade kodunu kullanarak ücretsiz gönderebilirsin. Anlaşmalı kargo firmamız dışında bir kargo firmasıyla yapılan gönderimlerde iade kargo ücreti alıcıya aittir.`;
   }
   if (status === "TAMAMLANDI" && type === "IADE") {
     return `Ürün elimize ulaştı ve kontrolü tamamlandı. Bedeli en geç ${STORE_INFO.returnDays} gün içinde ödemeyi yaptığın yönteme iade edilir.`;

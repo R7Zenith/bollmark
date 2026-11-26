@@ -36,9 +36,13 @@ export const STORE_INFO = {
     postalCode: "16700",
     addressCountry: "TR"
   },
-  // "Iade Kosullari" sayfasi: teslimden itibaren 14 gun cayma hakki, iade
-  // kargo ucreti aliciya ait.
+  // "Iade Kosullari" sayfasi: teslimden itibaren 14 gun cayma hakki. Iade
+  // anlasmali kargo firmasiyla (iade koduyla) ucretsiz; baska firmayla
+  // gonderimde iade kargo ucreti aliciya ait.
   returnDays: 14,
+  // Iade icin anlasmali kargo firmasi - tum iade metinleri buradan okur.
+  // Degisirse DB'deki yasal sayfalar icin: npx tsx scripts/iade-kargo-metni-guncelle.ts --yaz
+  returnCarrier: "Yurtiçi Kargo",
   // Teslimat suresi (is gunu) - Merchant Center kargo ayariyla ayni olmali.
   // Hazirlama: "Teslimat Sartlari" sayfasi (1-3 is gunu); yolda kalma: kullanici
   // bilgisi (30 Eylul 2026).

@@ -16,7 +16,10 @@ export function shippingFeeSummary(standardShippingCents: number): string {
     : "Kargo ücretsizdir.";
 }
 
-export const DISPATCH_TEXT = `Siparişiniz ${STORE_INFO.handlingDays.min}-${STORE_INFO.handlingDays.max} iş günü içinde kargoya verilir.`;
+// Iade kargo ucreti metni (SSS, urun sayfasi, On Bilgilendirme Formu).
+export const RETURN_SHIPPING_TEXT = `İade için anlaşmalı kargo firmamız: ${STORE_INFO.returnCarrier}. Ürünü bu firma ile, tarafınıza iletilen iade kodunu kullanarak ücretsiz gönderebilirsiniz. Anlaşmalı kargo firmamız dışında bir kargo firmasıyla yapılan gönderimlerde iade kargo ücreti alıcıya aittir.`;
+
+export const DISPATCH_TEXT =`Siparişiniz ${STORE_INFO.handlingDays.min}-${STORE_INFO.handlingDays.max} iş günü içinde kargoya verilir.`;
 
 export function calculateShippingCents(
   payableCents: number,
