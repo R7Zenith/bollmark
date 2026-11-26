@@ -25,10 +25,13 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     .count({ where: { needsAttention: true, deletedAt: null } })
     .catch(() => 0);
 
+  // Sidebar'daki "İadeler" rozeti: yanit bekleyen (TALEP_EDILDI) iade/degisim talepleri.
+  const openReturns = await prisma.returnRequest.count({ where: { status: "TALEP_EDILDI" } }).catch(() => 0);
+
   return (
     <AdminSessionProvider>
       <ToastProvider>
-        <AdminShell role={session.user?.role} unreadMessages={unreadMessages} attentionOrders={attentionOrders}>{children}</AdminShell>
+        <AdminShell role={session.user?.role} unreadMessages={unreadMessages} attentionOrders={attentionOrders} openReturns={openReturns}>{children}</AdminShell>
       </ToastProvider>
     </AdminSessionProvider>
   );

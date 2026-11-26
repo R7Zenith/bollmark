@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { returnTypes } from "@/lib/status";
+import { notifyReturnCreated } from "@/lib/order-notifications";
 
 const itemSchema = z.object({
   orderItemId: z.string().min(1),
@@ -100,6 +101,9 @@ export async function POST(req: NextRequest) {
       customerNote: data.customerNote?.trim() || null
     }
   });
+
+  // 16 (musteri) + 17 (admin). Talep kaydedildi; mail hatasi yalniz loglanir, yaniti bozmaz.
+  await notifyReturnCreated(order, returnRequest.id).catch((error) => console.error("İade talebi maili başarısız:", error));
 
   return NextResponse.json({ id: returnRequest.id }, { status: 201 });
 }

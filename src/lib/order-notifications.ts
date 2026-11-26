@@ -9,11 +9,13 @@ import {
   orderReceivedEmail,
   orderStatusEmail,
   refundEmail,
+  returnReplyEmail,
   returnStatusEmail,
   type OrderEmailData,
   type ReturnEmailData,
   type StatusEmailKind
 } from "@/lib/email/order-emails";
+import { sendReturnCreatedMails } from "@/lib/email/return-mails";
 import type { Order } from "@/generated/prisma/client";
 
 // Sadece musterinin bilmesi gereken 3 kritik gecis icin mail atilir - her
@@ -108,10 +110,13 @@ export async function notifyCustomerRefund(order: Order, amountCents: number, fu
   await sendMail({ to: order.customerEmail, ...refundEmail(data, amountCents, fullyRefunded), log: { kind: "REFUND" } });
 }
 
-// Talebin kalemleri: bu durumdaki en son guncellenen iade/degisim talebinden. Yalniz okur.
-export async function loadReturnEmailData(order: Order, status: ReturnStatus): Promise<ReturnEmailData> {
+// Iade talebinin mail verisi (kalemler gorselli). Yalniz okur.
+export async function loadReturnEmailData(order: Order, returnId: string): Promise<ReturnEmailData> {
   const [request, data] = await Promise.all([
-    prisma.returnRequest.findFirst({ where: { orderId: order.id, status }, orderBy: { updatedAt: "desc" }, select: { type: true, itemsJson: true } }),
+    prisma.returnRequest.findUnique({
+      where: { id: returnId },
+      select: { type: true, itemsJson: true, reason: true, customerNote: true, customerReply: true }
+    }),
     loadOrderEmailData(order)
   ]);
   const byId = new Map(data.items.map((item) => [item.id, item]));
@@ -121,7 +126,17 @@ export async function loadReturnEmailData(order: Order, status: ReturnStatus): P
     return [{ ...item, quantity, totalCents: Math.round((item.totalCents / item.quantity) * quantity) }];
   }) : [];
   const type = request && (returnTypes as readonly string[]).includes(request.type) ? (request.type as ReturnType) : null;
-  return { siteUrl: data.siteUrl, customerName: order.customerName, orderNumber: order.orderNumber, type, items };
+  return {
+    siteUrl: data.siteUrl,
+    customerName: order.customerName,
+    orderNumber: order.orderNumber,
+    type,
+    items,
+    reason: request?.reason ?? "",
+    customerNote: request?.customerNote ?? null,
+    customerReply: request?.customerReply ?? null,
+    viewUrl: order.customerId ? `${data.siteUrl}/hesap/iade-taleplerim` : `${data.siteUrl}/siparis-durumu`
+  };
 }
 
 function parseReturnItems(raw: string): { orderItemId: string; quantity: number }[] {
@@ -134,7 +149,25 @@ function parseReturnItems(raw: string): { orderItemId: string; quantity: number 
   }
 }
 
-export async function notifyReturnStatusChange(order: Order, status: ReturnStatus): Promise<void> {
+export async function notifyReturnStatusChange(order: Order, status: ReturnStatus, returnId: string): Promise<void> {
   if (!returnStatusNotifiable.includes(status)) return;
-  await sendMail({ to: order.customerEmail, ...returnStatusEmail(await loadReturnEmailData(order, status), status), log: { kind: "RETURN_STATUS" } });
+  await sendMail({ to: order.customerEmail, ...returnStatusEmail(await loadReturnEmailData(order, returnId), status), log: { kind: "RETURN_STATUS" } });
+}
+
+// 18: durum maili gitmeyen kayitta yeni/degisen musteri yaniti.
+export async function notifyReturnReply(order: Order, status: ReturnStatus, returnId: string): Promise<void> {
+  await sendMail({ to: order.customerEmail, ...returnReplyEmail(await loadReturnEmailData(order, returnId), status), log: { kind: "RETURN_REPLY" } });
+}
+
+// 16 + 17: talep acilinca musteriye ve bize.
+export async function notifyReturnCreated(order: Order, returnId: string): Promise<void> {
+  await sendReturnCreatedMails(
+    {
+      customerEmail: order.customerEmail,
+      data: await loadReturnEmailData(order, returnId),
+      adminTo: process.env.ADMIN_NOTIFY_EMAIL || process.env.MAIL_FROM || null,
+      adminUrl: `${getSiteUrl()}/admin/iadeler?q=${encodeURIComponent(order.orderNumber)}`
+    },
+    sendMail
+  );
 }

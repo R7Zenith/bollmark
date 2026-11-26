@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { formatPrice } from "@/lib/format";
 import { returnStatuses } from "@/lib/status";
 import { safeTrackingUrl } from "@/lib/yurtici/map";
+import { returnGuideFor } from "@/lib/return-guide";
 
 const schema = z.object({
   orderNumber: z.string().min(1),
@@ -100,7 +101,11 @@ export async function POST(req: NextRequest) {
         : "TALEP_EDILDI",
       createdAt: rr.createdAt,
       customerNote: rr.customerNote,
-      adminNote: rr.adminNote,
+      // adminNote ic nottur, musteriye donmez; yerine musteriye gorunen yanit.
+      customerReply: rr.customerReply,
+      customerReplyAt: rr.customerReplyAt,
+      // Iade kodu ve adresi yalniz ONAYLANDI/KARGODA talepte (aksi halde null).
+      guide: returnGuideFor(rr.status, order.orderNumber),
       items: parseItemsJson(rr.itemsJson)
     }))
   });

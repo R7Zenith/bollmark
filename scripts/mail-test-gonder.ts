@@ -98,11 +98,11 @@ async function main() {
   const returnStatus: ReturnStatus = "ONAYLANDI";
   let returnData: ReturnEmailData;
   if (returnRow) {
-    returnData = { ...(await loadReturnEmailData(returnRow.order, returnRow.status as ReturnStatus)) };
+    returnData = { ...(await loadReturnEmailData(returnRow.order, returnRow.id)) };
     if (returnData.items.length === 0) returnData = { ...returnData, items: (await loadOrderEmailData(returnRow.order)).items.slice(0, 1) };
     console.log(`Ornek iade talebi: ${returnRow.order.orderNumber} (${returnRow.type}), durum ONAYLANDI olarak gosteriliyor`);
   } else {
-    returnData = { siteUrl: SITE, customerName: order.customerName, orderNumber: order.orderNumber, type: "DEGISIM", items: orderData.items.slice(0, 1) };
+    returnData = { siteUrl: SITE, customerName: order.customerName, orderNumber: order.orderNumber, type: "DEGISIM", items: orderData.items.slice(0, 1), reason: "Beden uymadı", customerNote: null, customerReply: null, viewUrl: `${SITE}/siparis-durumu` };
     console.log("Iade talebi yok: ornek siparisin ilk kalemiyle degisim talebi");
   }
 

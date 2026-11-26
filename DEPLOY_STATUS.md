@@ -1,5 +1,14 @@
 # Bollmark - Güncel Durum
 
+## KALDIĞIM YER (2026-11-26, iade talebi sistemi)
+
+- **Durum (kullanıcı onaylı, push edildi):** Talep açılınca müşteriye 16 "Talebin alındı", bize 17 "Yeni iade talebi"; admin yanıtı için 18; 05 onay mailinde Yurtiçi anlaşma kodu, iade adresi ve gönderim adımları; KARGODA da mail atıyor. Bir admin kaydında en fazla tek mail (durum değişince durum maili, yalnız yanıt değişince 18). Admin İadeler: düzenleme paneli (müşteriye yanıt + 4 hazır şablon, ayrı iç not), menüde açık talep rozeti. Hesapta `/hesap/iade-taleplerim` (rehber kutusu, kopyala butonları); `/siparis-durumu`'nda aynı rehber.
+- **Sabitler:** `RETURN_INFO` (`src/lib/store-info.ts`: anlaşma kodu, iade adresi, alıcı). `STORE_INFO`'da değil: o tarayıcı paketine giriyor. Kod yalnız ONAYLANDI/KARGODA talepte, sunucudan gelir (`src/lib/return-guide.ts`).
+- **DB (canlı, kullanıcı onaylı, 2026-11-26):** `ReturnRequest.customerReply` + `customerReplyAt`, `prisma/migrations/20261126000000_iade_talebi_yanit/migration.sql` ile `prisma db execute`; `migrate diff` boş. İade Koşulları 4. adıma "İade kodu ve adres, talebiniz onaylanınca…" cümlesi `scripts/iade-kargo-metni-guncelle.ts --yaz` ile yazıldı.
+- **Davranış değişiklikleri:** admin iç notu (`adminNote`) artık müşteriye gösterilmiyor (sipariş durumu ekranı eskiden gösteriyordu); durum değişmeden "Kaydet" artık mail atmıyor; iade kaydetme işlemine `requireAdmin` eklendi.
+- **Dikkat:** Şemadan sonra çalışan dev sunucu eski Prisma istemcisini tutar ("Unknown field customerReply"); yeniden başlatmak gerekir. Localhost test verisi (TEST ALICI siparişi, hesap, mail kayıtları) silindi.
+- **Ayrıntı:** `docs/planlar/IADE_TALEBI_SISTEMI_PLANI.md`, mail önizlemeleri `docs/mail-tasarimlari/05,16,17,18` (`scripts/iade-mail-onizleme.ts` ile üretilir).
+
 ## KALDIĞIM YER (2026-11-26, iade kargo ücreti metinleri)
 
 - **Durum (kullanıcı onaylı):** Mesafeli Sözleşmeler Yönetmeliği'ne uyum: "İade kargo ücreti alıcıya aittir" her yerde "anlaşmalı kargo firmamız (iade koduyla) ücretsiz, başka firmayla gönderimde alıcıya ait" oldu. Yerler: anasayfa SSS, ürün sayfası İade Adımları, Ön Bilgilendirme Formu 5. bölüm (iade kodunun e-postayla iletildiği eklendi), iade onay e-postası.

@@ -71,8 +71,7 @@ export default async function HesapSiparislerimPage() {
         type: rr.type,
         reason: rr.reason,
         status: returnStatuses.includes(rr.status as (typeof returnStatuses)[number]) ? rr.status : "TALEP_EDILDI",
-        createdAtLabel: formatDate(rr.createdAt),
-        adminNote: rr.adminNote
+        createdAtLabel: formatDate(rr.createdAt)
       }))
     };
   });

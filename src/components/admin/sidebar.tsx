@@ -160,12 +160,14 @@ export function Sidebar({
   role,
   unreadMessages = 0,
   attentionOrders = 0,
+  openReturns = 0,
   isMobileOpen = false,
   onClose
 }: {
   role?: string;
   unreadMessages?: number;
   attentionOrders?: number;
+  openReturns?: number;
   isMobileOpen?: boolean;
   onClose?: () => void;
 }) {
@@ -301,7 +303,9 @@ export function Sidebar({
                             ? unreadMessages
                             : item.href === "/admin/siparisler"
                               ? attentionOrders
-                              : undefined
+                              : item.href === "/admin/iadeler"
+                                ? openReturns
+                                : undefined
                         }
                       />
                     ))}

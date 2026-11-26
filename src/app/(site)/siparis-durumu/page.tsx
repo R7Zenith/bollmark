@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { formatDate, formatPrice } from "@/lib/format";
+import type { ReturnGuideData } from "@/lib/return-guide";
+import { ReturnGuide, ReturnHowItWorks, ReturnReply, ReturnSteps } from "@/components/return-guide";
 
 const returnReasons = ["Beden uymadı", "Ürün hasarlı geldi", "Farklı ürün istiyorum", "Diğer"] as const;
 
@@ -40,7 +42,9 @@ interface ReturnRequestView {
   status: string;
   createdAt: string;
   customerNote: string | null;
-  adminNote: string | null;
+  customerReply: string | null;
+  customerReplyAt: string | null;
+  guide: ReturnGuideData | null;
   items: { orderItemId: string; quantity: number }[];
 }
 
@@ -248,7 +252,16 @@ export default function SiparisDurumuPage() {
                     <p className="mt-1 text-xs text-ink/50">
                       {formatDate(rr.createdAt)}
                     </p>
-                    {rr.adminNote && <p className="mt-2 text-sm text-ink/70">Not: {rr.adminNote}</p>}
+                    <ReturnSteps status={rr.status} />
+                    {rr.customerReply && (
+                      <ReturnReply reply={rr.customerReply} dateLabel={rr.customerReplyAt ? formatDate(rr.customerReplyAt) : null} />
+                    )}
+                    {rr.guide && <ReturnGuide guide={rr.guide} />}
+                    {rr.status === "TALEP_EDILDI" && (
+                      <p className="mt-4 text-sm text-ink/60">
+                        Talebini inceliyoruz. Onaylanınca iade kodu ve gönderim adresi bu sayfada ve e-postanda görünecek.
+                      </p>
+                    )}
                   </div>
                 ))}
               </div>
@@ -259,6 +272,7 @@ export default function SiparisDurumuPage() {
             <div className="border border-line bg-white p-6">
               <h2 className="font-display text-xl">İade/Değişim Talebi Oluştur</h2>
               <form onSubmit={submitReturn} className="mt-4 space-y-4">
+                <ReturnHowItWorks where="bu sayfada" />
                 <div className="flex gap-4 text-sm">
                   <label className="flex items-center gap-2">
                     <input
@@ -314,7 +328,11 @@ export default function SiparisDurumuPage() {
                 />
 
                 {formError && <p className="text-sm text-red-600">{formError}</p>}
-                {formSuccess && <p className="text-sm text-ink/70">Talebiniz alındı.</p>}
+                {formSuccess && (
+                  <p className="text-sm text-ink/70">
+                    Talebin alındı. Onaylanınca iade kodu ve gönderim adresi yukarıdaki İade/Değişim Geçmişi&apos;nde ve e-postanda görünecek.
+                  </p>
+                )}
 
                 <button
                   type="submit"

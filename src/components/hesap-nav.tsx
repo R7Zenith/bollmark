@@ -8,6 +8,7 @@ import { useKalpDurum } from "@/components/kalp-topla/use-kalp-durum";
 const navItems = [
   { href: "/hesap", label: "Özet" },
   { href: "/hesap/siparislerim", label: "Siparişlerim" },
+  { href: "/hesap/iade-taleplerim", label: "İade Taleplerim" },
   { href: "/hesap/adreslerim", label: "Adreslerim" },
   { href: "/hesap/puanlarim", label: "Puanlarım" },
   { href: "/hesap/kaydedilenler", label: "Kaydedilenler" },
@@ -22,7 +23,7 @@ const kalpItems = [
 export function HesapNav() {
   const pathname = usePathname();
   const kalpState = useKalpDurum();
-  const items = kalpState ? [...navItems.slice(0, 5), ...kalpItems, ...navItems.slice(5)] : navItems;
+  const items = kalpState ? [...navItems.slice(0, 6), ...kalpItems, ...navItems.slice(6)] : navItems;
 
   return (
     <div>

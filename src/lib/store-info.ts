@@ -43,6 +43,8 @@ export const STORE_INFO = {
   // Iade icin anlasmali kargo firmasi - tum iade metinleri buradan okur.
   // Degisirse DB'deki yasal sayfalar icin: npx tsx scripts/iade-kargo-metni-guncelle.ts --yaz
   returnCarrier: "Yurtiçi Kargo",
+  // Iade kodu ve adresi STORE_INFO'da degil, asagidaki RETURN_INFO'da: STORE_INFO
+  // tarayici bilesenlerine de giriyor, kod herkese acik JS paketine dusmesin.
   // Teslimat suresi (is gunu) - Merchant Center kargo ayariyla ayni olmali.
   // Hazirlama: "Teslimat Sartlari" sayfasi (1-3 is gunu); yolda kalma: kullanici
   // bilgisi (30 Eylul 2026).
@@ -54,6 +56,16 @@ export const STORE_INFO = {
     opens: "10:00",
     closes: "19:30"
   }
+};
+
+// Iade gonderimi (IADE_TALEBI_SISTEMI_PLANI.md 3). Yalniz ONAYLANDI/KARGODA
+// talepte musteriye gosterilir (hesap, siparis durumu, onay maili); herkese acik
+// sayfalara ve tarayici bilesenlerine dogrudan import edilmez, sunucudan prop/
+// API ile gecer. Adres iade ekranlari ve maillerde birebir bu yazimla.
+export const RETURN_INFO = {
+  returnCarrierCode: "1287643200", // Yurtici Kargo anlasma (iade) kodu
+  returnAddress: "Runguçpaşa Mh. 75.Sk No:6/A Karacabey Bursa",
+  returnRecipient: "Bollmark (Oğuzhan Leventoğlu)"
 };
 
 export const INSTAGRAM_URL = `https://www.instagram.com/${STORE_INFO.instagramUsername}/`;

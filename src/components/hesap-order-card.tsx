@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
+import { ReturnHowItWorks } from "@/components/return-guide";
 import { returnReasons, returnTypeLabel, returnStatusLabel, type ReturnType } from "@/lib/status";
 
 export interface HesapOrderItemView {
@@ -17,7 +19,6 @@ export interface HesapReturnRequestView {
   reason: string;
   status: string;
   createdAtLabel: string;
-  adminNote: string | null;
 }
 
 export interface HesapOrderView {
@@ -134,10 +135,10 @@ export function HesapOrderCard({ order }: { order: HesapOrderView }) {
       {order.returnRequests.length > 0 && (
         <div className="mt-4 space-y-2 border-t border-line pt-4">
           {order.returnRequests.map((rr) => (
-            <div key={rr.id} className="text-xs text-ink/70">
+            <Link key={rr.id} href={`/hesap/iade-taleplerim#talep-${rr.id}`} className="block text-xs text-ink/70 underline-offset-2 hover:text-ink hover:underline">
               {returnTypeLabel[rr.type as ReturnType] ?? rr.type} · {rr.reason} ·{" "}
               {returnStatusLabel[rr.status as keyof typeof returnStatusLabel] ?? rr.status} ({rr.createdAtLabel})
-            </div>
+            </Link>
           ))}
         </div>
       )}
@@ -154,6 +155,7 @@ export function HesapOrderCard({ order }: { order: HesapOrderView }) {
             </button>
           ) : (
             <form onSubmit={submitReturn} className="space-y-3">
+              <ReturnHowItWorks where="İade Taleplerim sayfasında" />
               <div className="flex gap-4 text-sm">
                 <label className="flex items-center gap-2">
                   <input type="radio" checked={type === "IADE"} onChange={() => setType("IADE")} />
@@ -195,7 +197,15 @@ export function HesapOrderCard({ order }: { order: HesapOrderView }) {
                 className="w-full rounded-lg border border-line px-3 py-2 text-sm"
               />
               {formError && <p className="text-sm text-red-600">{formError}</p>}
-              {formSuccess && <p className="text-sm text-ink/70">Talebiniz alındı.</p>}
+              {formSuccess && (
+                <p className="text-sm text-ink/70">
+                  Talebin alındı. Durumunu{" "}
+                  <Link href="/hesap/iade-taleplerim" className="text-ink underline underline-offset-2">
+                    İade Taleplerim
+                  </Link>{" "}
+                  sayfasından takip edebilirsin.
+                </p>
+              )}
               <div className="flex gap-2">
                 <button
                   type="submit"

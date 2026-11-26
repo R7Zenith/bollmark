@@ -244,7 +244,7 @@ Son güncelleme: ${YAYIN_TARIHI}`
 1. bilgi@bollmark.com adresine sipariş numaranızla birlikte iade talebinizi iletin.
 2. Ürünü faturası, orijinal kutusu/ambalajı ve etiketleriyle birlikte, kullanılmamış ve hasarsız şekilde paketleyin.
 3. Ürünü Runguçpaşa Mah. 75. Sk. No:6/A Karacabey/Bursa adresine gönderin.
-4. İade için anlaşmalı kargo firmamız: ${STORE_INFO.returnCarrier}. Ürünü bu firma ile, tarafınıza iletilen iade kodunu kullanarak ücretsiz gönderebilirsiniz. Anlaşmalı kargo firmamız dışında bir kargo firmasıyla yapılan gönderimlerde iade kargo ücreti alıcıya aittir.
+4. İade için anlaşmalı kargo firmamız: ${STORE_INFO.returnCarrier}. Ürünü bu firma ile, tarafınıza iletilen iade kodunu kullanarak ücretsiz gönderebilirsiniz. İade kodu ve adres, talebiniz onaylanınca hesabınızda (üye değilseniz Sipariş Durumu sayfasında) ve e-postanızda iletilir. Anlaşmalı kargo firmamız dışında bir kargo firmasıyla yapılan gönderimlerde iade kargo ücreti alıcıya aittir.
 5. Ürün elimize ulaşıp kontrolü tamamlandıktan sonra bedeli, en geç 14 gün içinde ödemeyi yaptığınız yönteme iade edilir.
 
 İade edilemeyecek ürünler: İç giyim, mayo, bikini gibi hijyen açısından hassas ürünlerde, ambalajı/etiketi açılmış veya kullanılmışsa cayma hakkı kullanılamaz.

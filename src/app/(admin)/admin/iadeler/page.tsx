@@ -4,7 +4,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/require-admin";
-import { notifyReturnStatusChange } from "@/lib/order-notifications";
+import { notifyReturnReply, notifyReturnStatusChange } from "@/lib/order-notifications";
+import { pickReturnMail } from "@/lib/email/return-mails";
 import { logAudit } from "@/lib/audit-log";
 import { returnStatuses, type ReturnStatus } from "@/lib/status";
 import { EmptyState } from "@/components/admin/empty-state";
@@ -34,24 +35,39 @@ function parseItemsJson(raw: string): ReturnItemSnapshot[] {
 
 async function updateReturnAction(formData: FormData) {
   "use server";
+  await requireAdmin();
   const returnId = String(formData.get("returnId") || "");
   const statusRaw = String(formData.get("status") || "");
   const status = (returnStatuses as readonly string[]).includes(statusRaw)
     ? (statusRaw as ReturnStatus)
     : "TALEP_EDILDI";
   const adminNote = String(formData.get("adminNote") || "").trim() || null;
+  const customerReply = String(formData.get("customerReply") || "").trim() || null;
   let warning: string | null = null;
 
   try {
-    const before = await prisma.returnRequest.findUnique({ where: { id: returnId }, select: { status: true } });
+    const before = await prisma.returnRequest.findUnique({
+      where: { id: returnId },
+      select: { status: true, customerReply: true }
+    });
+    if (!before) throw new Error("Talep bulunamadı");
+    const replyChanged = customerReply !== before.customerReply;
     const updated = await prisma.returnRequest.update({
       where: { id: returnId },
-      data: { status, adminNote },
+      data: { status, adminNote, customerReply, ...(replyChanged ? { customerReplyAt: customerReply ? new Date() : null } : {}) },
       include: { order: true }
     });
-    notifyReturnStatusChange(updated.order, status).catch((error) =>
-      console.error("İade durum bildirimi maili başarısız:", error)
-    );
+    // Durum maili (yanit icinde) ya da yalniz yanit maili: tek kayitta tek mail.
+    const mail = pickReturnMail(before, { status, customerReply });
+    if (mail === "STATUS") {
+      notifyReturnStatusChange(updated.order, status, updated.id).catch((error) =>
+        console.error("İade durum bildirimi maili başarısız:", error)
+      );
+    } else if (mail === "REPLY") {
+      notifyReturnReply(updated.order, status, updated.id).catch((error) =>
+        console.error("İade yanıt maili başarısız:", error)
+      );
+    }
     const session = await getServerSession(authOptions);
     logAudit({
       actorEmail: session?.user?.email ?? "bilinmiyor",
@@ -164,6 +180,9 @@ export default async function AdminReturnsPage({
       itemsSummary: itemsSummary || "-",
       status: rr.status,
       adminNote: rr.adminNote,
+      customerNote: rr.customerNote,
+      customerReply: rr.customerReply,
+      customerReplyAtLabel: rr.customerReplyAt ? formatDate(rr.customerReplyAt) : null,
       createdAtLabel: formatDate(rr.createdAt),
       kalp:
         couponLines.length > 0

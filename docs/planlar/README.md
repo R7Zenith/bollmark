@@ -17,6 +17,7 @@ Kod yorumlarındaki `bkz. X_PLANI.md` atıfları dosya adıyla verilmiştir; dos
 
 | Plan | Durum |
 |---|---|
+| `IADE_TALEBI_SISTEMI_PLANI.md` | Uygulandı ve push edildi (2026-11-26): 16/17/18 mailleri, admin yanıtı, İade Taleplerim, iade kodu rehberi. Kalan: canlıda ilk gerçek talebin izlenmesi |
 | `ANASAYFA_BANNER_YONETIMI_PLANI.md` | Uygulandı ve push edildi (2026-11-25). Seçim: A açık, B kapalı, kırmızı bant açık. Kalan: canlıda deploy sonrası kontrol |
 | `BLOB_TAMAMEN_KALDIRMA_PLANI.md` | Taşıma ve Faz 3 kod temizliği bitti (2026-10-13). Kalan: Faz 4, Blob deposunu kapatma (kullanıcı) |
 | `META_KATALOG_PLANI.md` | Uygulandı (2026-10-26). Kalan: 24–48 saat sonra Commerce Manager'da eşleşme oranı kontrolü (hedef ≥%90) |

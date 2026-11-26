@@ -463,6 +463,10 @@ model ReturnRequest {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
+  // Musteriye gorunen yanit (admin yazar); adminNote ic not olarak kalir (IADE_TALEBI_SISTEMI_PLANI.md 4.1)
+  customerReply   String?
+  customerReplyAt DateTime?
+
   // Kalp Topla (KALP_TOPLA_PLANI.md 4.1, T6/Y6)
   exchangeVariantId      String?   // değişim ürünü/varyantı
   exchangeUnitCents      Int?      // değişim ürününün hesaplanan birim fiyatı

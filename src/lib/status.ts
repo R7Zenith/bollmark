@@ -96,8 +96,11 @@ export const returnStatusTone: Record<ReturnStatus, BadgeTone> = {
 };
 
 // Durum degisikliginde musteriye mail atilan gecisler - notifyReturnStatusChange
-// bunun disindaki durumlarda (TALEP_EDILDI, KARGODA) mail atmaz.
-export const returnStatusNotifiable: ReturnStatus[] = ["ONAYLANDI", "REDDEDILDI", "TAMAMLANDI"];
+// TALEP_EDILDI'de mail atmaz (talep acilinca ayri "Talebin alindi" maili gider).
+export const returnStatusNotifiable: ReturnStatus[] = ["ONAYLANDI", "REDDEDILDI", "KARGODA", "TAMAMLANDI"];
+
+// Iade kodu ve adresinin musteriye gosterildigi durumlar.
+export const returnGuideStatuses: ReturnStatus[] = ["ONAYLANDI", "KARGODA"];
 
 // /iletisim formundan gelen mesajlar (bkz. ContactMessage, /admin/mesajlar).
 export const contactStatuses = ["YENI", "OKUNDU", "YANITLANDI"] as const;
