@@ -12,6 +12,7 @@ import { ConfirmSubmitButton } from "@/components/admin/confirm-submit-button";
 import { VariantValueHexField } from "@/components/admin/variant-value-hex-field";
 import { VariantValueCreateFields } from "@/components/admin/variant-value-create-fields";
 import { VariantValueNameEditor } from "@/components/admin/variant-value-name-editor";
+import { VariantValueSortList } from "@/components/admin/variant-value-sort-list";
 import { logAudit } from "@/lib/audit-log";
 
 const PATH = "/admin/ayarlar/varyant-ozellikleri";
@@ -175,23 +176,21 @@ async function deleteValue(id: string) {
   ok("deger-silindi");
 }
 
-async function moveValue(attributeId: string, id: string, direction: "up" | "down") {
+// Ekranda duzenlenen siranin tamamini tek seferde kaydeder.
+async function saveValueOrder(attributeId: string, ids: string[]) {
   "use server";
+  await requireAdmin();
   const values = await prisma.variantAttributeValue.findMany({
     where: { attributeId },
-    orderBy: { position: "asc" }
+    select: { id: true }
   });
-  const index = values.findIndex((v) => v.id === id);
-  const swapIndex = direction === "up" ? index - 1 : index + 1;
-  if (index === -1 || swapIndex < 0 || swapIndex >= values.length) {
-    ok("siralandi");
+  const known = new Set(values.map((v) => v.id));
+  if (ids.length !== known.size || new Set(ids).size !== ids.length || ids.some((id) => !known.has(id))) {
+    fail("kaydedilemedi");
   }
-  const a = values[index];
-  const b = values[swapIndex];
-  await prisma.$transaction([
-    prisma.variantAttributeValue.update({ where: { id: a.id }, data: { position: b.position } }),
-    prisma.variantAttributeValue.update({ where: { id: b.id }, data: { position: a.position } })
-  ]);
+  await prisma.$transaction(
+    ids.map((id, position) => prisma.variantAttributeValue.update({ where: { id }, data: { position } }))
+  );
   revalidatePath(PATH);
   revalidateCatalog();
   ok("siralandi");
@@ -294,59 +293,48 @@ export default async function VariantAttributesPage({
                 {attribute.values.length === 0 ? (
                   <p className="text-sm text-admin-text-muted">Henüz değer eklenmedi.</p>
                 ) : (
-                  attribute.values.map((value, valIndex) => {
-                    const moveValUp = moveValue.bind(null, attribute.id, value.id, "up");
-                    const moveValDown = moveValue.bind(null, attribute.id, value.id, "down");
-                    const deleteVal = deleteValue.bind(null, value.id);
-                    const updateHex = updateValueHex.bind(null, value.id);
-                    const usageCount = value._count.variantLinks;
+                  <VariantValueSortList
+                    key={attribute.values.map((v) => v.id).join(",")}
+                    saveOrder={saveValueOrder.bind(null, attribute.id)}
+                    iconBtnClass={iconBtnClass}
+                    items={attribute.values.map((value) => {
+                      const deleteVal = deleteValue.bind(null, value.id);
+                      const updateHex = updateValueHex.bind(null, value.id);
+                      const usageCount = value._count.variantLinks;
 
-                    return (
-                      <div
-                        key={value.id}
-                        className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border border-admin-border px-3 py-2"
-                      >
-                        {isColorAttribute && (
-                          <span
-                            className="h-5 w-5 shrink-0 rounded-full border border-admin-border"
-                            style={{ backgroundColor: value.hexColor || "transparent" }}
-                            title={value.hexColor ?? ""}
-                          />
-                        )}
-                        <VariantValueNameEditor
-                          action={renameValue.bind(null, attribute.id, value.id)}
-                          value={value.value}
-                          siblingValues={attribute.values.map((v) => v.value)}
-                          usageCount={usageCount}
-                          iconBtnClass={iconBtnClass}
-                        />
-                        {usageCount > 0 && (
-                          <span className="text-xs text-admin-text-muted">{usageCount} varyantta kullanılıyor</span>
-                        )}
-                        {isColorAttribute && (
-                          <form action={updateHex}>
-                            <VariantValueHexField
-                              name="hexColor"
-                              colorName={value.value}
-                              defaultValue={value.hexColor || "#000000"}
+                      return {
+                        id: value.id,
+                        content: (
+                          <>
+                            {isColorAttribute && (
+                              <span
+                                className="h-5 w-5 shrink-0 rounded-full border border-admin-border"
+                                style={{ backgroundColor: value.hexColor || "transparent" }}
+                                title={value.hexColor ?? ""}
+                              />
+                            )}
+                            <VariantValueNameEditor
+                              action={renameValue.bind(null, attribute.id, value.id)}
+                              value={value.value}
+                              siblingValues={attribute.values.map((v) => v.value)}
+                              usageCount={usageCount}
+                              iconBtnClass={iconBtnClass}
                             />
-                          </form>
-                        )}
-                        <div className="flex items-center gap-1.5">
-                          <form action={moveValUp}>
-                            <button className={iconBtnClass} disabled={valIndex === 0} aria-label="Yukarı taşı">
-                              <ArrowUp size={13} />
-                            </button>
-                          </form>
-                          <form action={moveValDown}>
-                            <button
-                              className={iconBtnClass}
-                              disabled={valIndex === attribute.values.length - 1}
-                              aria-label="Aşağı taşı"
-                            >
-                              <ArrowDown size={13} />
-                            </button>
-                          </form>
+                            {usageCount > 0 && (
+                              <span className="text-xs text-admin-text-muted">{usageCount} varyantta kullanılıyor</span>
+                            )}
+                            {isColorAttribute && (
+                              <form action={updateHex}>
+                                <VariantValueHexField
+                                  name="hexColor"
+                                  colorName={value.value}
+                                  defaultValue={value.hexColor || "#000000"}
+                                />
+                              </form>
+                            )}
+                          </>
+                        ),
+                        actions: (
                           <form action={deleteVal}>
                             <ConfirmSubmitButton
                               confirmMessage={
@@ -359,10 +347,10 @@ export default async function VariantAttributesPage({
                               <Trash2 size={13} />
                             </ConfirmSubmitButton>
                           </form>
-                        </div>
-                      </div>
-                    );
-                  })
+                        )
+                      };
+                    })}
+                  />
                 )}
 
                 <form action={createVal} className="flex flex-wrap items-center gap-2 pt-1">
