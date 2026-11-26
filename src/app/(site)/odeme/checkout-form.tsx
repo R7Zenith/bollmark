@@ -450,7 +450,8 @@ export default function CheckoutForm({
         <form ref={formRef} onSubmit={handleSubmit} className="mx-auto w-full max-w-[580px] space-y-10 px-6 lg:mx-0 lg:px-0">
           <CartNotices />
 
-          <section className="space-y-4">
+          {/* Clarity: kisisel alanlarin tamami maskeli (bkz. lib/clarity.ts). */}
+          <section className="space-y-4" data-clarity-mask="True">
             <h2 className="text-xl font-semibold">Teslimat</h2>
 
             {savedAddresses.length > 0 && (

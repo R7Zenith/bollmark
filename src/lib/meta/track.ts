@@ -1,5 +1,6 @@
 import { hasConsent } from "@/lib/consent";
 import { CATALOG_SHOW_PARAM } from "@/lib/catalog-filters";
+import { clarity } from "@/lib/clarity";
 
 // Tarayici takip olaylarinin TEK merkezi: Meta Pixel (bkz. META_PIXEL_CAPI_PLANI.md)
 // ve GA4 (bkz. GA4_KURULUM_PLANI.md) - sayfalara dagitik fbq/gtag cagrisi konmaz.
@@ -9,6 +10,10 @@ import { CATALOG_SHOW_PARAM } from "@/lib/catalog-filters";
 // GA4 etkinse (production ya da NEXT_PUBLIC_GA4_DEBUG) ve analitik rizasi
 // verildiyse (bkz. components/google-analytics.tsx). Rıza sonradan geri
 // cekilirse hasConsent kontrolu yeni olayi durdurur.
+//
+// Clarity olaylari (sepete_ekle, sepeti_gor, odeme_baslat, odeme_bilgisi,
+// satin_alma) kayit filtrelemek icindir ve rizaya BAGLI DEGIL (bkz. lib/clarity.ts);
+// Clarity yuklu degilse clarity() hicbir sey yapmaz.
 //
 // content_ids / item_id kurali: varyant SKU'su (Google feed'deki g:id ile ayni). SKU'su
 // henuz bilinmeyen eski sepet satirlarinda variantId'ye dusulur.
@@ -246,6 +251,7 @@ export function trackAddToCart(line: CartLineLike & { name: string }) {
   fire("AddToCart", data, eventId);
   forwardToServer("AddToCart", eventId, data);
   ga4("add_to_cart", ga4CartData([line]));
+  clarity("event", "sepete_ekle");
 }
 
 export function trackRemoveFromCart(line: CartLineLike) {
@@ -254,6 +260,7 @@ export function trackRemoveFromCart(line: CartLineLike) {
 
 export function trackViewCart(lines: CartLineLike[]) {
   ga4("view_cart", ga4CartData(lines));
+  clarity("event", "sepeti_gor");
 }
 
 // Favoriler urun bazli (varyant yok): Meta content_ids = feed'deki item_group_id
@@ -296,6 +303,7 @@ export function trackInitiateCheckout(lines: CartLineLike[], valueCents: number)
   fire("InitiateCheckout", data, eventId);
   forwardToServer("InitiateCheckout", eventId, data);
   ga4("begin_checkout", ga4CartData(lines, valueCents));
+  clarity("event", "odeme_baslat");
 }
 
 // Odeme formunda siparis (teslimat adresi) olusturulunca.
@@ -307,12 +315,14 @@ export function trackAddShippingInfo(lines: CartLineLike[], valueCents: number, 
 export function trackAddPaymentInfo(lines: CartLineLike[], valueCents: number, coupon: string | null) {
   fire("AddPaymentInfo", { ...cartData(lines), value: valueCents / 100 });
   ga4("add_payment_info", { ...ga4CartData(lines, valueCents), coupon: coupon ?? undefined, payment_type: "iyzico" });
+  clarity("event", "odeme_bilgisi");
 }
 
 // Meta: event_id sunucudaki ile ayni (purchase_<siparisNo>, bkz. lib/meta/capi.ts);
 // sayfa yenilenince ayni sekmede tekrar gonderilmez. GA4: localStorage ile ayni
 // tarayicida siparis basina bir kez (yenileme / sonradan tekrar acma dahil).
 export function trackPurchase(orderNumber: string, metaData: Record<string, unknown> | null, ga4Data: Ga4Purchase | null) {
+  clarity("event", "satin_alma");
   if (metaData) {
     whenPixelReady(() => {
       const key = `bm-meta-purchase-${orderNumber}`;

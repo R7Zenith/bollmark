@@ -1,5 +1,13 @@
 # Bollmark - Güncel Durum
 
+## KALDIĞIM YER (2026-11-27, Microsoft Clarity)
+
+- **Durum:** Clarity (oturum kaydı + ısı haritası) yalnız `(site)` layout'unda, `lazyOnload`; **çerez rızasına bağlı değil** (kullanıcı kararı, KVKK riski bilerek kabul edildi). GA4/Meta rıza davranışı değişmedi. Kimlik `NEXT_PUBLIC_CLARITY_PROJECT_ID` (yalnız yerel `.env`; boşsa hiçbir şey yüklenmez). Olaylar `lib/meta/track.ts`'ten: `sepete_ekle`, `sepeti_gor`, `odeme_baslat`, `odeme_bilgisi`, `satin_alma`; kampanya aktifken `kampanya=muhtesem-kasim`. Kişisel alanlar `data-clarity-mask="True"` (ödeme Teslimat, giriş/kayıt girdileri, Hesabım paneli, sipariş durumu, sipariş no, üye adı).
+- **Metinler:** kullanıcı kararıyla Çerez/Gizlilik Politikası ve bant metnine hiçbir şey eklenmedi.
+- **DB:** değişiklik yok.
+- **Bekleyen:** commit/push kullanıcı onayı; Vercel Production'a `NEXT_PUBLIC_CLARITY_PROJECT_ID` (Sensitive değil) kullanıcı onayıyla, sonra yeniden deploy.
+- **Ayrıntı ve hız ölçümü:** `docs/reklam/clarity-kurulum-raporu.md`.
+
 ## KALDIĞIM YER (2026-11-26, iade talebi sistemi)
 
 - **Durum (kullanıcı onaylı, push edildi):** Talep açılınca müşteriye 16 "Talebin alındı", bize 17 "Yeni iade talebi"; admin yanıtı için 18; 05 onay mailinde Yurtiçi anlaşma kodu, iade adresi ve gönderim adımları; KARGODA da mail atıyor. Bir admin kaydında en fazla tek mail (durum değişince durum maili, yalnız yanıt değişince 18). Admin İadeler: düzenleme paneli (müşteriye yanıt + 4 hazır şablon, ayrı iç not), menüde açık talep rozeti. Hesapta `/hesap/iade-taleplerim` (rehber kutusu, kopyala butonları); `/siparis-durumu`'nda aynı rehber.

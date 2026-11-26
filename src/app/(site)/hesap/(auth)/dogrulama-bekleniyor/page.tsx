@@ -96,7 +96,7 @@ export default async function DogrulamaBekleniyorPage({
     <div className="mx-auto max-w-[480px] px-9 py-24 text-center">
       <h1 className="font-display text-3xl">E-postanı doğrula</h1>
       <p className="mt-4 text-sm text-ink/70">
-        Hesabın oluşturuldu. <span className="font-medium text-ink">{maskEmail(customer.email)}</span> adresine bir
+        Hesabın oluşturuldu. <span className="font-medium text-ink" data-clarity-mask="True">{maskEmail(customer.email)}</span> adresine bir
         doğrulama bağlantısı gönderdik. Bağlantıya tıklayarak hesabını doğrula.
       </p>
       <p className="mt-3 text-sm text-ink/70">Göremiyorsan Spam / Gereksiz klasörüne bak.</p>

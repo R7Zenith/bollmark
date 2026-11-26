@@ -693,7 +693,7 @@ function MobileMenu({
               onClick={onClose}
               className="block border-b border-line py-4 text-sm uppercase tracking-wide"
             >
-              {session?.user?.name ?? "Giriş Yap"}
+              <span data-clarity-mask="True">{session?.user?.name ?? "Giriş Yap"}</span>
             </Link>
             <Link href="/sepet" onClick={onClose} className="block py-4 text-sm uppercase tracking-wide">
               Sepet

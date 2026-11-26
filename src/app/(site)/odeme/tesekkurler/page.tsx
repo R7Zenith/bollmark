@@ -52,7 +52,7 @@ export default async function ThankYouPage({ searchParams }: { searchParams: Pro
         )}
         <h1 className="font-display text-3xl">Teşekkürler!</h1>
         <p className="mt-4 text-ink/70">
-          Siparişiniz alındı ve ödemeniz onaylandı. Sipariş numaranız: <strong>{siparis}</strong>
+          Siparişiniz alındı ve ödemeniz onaylandı. Sipariş numaranız: <strong data-clarity-mask="True">{siparis}</strong>
         </p>
         <p className="mt-2 text-sm text-ink/50">
           Sipariş detaylarını içeren e-posta kısa süre içinde gönderilecektir.
@@ -87,7 +87,7 @@ export default async function ThankYouPage({ searchParams }: { searchParams: Pro
         {state === "REVIEW"
           ? "Ödemeniz ek incelemeye alındı. Sonuç netleşince e-posta ile bilgilendirileceksiniz."
           : "Ödeme sonucunuzu kontrol ediyoruz, lütfen bu sayfadan ayrılmayın."}{" "}
-        Sipariş numaranız: <strong>{siparis}</strong>
+        Sipariş numaranız: <strong data-clarity-mask="True">{siparis}</strong>
       </p>
       <PaymentStatusPoller orderNumber={siparis} initialState={state} />
       {state === "PENDING" && canRetry && (

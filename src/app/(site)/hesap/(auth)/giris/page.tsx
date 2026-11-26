@@ -164,11 +164,11 @@ function HesapGiris() {
             <form key="giris-form" onSubmit={handleLogin} className="mt-8 space-y-5">
               <div className="space-y-2">
                 <label htmlFor="giris-email" className={labelClass}>E-posta</label>
-                <input id="giris-email" name="email" type="email" autoComplete="username" required className={inputClass} />
+                <input id="giris-email" data-clarity-mask="True" name="email" type="email" autoComplete="username" required className={inputClass} />
               </div>
               <div className="space-y-2">
                 <label htmlFor="giris-password" className={labelClass}>Şifre</label>
-                <input id="giris-password" name="password" type="password" autoComplete="current-password" required className={inputClass} />
+                <input id="giris-password" data-clarity-mask="True" name="password" type="password" autoComplete="current-password" required className={inputClass} />
               </div>
               {error && <p className="text-sm text-red-600">{error}</p>}
               <button type="submit" disabled={loading} className={primaryButtonClass}>
@@ -183,16 +183,17 @@ function HesapGiris() {
             <form key="kayit-form" onSubmit={handleRegister} className="mt-8 space-y-5">
               <div className="space-y-2">
                 <label htmlFor="kayit-name" className={labelClass}>Ad Soyad</label>
-                <input id="kayit-name" name="name" type="text" autoComplete="name" required className={inputClass} />
+                <input id="kayit-name" data-clarity-mask="True" name="name" type="text" autoComplete="name" required className={inputClass} />
               </div>
               <div className="space-y-2">
                 <label htmlFor="kayit-email" className={labelClass}>E-posta</label>
-                <input id="kayit-email" name="email" type="email" autoComplete="email" required className={inputClass} />
+                <input id="kayit-email" data-clarity-mask="True" name="email" type="email" autoComplete="email" required className={inputClass} />
               </div>
               <div className="space-y-2">
                 <label htmlFor="kayit-phone" className={labelClass}>Telefon</label>
                 <input
                   id="kayit-phone"
+                  data-clarity-mask="True"
                   name="phone"
                   type="tel"
                   inputMode="tel"
@@ -204,7 +205,7 @@ function HesapGiris() {
               </div>
               <div className="space-y-2">
                 <label htmlFor="kayit-password" className={labelClass}>Şifre (en az 8 karakter)</label>
-                <input id="kayit-password" name="password" type="password" autoComplete="new-password" required minLength={8} className={inputClass} />
+                <input id="kayit-password" data-clarity-mask="True" name="password" type="password" autoComplete="new-password" required minLength={8} className={inputClass} />
               </div>
               <label className="flex items-start gap-3 text-xs text-ink/80">
                 <input type="checkbox" name="marketingEmail" className="mt-0.5 h-4 w-4 shrink-0" />

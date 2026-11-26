@@ -10,7 +10,8 @@ export default async function HesapLayout({ children }: { children: React.ReactN
   const customer = await prisma.customer.findUnique({ where: { id: customerId }, select: { name: true, emailVerifiedAt: true } });
 
   return (
-    <div className="mx-auto max-w-[1600px] px-9 py-16">
+    // Clarity: Hesabim'in tamami maskeli (kisisel bilgiler, bkz. lib/clarity.ts).
+    <div className="mx-auto max-w-[1600px] px-9 py-16" data-clarity-mask="True">
       {customer && !customer.emailVerifiedAt && (
         <form
           action={resendVerificationFromWaiting}

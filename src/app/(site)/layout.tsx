@@ -14,6 +14,7 @@ import { MetaPixel } from "@/components/meta-pixel";
 import { metaTrackingEnabled } from "@/lib/meta/capi";
 import { GoogleAnalytics } from "@/components/google-analytics";
 import { ga4Config } from "@/lib/ga4";
+import { Clarity } from "@/components/clarity";
 import { getMegaMenuData } from "@/lib/site-nav";
 import { baseOpenGraph, siteIcons } from "@/lib/site-metadata";
 import { getSiteUrl } from "@/lib/site-url";
@@ -101,6 +102,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                   <GoogleAnalytics measurementId={ga4.measurementId} debug={ga4.debug} />
                 </Suspense>
               )}
+              {/* Rizadan bagimsiz (kullanici karari, bkz. lib/clarity.ts). */}
+              <Clarity />
             </WishlistProvider>
           </CartProvider>
           </EfsaneProvider>

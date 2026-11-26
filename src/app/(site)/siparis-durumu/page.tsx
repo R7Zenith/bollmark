@@ -171,6 +171,7 @@ export default function SiparisDurumuPage() {
 
       <form onSubmit={lookup} className="mt-8 flex flex-col gap-4 sm:flex-row">
         <input
+          data-clarity-mask="True"
           value={orderNumber}
           onChange={(e) => setOrderNumber(e.target.value)}
           required
@@ -178,6 +179,7 @@ export default function SiparisDurumuPage() {
           className="w-full border border-line px-4 py-3 text-sm"
         />
         <input
+          data-clarity-mask="True"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -196,7 +198,7 @@ export default function SiparisDurumuPage() {
       {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
 
       {result && (
-        <div className="mt-10 space-y-8">
+        <div className="mt-10 space-y-8" data-clarity-mask="True">
           <div className="border border-line bg-white p-6">
             <div className="flex items-center justify-between">
               <h2 className="font-display text-xl">{result.order.orderNumber}</h2>

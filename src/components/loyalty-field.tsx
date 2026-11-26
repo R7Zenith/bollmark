@@ -56,7 +56,7 @@ export function LoyaltyField({
   return (
     <div className="space-y-2">
       <p className="text-xs text-ink/60">
-        {balance} puanınız var ({session?.user?.name}). 1 puan = {formatPrice(LOYALTY_REDEEM_RATE_CENTS)} indirim.
+        {balance} puanınız var (<span data-clarity-mask="True">{session?.user?.name}</span>). 1 puan = {formatPrice(LOYALTY_REDEEM_RATE_CENTS)} indirim.
       </p>
       {kalpNote && <p className="text-xs text-ink/60">Puan, Kalp Topla kuponlu ürüne uygulanmaz.</p>}
       <div className="flex gap-2">

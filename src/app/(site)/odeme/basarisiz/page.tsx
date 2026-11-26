@@ -20,7 +20,7 @@ export default async function PaymentFailedPage({ searchParams }: { searchParams
     <div className="mx-auto max-w-xl px-6 py-24 text-center">
       <h1 className="font-display text-3xl">Ödeme tamamlanamadı</h1>
       <p className="mt-4 text-ink/70">{describePaymentError(errorCode)}</p>
-      <p className="mt-2 text-sm text-ink/50">Kartınızdan herhangi bir tutar çekilmedi. Sipariş numaranız: {siparis}</p>
+      <p className="mt-2 text-sm text-ink/50">Kartınızdan herhangi bir tutar çekilmedi. Sipariş numaranız: <span data-clarity-mask="True">{siparis}</span></p>
       <div className="mt-10 flex flex-col items-center gap-4">
         {canRetry && state !== "CANCELLED" && state !== "UNKNOWN" ? (
           <RetryPaymentButton orderNumber={siparis} />
