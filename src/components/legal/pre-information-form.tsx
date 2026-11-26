@@ -9,7 +9,7 @@ import { DISPATCH_TEXT, RETURN_SHIPPING_TEXT, SHIPPING_THRESHOLD_CENTS, shipping
 // kullanir. Satici bilgileri (unvan, MERSIS, vergi, telefon, adres, e-posta)
 // STORE_INFO'dan; null alanlar gosterilmez.
 
-export const PRE_INFORMATION_UPDATED_AT = "26 Ekim 2026";
+export const PRE_INFORMATION_UPDATED_AT = "26 Kasım 2026";
 
 export type PreInformationOrder = {
   lines: { key: string; name: string; color: string; size: string; quantity: number; lineTotalCents: number }[];

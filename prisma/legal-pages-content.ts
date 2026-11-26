@@ -217,7 +217,7 @@ Madde 9 – Yürürlük
 
 ALICI, Site üzerinden verdiği siparişe ait ödemeyi gerçekleştirdiğinde işbu sözleşmenin tüm koşullarını kabul etmiş sayılır.
 
-Son güncelleme: 26 Ekim 2026`
+Son güncelleme: 26 Kasım 2026`
   },
   {
     slug: "kargo-bilgisi",
@@ -251,7 +251,7 @@ Son güncelleme: ${YAYIN_TARIHI}`
 
 Sorularınız için bilgi@bollmark.com adresinden bize ulaşabilirsiniz.
 
-Son güncelleme: ${YAYIN_TARIHI}`
+Son güncelleme: 26 Kasım 2026`
   },
   {
     slug: "kalp-topla-kosullari",

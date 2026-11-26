@@ -17,6 +17,9 @@ const LINES: Record<string, RegExp> = {
   "mesafeli-satis-sozlesmesi": /^- İade (kargo ücreti ALICI'ya aittir\.|için SATICI'nın anlaşmalı kargo firması: .+)$/m
 };
 
+// Metnin son satiri; kaynaktaki tarihe esitlenir.
+const DATE_LINE = /^Son güncelleme: .+$/m;
+
 async function main() {
   const write = process.argv.includes("--yaz");
   for (const [slug, pattern] of Object.entries(LINES)) {
@@ -30,7 +33,9 @@ async function main() {
     const newLine = expected.match(pattern)?.[0];
     const count = (row.content.match(new RegExp(pattern, "gm")) ?? []).length;
     if (!newLine || count !== 1) throw new Error(`${slug}: beklenen 1 eslesme, bulunan ${count}.`);
-    const next = row.content.replace(pattern, newLine);
+    const dateLine = expected.match(DATE_LINE)?.[0];
+    if (!dateLine) throw new Error(`${slug}: kaynakta tarih satiri yok.`);
+    const next = row.content.replace(pattern, newLine).replace(DATE_LINE, dateLine);
     if (next !== expected) throw new Error(`${slug}: DB metni kaynakla uyusmuyor, yazilmadi.`);
     if (write) {
       await prisma.legalPage.update({ where: { slug }, data: { content: next } });
