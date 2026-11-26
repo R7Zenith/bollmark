@@ -5,7 +5,7 @@
 - **Durum:** Clarity (oturum kaydı + ısı haritası) yalnız `(site)` layout'unda, `lazyOnload`; **çerez rızasına bağlı değil** (kullanıcı kararı, KVKK riski bilerek kabul edildi). GA4/Meta rıza davranışı değişmedi. Kimlik `NEXT_PUBLIC_CLARITY_PROJECT_ID` (yalnız yerel `.env`; boşsa hiçbir şey yüklenmez). Olaylar `lib/meta/track.ts`'ten: `sepete_ekle`, `sepeti_gor`, `odeme_baslat`, `odeme_bilgisi`, `satin_alma`; kampanya aktifken `kampanya=muhtesem-kasim`. Kişisel alanlar `data-clarity-mask="True"` (ödeme Teslimat, giriş/kayıt girdileri, Hesabım paneli, sipariş durumu, sipariş no, üye adı).
 - **Metinler:** kullanıcı kararıyla Çerez/Gizlilik Politikası ve bant metnine hiçbir şey eklenmedi.
 - **DB:** değişiklik yok.
-- **Bekleyen:** commit/push kullanıcı onayı; Vercel Production'a `NEXT_PUBLIC_CLARITY_PROJECT_ID` (Sensitive değil) kullanıcı onayıyla, sonra yeniden deploy.
+- **Canlı (2026-11-27, kullanıcı onaylı):** Vercel Production'a `NEXT_PUBLIC_CLARITY_PROJECT_ID` eklendi (Sensitive değil), `e5a6901` push = deploy. bollmark.com'da doğrulandı: bant dokunulmamış/Reddet iken Clarity yükleniyor, GA4 ve Meta yüklenmiyor; hepsini kabulde GA4+Meta yükleniyor; /admin'de Clarity yok. Kullanıcı Clarity panelinden test edecek (rapordaki liste).
 - **Ayrıntı ve hız ölçümü:** `docs/reklam/clarity-kurulum-raporu.md`.
 
 ## KALDIĞIM YER (2026-11-26, iade talebi sistemi)
