@@ -175,9 +175,14 @@ export default async function HomePage() {
     }
     return image;
   };
-  const categoryBoxImage = (slug: string) => {
+  // Ayakkabi kategorisi Aksesuar altinda: Aksesuar kutusunun gorseli ayakkabi
+  // olmasin (sayi ve link yine ayakkabilari kapsar).
+  const categoryBoxImage = (slug: string, excludeSlug?: string) => {
     const imageUrl = adminImageUrl(slug);
-    return imageUrl ? { url: imageUrl, greyBackdrop: false } : take(newestProductImage(inCategoryTree(slug), true, used));
+    if (imageUrl) return { url: imageUrl, greyBackdrop: false };
+    const excluded = new Set(excludeSlug ? inCategoryTree(excludeSlug).map((p) => p.id) : []);
+    const candidates = inCategoryTree(slug).filter((p) => !excluded.has(p.id));
+    return take(newestProductImage(candidates, true, used));
   };
   // Cinsiyet kutulari giyimi tercih eder: ayakkabi/aksesuar agacindaki urunler
   // o kutularin kendi gorseline kalsin; boxer (ic giyim) da vitrin gorseli
@@ -196,7 +201,7 @@ export default async function HomePage() {
     { label: "Erkek", count: erkekCount, href: "/erkek", image: genderBoxImage("Erkek") },
     { label: "Çocuk", count: cocukCount, href: "/cocuk", image: genderBoxImage("Çocuk") },
     { label: "Ayakkabı", count: ayakkabiCount, href: "/kategori/ayakkabi", image: categoryBoxImage("ayakkabi") },
-    { label: "Aksesuar", count: aksesuarCount, href: "/kategori/aksesuar", image: categoryBoxImage("aksesuar") }
+    { label: "Aksesuar", count: aksesuarCount, href: "/kategori/aksesuar", image: categoryBoxImage("aksesuar", "ayakkabi") }
   ].filter((c) => c.count > 0 || ALWAYS_SHOWN_COLLECTIONS.has(c.label));
 
   // C) Aktif otomatik kampanya etiketi: sayfadaki kartlarin gosterdigi gercek
