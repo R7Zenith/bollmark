@@ -31,7 +31,7 @@ interface SearchParams {
 function guestNote() {
   return (
     <p className="mt-6 text-xs text-admin-text-muted">
-      Misafir sepetleri bu özellik açıldıktan sonra sepetini değiştiren ziyaretçiler için görünür. Ödeme sayfasında
+      Misafir sepetleri, bu özellik yayına girdikten sonra siteyi ziyaret eden misafirler için görünür. Ödeme sayfasında
       e-posta bırakan misafirlere hatırlatma için:{" "}
       <Link href="/admin/terk-edilmis-sepetler" className="text-admin-accent hover:underline">
         Terk Edilmiş Sepetler
