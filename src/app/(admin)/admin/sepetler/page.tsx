@@ -17,6 +17,7 @@ import { ActiveCartsTable, type ActiveCartRow } from "@/components/admin/active-
 const PATH = "/admin/sepetler";
 const PAGE_SIZE = 50;
 const NON_EMPTY: Prisma.CustomerCartWhereInput = { linesJson: { not: "[]" } };
+const GUEST_NON_EMPTY: Prisma.GuestCartWhereInput = { linesJson: { not: "[]" } };
 
 interface SearchParams {
   q?: string;
@@ -30,8 +31,8 @@ interface SearchParams {
 function guestNote() {
   return (
     <p className="mt-6 text-xs text-admin-text-muted">
-      Giriş yapmamış ziyaretçilerin sepetleri tarayıcılarında tutulur ve burada görünmez. Ödeme sayfasında e-posta
-      bırakan misafirler için:{" "}
+      Misafir sepetleri bu özellik açıldıktan sonra sepetini değiştiren ziyaretçiler için görünür. Ödeme sayfasında
+      e-posta bırakan misafirlere hatırlatma için:{" "}
       <Link href="/admin/terk-edilmis-sepetler" className="text-admin-accent hover:underline">
         Terk Edilmiş Sepetler
       </Link>
@@ -39,7 +40,8 @@ function guestNote() {
   );
 }
 
-// Uye musterilerin su anki sepetleri (CustomerCart, PUT /api/sepet ile yazilir).
+// Uye (CustomerCart, PUT /api/sepet) ve misafir (GuestCart, PUT /api/sepet/misafir)
+// musterilerin su anki sepetleri.
 // Filtreye uyan tum sepetler hafif kolonlarla cekilir ve satirlari TEK urun
 // sorgusuyla cozumlenir; boylece kartlar ve "tutar" siralamasi tum kumeye
 // gore calisir, sayfalama bellekte yapilir. Yalniz ADMIN (bkz. lib/roles.ts).
@@ -47,7 +49,11 @@ export default async function ActiveCartsPage({ searchParams }: { searchParams: 
   await requireAdmin();
   const { q, donem, baslangic, bitis, sirala, page: pageParam } = await searchParams;
 
-  const totalAllTime = await prisma.customerCart.count({ where: NON_EMPTY });
+  const [memberCount, guestCount] = await Promise.all([
+    prisma.customerCart.count({ where: NON_EMPTY }),
+    prisma.guestCart.count({ where: GUEST_NON_EMPTY })
+  ]);
+  const totalAllTime = memberCount + guestCount;
   if (totalAllTime === 0) {
     return (
       <div>
@@ -56,7 +62,7 @@ export default async function ActiveCartsPage({ searchParams }: { searchParams: 
           <EmptyState
             icon={ShoppingBasket}
             title="Henüz aktif sepet yok"
-            description="Üye müşteriler sepete ürün eklediğinde burada görünecek."
+            description="Müşteriler sepete ürün eklediğinde burada görünecek."
           />
         </div>
         {guestNote()}
@@ -69,11 +75,13 @@ export default async function ActiveCartsPage({ searchParams }: { searchParams: 
   // Telefon DB'de +905xxxxxxxxx; "0532 123..." gibi aramalar rakama indirgenir.
   const phoneDigits = needle?.replace(/\D/g, "").replace(/^(90|0)/, "") ?? "";
 
+  const updatedAtFilter =
+    periodRange.current.start && periodRange.current.end
+      ? { updatedAt: { gte: periodRange.current.start, lte: periodRange.current.end } }
+      : {};
   const where: Prisma.CustomerCartWhereInput = {
     ...NON_EMPTY,
-    ...(periodRange.current.start && periodRange.current.end
-      ? { updatedAt: { gte: periodRange.current.start, lte: periodRange.current.end } }
-      : {}),
+    ...updatedAtFilter,
     ...(needle
       ? {
           customer: {
@@ -87,17 +95,52 @@ export default async function ActiveCartsPage({ searchParams }: { searchParams: 
       : {})
   };
 
-  const carts = await prisma.customerCart.findMany({
-    where,
-    orderBy: { updatedAt: "desc" },
-    select: {
-      id: true,
-      linesJson: true,
-      couponCode: true,
-      updatedAt: true,
-      customer: { select: { id: true, name: true, email: true, phone: true } }
-    }
-  });
+  // Misafirde aranabilen tek alan odeme sayfasinda biraktigi e-posta.
+  const guestWhere: Prisma.GuestCartWhereInput = {
+    ...GUEST_NON_EMPTY,
+    ...updatedAtFilter,
+    ...(needle ? { email: { contains: needle, mode: "insensitive" } } : {})
+  };
+
+  const [memberCarts, guestCarts] = await Promise.all([
+    prisma.customerCart.findMany({
+      where,
+      select: {
+        id: true,
+        linesJson: true,
+        couponCode: true,
+        updatedAt: true,
+        customer: { select: { id: true, name: true, email: true, phone: true } }
+      }
+    }),
+    prisma.guestCart.findMany({
+      where: guestWhere,
+      select: { id: true, guestId: true, linesJson: true, couponCode: true, email: true, updatedAt: true }
+    })
+  ]);
+
+  const carts = [
+    ...memberCarts.map((c) => ({
+      id: c.id,
+      linesJson: c.linesJson,
+      couponCode: c.couponCode,
+      updatedAt: c.updatedAt,
+      customerId: c.customer.id as string | null,
+      customerName: c.customer.name,
+      customerEmail: c.customer.email as string | null,
+      customerPhone: c.customer.phone ? formatTrMobile(c.customer.phone) : null
+    })),
+    ...guestCarts.map((c) => ({
+      id: c.id,
+      linesJson: c.linesJson,
+      couponCode: c.couponCode,
+      updatedAt: c.updatedAt,
+      customerId: null,
+      customerName: `Misafir #${c.guestId.slice(0, 4)}`,
+      customerEmail: c.email,
+      customerPhone: null
+    }))
+  ].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
   const inputs = carts.map((c) => parseStoredCartLines(c.linesJson));
   const resolved = await resolveManyCarts(inputs);
@@ -110,10 +153,10 @@ export default async function ActiveCartsPage({ searchParams }: { searchParams: 
     return [
       {
         id: c.id,
-        customerId: c.customer.id,
-        customerName: c.customer.name,
-        customerEmail: c.customer.email,
-        customerPhone: c.customer.phone ? formatTrMobile(c.customer.phone) : null,
+        customerId: c.customerId,
+        customerName: c.customerName,
+        customerEmail: c.customerEmail,
+        customerPhone: c.customerPhone,
         lines,
         itemsSummary: lines
           .map((l) => {

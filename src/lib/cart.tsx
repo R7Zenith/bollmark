@@ -104,6 +104,28 @@ function clearLocalCart() {
   }
 }
 
+// Misafir sepetinin sunucuya (GuestCart) en son yazilan hali; ayni sepet her
+// sayfa yuklemesinde tekrar yazilmasin. Anahtar varsa sunucuda satir vardir.
+const GUEST_SYNC_KEY = "bollmark-guest-cart-sync";
+const GUEST_SYNC_DEBOUNCE_MS = 3000;
+
+function readGuestSyncKey(): string | null {
+  try {
+    return window.localStorage.getItem(GUEST_SYNC_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeGuestSyncKey(key: string | null) {
+  try {
+    if (key === null) window.localStorage.removeItem(GUEST_SYNC_KEY);
+    else window.localStorage.setItem(GUEST_SYNC_KEY, key);
+  } catch {
+    // sessizce yut
+  }
+}
+
 // DB'ye / dogrulama istegine giden hali: yalniz id + adet.
 function toInputs(lines: { productId: string; variantId: string; quantity: number }[]) {
   return lines.slice(0, MAX_CART_LINES).map((l) => ({
@@ -290,6 +312,34 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   }, [lines, couponCode, hydrated, status]);
 
+  // Misafir sepeti admin Aktif Sepetler icin kisa gecikmeyle sunucuya da yazilir
+  // (yalniz id + adet + kupon). Bos sepet, sunucuda satir yoksa hic gonderilmez.
+  const guestSyncKey = useMemo(
+    () => JSON.stringify([toInputs(lines).map((l) => [l.productId, l.variantId, l.quantity]), couponCode]),
+    [lines, couponCode]
+  );
+  useEffect(() => {
+    if (!hydrated || status !== "unauthenticated") return;
+    const previous = readGuestSyncKey();
+    if (guestSyncKey === previous) return;
+    const empty = linesRef.current.length === 0;
+    if (empty && previous === null) return;
+    const timer = setTimeout(() => {
+      fetch("/api/sepet/misafir", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ lines: toInputs(linesRef.current), couponCode: couponRef.current })
+      })
+        .then((res) => {
+          if (res.ok) writeGuestSyncKey(empty ? null : guestSyncKey);
+        })
+        .catch(() => {
+          // ag hatasi: bir sonraki degisiklikte tekrar denenir
+        });
+    }, GUEST_SYNC_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [guestSyncKey, hydrated, status]);
+
   const applyFreshToState = useCallback((fresh: ResolvedCartLine[]): RefreshResult => {
     const result = applyFresh(linesRef.current, fresh);
     if (result.lines !== linesRef.current) {
@@ -395,6 +445,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
     }
     clearLocalCart();
+    // Misafirken sunucuya yazilan sepet artik uye sepetinde: o satir silinir.
+    if (readGuestSyncKey() !== null) {
+      writeGuestSyncKey(null);
+      void fetch("/api/sepet/misafir", { method: "DELETE" }).catch(() => {});
+    }
 
     lastSyncedKeyRef.current = syncKeyOf(finalLines, finalCoupon, finalSelection);
     dirtyRef.current = false;

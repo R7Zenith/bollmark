@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { GUEST_CART_COOKIE, readGuestId } from "@/lib/guest-cart";
 
 const lineSchema = z.object({
   name: z.string(),
@@ -48,6 +49,10 @@ export async function POST(req: NextRequest) {
   } else {
     await prisma.abandonedCart.create({ data: { email, linesJson, totalCents } });
   }
+
+  // Misafirin Aktif Sepetler satirinda e-postasi gorunsun.
+  const guestId = readGuestId(req.cookies.get(GUEST_CART_COOKIE)?.value);
+  if (guestId) await prisma.guestCart.updateMany({ where: { guestId }, data: { email } });
 
   return NextResponse.json({ ok: true });
 }

@@ -9,9 +9,9 @@ import type { ResolvedCartLine } from "@/lib/cart-shared";
 
 export interface ActiveCartRow {
   id: string;
-  customerId: string;
+  customerId: string | null; // misafirde null
   customerName: string;
-  customerEmail: string;
+  customerEmail: string | null;
   customerPhone: string | null;
   lines: ResolvedCartLine[];
   itemsSummary: string;
@@ -73,14 +73,18 @@ export function ActiveCartsTable({ carts }: { carts: ActiveCartRow[] }) {
                       </button>
                     </td>
                     <td className={tdClass}>
-                      <Link
-                        href={`/admin/musteriler/${cart.customerId}`}
-                        onClick={(e) => e.stopPropagation()}
-                        className="font-medium text-admin-text hover:text-admin-accent hover:underline"
-                      >
-                        {cart.customerName}
-                      </Link>
-                      <p className="text-xs text-admin-text-muted">{cart.customerEmail}</p>
+                      {cart.customerId ? (
+                        <Link
+                          href={`/admin/musteriler/${cart.customerId}`}
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-medium text-admin-text hover:text-admin-accent hover:underline"
+                        >
+                          {cart.customerName}
+                        </Link>
+                      ) : (
+                        <span className="font-medium text-admin-text-muted">{cart.customerName}</span>
+                      )}
+                      {cart.customerEmail && <p className="text-xs text-admin-text-muted">{cart.customerEmail}</p>}
                       {cart.customerPhone && <p className="text-xs text-admin-text-muted">{cart.customerPhone}</p>}
                     </td>
                     <td className={tdClass}>

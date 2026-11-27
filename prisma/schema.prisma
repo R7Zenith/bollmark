@@ -419,6 +419,21 @@ model CustomerCart {
   updatedAt  DateTime @updatedAt
 }
 
+// Giris yapmamis ziyaretcinin sepeti (admin Aktif Sepetler icin). Kimlik
+// bm_misafir cerezi; bos sepette satir silinir. email: odeme sayfasinda
+// e-posta birakirsa (api/sepet-kaydet) yazilir.
+model GuestCart {
+  id         String   @id @default(cuid())
+  guestId    String   @unique
+  linesJson  String   @default("[]")
+  couponCode String?
+  email      String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([updatedAt])
+}
+
 model CustomerAddress {
   id         String   @id @default(cuid())
   customerId String

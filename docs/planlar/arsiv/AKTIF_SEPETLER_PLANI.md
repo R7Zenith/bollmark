@@ -1,7 +1,7 @@
 # Aktif Sepetler Sayfası — Plan
 
 Tarih: 2026-11-23
-Durum: Faz 1 uygulandı (2026-11-23). Kullanıcı kararıyla sidebar'da "Müşteriler" grubunda. Ek olarak Terk Edilmiş Sepetler'e "Üye Sepetleri" bölümü (24 saat dokunulmamış üye sepetleri, yalnız elle hatırlatma) eklendi. Faz 2 yapılmadı.
+Durum: Faz 1 uygulandı (2026-11-23). Kullanıcı kararıyla sidebar'da "Müşteriler" grubunda. Ek olarak Terk Edilmiş Sepetler'e "Üye Sepetleri" bölümü (24 saat dokunulmamış üye sepetleri, yalnız elle hatırlatma) eklendi. Faz 2 (misafir sepet takibi, `GuestCart`) 2026-11-27'de uygulandı: tüm misafirler, çerez onayı aranmadan (kullanıcı kararı, metinler güncellenmedi).
 
 ## Amaç
 Admin panelde sitede oluşturulan sepetleri görmek: kim, hangi ürünleri, kaç adet, toplam ne kadar, en son ne zaman güncelledi.
