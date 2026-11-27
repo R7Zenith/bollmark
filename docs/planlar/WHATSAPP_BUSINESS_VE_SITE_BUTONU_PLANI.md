@@ -1,6 +1,6 @@
 # WhatsApp Business + Sitede WhatsApp Butonu Planı
 
-Tarih: 2026-10-27 · Durum: devam ediyor (Bölüm 2 localhost'ta; Bölüm 1, 3, 4 kullanıcı yapar)
+Tarih: 2026-10-27 · Durum: devam ediyor — Bölüm 1 (profil, karşılama/uzakta mesajı, hızlı yanıtlar) ve Bölüm 2 (site, push 2026-10-27) tamam; kalan Bölüm 3 (Facebook sayfası bağlantısı) ve Bölüm 4 (Instagram WhatsApp butonu, Google İşletme Profili)
 
 ## Arka plan
 
